@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINEAI APLUS 戰情室</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #030712;
+  --panel: #0b1120;
+  --border: #1a2540;
+  --cyan: #06b6d4;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --green: #10b981;
+  --purple: #a855f7;
+  --text: #e2e8f0;
+  --sub: #4b6080;
+  --dim: #0f1928;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  min-height: 100vh;
+  padding: 24px 28px;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(6,182,212,0.012) 3px,
+    rgba(6,182,212,0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── HEADER ── */
+.hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.hdr-left { display: flex; align-items: baseline; gap: 14px; }
+.hdr-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.8rem;
+  color: var(--cyan);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(6,182,212,0.25);
+}
+.hdr-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--sub);
+  letter-spacing: 0.18em;
+}
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--sub);
+  padding-bottom: 2px;
+}
+.pulse {
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50% { opacity: 0.5; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+}
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.panel::before, .panel::after {
+  content: '';
+  position: absolute;
+  width: 10px; height: 10px;
+}
+.panel::before { top:-1px; left:-1px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+.panel::after  { bottom:-1px; right:-1px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+.p-overview { --accent: var(--cyan); }
+.p-rag      { --accent: var(--amber); }
+.p-claim    { --accent: var(--purple); }
+.p-gap      { --accent: var(--red); }
+
+.ph {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.ph-icon {
+  font-size: 1rem;
+  width: 30px; height: 30px;
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+}
+.ph-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+.ph-badge {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--sub);
+}
+
+/* ── LOADING ── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--sub);
+}
+.ld span { animation: blink 1.2s infinite; }
+.ld span:nth-child(2) { animation-delay:.2s; }
+.ld span:nth-child(3) { animation-delay:.4s; }
+@keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+/* ── 1. OVERVIEW ── */
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.mc {
+  background: var(--dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 14px 16px;
+}
+.mc-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 2.1rem;
+  font-weight: 500;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.mc-lbl { font-size: 0.7rem; color: var(--sub); letter-spacing: 0.04em; }
+
+/* ── 2. RAG HEAT ── */
+.rag-list {
+  display: flex; flex-direction: column; gap: 7px;
+  max-height: 340px; overflow-y: auto;
+}
+.rag-list::-webkit-scrollbar { width: 3px; }
+.rag-list::-webkit-scrollbar-track { background: transparent; }
+.rag-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.ri {
+  display: flex; align-items: center; gap: 8px;
+}
+.ri-rank {
+  font-family: 'DM Mono', monospace; font-size: 0.62rem;
+  color: var(--sub); width: 18px; text-align: right; flex-shrink: 0;
+}
+.ri-track {
+  flex: 1; height: 22px; background: rgba(255,255,255,0.03);
+  border-radius: 2px; overflow: hidden; position: relative;
+}
+.ri-fill {
+  height: 100%; display: flex; align-items: center; padding-left: 8px;
+  background: linear-gradient(90deg, rgba(245,158,11,0.18), rgba(245,158,11,0.42));
+  transition: width 1.1s ease;
+}
+.ri-text {
+  font-size: 0.67rem; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 200px;
+}
+.ri-cnt {
+  font-family: 'DM Mono', monospace; font-size: 0.68rem;
+  color: var(--amber); width: 30px; text-align: right; flex-shrink: 0;
+}
+
+/* ── 3. CLAIM ── */
+.claim-chart { display: flex; flex-direction: column; gap: 20px; }
+.cr { display: flex; flex-direction: column; gap: 7px; }
+.cr-top { display: flex; justify-content: space-between; align-items: center; }
+.cr-lbl { font-size: 0.78rem; color: var(--text); }
+.cr-meta { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--sub); }
+.cr-track {
+  height: 7px; background: rgba(255,255,255,0.05);
+  border-radius: 4px; overflow: hidden;
+}
+.cr-fill { height: 100%; border-radius: 4px; transition: width 1.3s ease; }
+.cr-total {
+  margin-top: 6px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cr-total-lbl { font-size: 0.7rem; color: var(--sub); }
+.cr-total-val { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--purple); }
+
+/* ── 4. GAP ── */
+.gap-list {
+  display: flex; flex-direction: column; gap: 7px;
+  max-height: 340px; overflow-y: auto;
+}
+.gap-list::-webkit-scrollbar { width: 3px; }
+.gap-list::-webkit-scrollbar-track { background: transparent; }
+.gap-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.gi {
+  display: flex; gap: 9px; padding: 9px 10px;
+  background: rgba(239,68,68,0.04);
+  border: 1px solid rgba(239,68,68,0.1);
+  border-radius: 2px; align-items: flex-start;
+}
+.gi-dot {
+  width: 5px; height: 5px; background: var(--red); border-radius: 50%;
+  margin-top: 6px; flex-shrink: 0; opacity: 0.7;
+}
+.gi-text { font-size: 0.73rem; color: var(--text); line-height: 1.55; flex: 1; }
+.gi-time {
+  font-family: 'DM Mono', monospace; font-size: 0.6rem;
+  color: var(--sub); flex-shrink: 0; margin-top: 2px;
+}
+.gap-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 90px; font-size: 0.78rem; color: var(--green); gap: 6px;
+}
+
+/* ── FOOTER ── */
+.ftr {
+  margin-top: 20px; text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; color: var(--sub); letter-spacing: 0.14em;
+}
+
+@media (max-width: 720px) {
+  .grid { grid-template-columns: 1fr; }
+  .hdr { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .hdr-title { font-size: 2rem; }
+  body { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-title">LINEAI APLUS 戰情室</div>
+    <div class="hdr-sub">COMMAND CENTER · ALL TIME</div>
+  </div>
+  <div class="hdr-right">
+    <div class="pulse"></div>
+    <span id="ts">載入中…</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <div class="panel p-overview">
+    <div class="ph">
+      <div class="ph-icon">📡</div>
+      <div class="ph-title">系統概況</div>
+      <div class="ph-badge">SYSTEM STATUS</div>
+    </div>
+    <div id="z-overview"><div class="loading">載入中<div class="ld"><span>.</span><span>.</span><span>.</span></div></div></div>
+  </div>
+
+  <div class="panel p-rag">
+    <div class="ph">
+      <div class="ph-icon">🔥</div>
+      <div class="ph-title">RAG 熱度榜</div>
+      <div class="ph-badge">KNOWLEDGE HITS</div>
+    </div>
+    <div id="z-rag"><div class="loading">載入中<div class="ld"><span>.</span><span>.</span><span>.</span></div></div></div>
+  </div>
+
+  <div class="panel p-claim">
+    <div class="ph">
+      <div class="ph-icon">🎯</div>
+      <div class="ph-title">異議分布</div>
+      <div class="ph-badge">OBJECTION MAP</div>
+    </div>
+    <div id="z-claim"><div class="loading">載入中<div class="ld"><span>.</span><span>.</span><span>.</span></div></div></div>
+  </div>
+
+  <div class="panel p-gap">
+    <div class="ph">
+      <div class="ph-icon">⚠️</div>
+      <div class="ph-title">知識缺口</div>
+      <div class="ph-badge">UNMATCHED QUERIES</div>
+    </div>
+    <div id="z-gap"><div class="loading">載入中<div class="ld"><span>.</span><span>.</span><span>.</span></div></div></div>
+  </div>
+
+</div>
+
+<footer class="ftr">
+  LINEAI APLUS · 環貫綠佳利 AI ECOSYSTEM · DATA CACHED 24H
+</footer>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIG — 填入 Supabase anon key
+// ════════════════════════════════════════
+const RAG = {
+  url: 'https://mkjtqzufohzrnbvebbfb.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ranRxenVmb2h6cm5idmViYmZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTI2NjEsImV4cCI6MjA4ODI2ODY2MX0.RWaj1eNeZfsln4qzGTNbOOyZA1S4GLsRSL95Pf8H-PA'
+};
+const MEM = {
+  url: 'https://nsgqsopqlkhayuefdout.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y'
+};
+
+const CACHE_KEY = 'lineai_warroom_v1';
+const CACHE_TTL = 86400000;
+
+// ════════════════════════════════════════
+//  FETCH
+// ════════════════════════════════════════
+async function q(db, path) {
+  const r = await fetch(`${db.url}/rest/v1/${path}`, {
+    headers: { apikey: db.key, Authorization: `Bearer ${db.key}` }
+  });
+  if (!r.ok) throw new Error(r.status + ' ' + path);
+  return r.json();
+}
+
+// ════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════
+function renderOverview(d) {
+  document.getElementById('z-overview').innerHTML = `
+    <div class="metrics">
+      <div class="mc"><div class="mc-val" style="color:var(--cyan)">${fmt(d.ragCount)}</div><div class="mc-lbl">知識庫條目</div></div>
+      <div class="mc"><div class="mc-val" style="color:var(--amber)">${fmt(d.totalHits)}</div><div class="mc-lbl">知識命中總次數</div></div>
+      <div class="mc"><div class="mc-val" style="color:var(--green)">${fmt(d.memberCount)}</div><div class="mc-lbl">核准會員數</div></div>
+      <div class="mc"><div class="mc-val" style="color:var(--red)">${fmt(d.unmatchCount)}</div><div class="mc-lbl">未命中問題數</div></div>
+    </div>`;
+}
+
+function renderRAG(items) {
+  if (!items.length) {
+    document.getElementById('z-rag').innerHTML = '<div class="loading" style="color:var(--sub)">暫無命中資料</div>';
+    return;
+  }
+  const max = items[0].hit_count || 1;
+  document.getElementById('z-rag').innerHTML = `<div class="rag-list">${
+    items.map((it, i) => {
+      const pct = Math.max(8, (it.hit_count / max) * 100);
+      const label = (it.title || it.content || '（無標題）').substring(0, 35);
+      return `<div class="ri">
+        <div class="ri-rank">#${i+1}</div>
+        <div class="ri-track">
+          <div class="ri-fill" style="width:${pct}%">
+            <span class="ri-text">${label}</span>
+          </div>
+        </div>
+        <div class="ri-cnt">${it.hit_count}</div>
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+function renderClaim(d) {
+  const types = [
+    { label: '信任建立', color: 'var(--green)',  count: d.trust },
+    { label: '競品比較', color: 'var(--amber)',  count: d.comparison },
+    { label: '自我懷疑', color: 'var(--purple)', count: d.selfDoubt }
+  ];
+  const total = types.reduce((s,t) => s + t.count, 0) || 1;
+  document.getElementById('z-claim').innerHTML = `
+    <div class="claim-chart">
+      ${types.map(t => {
+        const pct = ((t.count / total) * 100).toFixed(1);
+        return `<div class="cr">
+          <div class="cr-top">
+            <span class="cr-lbl">${t.label}</span>
+            <span class="cr-meta">${fmt(t.count)} 次 · ${pct}%</span>
+          </div>
+          <div class="cr-track">
+            <div class="cr-fill" style="width:${pct}%;background:${t.color}"></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="cr-total">
+        <span class="cr-total-lbl">異議總量</span>
+        <span class="cr-total-val">${fmt(total)} 次</span>
+      </div>
+    </div>`;
+}
+
+function renderGap(items) {
+  if (!items.length) {
+    document.getElementById('z-gap').innerHTML = '<div class="gap-empty">✓ 無未命中紀錄</div>';
+    return;
+  }
+  document.getElementById('z-gap').innerHTML = `<div class="gap-list">${
+    items.map(it => {
+      const txt = (it.question_text || it.user_message || it.content || '（無內容）');
+      const display = txt.length > 80 ? txt.substring(0,80) + '…' : txt;
+      const t = it.created_at ? timeAgo(it.created_at) : '';
+      return `<div class="gi">
+        <div class="gi-dot"></div>
+        <div class="gi-text">${display}</div>
+        <div class="gi-time">${t}</div>
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  if (typeof n === 'string') return n;
+  return n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n);
+}
+function timeAgo(s) {
+  const ms = Date.now() - new Date(s).getTime();
+  const d = Math.floor(ms/86400000), h = Math.floor(ms/3600000), m = Math.floor(ms/60000);
+  return d > 0 ? `${d}天前` : h > 0 ? `${h}時前` : `${m}分前`;
+}
+function stamp() {
+  return new Date().toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+// ════════════════════════════════════════
+//  LOAD
+// ════════════════════════════════════════
+async function loadAll() {
+  const [ragTop, ragAll, membersAll, unmatchAll] = await Promise.allSettled([
+    q(RAG, 'rag_knowledge?select=title,content,hit_count&order=hit_count.desc&limit=15'),
+    q(RAG, 'rag_knowledge?select=hit_count'),
+    q(MEM, 'members?select=trust_building_count,comparison_count,self_doubt_count'),
+    q(MEM, 'unmatch_logs?select=question_text,user_message,content,created_at&order=created_at.desc&limit=30')
+  ]);
+
+  const ragItems   = ragTop.status   === 'fulfilled' ? ragTop.value   : [];
+  const ragAllData = ragAll.status   === 'fulfilled' ? ragAll.value   : [];
+  const members    = membersAll.status === 'fulfilled' ? membersAll.value : [];
+  const unmatch    = unmatchAll.status === 'fulfilled' ? unmatchAll.value : [];
+
+  const totalHits  = ragAllData.reduce((s,r) => s+(r.hit_count||0), 0);
+  const trust      = members.reduce((s,m) => s+(m.trust_building_count||0), 0);
+  const comparison = members.reduce((s,m) => s+(m.comparison_count||0), 0);
+  const selfDoubt  = members.reduce((s,m) => s+(m.self_doubt_count||0), 0);
+
+  const payload = {
+    overview: { ragCount: ragAllData.length, totalHits, memberCount: members.length, unmatchCount: unmatch.length },
+    rag: ragItems,
+    claim: { trust, comparison, selfDoubt },
+    gap: unmatch
+  };
+
+  renderOverview(payload.overview);
+  renderRAG(payload.rag);
+  renderClaim(payload.claim);
+  renderGap(payload.gap);
+
+  document.getElementById('ts').textContent = '更新 ' + stamp();
+
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: payload }));
+  } catch(e) {}
+}
+
+function tryCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return false;
+    renderOverview(data.overview);
+    renderRAG(data.rag);
+    renderClaim(data.claim);
+    renderGap(data.gap);
+    document.getElementById('ts').textContent = '快取 · ' + new Date(ts).toLocaleDateString('zh-TW');
+    return true;
+  } catch(e) { return false; }
+}
+
+if (!tryCache()) loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE 團隊入口 — 環貫綠佳利 APLUS</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f; --bg2:#0d1120; --bg3:#131929;
+  --border:rgba(255,255,255,0.08);
+  --text:#c8d6f0; --dim:#5a6a8a; --white:#eaf2ff;
+  --green:#00b900;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 10% 20%,rgba(0,229,176,.05) 0%,transparent 55%),radial-gradient(ellipse 50% 40% at 88% 78%,rgba(176,109,255,.04) 0%,transparent 50%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.01) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.01) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;height:60px;display:flex;align-items:center;padding:0 24px;background:rgba(7,9,15,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#00e5b0,#00b900);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;color:#07090f;margin-right:12px;flex-shrink:0}
+.nav-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;color:var(--white)}
+.nav-sub{font-size:13px;color:var(--dim);margin-left:10px}
+
+/* MAIN */
+main{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 20px 80px}
+
+/* HERO */
+.hero{padding:48px 0 40px;text-align:center}
+.hero-eyebrow{font-size:12px;letter-spacing:3px;color:#00e5b0;text-transform:uppercase;margin-bottom:12px;opacity:.8}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,8vw,72px);line-height:.95;letter-spacing:2px;color:var(--white);margin-bottom:14px}
+.hero-title em{color:#00e5b0;font-style:normal}
+.hero-desc{font-size:16px;color:var(--dim);font-weight:300;line-height:1.7;max-width:480px;margin:0 auto}
+
+/* CFC GROUP */
+.cfc-group{margin-bottom:48px}
+.cfc-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.cfc-line{width:4px;height:28px;border-radius:2px;background:var(--c,#00e5b0);flex-shrink:0}
+.cfc-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--white)}
+.cfc-badge{font-size:11px;color:var(--c,#00e5b0);background:rgba(from var(--c,#00e5b0) r g b / .1);border:1px solid rgba(from var(--c,#00e5b0) r g b / .2);padding:3px 10px;border-radius:20px;margin-left:auto;white-space:nowrap}
+
+/* ANCHOR NAV */
+.anchor-nav{display:flex;flex-wrap:wrap;gap:10px;padding:12px 0 36px}
+.anchor-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:12px;background:var(--bg2);border:2px solid rgba(from var(--c,#00e5b0) r g b / .35);color:var(--white);font-size:16px;font-weight:500;text-decoration:none;transition:all .2s;cursor:pointer;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.anchor-btn:hover{border-color:rgba(from var(--c,#00e5b0) r g b / .8);background:rgba(from var(--c,#00e5b0) r g b / .1);transform:translateY(-2px)}
+.anchor-btn:active{transform:translateY(0)}
+.anchor-dot{width:10px;height:10px;border-radius:50%;background:var(--c,#00e5b0);flex-shrink:0}
+
+/* TEAM CARDS GRID */
+.teams-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+
+/* TEAM CARD */
+.team-card{background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--c,#00e5b0);border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:16px;transition:transform .2s,border-color .2s;animation:up .45s ease both}
+.team-card:hover{transform:translateY(-2px);border-color:rgba(from var(--c,#00e5b0) r g b / .4)}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARD TOP */
+.card-top{display:flex;align-items:flex-start;gap:14px}
+.card-avatar{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:1px;color:var(--c,#00e5b0);background:rgba(from var(--c,#00e5b0) r g b / .1);border:1px solid rgba(from var(--c,#00e5b0) r g b / .2);flex-shrink:0}
+.card-info{flex:1;min-width:0}
+.card-name{font-size:20px;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:8px}
+
+/* LEADER TAGS */
+.leader-rows{display:flex;flex-direction:column;gap:5px}
+.leader-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.leader-tier{font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.tier-cfc{background:rgba(255,215,0,.12);color:#ffd700}
+.tier-peak{background:rgba(56,189,248,.1);color:#38bdf8}
+.tier-achieve{background:rgba(0,229,176,.1);color:#00e5b0}
+.leader-names{font-size:13px;color:var(--dim);line-height:1.5;font-weight:300}
+.leader-empty{font-size:12px;color:rgba(90,106,138,.45);font-style:italic}
+
+/* LINE BUTTON */
+.line-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;background:var(--green);border-radius:12px;color:#fff;font-size:17px;font-weight:500;text-decoration:none;transition:all .2s;border:none;cursor:pointer;line-height:1}
+.line-btn:hover{background:#009a00;transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,185,0,.3)}
+.line-btn:active{transform:translateY(0)}
+.line-btn svg{flex-shrink:0}
+
+/* APLUS BANNER (bottom) */
+.aplus-section{margin-top:64px}
+.aplus-divider{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.aplus-divider-line{flex:1;height:1px;background:var(--border)}
+.aplus-divider-text{font-size:12px;color:var(--dim);letter-spacing:2px;white-space:nowrap}
+.aplus-card{background:rgba(0,185,0,.06);border:2px solid rgba(0,185,0,.2);border-radius:18px;padding:32px 28px;display:flex;align-items:center;gap:24px}
+.aplus-icon{width:64px;height:64px;border-radius:16px;background:rgba(0,185,0,.12);border:1px solid rgba(0,185,0,.25);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+.aplus-body{flex:1}
+.aplus-label{font-size:12px;letter-spacing:2px;color:#00b900;text-transform:uppercase;margin-bottom:6px}
+.aplus-title{font-size:22px;font-weight:700;color:var(--white);margin-bottom:6px}
+.aplus-desc{font-size:14px;color:var(--dim);font-weight:300;line-height:1.6}
+.aplus-btn{display:flex;align-items:center;gap:10px;background:var(--green);color:#fff;font-size:17px;font-weight:500;padding:16px 28px;border-radius:12px;text-decoration:none;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.aplus-btn:hover{background:#009a00;transform:translateY(-1px)}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--dim)}
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  .teams-grid{grid-template-columns:1fr}
+  .aplus-card{flex-direction:column;text-align:center}
+  .aplus-btn{width:100%;justify-content:center}
+  .card-name{font-size:19px}
+  .line-btn{font-size:16px;padding:16px}
+  nav{padding:0 16px}
+  main{padding:0 14px 60px}
+}
+@media(min-width:641px) and (max-width:860px){
+  .aplus-card{flex-wrap:wrap}
+  .aplus-btn{width:100%;justify-content:center;margin-top:4px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">LA</div>
+  <span class="nav-title">LINEAI APLUS</span>
+  <span class="nav-sub">LINE 團隊入口</span>
+</nav>
+
+<main>
+  <div class="hero">
+    <div class="hero-eyebrow">環貫綠佳利 · APLUS AI 顧問系統</div>
+    <h1 class="hero-title">選擇你的<br><em>LINE 團隊</em></h1>
+    <p class="hero-desc">找到你的推薦人所在的團隊，點擊加入 LINE，<br>由 AI 顧問即時為你服務。</p>
+  </div>
+
+  <div id="anchor-nav-wrap">
+    <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:12px;letter-spacing:.5px">CFC 大團隊快捷　<span style="font-size:13px;color:var(--dim)">↓ 點擊跳至</span></div>
+    <div class="anchor-nav" id="anchor-nav"></div>
+  </div>
+  <div id="groups-container"></div>
+
+  <!-- APLUS 非系統入口 -->
+  <div class="aplus-section">
+    <div class="aplus-divider">
+      <div class="aplus-divider-line"></div>
+      <div class="aplus-divider-text">非 APLUS 系統會員</div>
+      <div class="aplus-divider-line"></div>
+    </div>
+    <div class="aplus-card">
+      <div class="aplus-icon">💬</div>
+      <div class="aplus-body">
+        <div class="aplus-label">還不屬於任何團隊？</div>
+        <div class="aplus-title">Aplus 公關</div>
+        <div class="aplus-desc">不確定要加哪個團隊，或是還沒有推薦人，<br>歡迎先加入公關帳號，由專人為你說明。</div>
+      </div>
+      <a class="aplus-btn" href="https://line.me/R/ti/p/%40752oqdzy" target="_blank" rel="noopener">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.630 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+        加入 LINE
+      </a>
+    </div>
+  </div>
+</main>
+
+<footer>環貫綠佳利 APLUS © 2026 · npplus.club</footer>
+
+<script>
+const LINE_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.630 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`;
+
+/* ════ 資料設定 ════
+   修改 leaders 裡的名單即可，其餘不需要動
+*/
+const GROUPS = [
+  {
+    id: 'cfc-ganlin', name: 'CFC 甘霖大團隊', color: '#00e5b0', badge: '3 個團隊',
+    teams: [
+      { name:'基紐團隊', handle:'@741zwxpr', initials:'基紐',
+        cfc:['林甘霖'], peak:['林佳蓉'], achieve:[] },
+      { name:'魷魚團隊', handle:'@453ajvfv', initials:'魷魚',
+        cfc:[], peak:['游育杰','李晉豪'], achieve:['張麗玲','張憶文','熊愛茶','林詩萍'] },
+      { name:'威達團隊', handle:'@802czzku', initials:'威達',
+        cfc:[], peak:['陳立双'], achieve:[] },
+    ]
+  },
+  {
+    id: 'cfc-liyu', name: 'CFC 麗玉大團隊', color: '#f472b6', badge: '3 個團隊',
+    teams: [
+      { name:'舜心團隊', handle:'@659pbthw', initials:'舜心',
+        cfc:[], peak:['黃舜心'], achieve:[] },
+      { name:'宥妍團隊', handle:'@185ouwvh', initials:'宥妍',
+        cfc:[], peak:['李宥妍'], achieve:[] },
+      { name:'輝岳團隊', handle:'@568yngtp', initials:'輝岳',
+        cfc:[], peak:['游輝岳'], achieve:[] },
+    ]
+  },
+  {
+    id: 'cfc-yixun', name: 'CFC 奕迅大團隊', color: '#b06dff', badge: '2 個團隊',
+    teams: [
+      { name:'翊迅團隊', handle:'@514okzir', initials:'翊迅',
+        cfc:['凌翊迅','林姍嬅'], peak:[], achieve:[] },
+      { name:'姍玥團隊', handle:'@579cpvba', initials:'姍玥',
+        cfc:[], peak:['林姍玥','沈軍駥','許茹棋'], achieve:[] },
+    ]
+  },
+  {
+    id: 'cfc-jinghao', name: 'CFC 敬豪大團隊', color: '#38bdf8', badge: '1 個團隊',
+    teams: [
+      { name:'敬豪團隊', handle:'@809lipop', initials:'敬豪',
+        cfc:['楊敬豪'], peak:[], achieve:[] },
+    ]
+  },
+];
+
+/* ════ RENDER ════ */
+function leaderRow(tier, names, cls) {
+  if (!names.length) return '';
+  return `<div class="leader-row">
+    <span class="leader-tier ${cls}">${tier}</span>
+    <span class="leader-names">${names.join('・')}</span>
+  </div>`;
+}
+
+function teamCard(t, color, delay) {
+  const url = `https://line.me/R/ti/p/${encodeURIComponent(t.handle)}`;
+  const hasLeaders = t.cfc.length || t.peak.length || t.achieve.length;
+  const leadersHtml = hasLeaders
+    ? `<div class="leader-rows">
+        ${leaderRow('CFC',t.cfc,'tier-cfc')}
+        ${leaderRow('高峰',t.peak,'tier-peak')}
+        ${leaderRow('成就',t.achieve,'tier-achieve')}
+       </div>`
+    : `<div class="leader-rows"><span class="leader-empty">成員招募中</span></div>`;
+
+  return `
+    <div class="team-card" style="--c:${color};animation-delay:${delay}s">
+      <div class="card-top">
+        <div class="card-avatar">${t.initials}</div>
+        <div class="card-info">
+          <div class="card-name">${t.name}</div>
+          ${leadersHtml}
+        </div>
+      </div>
+      <a class="line-btn" href="${url}" target="_blank" rel="noopener">
+        ${LINE_SVG} 加入 LINE
+      </a>
+    </div>`;
+}
+
+function render() {
+  // Anchor nav
+  const nav = document.getElementById('anchor-nav');
+  nav.innerHTML = GROUPS.map(g => `
+    <a class="anchor-btn" style="--c:${g.color}" href="#${g.id}">
+      <span class="anchor-dot"></span>${g.name.replace('CFC ','').replace('大團隊','')}
+    </a>`).join('');
+
+  // Groups
+  const container = document.getElementById('groups-container');
+  let delay = 0.04;
+  container.innerHTML = GROUPS.map(g => {
+    const cards = g.teams.map(t => {
+      const d = delay; delay += 0.06;
+      return teamCard(t, g.color, d);
+    }).join('');
+    return `
+      <div class="cfc-group" id="${g.id}">
+        <div class="cfc-header" style="--c:${g.color}">
+          <div class="cfc-line"></div>
+          <div class="cfc-name">${g.name}</div>
+          <div class="cfc-badge">${g.badge}</div>
+        </div>
+        <div class="teams-grid">${cards}</div>
+      </div>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>

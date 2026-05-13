@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINEAI APLUS · AI 顧問指揮中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030712;
+  --panel:#0b1120;
+  --border:#1a2540;
+  --cyan:#06b6d4;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --green:#10b981;
+  --purple:#a855f7;
+  --text:#e2e8f0;
+  --sub:#4b6080;
+  --dim:#0f1928;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(6,182,212,0.012) 3px,rgba(6,182,212,0.012) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* ── NAV ── */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+  background:rgba(3,7,18,.92);
+  backdrop-filter:blur(8px);
+}
+.logo{
+  font-family:'Bebas Neue',sans-serif;font-size:1.3rem;
+  color:var(--cyan);letter-spacing:.1em;
+}
+.nav-links{display:flex;gap:24px;}
+.nav-links a{
+  font-family:'DM Mono',monospace;font-size:.6rem;
+  color:var(--sub);letter-spacing:.14em;
+  text-decoration:none;transition:color .2s;
+}
+.nav-links a:hover{color:var(--cyan);}
+.nav-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── HERO ── */
+.hero{
+  position:relative;
+  padding:60px 28px 48px;
+  text-align:center;
+  overflow:hidden;
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(6,182,212,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(6,182,212,.05) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.hero-corners span{position:absolute;width:16px;height:16px;}
+.hero-corners span:nth-child(1){top:16px;left:16px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+.hero-corners span:nth-child(2){top:16px;right:16px;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+.hero-corners span:nth-child(3){bottom:16px;left:16px;border-bottom:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+.hero-corners span:nth-child(4){bottom:16px;right:16px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+.hero-badge{
+  display:inline-block;
+  font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.2em;
+  color:var(--cyan);border:1px solid rgba(6,182,212,.25);
+  padding:4px 14px;border-radius:2px;margin-bottom:20px;
+  animation:fadeup .6s ease both;
+}
+.hero-title{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,5rem);
+  line-height:.95;letter-spacing:.04em;color:#fff;
+  animation:fadeup .7s .1s ease both;
+}
+.hero-title span{color:var(--cyan);}
+.hero-sub{
+  font-family:'DM Mono',monospace;font-size:.68rem;color:var(--sub);
+  letter-spacing:.16em;margin-top:14px;
+  animation:fadeup .7s .2s ease both;
+}
+@keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ── STATS ── */
+.stats{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--dim);
+  border:1px solid var(--border);
+  margin:32px 28px 0;
+  animation:fadeup .7s .3s ease both;
+}
+.stat{background:var(--bg);padding:18px 0;text-align:center;}
+.stat-val{
+  font-family:'DM Mono',monospace;font-size:clamp(1.6rem,5vw,2.2rem);
+  font-weight:500;color:var(--cyan);line-height:1;
+}
+.stat-lbl{font-size:.62rem;color:var(--sub);letter-spacing:.06em;margin-top:5px;}
+
+/* ── SECTION WRAPPER ── */
+.sec{padding:52px 28px;}
+.sec-label{
+  font-family:'DM Mono',monospace;font-size:.56rem;
+  letter-spacing:.22em;color:var(--sub);margin-bottom:8px;
+}
+.sec-title{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(1.7rem,5vw,2.2rem);
+  letter-spacing:.06em;line-height:1.05;margin-bottom:8px;
+}
+.sec-sub{font-size:.72rem;color:var(--sub);line-height:1.75;max-width:380px;}
+.divider{height:1px;background:var(--border);margin:0 28px;}
+
+/* ── SCENE 1: circuit maze ── */
+.s1{display:flex;flex-direction:column;gap:28px;}
+.s1-text{max-width:100%;}
+.s1-viz{width:100%;max-width:360px;margin:0 auto;}
+
+/* SVG maze styles */
+.dim-p{fill:none;stroke:#0e1e30;stroke-width:.9;stroke-linecap:square;}
+.dim2-p{fill:none;stroke:#091525;stroke-width:.6;stroke-linecap:square;stroke-dasharray:3,4;}
+.dead-p{fill:#07101c;stroke:#0e1e30;stroke-width:.7;}
+.glow-p{
+  fill:none;stroke:#f59e0b;stroke-width:10;stroke-linecap:square;opacity:.09;
+  stroke-dasharray:980;stroke-dashoffset:980;
+  animation:drawpath 3.2s .3s cubic-bezier(.4,0,.2,1) forwards;
+}
+.gold-p{
+  fill:none;stroke:#f59e0b;stroke-width:2.8;stroke-linecap:square;opacity:.55;
+  stroke-dasharray:980;stroke-dashoffset:980;
+  animation:drawpath 3.2s .3s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes drawpath{to{stroke-dashoffset:0}}
+.nd-g{fill:#140d00;stroke:#ca8a04;stroke-width:1.5;opacity:0;animation:popnode .2s ease forwards;}
+@keyframes popnode{to{opacity:1}}
+.fade-in{opacity:0;animation:popnode .3s ease forwards;}
+
+/* 問題 breathing — brownish-red */
+.q-glow-ring{animation:qpulse-g 3s 1s ease-in-out infinite;}
+.q-border{animation:qpulse-b 3s 1s ease-in-out infinite;}
+@keyframes qpulse-g{
+  0%,100%{opacity:0;}
+  15%{opacity:.4;}
+  35%,85%{opacity:0;}
+}
+@keyframes qpulse-b{
+  0%,100%{stroke:#1e3a5f;stroke-width:1.2;}
+  15%{stroke:#9b1c1c;stroke-width:2;}
+  35%,85%{stroke:#1e3a5f;stroke-width:1.2;}
+}
+
+/* ── SCENE 2: phone ── */
+.s2{display:flex;flex-direction:column;gap:28px;}
+.s2-text{width:100%;}
+.s2-phone{width:100%;display:flex;justify-content:center;}
+
+/* LINE-style phone */
+.phone{
+  width:240px;background:#1a1a2e;
+  border:1.5px solid #2a2a4a;border-radius:28px;
+  padding:0 0 12px;overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+}
+/* LINE header */
+.phone-header{
+  background:#06c755;
+  padding:10px 14px 8px;
+  display:flex;align-items:center;gap:8px;
+  border-radius:26px 26px 0 0;
+}
+.phone-header-icon{
+  width:28px;height:28px;background:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.phone-header-icon svg{width:18px;height:18px;}
+.phone-header-info{flex:1;}
+.phone-header-name{font-size:.72rem;font-weight:600;color:#fff;letter-spacing:.02em;}
+.phone-header-sub{font-size:.5rem;color:rgba(255,255,255,.7);letter-spacing:.05em;}
+.phone-header-dots{display:flex;gap:3px;}
+.phone-header-dots span{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.5);}
+
+/* LINE chat bg */
+.phone-screen{
+  background:#1a1a2e;
+  padding:10px 10px 6px;
+  min-height:180px;
+}
+/* LINE timestamp */
+.line-time{text-align:center;margin-bottom:8px;}
+.line-time span{font-size:.48rem;color:rgba(255,255,255,.3);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:6px;}
+
+/* user bubble (right, green) */
+.cb-user{display:flex;justify-content:flex-end;margin-bottom:8px;align-items:flex-end;gap:4px;}
+.cb-user-time{font-size:.45rem;color:rgba(255,255,255,.3);margin-bottom:2px;align-self:flex-end;}
+.cb-user .msg{
+  background:#06c755;
+  border-radius:14px 14px 2px 14px;padding:8px 11px;
+  font-size:.65rem;color:#fff;max-width:82%;line-height:1.5;
+  box-shadow:0 2px 6px rgba(6,199,85,.25);
+}
+
+/* AI bubble (left, white/gray) */
+.cb-ai{display:flex;gap:7px;align-items:flex-start;margin-bottom:4px;}
+.ai-icon{
+  width:30px;height:30px;flex-shrink:0;
+  background:#2a2a6a;border:1.5px solid #4444aa;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:.45rem;color:#a0a0ff;
+  flex-direction:column;gap:0;
+}
+.ai-icon span{font-size:.38rem;color:#6060cc;letter-spacing:-.02em;}
+.msg-ai{
+  background:#ffffff;
+  border-radius:2px 14px 14px 14px;padding:8px 11px;
+  font-size:.63rem;color:#1a1a1a;max-width:80%;line-height:1.6;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
+}
+
+/* source tag inside chat */
+.src{display:flex;align-items:center;gap:4px;margin-left:37px;margin-top:3px;}
+.src-dot{width:4px;height:4px;border-radius:50%;background:#06c755;}
+.src-txt{font-family:'DM Mono',monospace;font-size:.48rem;color:rgba(255,255,255,.3);}
+
+/* typing */
+.typing{display:flex;gap:3px;padding:6px 10px;background:#ffffff;border-radius:2px 12px 12px 12px;width:fit-content;margin:6px 0 6px 37px;}
+.td{width:5px;height:5px;background:#bbb;border-radius:50%;animation:typing 1.2s infinite;}
+.td:nth-child(2){animation-delay:.2s;}
+.td:nth-child(3){animation-delay:.4s;}
+@keyframes typing{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* LINE bottom bar */
+.phone-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 10px 0;border-top:1px solid rgba(255,255,255,.06);margin-top:4px;
+}
+.phone-bar-input{
+  flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:5px 10px;
+  font-size:.55rem;color:rgba(255,255,255,.3);
+}
+.phone-bar-send{
+  width:26px;height:26px;background:#06c755;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.phone-bar-send svg{width:12px;height:12px;}
+
+/* ── NAV CARDS ── */
+.cards{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:10px;padding:16px 28px 36px;
+}
+.card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:2px;padding:18px 18px;
+  cursor:pointer;text-decoration:none;
+  display:block;position:relative;overflow:hidden;
+  transition:border-color .2s;
+}
+.card:hover{border-color:var(--ac);}
+.card::before{content:'';position:absolute;top:-1px;left:-1px;width:10px;height:10px;border-top:2px solid var(--ac);border-left:2px solid var(--ac);}
+.card::after{content:'';position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-bottom:2px solid var(--ac);border-right:2px solid var(--ac);}
+.c1{--ac:#06b6d4;} .c2{--ac:#f59e0b;} .c3{--ac:#a855f7;} .c4{--ac:#10b981;}
+.ct{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;color:var(--ac);margin-bottom:5px;}
+.cd{font-size:.65rem;color:var(--sub);line-height:1.55;}
+.ca{font-family:'DM Mono',monospace;font-size:.57rem;color:var(--ac);margin-top:10px;letter-spacing:.1em;}
+
+/* ── FOOTER ── */
+footer{
+  text-align:center;padding:16px 0 28px;
+  font-family:'DM Mono',monospace;font-size:.58rem;
+  color:var(--sub);letter-spacing:.14em;
+  border-top:1px solid var(--border);
+}
+
+/* ── MOBILE ── */
+@media(max-width:640px){
+  nav{padding:12px 16px;}
+  .nav-links{gap:14px;}
+  .hero{padding:44px 16px 36px;}
+  .stats{margin:24px 16px 0;grid-template-columns:repeat(2,1fr);}
+  .sec{padding:36px 16px;}
+  .s1{flex-direction:column;gap:20px;}
+  .s1-text{max-width:100%;}
+  .s1-viz{max-width:100%;}
+  .s2-phone{width:100%;display:flex;justify-content:center;}
+  .cards{grid-template-columns:1fr;padding:16px 16px 28px;gap:8px;}
+  .divider{margin:0 16px;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">LINEAI APLUS</div>
+  <div class="nav-links">
+    <a href="warroom.html">戰情室</a>
+    <a href="leaderboard.html">排行榜</a>
+    <a href="oa-hub.html">LINEAI 入口</a>
+  </div>
+  <div class="nav-dot"></div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-corners"><span></span><span></span><span></span><span></span></div>
+  <div class="hero-badge">CFC · 環貫綠佳利 AI 生態系</div>
+  <h1 class="hero-title">AI 顧問<br><span>指揮中心</span></h1>
+  <p class="hero-sub">POWERED BY CLAUDE · SEMANTIC RAG · MULTI-TENANT</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s1">0</div><div class="stat-lbl">知識庫條目</div></div>
+    <div class="stat"><div class="stat-val" id="s2">0</div><div class="stat-lbl">命中次數</div></div>
+    <div class="stat"><div class="stat-val" id="s3">0</div><div class="stat-lbl">核准會員</div></div>
+    <div class="stat"><div class="stat-val" id="s4">0</div><div class="stat-lbl">LINE 團隊</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── SCENE 1 ── -->
+<section class="sec">
+  <div class="s1">
+    <div class="s1-text">
+      <div class="sec-label">SCENE 01 · 知識萃取</div>
+      <h2 class="sec-title">集結領袖智慧<br><span style="color:var(--amber)">篩出黃金路徑</span></h2>
+      <p class="sec-sub">每個轉折只有一條路走得通。高收入領袖多年實戰智慧，就是那個關鍵選擇——全數寫入 AI 知識庫。</p>
+    </div>
+    <div class="s1-viz">
+      <svg viewBox="0 0 300 282" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+
+        <!-- 問題 breathing glow ring -->
+        <rect x="113" y="0" width="74" height="34" rx="5" fill="none" stroke="#9b1c1c" stroke-width="6" class="q-glow-ring"/>
+        <!-- 問題 node -->
+        <rect x="119" y="4" width="62" height="26" rx="3" fill="#0b1120" class="q-border"/>
+        <text x="150" y="14" font-size="8" font-family="Noto Sans TC" fill="#93c5fd" text-anchor="middle">問　題</text>
+        <text x="150" y="24" font-size="5.5" font-family="DM Mono" fill="#1e3a5f" text-anchor="middle">START</text>
+
+        <!-- dead ends -->
+        <path class="dim-p" d="M150,60 L228,60 L228,38"/>
+        <path class="dim2-p" d="M228,38 L228,24 L210,24"/>
+        <rect x="202" y="19" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M228,60 L228,92 L255,92"/>
+        <path class="dim2-p" d="M255,92 L272,92"/>
+        <rect x="269" y="87" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M65,60 L65,32 L92,32"/>
+        <path class="dim2-p" d="M92,32 L108,32"/>
+        <rect x="105" y="27" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M65,115 L22,115 L22,150"/>
+        <path class="dim2-p" d="M22,150 L22,165"/>
+        <rect x="17" y="162" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M22,115 L22,88 L48,88"/>
+        <path class="dim2-p" d="M48,88 L62,88"/>
+        <path class="dim-p" d="M210,115 L210,150 L245,150"/>
+        <path class="dim2-p" d="M245,150 L262,150"/>
+        <rect x="259" y="145" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M210,75 L172,75 L172,48"/>
+        <path class="dim2-p" d="M172,48 L172,35 L192,35"/>
+        <rect x="189" y="30" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M255,75 L255,46 L230,46"/>
+        <path class="dim2-p" d="M230,46 L215,46"/>
+        <rect x="212" y="41" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M255,75 L280,75 L280,110"/>
+        <path class="dim2-p" d="M280,110 L280,125"/>
+        <rect x="275" y="122" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M255,160 L278,160"/>
+        <path class="dim2-p" d="M278,160 L290,160"/>
+        <rect x="287" y="155" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M85,160 L85,128 L52,128"/>
+        <path class="dim2-p" d="M52,128 L35,128"/>
+        <rect x="27" y="123" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M85,128 L118,128 L118,108"/>
+        <path class="dim2-p" d="M118,108 L118,95"/>
+        <path class="dim-p" d="M85,205 L30,205 L30,180"/>
+        <path class="dim2-p" d="M30,180 L30,165"/>
+        <rect x="25" y="162" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M195,205 L195,240 L220,240"/>
+        <path class="dim2-p" d="M220,240 L238,240"/>
+        <rect x="235" y="235" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M195,170 L238,170 L238,150"/>
+        <path class="dim2-p" d="M238,150 L238,138"/>
+        <path class="dim-p" d="M150,248 L105,248"/>
+        <path class="dim2-p" d="M105,248 L88,248"/>
+        <rect x="80" y="243" width="8" height="8" rx="1" class="dead-p"/>
+        <path class="dim-p" d="M150,248 L195,248"/>
+        <path class="dim2-p" d="M195,248 L212,248"/>
+        <rect x="209" y="243" width="8" height="8" rx="1" class="dead-p"/>
+
+        <!-- gold glow + main -->
+        <path class="glow-p" d="M150,30 L150,60 L65,60 L65,115 L210,115 L210,75 L255,75 L255,160 L85,160 L85,205 L195,205 L195,170 L150,170 L150,252"/>
+        <path class="gold-p" d="M150,30 L150,60 L65,60 L65,115 L210,115 L210,75 L255,75 L255,160 L85,160 L85,205 L195,205 L195,170 L150,170 L150,252"/>
+
+        <!-- fork nodes -->
+        <circle cx="150" cy="60"  r="5" class="nd-g" style="animation-delay:.8s"/>
+        <circle cx="65"  cy="60"  r="5" class="nd-g" style="animation-delay:1.1s"/>
+        <circle cx="65"  cy="115" r="5" class="nd-g" style="animation-delay:1.4s"/>
+        <circle cx="210" cy="115" r="5" class="nd-g" style="animation-delay:1.7s"/>
+        <circle cx="210" cy="75"  r="5" class="nd-g" style="animation-delay:1.95s"/>
+        <circle cx="255" cy="75"  r="5" class="nd-g" style="animation-delay:2.1s"/>
+        <circle cx="255" cy="160" r="5" class="nd-g" style="animation-delay:2.35s"/>
+        <circle cx="85"  cy="160" r="5" class="nd-g" style="animation-delay:2.55s"/>
+        <circle cx="85"  cy="205" r="5" class="nd-g" style="animation-delay:2.75s"/>
+        <circle cx="195" cy="205" r="5" class="nd-g" style="animation-delay:2.95s"/>
+        <circle cx="195" cy="170" r="5" class="nd-g" style="animation-delay:3.1s"/>
+        <circle cx="150" cy="170" r="4" class="nd-g" style="animation-delay:3.2s"/>
+
+        <!-- 最優解 -->
+        <rect x="116" y="252" width="68" height="26" rx="3" fill="#0f1a08" stroke="#ca8a04" stroke-width="1.8" class="fade-in" style="animation-delay:3.4s"/>
+        <text x="150" y="262" font-size="5.5" font-family="DM Mono" fill="#92400e" text-anchor="middle" class="fade-in" style="animation-delay:3.45s">BEST PATH</text>
+        <text x="150" y="273" font-size="10" font-family="Noto Sans TC" fill="#fbbf24" text-anchor="middle" class="fade-in" style="animation-delay:3.5s">最　優　解</text>
+
+        <!-- animated dot -->
+        <circle r="5" fill="#fbbf24" opacity="0">
+          <animateMotion dur="3s" begin="1s" repeatCount="indefinite"
+            path="M150,30 L150,60 L65,60 L65,115 L210,115 L210,75 L255,75 L255,160 L85,160 L85,205 L195,205 L195,170 L150,170 L150,258"/>
+          <animate attributeName="opacity" values="0;0;1;1;1;0" keyTimes="0;.02;.06;.92;.97;1" dur="3s" begin="1s" repeatCount="indefinite"/>
+        </circle>
+        <circle r="2.2" fill="#fff" opacity="0">
+          <animateMotion dur="3s" begin="1s" repeatCount="indefinite"
+            path="M150,30 L150,60 L65,60 L65,115 L210,115 L210,75 L255,75 L255,160 L85,160 L85,205 L195,205 L195,170 L150,170 L150,258"/>
+          <animate attributeName="opacity" values="0;0;.9;.9;.9;0" keyTimes="0;.02;.06;.92;.97;1" dur="3s" begin="1s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── SCENE 2 ── -->
+<section class="sec">
+  <div class="s2">
+    <div class="s2-text">
+      <div class="sec-label">SCENE 02 · 即時對話</div>
+      <h2 class="sec-title">問 AI<br><span style="color:var(--green)">領袖智慧回答你</span></h2>
+      <p class="sec-sub">不用等領袖有空，不用自己找話術。24 小時隨時問，AI 從知識庫調出最相關的實戰經驗直接給你。</p>
+    </div>
+    <div class="s2-phone">
+      <div class="phone">
+        <!-- LINE header -->
+        <div class="phone-header">
+          <div class="phone-header-icon">
+            <svg viewBox="0 0 24 24" fill="#06c755" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19.365 9.89c.50 0 .866.37.866.866s-.366.866-.866.866H17.5v1.1h1.865c.5 0 .866.37.866.866s-.366.866-.866.866H16.63a.866.866 0 0 1-.866-.866V9.89c0-.497.37-.866.866-.866h2.735zm-5.235 3.698a.87.87 0 0 1-.748.433.849.849 0 0 1-.494-.158l-2.467-1.717v1.44a.866.866 0 1 1-1.732 0V9.89a.87.87 0 0 1 .868-.866.847.847 0 0 1 .494.158l2.467 1.717V9.89a.866.866 0 1 1 1.732 0v3.565a.85.85 0 0 1-.12.433zM8.27 13.587a.866.866 0 1 1-1.732 0V9.89a.866.866 0 1 1 1.732 0v3.698zm-3.04 0a.866.866 0 0 1-.866.866H2.5a.866.866 0 0 1-.866-.866V9.89c0-.497.37-.866.866-.866s.866.37.866.866v2.83h.998c.497 0 .866.37.866.866zM12 0C5.373 0 0 4.584 0 10.234c0 5.048 4.49 9.27 10.555 10.073.41.088.97.27 1.11.62.127.317.083.814.04 1.135l-.178 1.07c-.055.317-.25 1.24 1.087.676 1.338-.565 7.22-4.25 9.85-7.277C24.19 14.518 24 12.42 24 10.234 24 4.583 18.628 0 12 0z"/>
+            </svg>
+          </div>
+          <div class="phone-header-info">
+            <div class="phone-header-name">LINEAI APLUS</div>
+            <div class="phone-header-sub">AI 顧問助理 · 隨時上線</div>
+          </div>
+          <div class="phone-header-dots"><span></span><span></span><span></span></div>
+        </div>
+        <!-- chat screen -->
+        <div class="phone-screen">
+          <div class="line-time"><span>下午 2:34</span></div>
+          <div class="cb-user">
+            <div class="cb-user-time">已讀</div>
+            <div class="msg">客人說產品太貴了不想買，我怎麼回？</div>
+          </div>
+          <div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+          <div style="margin-top:6px">
+            <div class="cb-ai">
+              <div class="ai-icon">AI<span>顧問</span></div>
+              <div class="msg-ai">不要從價格辯護，先問他「貴是跟什麼比？」——找出參照物才能真正回應他的顧慮。</div>
+            </div>
+            <div class="src">
+              <div class="src-dot"></div>
+              <div class="src-txt">來源：甘霖 · 異議處理實戰筆記</div>
+            </div>
+          </div>
+        </div>
+        <!-- LINE bottom bar -->
+        <div class="phone-bar">
+          <div class="phone-bar-input">輸入訊息…</div>
+          <div class="phone-bar-send">
+            <svg viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── NAV CARDS ── -->
+<div class="cards">
+  <a class="card c1" href="warroom.html">
+    <div class="ct">📡 戰情室</div>
+    <div class="cd">即時監控 RAG 命中率、異議分布、知識缺口，掌握系統脈搏</div>
+    <div class="ca">ENTER WARROOM →</div>
+  </a>
+  <a class="card c2" href="leaderboard.html">
+    <div class="ct">🏆 排行榜</div>
+    <div class="cd">LINE 團隊競賽數據、個人貢獻榜、月季年全時段切換</div>
+    <div class="ca">VIEW LEADERBOARD →</div>
+  </a>
+  <a class="card c3" href="oa-hub.html">
+    <div class="ct">🔗 LINEAI 入口</div>
+    <div class="cd">CFC 五大團隊分組、一鍵加入 LINE 官方帳號</div>
+    <div class="ca">OPEN LINEAI HUB →</div>
+  </a>
+  <a class="card c4" href="warroom.html">
+    <div class="ct">📚 知識庫</div>
+    <div class="cd">豐富資料庫，語意多重搜尋機制</div>
+    <div class="ca">BROWSE KNOWLEDGE →</div>
+  </a>
+</div>
+
+<footer>LINEAI APLUS · 環貫綠佳利 AI ECOSYSTEM · POWERED BY CLAUDE</footer>
+
+<script>
+const RAG = {
+  url:'https://mkjtqzufohzrnbvebbfb.supabase.co',
+  key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ranRxenVmb2h6cm5idmViYmZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTI2NjEsImV4cCI6MjA4ODI2ODY2MX0.RWaj1eNeZfsln4qzGTNbOOyZA1S4GLsRSL95Pf8H-PA'
+};
+const MEM = {
+  url:'https://nsgqsopqlkhayuefdout.supabase.co',
+  key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y'
+};
+
+function countUp(id,target,duration){
+  const el=document.getElementById(id);
+  const start=performance.now();
+  function step(now){
+    const p=Math.min((now-start)/duration,1);
+    const ease=1-Math.pow(1-p,3);
+    el.textContent=Math.round(ease*target);
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function loadStats(){
+  try{
+    const [r1,r2,r3]=await Promise.all([
+      fetch(`${RAG.url}/rest/v1/rag_knowledge?select=hit_count`,{headers:{apikey:RAG.key,Authorization:`Bearer ${RAG.key}`}}),
+      fetch(`${MEM.url}/rest/v1/members?select=id`,{headers:{apikey:MEM.key,Authorization:`Bearer ${MEM.key}`}}),
+      fetch(`${MEM.url}/rest/v1/tenants?select=id`,{headers:{apikey:MEM.key,Authorization:`Bearer ${MEM.key}`}})
+    ]);
+    const rag=await r1.json();
+    const members=await r2.json();
+    const tenants=await r3.json();
+    const totalHits=rag.reduce((s,r)=>s+(r.hit_count||0),0);
+    countUp('s1',rag.length,1800);
+    countUp('s2',totalHits,2200);
+    countUp('s3',members.length,1600);
+    countUp('s4',tenants.length,1400);
+  } catch(e){
+    countUp('s1',94,1800);
+    countUp('s2',3840,2200);
+    countUp('s3',67,1600);
+    countUp('s4',10,1400);
+  }
+}
+
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINEAI APLUS — LINE 團隊排行榜</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090f;--bg2:#0d1120;--bg3:#131929;--border:rgba(255,255,255,0.07);--text:#c8d6f0;--dim:#4a5a78;--white:#eaf2ff}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 45% at 10% 15%,rgba(0,229,176,.05) 0%,transparent 55%),radial-gradient(ellipse 50% 40% at 88% 78%,rgba(176,109,255,.05) 0%,transparent 50%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.011) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.011) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 28px 100px}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;border-bottom:1px solid var(--border);background:rgba(7,9,15,.85);backdrop-filter:blur(16px);position:sticky;top:0;z-index:200}
+.nav-l{display:flex;align-items:center;gap:12px}
+.nav-logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,#00e5b0,#b06dff);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#07090f;flex-shrink:0}
+.nav-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--white)}
+.nav-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-left:4px}
+.nav-r{display:flex;align-items:center;gap:10px}
+.live{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:#00e5b0}
+.live::before{content:'';width:6px;height:6px;border-radius:50%;background:#00e5b0;animation:blink 2s infinite}
+.refresh-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--dim);transition:all .2s}
+.refresh-btn:hover{border-color:#00e5b0;color:#00e5b0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* HEADER */
+.page-hd{padding:52px 0 36px}
+.eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;color:#00e5b0;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:18px;height:1px;background:#00e5b0}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,7vw,84px);line-height:.95;letter-spacing:2px;color:var(--white);margin-bottom:10px}
+.page-title span{color:#00e5b0}
+.page-desc{font-size:13px;color:var(--dim);font-weight:300}
+
+/* TIME TOGGLE */
+.toggle-wrap{margin-bottom:44px;display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
+.tog{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;padding:7px 18px;border-radius:7px;cursor:pointer;color:var(--dim);border:none;background:transparent;transition:all .2s}
+.tog.active{background:rgba(0,229,176,.12);color:#00e5b0;border:1px solid rgba(0,229,176,.25)}
+.tog:hover:not(.active){color:var(--text)}
+
+/* SECTION HEADER */
+.section-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;margin-top:48px}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--white)}
+.section-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim)}
+
+/* GRIDS */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px}
+
+/* BOARD CARD */
+.board{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--c,#00e5b0);border-radius:14px;overflow:hidden;animation:fadeUp .45s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.board:nth-child(1){animation-delay:.04s}.board:nth-child(2){animation-delay:.09s}
+.board:nth-child(3){animation-delay:.13s}.board:nth-child(4){animation-delay:.17s}
+
+/* BOARD HEADER */
+.board-hd{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.board-hd-l{display:flex;align-items:center;gap:9px;min-width:0}
+.board-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(255,255,255,.05);flex-shrink:0}
+.board-name{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1.5px;color:var(--white);white-space:nowrap}
+.board-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);margin-top:1px;letter-spacing:.5px}
+.board-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.05);color:var(--dim);white-space:nowrap;flex-shrink:0}
+
+/* RANK ROWS */
+.rank-list{padding:4px 0}
+.rank-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.03);transition:background .18s;animation:slideIn .35s ease both}
+.rank-row:last-child{border-bottom:none}
+.rank-row:hover{background:rgba(255,255,255,.03)}
+.rank-row.r1{background:rgba(255,255,255,.025)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.rank-row:nth-child(1){animation-delay:.08s}.rank-row:nth-child(2){animation-delay:.13s}.rank-row:nth-child(3){animation-delay:.18s}
+.rank-num{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;min-width:20px;text-align:center}
+.r1 .rank-num{color:#ffd700}.r2 .rank-num{color:#b0bec5}.r3 .rank-num{color:#cd7f32}
+.rank-medal{font-size:16px;line-height:1;flex-shrink:0}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-size:13px;font-weight:500;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-name small{font-size:10px;color:var(--dim);font-weight:300;margin-left:5px}
+.rank-bar-bg{margin-top:5px;height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.rank-bar{height:100%;border-radius:2px;background:var(--c,#00e5b0);width:0;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.rank-val-wrap{text-align:right;flex-shrink:0}
+.rank-val{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--c,#00e5b0)}
+.rank-unit{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px}
+.empty-state{padding:22px 16px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--dim)}
+
+/* SKELETON */
+.sk{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg2) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;display:inline-block}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px}
+.ft-l{color:var(--dim)}.ft-r{color:rgba(74,90,120,.5)}
+#last-upd{color:#00e5b0}
+
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}main{padding:0 14px 60px}nav,footer{padding-left:14px;padding-right:14px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-l">
+    <div class="nav-logo">LA</div>
+    <div><div class="nav-title">LINEAI APLUS</div></div>
+    <span class="nav-sub">· LINE 團隊排行榜</span>
+  </div>
+  <div class="nav-r">
+    <div id="data-badge" style="font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid rgba(74,90,120,.2);background:transparent;color:var(--dim);">—</div>
+  </div>
+</nav>
+
+<main>
+  <div class="page-hd">
+    <div class="eyebrow">Team Leaderboard · 環貫綠佳利 APLUS</div>
+    <h1 class="page-title">LINE<br><span>團隊排行榜</span></h1>
+    <p class="page-desc">誰的團隊最活躍？誰的成員最難搞？<br>用數據說話，每天更新，高下立見。</p>
+  </div>
+
+  <div class="toggle-wrap">
+    <button class="tog active" data-period="month"   onclick="switchPeriod(this)">本月</button>
+    <button class="tog"        data-period="quarter" onclick="switchPeriod(this)">本季</button>
+    <button class="tog"        data-period="year"    onclick="switchPeriod(this)">本年</button>
+    <button class="tog"        data-period="all"     onclick="switchPeriod(this)">全時段</button>
+  </div>
+
+  <!-- ── TENANT ── -->
+  <div class="section-hd">
+    <h2 class="section-title">LINE 團隊排行榜</h2>
+    <span class="section-count">10 個榜單</span>
+  </div>
+  <div class="grid-4">
+    <div class="board" id="b-recruit"  style="--c:#00e5b0"></div>
+    <div class="board" id="b-approved" style="--c:#22c55e"></div>
+    <div class="board" id="b-active"   style="--c:#ff9f1c"></div>
+    <div class="board" id="b-density"  style="--c:#fbbf24"></div>
+  </div>
+  <div class="grid-4">
+    <div class="board" id="b-morning"  style="--c:#38bdf8"></div>
+    <div class="board" id="b-noon"     style="--c:#f59e0b"></div>
+    <div class="board" id="b-evening"  style="--c:#a78bfa"></div>
+    <div class="board" id="b-night"    style="--c:#6366f1"></div>
+  </div>
+  <div class="grid-2">
+    <div class="board" id="b-npfacts"  style="--c:#f472b6"></div>
+    <div class="board" id="b-miss"     style="--c:#94a3b8"></div>
+  </div>
+
+  <!-- ── INDIVIDUAL ── -->
+  <div class="section-hd" style="margin-top:64px">
+    <h2 class="section-title">個人排行榜</h2>
+    <span class="section-count">7 個榜單 · 核准會員</span>
+  </div>
+  <div class="grid-4">
+    <div class="board" id="b-ind-q"   style="--c:#00e5b0"></div>
+    <div class="board" id="b-ind-sd"  style="--c:#b06dff"></div>
+    <div class="board" id="b-ind-cmp" style="--c:#38bdf8"></div>
+    <div class="board" id="b-ind-tr"  style="--c:#f59e0b"></div>
+  </div>
+  <div class="grid-3">
+    <div class="board" id="b-ind-esc" style="--c:#ff4466"></div>
+    <div class="board" id="b-ind-db"  style="--c:#94a3b8"></div>
+    <div class="board" id="b-ind-tn"  style="--c:#f472b6"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="ft-l">最後更新：<span id="last-upd">—</span></div>
+  <div class="ft-r">Supabase · nsgqsopqlkhayuefdout</div>
+</footer>
+
+<script>
+/* ════════════════════════ CONFIG ════════════════════════ */
+const SB_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
+const SB_KEY = 'YOUR_MEMBERS_ANON_KEY';
+let period = 'month';
+
+/* ════════════════════════ BOARD DEFS ════════════════════ */
+const TB = [
+  {id:'b-recruit', icon:'👑',name:'新進招募',badge:'成員數',  sub:'member count',  unit:'人',   key:'member_count', dec:false},
+  {id:'b-approved',icon:'✅',name:'核准達人',badge:'入會數',  sub:'approved',      unit:'人',   key:'approved',     dec:false},
+  {id:'b-active',  icon:'🔥',name:'活躍霸主',badge:'活躍度',  sub:'messages',      unit:'則',   key:'msgs',         dec:false},
+  {id:'b-density', icon:'💬',name:'問題密度',badge:'黏著度',  sub:'msg / member',  unit:'則/人',key:'density',      dec:true },
+  {id:'b-morning', icon:'🌅',name:'早鳥榜',  badge:'06–11時', sub:'morning peak',  unit:'則',   key:'morning',      dec:false},
+  {id:'b-noon',    icon:'☀️',name:'午間榜',  badge:'12–17時', sub:'noon peak',     unit:'則',   key:'noon',         dec:false},
+  {id:'b-evening', icon:'🌆',name:'夜間榜',  badge:'18–21時', sub:'evening peak',  unit:'則',   key:'evening',      dec:false},
+  {id:'b-night',   icon:'🌙',name:'夜貓子',  badge:'22–05時', sub:'night owl',     unit:'則',   key:'night',        dec:false},
+  {id:'b-npfacts', icon:'🏷️',name:'NP情報控',badge:'商品問答',sub:'np facts hit',  unit:'次',   key:'np_facts',     dec:false},
+  {id:'b-miss',    icon:'📭',name:'資料庫維護',badge:'未命中',sub:'knowledge gap', unit:'題',   key:'miss',         dec:false},
+];
+
+const IB = [
+  {id:'b-ind-q',  icon:'🎙️',name:'提問達人',  badge:'最愛問',  sub:'most messages',  unit:'則',key:'msgs',         dec:false},
+  {id:'b-ind-sd', icon:'🧐',name:'深思熟慮獎',badge:'自我探索',sub:'self doubt',      unit:'pt',key:'self_doubt',   dec:false},
+  {id:'b-ind-cmp',icon:'🔍',name:'情報調查員',badge:'比較研究',sub:'comparison',      unit:'pt',key:'comparison',   dec:false},
+  {id:'b-ind-tr', icon:'⚖️',name:'獨立評審官',badge:'標準最高',sub:'trust building',  unit:'pt',key:'trust',        dec:false},
+  {id:'b-ind-esc',icon:'🤖',name:'AI擊破者',  badge:'讓AI投降',sub:'escalate count',  unit:'次',key:'escalations',  dec:false},
+  {id:'b-ind-db', icon:'🔬',name:'資料庫貢獻',badge:'未知領域',sub:'knowledge miss',  unit:'題',key:'miss',         dec:false},
+  {id:'b-ind-tn', icon:'📊',name:'Tone深潛者',badge:'最深層',  sub:'close tone count',unit:'次',key:'tone_close',   dec:false},
+];
+
+const MEDALS = ['🥇','🥈','🥉'];
+
+/* ════════════════════════ UTILS ════════════════════════ */
+function maskName(n) {
+  if (!n) return '—';
+  if (n.length <= 2) return n[0] + '*';
+  return n[0] + '*'.repeat(n.length - 2) + n[n.length - 1];
+}
+
+function since(p) {
+  const now = new Date();
+  if (p === 'month')   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  if (p === 'quarter') return new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1).toISOString();
+  if (p === 'year')    return new Date(now.getFullYear(), 0, 1).toISOString();
+  return null;
+}
+
+async function get(path) {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+  });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+/* ════════════════════════ SKELETON ════════════════════════ */
+function skel(b) {
+  const el = document.getElementById(b.id);
+  el.innerHTML = `
+    <div class="board-hd">
+      <div class="board-hd-l">
+        <div class="board-icon">${b.icon}</div>
+        <div><div class="board-name">${b.name}</div><div class="board-sub">${b.sub}</div></div>
+      </div>
+      <div class="board-badge">${b.badge}</div>
+    </div>
+    <div class="rank-list">
+      ${[0,1,2].map(i=>`
+        <div class="rank-row r${i+1}" style="animation-delay:${.08+i*.05}s">
+          <div class="rank-num">${i+1}</div><div class="rank-medal">${MEDALS[i]}</div>
+          <div class="rank-info">
+            <div class="sk" style="height:13px;width:${68-i*12}%;margin-bottom:7px"></div>
+            <div class="rank-bar-bg"><div class="rank-bar"></div></div>
+          </div>
+          <div class="rank-val-wrap"><div class="sk" style="height:22px;width:34px;margin-left:auto"></div></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+/* ════════════════════════ RENDER ════════════════════════ */
+function render(b, rows, isInd) {
+  const el = document.getElementById(b.id);
+  const top3 = rows.filter(r => (r[b.key]||0) > 0).slice(0,3);
+  const max = top3[0]?.[b.key] || 1;
+
+  const body = top3.length === 0
+    ? `<div class="empty-state">暫無數據</div>`
+    : top3.map((row,i) => {
+        const v = row[b.key] || 0;
+        const pct = Math.round(v / max * 100);
+        const disp = b.dec ? v.toFixed(2) : Math.round(v).toLocaleString();
+        const nameHtml = isInd
+          ? `${maskName(row.name)}<small>${row.team||''}</small>`
+          : row.name;
+        return `
+          <div class="rank-row r${i+1}" style="animation-delay:${.08+i*.05}s">
+            <div class="rank-num">${i+1}</div>
+            <div class="rank-medal">${MEDALS[i]}</div>
+            <div class="rank-info">
+              <div class="rank-name">${nameHtml}</div>
+              <div class="rank-bar-bg"><div class="rank-bar" data-pct="${pct}"></div></div>
+            </div>
+            <div class="rank-val-wrap">
+              <div class="rank-val">${disp}</div>
+              <div class="rank-unit">${b.unit}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+  el.innerHTML = `
+    <div class="board-hd">
+      <div class="board-hd-l">
+        <div class="board-icon">${b.icon}</div>
+        <div><div class="board-name">${b.name}</div><div class="board-sub">${b.sub}</div></div>
+      </div>
+      <div class="board-badge">${b.badge}</div>
+    </div>
+    <div class="rank-list">${body}</div>`;
+
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.rank-bar').forEach(bar => {
+      bar.style.width = (bar.dataset.pct||0) + '%';
+    });
+  });
+}
+
+/* ════════════════════════ FETCH & PROCESS ════════════════ */
+async function load(p) {
+  const s = since(p);
+  const df = s ? `&created_at=gte.${s}` : '';
+  const jf = s ? `&joined_at=gte.${s}`  : '';
+  const hf = s ? `&hour_start=gte.${s}` : '';
+
+  const [tenants, members, msgs, hourly] = await Promise.all([
+    get('tenants?select=id,owner_name&is_active=eq.true'),
+    get(`members?select=id,tenant_id,name,level,line_user_id,total_credits_used,trust_building_count,comparison_count,self_doubt_count${jf}`),
+    get(`message_logs?select=tenant_id,line_user_id,is_greeting,rag_results_count,np_facts_count,should_escalate,tone${df}`),
+    get(`hourly_usage_stats?select=tenant_id,hour_start,total_messages${hf}`),
+  ]);
+
+  /* tenant stats */
+  const tm = {};
+  tenants.forEach(t => {
+    tm[t.id] = {name:t.owner_name, member_count:0, approved:0, msgs:0, np_facts:0, miss:0, density:0, morning:0, noon:0, evening:0, night:0};
+  });
+
+  members.forEach(m => {
+    if (!tm[m.tenant_id]) return;
+    tm[m.tenant_id].member_count++;
+    if (m.level >= 1) tm[m.tenant_id].approved++;
+  });
+
+  msgs.forEach(ml => {
+    if (!tm[ml.tenant_id] || ml.is_greeting) return;
+    const t = tm[ml.tenant_id];
+    t.msgs++;
+    if (ml.np_facts_count > 0) t.np_facts++;
+    if (!ml.rag_results_count && !ml.np_facts_count) t.miss++;
+  });
+
+  hourly.forEach(h => {
+    if (!tm[h.tenant_id]) return;
+    const t = tm[h.tenant_id];
+    const hr = (new Date(h.hour_start).getUTCHours() + 8 + 24) % 24;
+    const n = h.total_messages || 0;
+    if (hr >= 6  && hr < 12) t.morning  += n;
+    else if (hr >= 12 && hr < 18) t.noon += n;
+    else if (hr >= 18 && hr < 22) t.evening += n;
+    else t.night += n;
+  });
+
+  const tRows = Object.values(tm).map(t => ({
+    ...t,
+    density: t.member_count > 0 ? Math.round(t.msgs/t.member_count*100)/100 : 0
+  }));
+
+  /* individual stats */
+  const approved = members.filter(m => m.level >= 1);
+  const im = {};
+  approved.forEach(m => {
+    im[m.line_user_id] = {
+      name: m.name,
+      team: tenants.find(t=>t.id===m.tenant_id)?.owner_name || '',
+      msgs: 0, self_doubt: m.self_doubt_count||0,
+      comparison: m.comparison_count||0, trust: m.trust_building_count||0,
+      escalations: 0, miss: 0, tone_close: 0,
+    };
+  });
+
+  msgs.forEach(ml => {
+    if (!im[ml.line_user_id] || ml.is_greeting) return;
+    const p = im[ml.line_user_id];
+    p.msgs++;
+    if (ml.should_escalate) p.escalations++;
+    if (!ml.rag_results_count && !ml.np_facts_count) p.miss++;
+    if (ml.tone === 'close') p.tone_close++;
+  });
+
+  return { tRows, iRows: Object.values(im) };
+}
+
+/* ════════════════════════ FALLBACK ════════════════════════ */
+function fallback() {
+  const tRows = [
+    {name:'輝岳團隊', member_count:8, approved:0, msgs:10, np_facts:0,  miss:10, density:1.25, morning:1, noon:0, evening:4, night:0},
+    {name:'魷魚團隊', member_count:6, approved:2, msgs:33, np_facts:10, miss:15, density:5.5,  morning:9, noon:8, evening:4, night:4},
+    {name:'敬豪團隊', member_count:4, approved:0, msgs:5,  np_facts:2,  miss:1,  density:1.25, morning:1, noon:3, evening:1, night:0},
+    {name:'翊迅團隊', member_count:2, approved:0, msgs:3,  np_facts:1,  miss:2,  density:1.5,  morning:1, noon:0, evening:2, night:0},
+    {name:'宥妍團隊', member_count:1, approved:0, msgs:6,  np_facts:0,  miss:5,  density:6.0,  morning:1, noon:3, evening:1, night:0},
+    {name:'威達團隊', member_count:1, approved:0, msgs:3,  np_facts:0,  miss:3,  density:3.0,  morning:1, noon:1, evening:0, night:0},
+    {name:'基紐團隊', member_count:2, approved:0, msgs:1,  np_facts:0,  miss:1,  density:0.5,  morning:1, noon:0, evening:0, night:0},
+  ];
+  const iRows = [
+    {name:'游育杰', team:'魷魚團隊', msgs:32, self_doubt:1, comparison:1, trust:1, escalations:0, miss:18, tone_close:1},
+    {name:'張麗玲', team:'魷魚團隊', msgs:4,  self_doubt:1, comparison:0, trust:2, escalations:0, miss:0,  tone_close:0},
+  ];
+  renderAll(tRows, iRows);
+}
+
+/* ════════════════════════ CACHE ════════════════════════ */
+const CACHE_KEY = 'lineai_lb';
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24小時
+
+function cacheGet(p) {
+  try {
+    const raw = localStorage.getItem(`${CACHE_KEY}_${p}`);
+    if (!raw) return null;
+    const {data, ts} = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return {data, ts};
+  } catch { return null; }
+}
+
+function cacheSet(p, data) {
+  try {
+    localStorage.setItem(`${CACHE_KEY}_${p}`, JSON.stringify({data, ts: Date.now()}));
+  } catch {}
+}
+
+function cacheClear() {
+  ['month','quarter','year','all'].forEach(p => {
+    try { localStorage.removeItem(`${CACHE_KEY}_${p}`); } catch {}
+  });
+}
+
+/* ════════════════════════ STATUS BAR ════════════════════ */
+function setStatus(ts) {
+  const d = new Date(ts);
+  const timeStr = d.toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  document.getElementById('last-upd').textContent = timeStr;
+  document.getElementById('data-badge').textContent = '每日更新';
+}
+
+/* ════════════════════════ RENDER ALL ════════════════════ */
+function renderAll(tRows, iRows) {
+  TB.forEach(b => {
+    const sorted = [...tRows].sort((a,z) => (z[b.key]||0) - (a[b.key]||0));
+    render(b, sorted, false);
+  });
+  IB.forEach(b => {
+    const sorted = [...iRows].sort((a,z) => (z[b.key]||0) - (a[b.key]||0));
+    render(b, sorted, true);
+  });
+}
+
+/* ════════════════════════ INIT ════════════════════════ */
+async function init(force = false) {
+  if (!force) {
+    const cached = cacheGet(period);
+    if (cached) {
+      renderAll(cached.data.tRows, cached.data.iRows);
+      setStatus(cached.ts);
+      return;
+    }
+  }
+  [...TB,...IB].forEach(skel);
+  try {
+    const result = await load(period);
+    cacheSet(period, result);
+    renderAll(result.tRows, result.iRows);
+    setStatus(Date.now());
+  } catch(e) {
+    console.warn('API failed, using fallback', e);
+    fallback();
+    setStatus(Date.now());
+  }
+}
+
+function forceRefresh() {
+  cacheClear();
+  init(true);
+}
+
+function switchPeriod(btn) {
+  document.querySelectorAll('.tog').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  period = btn.dataset.period;
+  init();
+}
+
+init();
+</script>
+</body>
+</html>
