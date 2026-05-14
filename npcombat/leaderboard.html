@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 實戰班排行榜</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f7f5f0;--bg2:#ffffff;
+  --gold:#b8960c;--gold2:#d4af37;--gold3:#96790a;
+  --card:#ffffff;--border:rgba(0,0,0,0.07);
+  --txt:#1a1a2e;--txt2:#6b7280;
+  --red:#dc2626;--green:#16a34a;--blue:#2563eb;
+  --shadow:0 2px 12px rgba(0,0,0,0.06);
+}
+body{
+  font-family:'Noto Sans TC',sans-serif;
+  background:var(--bg);color:var(--txt);
+  min-height:100vh;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse at 20% 0%,rgba(184,150,12,0.06) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 100%,rgba(184,150,12,0.03) 0%,transparent 50%);
+  pointer-events:none;
+}
+.container{max-width:800px;margin:0 auto;padding:16px;position:relative;z-index:1}
+
+/* Header */
+.header{text-align:center;padding:32px 0 16px}
+.header h1{
+  font-size:28px;font-weight:900;
+  background:linear-gradient(135deg,var(--gold3),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:2px;
+}
+.header .subtitle{color:var(--txt2);font-size:14px;margin-top:6px}
+.batch-name{
+  display:inline-block;margin-top:10px;padding:4px 14px;
+  background:rgba(184,150,12,0.08);border:1px solid rgba(184,150,12,0.15);
+  border-radius:20px;font-size:13px;color:var(--gold3);
+}
+
+/* Week Selector */
+.week-selector{
+  display:flex;gap:8px;align-items:center;padding:16px 0;
+}
+.week-dropdown{
+  flex:1;padding:10px 14px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;color:var(--txt);font-size:14px;
+  font-family:'Noto Sans TC',sans-serif;font-weight:700;
+  box-shadow:var(--shadow);cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;
+  padding-right:36px;
+}
+.week-dropdown:focus{outline:none;border-color:var(--gold2)}
+.week-allbtn{
+  padding:10px 20px;border:1px solid var(--border);
+  border-radius:12px;background:var(--card);color:var(--txt2);
+  font-size:14px;font-weight:700;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;
+  box-shadow:var(--shadow);transition:all .2s;white-space:nowrap;
+}
+.week-allbtn:hover{border-color:var(--gold2);color:var(--gold3)}
+.week-allbtn.active{
+  background:linear-gradient(135deg,var(--gold3),var(--gold2));
+  color:#fff;border-color:var(--gold2);
+}
+
+/* Section */
+.section-title{
+  display:flex;align-items:center;gap:8px;
+  margin:28px 0 14px;font-size:16px;font-weight:700;color:var(--gold3);
+}
+.section-title::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(184,150,12,0.2),transparent);
+}
+
+/* Award Cards */
+.awards-grid{display:flex;flex-direction:column;gap:12px}
+.award-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;padding:16px;
+  transition:all .3s;box-shadow:var(--shadow);
+}
+.award-card:hover{
+  border-color:rgba(184,150,12,0.15);
+  transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.08);
+}
+.award-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.award-emoji{font-size:28px}
+.award-info{flex:1}
+.award-name{font-size:16px;font-weight:900;color:var(--txt)}
+.award-desc{font-size:12px;color:var(--txt2);margin-top:2px}
+
+/* Podium */
+.podium{display:flex;flex-direction:column;gap:6px}
+.podium-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:10px;
+  background:rgba(0,0,0,0.01);
+}
+.podium-row.rank-1{
+  background:rgba(184,150,12,0.08);
+  border-left:3px solid var(--gold2);
+}
+.podium-row.rank-2{
+  background:rgba(120,120,120,0.06);
+  border-left:3px solid #a0a0a0;
+}
+.podium-row.rank-3{
+  background:rgba(180,120,50,0.06);
+  border-left:3px solid #cd7f32;
+}
+.rank-badge{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;flex-shrink:0;
+}
+.rank-1 .rank-badge{background:var(--gold2);color:#fff}
+.rank-2 .rank-badge{background:#a0a0a0;color:#fff}
+.rank-3 .rank-badge{background:#cd7f32;color:#fff}
+.podium-name{flex:1;font-size:14px;font-weight:700}
+.podium-score{
+  font-size:14px;font-weight:900;
+  color:var(--gold3);white-space:nowrap;
+}
+.podium-unit{font-size:11px;color:var(--txt2);font-weight:400;margin-left:2px}
+
+/* Empty State */
+.empty-state{
+  text-align:center;padding:20px;color:var(--txt2);font-size:13px;
+  font-style:italic;
+}
+
+/* Fun Badge */
+.fun-tag{
+  display:inline-block;padding:2px 8px;border-radius:8px;
+  font-size:10px;font-weight:700;margin-left:6px;
+  background:rgba(255,107,107,0.15);color:var(--red);
+  vertical-align:middle;
+}
+.team-tag{
+  display:inline-block;padding:2px 8px;border-radius:8px;
+  font-size:10px;font-weight:700;margin-left:6px;
+  background:rgba(81,207,102,0.15);color:var(--green);
+  vertical-align:middle;
+}
+
+/* Loading */
+.loading{text-align:center;padding:60px 0;color:var(--txt2)}
+.loading .spinner{
+  width:32px;height:32px;border:3px solid var(--border);
+  border-top-color:var(--gold2);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Footer */
+.footer{text-align:center;padding:40px 0 24px;color:var(--txt2);font-size:11px}
+
+/* Blackout 蓋牌 */
+.blackout{
+  text-align:center;padding:80px 20px;
+  animation:fadeIn .6s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.blackout-icon{font-size:80px;margin-bottom:20px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.blackout-title{
+  font-size:28px;font-weight:900;
+  background:linear-gradient(135deg,var(--gold3),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:12px;
+}
+.blackout-sub{color:var(--txt2);font-size:15px;line-height:1.8;margin-bottom:30px}
+.blackout-countdown{
+  display:inline-flex;gap:12px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px 28px;box-shadow:var(--shadow);
+}
+.countdown-unit{text-align:center}
+.countdown-num{
+  font-size:36px;font-weight:900;color:var(--gold3);
+  font-variant-numeric:tabular-nums;min-width:48px;display:block;
+}
+.countdown-label{font-size:11px;color:var(--txt2);margin-top:2px}
+.blackout-hint{
+  margin-top:24px;padding:12px 20px;
+  background:rgba(184,150,12,0.08);border-radius:12px;
+  color:var(--gold3);font-size:14px;font-weight:700;
+  display:inline-block;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🏆 實戰班排行榜</h1>
+    <p class="subtitle">誰是本週最強戰士？</p>
+    <div class="batch-name" id="batchName">載入中...</div>
+  </div>
+
+  <div class="week-selector" id="weekSelector">
+    <select class="week-dropdown" id="weekDropdown" onchange="onWeekChange()"></select>
+    <button class="week-allbtn" id="allBtn" onclick="loadWeek(-1)">整期</button>
+  </div>
+
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>正在統計戰績...</div>
+    </div>
+  </div>
+
+  <div class="footer">實戰班委員會</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
+const sb = typeof supabase !== 'undefined' 
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'npcombat' } }) 
+  : null;
+
+const AWARDS = [
+  { key:'total',     emoji:'🏅', name:'本週得分王',  desc:'全部行動加權加總',   unit:'分', fun:false },
+  { key:'締結',      emoji:'🔫', name:'叫我締結王',  desc:'本週公司積分最高',   unit:'分', fun:false },
+  { key:'social',    emoji:'🦋', name:'社交蝴蝶',    desc:'本週拓展社交次數',   unit:'次', fun:false },
+  { key:'recommend', emoji:'💬', name:'談笑風聲',    desc:'本週溝通次數',       unit:'次', fun:false },
+  { key:'invite',    emoji:'🎯', name:'邀約達人',    desc:'本週邀約說明會次數', unit:'次', fun:false },
+  { key:'list',      emoji:'📋', name:'滿門抄斬',    desc:'本週列名單筆數',     unit:'筆', fun:false },
+  { key:'schedule',  emoji:'📅', name:'燃燒生命',    desc:'本週安排行程次數',   unit:'次', fun:false },
+  { key:'ghosted',   emoji:'🕊️', name:'和平鴿王',   desc:'被放鳥最多，但不放棄', unit:'次', fun:true },
+  { key:'rejected',  emoji:'🍋', name:'檸檬勇士',   desc:'被拒絕最多，越挫越勇', unit:'次', fun:true },
+];
+
+let currentBatch = null;
+let weeks = [];
+let currentWeek = 0;
+
+// ========== DEMO 模式 ==========
+// 部署時改為 false 即切回 Supabase 即時資料
+const DEMO_MODE = true;
+
+// ========== 蓋牌時間設定 ==========
+// 週六 23:59 蓋牌 → 週日 22:00 解封
+function isBlackout() {
+  const now = new Date();
+  const day = now.getDay(); // 0=週日, 6=週六
+  const h = now.getHours(), m = now.getMinutes();
+  if (day === 6 && h === 23 && m >= 59) return true;
+  if (day === 0 && h < 22) return true;
+  return false;
+}
+
+function getNextRevealTime() {
+  const now = new Date();
+  const reveal = new Date(now);
+  // 找到本週日 22:00
+  if (now.getDay() === 6) { reveal.setDate(reveal.getDate() + 1); }
+  reveal.setHours(22, 0, 0, 0);
+  return reveal;
+}
+
+function showBlackout() {
+  document.getElementById('weekSelector').style.display = 'none';
+  const reveal = getNextRevealTime();
+
+  function updateCountdown() {
+    const now = new Date();
+    const diff = reveal - now;
+    if (diff <= 0) { location.reload(); return; }
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-h').textContent = String(hrs).padStart(2, '0');
+    document.getElementById('cd-m').textContent = String(mins).padStart(2, '0');
+    document.getElementById('cd-s').textContent = String(secs).padStart(2, '0');
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="blackout">
+      <div class="blackout-icon">🃏</div>
+      <div class="blackout-title">排行榜已封鎖</div>
+      <div class="blackout-sub">
+        本週戰績統計完畢，結果已蓋牌！<br>
+        今晚實戰班之夜將揭曉所有獎項 🏆
+      </div>
+      <div class="blackout-countdown">
+        <div class="countdown-unit"><span class="countdown-num" id="cd-h">--</span><span class="countdown-label">時</span></div>
+        <div class="countdown-unit"><span class="countdown-num" id="cd-m">--</span><span class="countdown-label">分</span></div>
+        <div class="countdown-unit"><span class="countdown-num" id="cd-s">--</span><span class="countdown-label">秒</span></div>
+      </div>
+      <div class="blackout-hint">📍 週日 21:00 Zoom 見！</div>
+    </div>`;
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+}
+
+// ========== Demo 資料 ==========
+function genDemoWeekData() {
+  const data = [
+    { name:'王志明', code:'NP2201', group:'火箭隊', list:10, schedule:8, social:6, recommend:4, invite:2, company:350, ghosted:1, rejected:3 },
+    { name:'林美玲', code:'NP2202', group:'火箭隊', list:7,  schedule:6, social:7, recommend:5, invite:1, company:200, ghosted:2, rejected:5 },
+    { name:'陳大偉', code:'NP2203', group:'閃電隊', list:5,  schedule:9, social:3, recommend:3, invite:3, company:280, ghosted:0, rejected:2 },
+    { name:'張雅婷', code:'NP2204', group:'閃電隊', list:8,  schedule:4, social:5, recommend:6, invite:1, company:150, ghosted:3, rejected:6 },
+    { name:'李建宏', code:'NP2205', group:'旋風隊', list:3,  schedule:7, social:8, recommend:2, invite:0, company:50,  ghosted:4, rejected:4 },
+    { name:'黃淑芬', code:'NP2206', group:'旋風隊', list:6,  schedule:5, social:4, recommend:4, invite:2, company:300, ghosted:1, rejected:1 },
+    { name:'劉家豪', code:'NP2207', group:'火箭隊', list:4,  schedule:3, social:2, recommend:1, invite:0, company:0,   ghosted:2, rejected:7 },
+    { name:'吳佳蓉', code:'NP2208', group:'閃電隊', list:9,  schedule:6, social:5, recommend:3, invite:1, company:180, ghosted:0, rejected:3 },
+    { name:'蔡明哲', code:'NP2209', group:'旋風隊', list:2,  schedule:2, social:1, recommend:1, invite:1, company:100, ghosted:3, rejected:2 },
+    { name:'許雅琪', code:'NP2210', group:'火箭隊', list:6,  schedule:7, social:9, recommend:5, invite:2, company:250, ghosted:1, rejected:4 },
+  ];
+  return data.map(d => ({ ...d, total: 0 }));
+}
+
+function genDemoCumulativeData() {
+  const data = [
+    { name:'王志明', code:'NP2201', group:'火箭隊', list:28, schedule:22, social:18, recommend:12, invite:5, company:980,  ghosted:3,  rejected:8 },
+    { name:'林美玲', code:'NP2202', group:'火箭隊', list:20, schedule:17, social:21, recommend:14, invite:3, company:620,  ghosted:6,  rejected:14 },
+    { name:'陳大偉', code:'NP2203', group:'閃電隊', list:15, schedule:25, social:10, recommend:9,  invite:7, company:850,  ghosted:1,  rejected:5 },
+    { name:'張雅婷', code:'NP2204', group:'閃電隊', list:22, schedule:12, social:16, recommend:17, invite:3, company:480,  ghosted:9,  rejected:18 },
+    { name:'李建宏', code:'NP2205', group:'旋風隊', list:9,  schedule:19, social:24, recommend:6,  invite:1, company:150,  ghosted:12, rejected:11 },
+    { name:'黃淑芬', code:'NP2206', group:'旋風隊', list:18, schedule:15, social:13, recommend:11, invite:5, company:900,  ghosted:2,  rejected:4 },
+    { name:'劉家豪', code:'NP2207', group:'火箭隊', list:12, schedule:8,  social:7,  recommend:3,  invite:1, company:80,   ghosted:7,  rejected:20 },
+    { name:'吳佳蓉', code:'NP2208', group:'閃電隊', list:25, schedule:18, social:15, recommend:10, invite:4, company:550,  ghosted:1,  rejected:9 },
+    { name:'蔡明哲', code:'NP2209', group:'旋風隊', list:6,  schedule:6,  social:4,  recommend:3,  invite:2, company:300,  ghosted:8,  rejected:6 },
+    { name:'許雅琪', code:'NP2210', group:'火箭隊', list:17, schedule:20, social:26, recommend:15, invite:6, company:780,  ghosted:3,  rejected:12 },
+  ];
+  return data.map(d => ({ ...d, total: 0 }));
+}
+
+async function init() {
+  if (DEMO_MODE) {
+    currentBatch = { id:1, name:'26期實戰班', event_name:'威斯汀', target_points:800, start_date:'2026-05-24', end_date:'2026-06-28' };
+  } else {
+    const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false }).limit(1);
+    if (!batches || !batches.length) { showEmpty('尚未建立班次'); return; }
+    currentBatch = batches[0];
+  }
+
+  document.getElementById('batchName').textContent = 
+    `${currentBatch.name}｜目標 ${currentBatch.target_points} 分 → ${currentBatch.event_name}`;
+
+  if (!currentBatch.start_date || !currentBatch.end_date) { showEmpty('班次日期尚未設定'); return; }
+  const start = new Date(currentBatch.start_date);
+  const end = new Date(currentBatch.end_date);
+  const today = new Date();
+  let ws = new Date(start);
+  let i = 1;
+  while (ws <= end) {
+    let we = new Date(ws);
+    we.setDate(we.getDate() + 6);
+    if (we > end) we = new Date(end);
+    weeks.push({ num: i, start: new Date(ws), end: we });
+    ws.setDate(ws.getDate() + 7);
+    i++;
+  }
+  // 最後一週不足 3 天 → 併入前一週
+  if (weeks.length > 1) {
+    const last = weeks[weeks.length - 1];
+    const days = (last.end - last.start) / 86400000;
+    if (days < 3) {
+      weeks[weeks.length - 2].end = last.end;
+      weeks.pop();
+    }
+  }
+
+  currentWeek = 0;
+  for (let w = 0; w < weeks.length; w++) {
+    if (today >= weeks[w].start && today <= weeks[w].end) { currentWeek = w; break; }
+    if (today > weeks[w].end) currentWeek = w;
+  }
+
+  renderWeekBar();
+
+  // 蓋牌檢查
+  if (isBlackout()) {
+    showBlackout();
+    return;
+  }
+
+  loadWeek(currentWeek);
+}
+
+function renderWeekBar() {
+  const dd = document.getElementById('weekDropdown');
+  dd.innerHTML = weeks.map((w, i) => {
+    const s = fmtDate(w.start);
+    const e = fmtDate(w.end);
+    return `<option value="${i}" ${i === currentWeek ? 'selected' : ''}>第${w.num}週（${s} - ${e}）</option>`;
+  }).join('');
+}
+
+function onWeekChange() {
+  const idx = parseInt(document.getElementById('weekDropdown').value);
+  loadWeek(idx);
+}
+
+function fmtDate(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
+function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
+
+async function loadWeek(idx) {
+  if (isBlackout()) { showBlackout(); return; }
+  currentWeek = idx;
+  // 更新 UI
+  const dd = document.getElementById('weekDropdown');
+  const allBtn = document.getElementById('allBtn');
+  if (idx === -1) {
+    dd.value = '';
+    allBtn.classList.add('active');
+  } else {
+    dd.value = idx;
+    allBtn.classList.remove('active');
+  }
+
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div>正在統計戰績...</div></div>';
+
+  let arr;
+
+  if (DEMO_MODE) {
+    arr = idx === -1 ? genDemoCumulativeData() : genDemoWeekData();
+    arr.forEach(s => {
+      s.total = s.list * 1 + s.schedule * 1 + s.social * 2 + s.recommend * 5 + s.invite * 20 + s.company;
+    });
+  } else {
+    // 查詢 action_logs
+    let query = sb.from('action_logs').select('*, batch_students(group_name, member_id, members_master(name, member_code))')
+      .eq('batch_id', currentBatch.id);
+
+    if (idx >= 0 && idx < weeks.length) {
+      query = query.gte('log_date', fmtDateISO(weeks[idx].start))
+                   .lte('log_date', fmtDateISO(weeks[idx].end));
+    }
+
+    const { data: logs, error } = await query;
+    if (error) { showEmpty('資料載入失敗：' + error.message); return; }
+    if (!logs || !logs.length) { showEmpty('本週尚無行動紀錄，開始衝吧！💪'); return; }
+
+    // 彙總每位學員
+    const students = {};
+    logs.forEach(log => {
+      const sid = log.student_id;
+      const info = log.batch_students;
+      const name = info?.members_master?.name || '未知';
+      const code = info?.members_master?.member_code || '';
+      const group = info?.group_name || '未分組';
+
+      if (!students[sid]) {
+        students[sid] = {
+          name, code, group,
+          list: 0, schedule: 0, social: 0, recommend: 0,
+          invite: 0, company: 0, ghosted: 0, rejected: 0, total: 0
+        };
+      }
+      const s = students[sid];
+      s.list      += log.action_list || 0;
+      s.schedule  += log.action_schedule || 0;
+      s.social    += log.action_social || 0;
+      s.recommend += log.action_recommend || 0;
+      s.invite    += log.action_invite || 0;
+      s.company   += log.company_points || 0;
+      s.ghosted   += log.action_ghosted || 0;
+      s.rejected  += log.action_rejected || 0;
+    });
+
+    Object.values(students).forEach(s => {
+      s.total = s.list * 1 + s.schedule * 1 + s.social * 2 + s.recommend * 5 + s.invite * 20 + s.company;
+    });
+
+    arr = Object.values(students);
+  }
+
+  // 排名函式
+  const rank = (key) => {
+    const sorted = [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0);
+    return sorted.slice(0, 3);
+  };
+
+  // 欄位對應
+  const keyMap = {
+    total: 'total', '締結': 'company', social: 'social',
+    recommend: 'recommend', invite: 'invite',
+    list: 'list', schedule: 'schedule',
+    ghosted: 'ghosted', rejected: 'rejected'
+  };
+
+  // 團隊排名
+  const groups = {};
+  arr.forEach(s => {
+    if (!groups[s.group]) groups[s.group] = { total: 0, count: 0 };
+    groups[s.group].total += s.total;
+    groups[s.group].count += 1;
+  });
+  const teamRank = Object.entries(groups)
+    .map(([name, g]) => ({ name, avg: Math.round(g.total / g.count), count: g.count }))
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 3);
+
+  // 渲染
+  let html = '';
+  const periodLabel = idx === -1 ? '整期' : '本週';
+
+  // 正式獎項
+  html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
+  html += '<div class="awards-grid">';
+  AWARDS.filter(a => !a.fun).forEach(award => {
+    const top3 = rank(keyMap[award.key]);
+    html += renderAwardCard(award, top3);
+  });
+  html += '</div>';
+
+  // 趣味獎項
+  html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
+  html += '<div class="awards-grid">';
+  AWARDS.filter(a => a.fun).forEach(award => {
+    const top3 = rank(keyMap[award.key]);
+    html += renderAwardCard(award, top3);
+  });
+  html += '</div>';
+
+  // 團隊獎
+  html += `<div class="section-title">👥 ${periodLabel}小隊對決</div>`;
+  html += '<div class="awards-grid">';
+  html += renderTeamCard(teamRank);
+  html += '</div>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderAwardCard(award, top3) {
+  const tag = award.fun ? '<span class="fun-tag">趣味獎</span>' : '';
+  let podium = '';
+  if (top3.length === 0) {
+    podium = '<div class="empty-state">虛位以待，等你來搶！</div>';
+  } else {
+    podium = '<div class="podium">' + top3.map((s, i) => `
+      <div class="podium-row rank-${i+1}">
+        <div class="rank-badge">${i+1}</div>
+        <div class="podium-name">${s.name}</div>
+        <div class="podium-score">${s[getField(award.key)]}<span class="podium-unit">${award.unit}</span></div>
+      </div>`).join('') + '</div>';
+  }
+  return `
+    <div class="award-card">
+      <div class="award-header">
+        <div class="award-emoji">${award.emoji}</div>
+        <div class="award-info">
+          <div class="award-name">${award.name}${tag}</div>
+          <div class="award-desc">${award.desc}</div>
+        </div>
+      </div>
+      ${podium}
+    </div>`;
+}
+
+function renderTeamCard(teams) {
+  let podium = '';
+  if (teams.length === 0) {
+    podium = '<div class="empty-state">尚無小隊資料</div>';
+  } else {
+    podium = '<div class="podium">' + teams.map((t, i) => `
+      <div class="podium-row rank-${i+1}">
+        <div class="rank-badge">${i+1}</div>
+        <div class="podium-name">${t.name}<span style="color:var(--txt2);font-size:12px;font-weight:400;margin-left:6px">${t.count}人</span></div>
+        <div class="podium-score">${t.avg}<span class="podium-unit">均分</span></div>
+      </div>`).join('') + '</div>';
+  }
+  return `
+    <div class="award-card">
+      <div class="award-header">
+        <div class="award-emoji">🏆</div>
+        <div class="award-info">
+          <div class="award-name">最強小隊<span class="team-tag">團隊獎</span></div>
+          <div class="award-desc">整組加權總分 ÷ 組員人數，平均最高</div>
+        </div>
+      </div>
+      ${podium}
+    </div>`;
+}
+
+function getField(key) {
+  return { total:'total', '締結':'company', social:'social', recommend:'recommend',
+           invite:'invite', list:'list', schedule:'schedule',
+           ghosted:'ghosted', rejected:'rejected' }[key];
+}
+
+function showEmpty(msg) {
+  document.getElementById('content').innerHTML = `<div class="empty-state" style="padding:60px 0">${msg}</div>`;
+}
+
+init();
+</script>
+</body>
+</html>

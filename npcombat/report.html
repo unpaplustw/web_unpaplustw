@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>npcombat 教練回報</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --bg:#f7f5f0; --card:#ffffff; --card-shadow:0 2px 12px rgba(0,0,0,0.06);
+    --border:rgba(0,0,0,0.07);
+    --gold:#b8960c; --gold2:#d4af37; --gold3:#96790a;
+    --gold-lt:rgba(184,150,12,.12); --gold-bd:rgba(184,150,12,.25);
+    --gold-grad:linear-gradient(135deg,#96790a,#d4af37);
+    --text:#1a1a2e; --muted:#6b7280;
+    --green:#4caf82; --green-bg:rgba(76,175,130,.1);
+    --red:#e05c5c; --red-bg:rgba(224,92,92,.1);
+    --yellow:#d4a017; --yellow-bg:rgba(212,160,23,.1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+  .wrap{max-width:480px;margin:0 auto;padding:16px 16px 40px}
+
+  .hd{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;text-align:center;box-shadow:var(--card-shadow)}
+  .hd h1{font-size:17px;font-weight:700;color:var(--gold);margin-bottom:6px}
+  .hd-row{display:flex;align-items:center;justify-content:center;gap:8px}
+  .hd select{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;font-family:inherit}
+  .hd-sub{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .date-bar{display:flex;gap:8px;margin-bottom:14px}
+  .date-btn{flex:1;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;text-align:center;cursor:pointer;font-family:inherit;transition:.2s;box-shadow:var(--card-shadow)}
+  .date-btn.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold-bd)}
+
+  .section-title{font-size:14px;font-weight:500;color:var(--gold);margin-bottom:10px;padding-left:2px}
+
+  .stu{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--card-shadow)}
+  .stu-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .stu-name{font-size:14px;font-weight:500}
+  .stu-last{font-size:11px;color:var(--muted)}
+  .stu-last .warn{color:var(--yellow)}
+  .stu-last .danger{color:var(--red)}
+
+  .bar-wrap{background:rgba(0,0,0,0.05);border-radius:4px;height:8px;margin-bottom:6px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;transition:width .3s}
+  .bar-fill.low{background:var(--red)}
+  .bar-fill.mid{background:var(--yellow)}
+  .bar-fill.high{background:var(--green)}
+  .bar-fill.done{background:var(--gold)}
+
+  .stu-stats{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+  .stu-pts{color:var(--gold);font-weight:500}
+  .stu-acts span{margin-right:6px}
+  .stu-score{font-size:12px;color:var(--gold)}
+
+  .stu-detail{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:6px;font-size:12px;color:var(--muted)}
+  .stu-detail span{white-space:nowrap}
+  .stu-detail .fun{color:#9ca3af;font-style:italic}
+
+  .divider{border:none;border-top:1px solid var(--gold-bd);margin:20px 0 16px}
+
+  .form-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--card-shadow)}
+  .form-name{font-size:13px;font-weight:500;margin-bottom:8px;color:var(--text)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+  .form-grid.col3{grid-template-columns:1fr 1fr 1fr}
+  .form-grid.full{grid-template-columns:1fr}
+  .form-sep{font-size:11px;color:var(--muted);margin:8px 0 4px;padding-left:2px}
+  .fg{display:flex;flex-direction:column;gap:3px}
+  .fg label{font-size:12px;color:var(--muted);font-weight:500}
+  .fg input{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:7px 4px;font-size:16px;text-align:center;font-family:inherit;width:100%;-webkit-appearance:none;-moz-appearance:textfield}
+  .fg input:focus{border-color:var(--gold);outline:none}
+  .fg-pts input{background:rgba(184,150,12,.06);border-color:var(--gold-bd);color:var(--gold);font-weight:500;font-size:18px}
+  .form-pts-row{margin-top:6px}
+
+  .btn-submit{width:100%;padding:14px;margin-top:16px;background:var(--gold-grad);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s}
+  .btn-submit:hover:not(:disabled){opacity:.9}
+  .btn-submit:disabled{opacity:.4;cursor:not-allowed}
+  .status-msg{text-align:center;margin-top:8px;font-size:13px}
+
+  .empty{text-align:center;padding:40px 16px;color:var(--muted);font-size:14px}
+
+  .footer{text-align:center;padding:24px 0 8px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hd">
+    <h1>教練回報</h1>
+    <div class="hd-row">
+      <select id="selCoach"><option value="">選擇教練…</option></select>
+    </div>
+    <div class="hd-sub" id="batchInfo"></div>
+  </div>
+
+  <div id="mainContent" style="display:none">
+
+    <div class="date-bar">
+      <div class="date-btn" id="btnYday" onclick="pickDate('yesterday')"></div>
+      <div class="date-btn on" id="btnToday" onclick="pickDate('today')"></div>
+    </div>
+
+    <div class="section-title">學員狀態總覽</div>
+    <div id="overviewArea"></div>
+
+    <hr class="divider">
+
+    <div class="section-title" id="formTitle">填寫今日回報</div>
+    <div id="formArea"></div>
+
+    <button class="btn-submit" id="btnSubmit" onclick="submitAll()">送出回報</button>
+    <div class="status-msg" id="statusMsg"></div>
+
+  </div>
+
+  <div class="footer">實戰班委員會</div>
+
+</div>
+
+<script>
+const sb = window.supabase.createClient(
+  'https://nsgqsopqlkhayuefdout.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y',
+  { db: { schema: 'npcombat' } }
+);
+
+const BATCH_ID = 1;
+let batchInfo = {};
+let coachRecord = null;
+let myStudents = [];
+let accumData = {};
+let dayLogs = {};
+let selectedDate = '';
+
+function todayStr() { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); }
+function yesterdayStr() {
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+}
+function formatDate(s) {
+  const d = new Date(s + 'T00:00:00');
+  return `${d.getMonth()+1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）`;
+}
+function daysAgo(dateStr) {
+  const today = new Date(todayStr() + 'T00:00:00');
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.floor((today - d) / 86400000);
+}
+
+async function init() {
+  const { data: batch } = await sb.from('batches').select('*').eq('id', BATCH_ID).single();
+  batchInfo = batch || {};
+  document.getElementById('batchInfo').textContent =
+    `${batchInfo.name || ''}（${batchInfo.event_name || ''}）目標 ${batchInfo.target_points || 800} 分`;
+
+  const { data: coaches } = await sb.from('batch_coaches')
+    .select('id, phone, rank, cfc, member_id, members_master(name, member_code)')
+    .eq('batch_id', BATCH_ID);
+
+  const sel = document.getElementById('selCoach');
+  sel.innerHTML = '<option value="">選擇教練…</option>' +
+    (coaches || []).map(c => {
+      const n = c.members_master?.name || '?';
+      const mc = c.members_master?.member_code;
+      return `<option value="${c.id}">${n}${mc ? '（' + mc + '）' : ''}</option>`;
+    }).join('');
+
+  sel.addEventListener('change', async () => {
+    const cid = sel.value;
+    if (!cid) { document.getElementById('mainContent').style.display = 'none'; return; }
+    const c = (coaches || []).find(x => x.id === cid);
+    coachRecord = { id: c.id, member_id: c.member_id, name: c.members_master?.name, rank: c.rank };
+    await loadCoachData();
+  });
+
+  selectedDate = todayStr();
+  document.getElementById('btnToday').textContent = '今天 ' + formatDate(todayStr());
+  document.getElementById('btnYday').textContent = '昨天 ' + formatDate(yesterdayStr());
+}
+
+async function loadCoachData() {
+  const { data: stuData } = await sb.from('batch_students')
+    .select('id, phone, group_name, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .eq('batch_id', BATCH_ID)
+    .eq('coach_id', coachRecord.id)
+    .eq('status', 'approved');
+  myStudents = stuData || [];
+  myStudents.sort((a, b) => (a.group_name === '教練' ? -1 : b.group_name === '教練' ? 1 : 0));
+
+  await loadAccum();
+  await loadDayLogs(selectedDate);
+  document.getElementById('mainContent').style.display = 'block';
+  render();
+}
+
+async function loadAccum() {
+  accumData = {};
+  if (!myStudents.length) return;
+  const ids = myStudents.map(s => s.id);
+  const { data } = await sb.from('action_logs')
+    .select('student_id, action_list, action_social, action_recommend, action_invite, company_points, action_schedule, action_ghosted, action_rejected, log_date')
+    .eq('batch_id', BATCH_ID)
+    .in('student_id', ids);
+
+  (data || []).forEach(row => {
+    if (!accumData[row.student_id]) {
+      accumData[row.student_id] = { list:0, schedule:0, social:0, rec:0, inv:0, pts:0, ghosted:0, rejected:0, last:null };
+    }
+    const a = accumData[row.student_id];
+    a.list     += row.action_list || 0;
+    a.schedule += row.action_schedule || 0;
+    a.social   += row.action_social || 0;
+    a.rec      += row.action_recommend || 0;
+    a.inv      += row.action_invite || 0;
+    a.pts      += row.company_points || 0;
+    a.ghosted  += row.action_ghosted || 0;
+    a.rejected += row.action_rejected || 0;
+    if (!a.last || row.log_date > a.last) a.last = row.log_date;
+  });
+}
+
+async function loadDayLogs(date) {
+  dayLogs = {};
+  if (!myStudents.length) return;
+  const ids = myStudents.map(s => s.id);
+  const { data } = await sb.from('action_logs')
+    .select('*')
+    .eq('batch_id', BATCH_ID)
+    .eq('log_date', date)
+    .in('student_id', ids);
+  (data || []).forEach(row => { dayLogs[row.student_id] = row; });
+}
+
+function pickDate(which) {
+  selectedDate = which === 'today' ? todayStr() : yesterdayStr();
+  document.getElementById('btnToday').classList.toggle('on', which === 'today');
+  document.getElementById('btnYday').classList.toggle('on', which === 'yesterday');
+  document.getElementById('formTitle').textContent =
+    '填寫' + (which === 'today' ? '今日' : '昨日') + '回報（' + formatDate(selectedDate) + '）';
+  loadDayLogs(selectedDate).then(renderForm);
+}
+
+function render() {
+  renderOverview();
+  document.getElementById('formTitle').textContent = '填寫今日回報（' + formatDate(selectedDate) + '）';
+  renderForm();
+}
+
+function renderOverview() {
+  const el = document.getElementById('overviewArea');
+  if (!myStudents.length) { el.innerHTML = '<div class="empty">尚無已配對的學員</div>'; return; }
+  const target = batchInfo.target_points || 800;
+
+  el.innerHTML = myStudents.map(s => {
+    const n = s.members_master?.name || '?';
+    const mc = s.members_master?.member_code;
+    const isCoach = s.group_name === '教練';
+    const sponsorName = s.sponsor?.members_master?.name || '';
+    const nameLabel = (isCoach ? '★ ' : '') + n + (mc ? '（' + mc + '）' : '');
+    const a = accumData[s.id] || { list:0, schedule:0, social:0, rec:0, inv:0, pts:0, ghosted:0, rejected:0, last:null };
+    const pct = Math.min(100, Math.round(a.pts / target * 100));
+    const score = a.list * 1 + a.schedule * 1 + a.social * 2 + a.rec * 5 + a.inv * 20;
+    const barClass = a.pts >= target ? 'done' : pct >= 60 ? 'high' : pct >= 30 ? 'mid' : 'low';
+
+    let lastText = '尚無紀錄';
+    let lastClass = '';
+    if (a.last) {
+      const ago = daysAgo(a.last);
+      if (ago === 0) lastText = '今天';
+      else if (ago === 1) lastText = '昨天';
+      else lastText = ago + '天前';
+      if (ago >= 3) lastClass = 'danger';
+      else if (ago >= 2) lastClass = 'warn';
+    }
+
+    return `
+    <div class="stu" ${isCoach ? 'style="border-color:rgba(184,150,12,.3)"' : ''}>
+      <div class="stu-top">
+        <span class="stu-name">${nameLabel}</span>
+        <span class="stu-last">${lastText}${lastClass === 'danger' ? ' <span class="danger">⚠</span>' : lastClass === 'warn' ? ' <span class="warn">●</span>' : ''}</span>
+      </div>
+      ${sponsorName ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px">上線：${sponsorName}</div>` : ''}
+      <div class="bar-wrap"><div class="bar-fill ${barClass}" style="width:${pct}%"></div></div>
+      <div class="stu-stats">
+        <span class="stu-pts" style="font-size:14px;font-weight:500">威斯汀獎勵積分 ${a.pts} / ${target}分${a.pts >= target ? ' 🎉' : ''}</span>
+        <span class="stu-score" style="font-size:15px;font-weight:500">行動積分 ${score}</span>
+      </div>
+      <div class="stu-detail">
+        <span>📋 列名單 ${a.list}</span><span>📅 安排行程 ${a.schedule}</span><span>🕊️ 被放鳥 ${a.ghosted}</span><span>🍋 被拒絕 ${a.rejected}</span><span>🦋 拓展社交 ${a.social}</span><span>💬 溝通推薦 ${a.rec}</span><span>🎯 會場邀約 ${a.inv}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderForm() {
+  const el = document.getElementById('formArea');
+  if (!myStudents.length) { el.innerHTML = '<div class="empty">無學員</div>'; return; }
+
+  el.innerHTML = myStudents.map(s => {
+    const n = s.members_master?.name || '?';
+    const log = dayLogs[s.id];
+    const isC = s.group_name === '教練';
+    return `
+    <div class="form-card" ${isC ? 'style="border-color:rgba(184,150,12,.3)"' : ''}>
+      <div class="form-name">${isC ? '★ ' : ''}${n}</div>
+      <div class="form-grid">
+        <div class="fg">
+          <label>📋 列名單</label>
+          <input type="number" inputmode="numeric" min="0" id="f-list-${s.id}" value="${log?.action_list ?? ''}">
+        </div>
+        <div class="fg">
+          <label>📅 安排行程</label>
+          <input type="number" inputmode="numeric" min="0" id="f-schedule-${s.id}" value="${log?.action_schedule ?? ''}">
+        </div>
+        <div class="fg">
+          <label>🕊️ 被放鳥</label>
+          <input type="number" inputmode="numeric" min="0" id="f-ghosted-${s.id}" value="${log?.action_ghosted ?? ''}">
+        </div>
+        <div class="fg">
+          <label>🍋 被拒絕</label>
+          <input type="number" inputmode="numeric" min="0" id="f-rejected-${s.id}" value="${log?.action_rejected ?? ''}">
+        </div>
+      </div>
+      <div class="form-grid col3" style="margin-top:6px">
+        <div class="fg">
+          <label>🦋 拓展社交</label>
+          <input type="number" inputmode="numeric" min="0" id="f-social-${s.id}" value="${log?.action_social ?? ''}">
+        </div>
+        <div class="fg">
+          <label>💬 溝通推薦</label>
+          <input type="number" inputmode="numeric" min="0" id="f-rec-${s.id}" value="${log?.action_recommend ?? ''}">
+        </div>
+        <div class="fg">
+          <label>🎯 會場邀約</label>
+          <input type="number" inputmode="numeric" min="0" id="f-inv-${s.id}" value="${log?.action_invite ?? ''}">
+        </div>
+      </div>
+      <div class="form-grid full form-pts-row">
+        <div class="fg fg-pts">
+          <label>威斯汀獎勵積分</label>
+          <input type="number" inputmode="numeric" min="0" id="f-pts-${s.id}" value="${log?.company_points ?? ''}">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function gv(id) { const el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; }
+
+async function submitAll() {
+  const btn = document.getElementById('btnSubmit');
+  const msg = document.getElementById('statusMsg');
+  btn.disabled = true; btn.textContent = '送出中…';
+  msg.textContent = ''; msg.style.color = 'var(--green)';
+
+  const rows = [];
+  myStudents.forEach(s => {
+    const list     = gv('f-list-' + s.id);
+    const schedule = gv('f-schedule-' + s.id);
+    const social   = gv('f-social-' + s.id);
+    const rec      = gv('f-rec-' + s.id);
+    const inv      = gv('f-inv-' + s.id);
+    const ghosted  = gv('f-ghosted-' + s.id);
+    const rejected = gv('f-rejected-' + s.id);
+    const pts      = gv('f-pts-' + s.id);
+    if (list || schedule || social || rec || inv || ghosted || rejected || pts) {
+      rows.push({
+        batch_id: BATCH_ID, coach_id: coachRecord.id, student_id: s.id,
+        log_date: selectedDate,
+        action_list: list, action_schedule: schedule, action_social: social,
+        action_recommend: rec, action_invite: inv,
+        action_ghosted: ghosted, action_rejected: rejected,
+        company_points: pts, updated_at: new Date().toISOString()
+      });
+    }
+  });
+
+  if (!rows.length) {
+    msg.textContent = '請至少填寫一位學員'; msg.style.color = 'var(--yellow)';
+    btn.disabled = false; btn.textContent = '送出回報'; return;
+  }
+
+  try {
+    const { error } = await sb.from('action_logs')
+      .upsert(rows, { onConflict: 'batch_id,student_id,log_date' });
+    if (error) throw error;
+    msg.textContent = '✓ 已送出 ' + rows.length + ' 筆';
+    await loadAccum();
+    await loadDayLogs(selectedDate);
+    render();
+  } catch (e) {
+    msg.textContent = '失敗：' + e.message; msg.style.color = 'var(--red)';
+  }
+  btn.disabled = false; btn.textContent = '送出回報';
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>npcombat 管理平台</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --navy:#0a0e27; --navy2:#131836; --navy3:#1c2347;
+    --gold:#d4af37; --gold-lt:rgba(212,175,55,.15); --gold-bd:rgba(212,175,55,.25);
+    --white:#e8e8e8; --muted:#8a8fa8;
+    --green:#4caf82; --green-bg:rgba(76,175,130,.15);
+    --red:#e05c5c; --red-bg:rgba(224,92,92,.15);
+    --yellow:#f0c040; --yellow-bg:rgba(240,192,64,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;padding:16px}
+  .wrap{max-width:960px;margin:0 auto}
+
+  .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;margin-bottom:16px}
+  .hd h1{font-size:20px;font-weight:700;color:var(--gold)}
+  .hd-right{display:flex;align-items:center;gap:12px}
+  .hd select{background:var(--navy3);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit}
+  .btn-ref{background:var(--gold-lt);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+  .btn-ref:hover{background:var(--gold-bd)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .st{background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;padding:14px;text-align:center}
+  .st-n{font-size:28px;font-weight:700;color:var(--gold)}
+  .st-l{font-size:12px;color:var(--muted);margin-top:4px}
+
+  .tabs{display:flex;margin-bottom:16px;border-bottom:1px solid var(--gold-bd)}
+  .tab{background:none;border:none;color:var(--muted);padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;transition:.2s}
+  .tab:hover{color:var(--gold)}
+  .tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+
+  .panel{display:none}.panel.on{display:block}
+
+  .card{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;transition:.2s}
+  .card:hover{border-color:var(--gold-bd)}
+  .card-left{flex:1;min-width:0}
+  .card-name{font-size:15px;font-weight:500}
+  .card-meta{font-size:12px;color:var(--muted);margin-top:4px}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500}
+  .b-pending{background:var(--yellow-bg);color:var(--yellow)}
+  .b-approved{background:var(--green-bg);color:var(--green)}
+  .b-rejected{background:var(--red-bg);color:var(--red)}
+
+  .acts{display:flex;gap:8px;align-items:center;flex-shrink:0}
+  .btn{padding:5px 12px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:.2s}
+  .btn-ok{background:var(--green-bg);color:var(--green);border-color:rgba(76,175,130,.3)}
+  .btn-ok:hover{background:rgba(76,175,130,.3)}
+  .btn-no{background:var(--red-bg);color:var(--red);border-color:rgba(224,92,92,.3)}
+  .btn-no:hover{background:rgba(224,92,92,.3)}
+
+  .pair-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .pair-col h3{font-size:14px;color:var(--gold);margin-bottom:10px}
+  .pick{padding:10px 12px;margin-bottom:6px;background:var(--navy3);border:2px solid transparent;border-radius:8px;cursor:pointer;transition:.2s}
+  .pick:hover{border-color:rgba(212,175,55,.3)}
+  .pick.sel{border-color:var(--gold);background:var(--gold-lt)}
+  .pick-name{font-size:14px;font-weight:500}
+  .pick-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .btn-pair{width:100%;margin-top:12px;padding:10px;background:var(--gold-lt);color:var(--gold);border:1px solid var(--gold-bd);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:.2s}
+  .btn-pair:hover:not(:disabled){background:var(--gold-bd)}
+  .btn-pair:disabled{opacity:.4;cursor:not-allowed}
+
+  .coach-count{background:var(--gold-lt);color:var(--gold);padding:4px 10px;border-radius:5px;font-size:12px;font-weight:600}
+  .empty{text-align:center;padding:48px 16px;color:var(--muted)}
+  .empty-icon{font-size:36px;margin-bottom:12px}
+  .empty-text{font-size:14px}
+  .loading{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+  @media(max-width:600px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .pair-grid{grid-template-columns:1fr}
+    .card{flex-direction:column;align-items:flex-start;gap:10px}
+    .acts{align-self:flex-end}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1>npcombat 管理</h1>
+    <div class="hd-right">
+      <select id="selBatch"></select>
+      <button class="btn-ref" onclick="load()">重整</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="st"><div class="st-n" id="nP">-</div><div class="st-l">待審核</div></div>
+    <div class="st"><div class="st-n" id="nA">-</div><div class="st-l">已批准</div></div>
+    <div class="st"><div class="st-n" id="nR">-</div><div class="st-l">已拒絕</div></div>
+    <div class="st"><div class="st-n" id="nC">-</div><div class="st-l">教練</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" data-t="review">學員審核</button>
+    <button class="tab" data-t="coaches">教練名單</button>
+    <button class="tab" data-t="pairing">配對管理</button>
+  </div>
+  <div class="panel on" id="p-review"><div id="reviewList" class="loading">載入中…</div></div>
+  <div class="panel" id="p-coaches"><div id="coachList" class="loading">載入中…</div></div>
+  <div class="panel" id="p-pairing"><div id="pairArea" class="loading">載入中…</div></div>
+</div>
+<script>
+// ============================================================
+// Supabase — schema: npcombat
+// ============================================================
+const sb = window.supabase.createClient(
+  'https://nsgqsopqlkhayuefdout.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y',
+  { db: { schema: 'npcombat' } }
+);
+
+let bid = 1;         // 當前班次 id
+let students = [];   // batch_students + members_master
+let coaches  = [];   // batch_coaches  + members_master
+let selS = null;     // 配對用：選中的學員 id (uuid string)
+let selC = null;     // 配對用：選中的教練 id (uuid string)
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false });
+  const sel = document.getElementById('selBatch');
+  sel.innerHTML = (batches || []).map(b =>
+    `<option value="${b.id}">${b.name}（${b.event_name||''}／${b.target_points}分）</option>`
+  ).join('');
+  if (batches?.length) { bid = batches[0].id; sel.value = bid; }
+  sel.addEventListener('change', e => { bid = Number(e.target.value); load(); });
+
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+      btn.classList.add('on');
+      document.getElementById('p-' + btn.dataset.t).classList.add('on');
+    });
+  });
+
+  await load();
+}
+
+// ============================================================
+// Load — FK JOIN members_master 取名字和會員編號
+// ============================================================
+async function load() {
+  const { data: s } = await sb.from('batch_students')
+    .select('id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .eq('batch_id', bid);
+  students = s || [];
+
+  const { data: c } = await sb.from('batch_coaches')
+    .select('id, phone, rank, cfc, created_at, members_master(name, member_code)')
+    .eq('batch_id', bid);
+  coaches = c || [];
+
+  render();
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+const nm = r => r.members_master?.name || '（未知）';
+const mc = r => { const c = r.members_master?.member_code; return c ? `（${c}）` : ''; };
+const sp = r => r.sponsor?.members_master?.name || '';
+const nl = v => { if (!v) return ''; if (Array.isArray(v)) return v.join('、'); return String(v); };
+const bdg = s => {
+  const m = { pending:['b-pending','待審核'], approved:['b-approved','已批准'], rejected:['b-rejected','已拒絕'] };
+  const [cls,txt] = m[s]||['',s]; return `<span class="badge ${cls}">${txt}</span>`;
+};
+const stuCnt = cid => students.filter(s => s.coach_id === cid && s.status === 'approved').length;
+
+// ============================================================
+// Render all
+// ============================================================
+function render() {
+  // Stats
+  document.getElementById('nP').textContent = students.filter(s => s.status === 'pending').length;
+  document.getElementById('nA').textContent = students.filter(s => s.status === 'approved').length;
+  document.getElementById('nR').textContent = students.filter(s => s.status === 'rejected').length;
+  document.getElementById('nC').textContent = coaches.length;
+
+  // 學員審核
+  const pending = students.filter(s => s.status === 'pending');
+  document.getElementById('reviewList').innerHTML = pending.length
+    ? pending.map(s => `
+      <div class="card">
+        <div class="card-left">
+          <div class="card-name">${nm(s)}${mc(s)}</div>
+          <div class="card-meta">電話：${s.phone||'—'} ｜ A Plus註冊：${s.registered?'✓':'✗'} ｜ 組別：${s.group_name||'—'} ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s) ? ' ｜ 上線：'+sp(s) : ''}</div>
+          ${s.name_list?`<div class="card-meta">名單：${nl(s.name_list)}</div>`:''}
+          ${s.introduction?`<div class="card-meta">自我介紹：${s.introduction}</div>`:''}
+        </div>
+        <div class="acts">
+          ${bdg(s.status)}
+          <button class="btn btn-ok" onclick="approve('${s.id}')">批准</button>
+          <button class="btn btn-no" onclick="reject('${s.id}')">拒絕</button>
+        </div>
+      </div>`).join('')
+    : '<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">無待審核學員</div></div>';
+
+  // 教練名單
+  document.getElementById('coachList').innerHTML = coaches.length
+    ? coaches.map(c => `
+      <div class="card">
+        <div class="card-left">
+          <div class="card-name">${nm(c)}${mc(c)}</div>
+          <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+        </div>
+        <span class="coach-count">${stuCnt(c.id)} 名學員</span>
+      </div>`).join('')
+    : '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">此班次尚無教練</div></div>';
+
+  // 配對管理
+  const unpaired = students.filter(s => s.status === 'approved' && !s.coach_id);
+  selS = null; selC = null;
+
+  if (!unpaired.length) {
+    document.getElementById('pairArea').innerHTML =
+      `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${students.some(s=>s.status==='approved')?'所有已批准學員皆已配對':'無已批准學員'}</div></div>`;
+    return;
+  }
+
+  document.getElementById('pairArea').innerHTML = `
+    <div class="pair-grid">
+      <div class="pair-col">
+        <h3>待配對學員（${unpaired.length}）</h3>
+        ${unpaired.map(s => `
+          <div class="pick" data-sid="${s.id}" onclick="pickS('${s.id}')">
+            <div class="pick-name">${nm(s)}</div>
+            <div class="pick-meta">${s.group_name||'—'} ｜ ${s.phone||'—'}${sp(s) ? ' ｜ 上線：'+sp(s) : ''}</div>
+          </div>`).join('')}
+      </div>
+      <div class="pair-col">
+        <h3>教練（${coaches.length}）</h3>
+        ${coaches.map(c => `
+          <div class="pick" data-cid="${c.id}" onclick="pickC('${c.id}')">
+            <div class="pick-name">${nm(c)}</div>
+            <div class="pick-meta">${c.rank||'—'} ｜ 目前 ${stuCnt(c.id)} 名</div>
+          </div>`).join('')}
+        <button class="btn-pair" id="btnPair" disabled onclick="doPair()">請選擇學員和教練</button>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// 配對選擇
+// ============================================================
+function pickS(id) {
+  selS = id;
+  document.querySelectorAll('[data-sid]').forEach(e => e.classList.toggle('sel', e.dataset.sid === id));
+  updBtn();
+}
+function pickC(id) {
+  selC = id;
+  document.querySelectorAll('[data-cid]').forEach(e => e.classList.toggle('sel', e.dataset.cid === id));
+  updBtn();
+}
+function updBtn() {
+  const b = document.getElementById('btnPair');
+  if (!b) return;
+  b.disabled = !(selS && selC);
+  b.textContent = (selS && selC) ? '確認配對' : '請選擇學員和教練';
+}
+
+// ============================================================
+// DB 操作（id 全部是 UUID string）
+// ============================================================
+async function approve(id) {
+  const { error } = await sb.from('batch_students').update({ status: 'approved' }).eq('id', id);
+  if (error) return alert('失敗：' + error.message);
+  await load();
+}
+async function reject(id) {
+  if (!confirm('確認拒絕？')) return;
+  const { error } = await sb.from('batch_students').update({ status: 'rejected' }).eq('id', id);
+  if (error) return alert('失敗：' + error.message);
+  await load();
+}
+async function doPair() {
+  if (!selS || !selC) return;
+  const { error } = await sb.from('batch_students').update({ coach_id: selC }).eq('id', selS);
+  if (error) return alert('配對失敗：' + error.message);
+  await load();
+}
+
+init();
+</script>
+</body>
+</html>
