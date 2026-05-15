@@ -15,179 +15,66 @@
   --green:#16a34a;--red:#dc2626;
   --shadow:0 2px 12px rgba(0,0,0,0.06);
 }
-body{
-  font-family:'Noto Sans TC',sans-serif;
-  background:var(--bg);color:var(--txt);
-  min-height:100vh;-webkit-font-smoothing:antialiased;
-}
-body::before{
-  content:'';position:fixed;inset:0;z-index:0;
-  background:
-    radial-gradient(ellipse at 20% 0%,rgba(212,175,55,0.06) 0%,transparent 50%),
-    radial-gradient(ellipse at 80% 100%,rgba(184,150,12,0.04) 0%,transparent 50%);
-  pointer-events:none;
-}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;-webkit-font-smoothing:antialiased;}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 20% 0%,rgba(212,175,55,0.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(184,150,12,0.04) 0%,transparent 50%);pointer-events:none;}
 .page{max-width:520px;margin:0 auto;padding:0 16px;position:relative;z-index:1}
-
-/* ===== Hero ===== */
 .hero{text-align:center;padding:48px 0 36px}
-.hero-badge{
-  display:inline-block;padding:4px 16px;
-  background:linear-gradient(135deg,var(--gold3),var(--gold2));
-  border-radius:20px;font-size:12px;font-weight:700;
-  color:#fff;letter-spacing:2px;margin-bottom:14px;
-}
-.hero h1{
-  font-size:32px;font-weight:900;line-height:1.3;
-  background:linear-gradient(135deg,var(--gold3),var(--gold));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
+.hero-badge{display:inline-block;padding:4px 16px;background:linear-gradient(135deg,var(--gold3),var(--gold2));border-radius:20px;font-size:12px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:14px;}
+.hero h1{font-size:32px;font-weight:900;line-height:1.3;background:linear-gradient(135deg,var(--gold3),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .hero-sub{color:var(--txt2);font-size:14px;margin-top:10px;line-height:1.7}
-.hero-motto{
-  margin-top:20px;padding:12px 20px;
-  background:rgba(184,150,12,0.08);border-left:3px solid var(--gold);
-  border-radius:0 12px 12px 0;
-  font-size:15px;font-weight:700;color:var(--gold3);
-  display:inline-block;
-}
-
-/* ===== Section ===== */
+.hero-motto{margin-top:20px;padding:12px 20px;background:rgba(184,150,12,0.08);border-left:3px solid var(--gold);border-radius:0 12px 12px 0;font-size:15px;font-weight:700;color:var(--gold3);display:inline-block;}
 .section{padding:28px 0}
-.section-tag{
-  font-size:11px;font-weight:700;color:var(--gold);
-  letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;
-}
-.section-title{
-  font-size:22px;font-weight:900;margin-bottom:16px;line-height:1.3;
-}
+.section-tag{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+.section-title{font-size:22px;font-weight:900;margin-bottom:16px;line-height:1.3;}
 .section-text{font-size:14px;color:var(--txt2);line-height:1.8;margin-bottom:12px}
-.divider{
-  height:1px;margin:8px 0;
-  background:linear-gradient(90deg,rgba(184,150,12,0.15),transparent);
-}
-
-/* ===== Target Card ===== */
-.target-card{
-  background:linear-gradient(135deg,rgba(184,150,12,0.08),rgba(184,150,12,0.02));
-  border:1px solid rgba(184,150,12,0.15);
-  border-radius:16px;padding:24px;text-align:center;
-  margin:8px 0 20px;
-}
+.divider{height:1px;margin:8px 0;background:linear-gradient(90deg,rgba(184,150,12,0.15),transparent);}
+.target-card{background:linear-gradient(135deg,rgba(184,150,12,0.08),rgba(184,150,12,0.02));border:1px solid rgba(184,150,12,0.15);border-radius:16px;padding:24px;text-align:center;margin:8px 0 20px;}
 .target-num{font-size:48px;font-weight:900;color:var(--gold);line-height:1}
 .target-label{font-size:14px;color:var(--txt2);margin-top:8px}
 .target-desc{font-size:13px;color:var(--txt2);margin-top:4px}
-
-/* ===== Who Cards ===== */
 .who-grid{display:flex;flex-direction:column;gap:10px}
-.who-card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:14px;padding:18px;
-  display:flex;gap:14px;align-items:flex-start;
-  box-shadow:var(--shadow);
-}
+.who-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow);}
 .who-icon{font-size:32px;flex-shrink:0;line-height:1}
 .who-title{font-size:15px;font-weight:700;margin-bottom:4px}
 .who-desc{font-size:13px;color:var(--txt2);line-height:1.6}
-
-/* ===== Timeline ===== */
 .timeline{position:relative;padding-left:24px;margin:8px 0}
-.timeline::before{
-  content:'';position:absolute;left:7px;top:8px;bottom:8px;
-  width:2px;background:linear-gradient(180deg,var(--gold2),rgba(184,150,12,0.1));
-}
+.timeline::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--gold2),rgba(184,150,12,0.1));}
 .tl-item{position:relative;padding:0 0 24px 20px}
 .tl-item:last-child{padding-bottom:0}
-.tl-dot{
-  position:absolute;left:-20px;top:6px;
-  width:14px;height:14px;border-radius:50%;
-  background:var(--gold2);border:3px solid var(--bg);
-}
+.tl-dot{position:absolute;left:-20px;top:6px;width:14px;height:14px;border-radius:50%;background:var(--gold2);border:3px solid var(--bg);}
 .tl-date{font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px}
 .tl-title{font-size:15px;font-weight:700;margin-bottom:4px}
 .tl-desc{font-size:13px;color:var(--txt2);line-height:1.6}
-
-/* ===== Requirements ===== */
 .req-list{display:flex;flex-direction:column;gap:8px}
-.req-item{
-  display:flex;gap:12px;align-items:flex-start;
-  padding:14px;border-radius:12px;
-  background:var(--card);border:1px solid var(--border);
-  box-shadow:var(--shadow);
-}
-.req-num{
-  width:28px;height:28px;border-radius:50%;flex-shrink:0;
-  background:linear-gradient(135deg,var(--gold3),var(--gold2));
-  color:#fff;font-size:13px;font-weight:900;
-  display:flex;align-items:center;justify-content:center;
-}
+.req-item{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:12px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);}
+.req-num{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--gold3),var(--gold2));color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;}
 .req-content{flex:1}
 .req-title{font-size:14px;font-weight:700;margin-bottom:2px}
 .req-desc{font-size:12px;color:var(--txt2);line-height:1.5}
-
-/* ===== Score Table ===== */
 .score-table{width:100%;border-collapse:collapse;margin:8px 0}
-.score-table th{
-  text-align:left;padding:10px 12px;font-size:12px;
-  color:var(--gold3);border-bottom:1px solid rgba(184,150,12,0.15);
-  font-weight:700;
-}
-.score-table td{
-  padding:10px 12px;font-size:13px;
-  border-bottom:1px solid var(--border);
-}
-.score-table td:last-child{
-  text-align:right;font-weight:900;color:var(--gold3);white-space:nowrap;
-}
+.score-table th{text-align:left;padding:10px 12px;font-size:12px;color:var(--gold3);border-bottom:1px solid rgba(184,150,12,0.15);font-weight:700;}
+.score-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);}
+.score-table td:last-child{text-align:right;font-weight:900;color:var(--gold3);white-space:nowrap;}
 .score-table tr:last-child td{border-bottom:none}
 .score-note{font-size:11px;color:var(--txt2);margin-top:8px;font-style:italic}
-
-/* ===== Night Card ===== */
-.night-card{
-  background:var(--card);border:1px solid rgba(184,150,12,0.12);
-  border-radius:16px;padding:20px;text-align:center;margin:8px 0;
-  box-shadow:var(--shadow);
-}
+.night-card{background:var(--card);border:1px solid rgba(184,150,12,0.12);border-radius:16px;padding:20px;text-align:center;margin:8px 0;box-shadow:var(--shadow);}
 .night-time{font-size:28px;font-weight:900;color:var(--gold3);margin-bottom:4px}
 .night-sub{font-size:13px;color:var(--txt2);line-height:1.6}
-.night-awards{
-  display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
-  margin-top:12px;
-}
-.award-pill{
-  padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;
-  background:rgba(184,150,12,0.08);border:1px solid rgba(184,150,12,0.12);
-  color:var(--gold3);
-}
-
-/* ===== CTA ===== */
+.night-awards{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;}
+.award-pill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(184,150,12,0.08);border:1px solid rgba(184,150,12,0.12);color:var(--gold3);}
 .cta-section{text-align:center;padding:36px 0 20px}
 .cta-text{font-size:18px;font-weight:900;margin-bottom:16px;line-height:1.4}
-.cta-btn{
-  display:inline-block;padding:14px 40px;
-  background:linear-gradient(135deg,var(--gold3),var(--gold2));
-  color:#fff;font-size:16px;font-weight:900;
-  border-radius:30px;text-decoration:none;
-  box-shadow:0 4px 20px rgba(184,150,12,0.25);
-  transition:all .25s;
-}
+.cta-btn{display:inline-block;padding:14px 40px;background:linear-gradient(135deg,var(--gold3),var(--gold2));color:#fff;font-size:16px;font-weight:900;border-radius:30px;text-decoration:none;box-shadow:0 4px 20px rgba(184,150,12,0.25);transition:all .25s;}
 .cta-btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(184,150,12,0.35)}
 .cta-date{font-size:13px;color:var(--txt2);margin-top:14px}
-
-/* Footer */
 .footer{text-align:center;padding:24px 0 16px}
-.footer a{
-  color:var(--txt2);font-size:12px;text-decoration:none;
-  padding:8px 16px;border:1px solid var(--border);
-  border-radius:20px;transition:all .2s;
-}
+.footer a{color:var(--txt2);font-size:12px;text-decoration:none;padding:8px 16px;border:1px solid var(--border);border-radius:20px;transition:all .2s;}
 .footer a:hover{border-color:rgba(184,150,12,0.3);color:var(--gold3)}
 </style>
 </head>
 <body>
-
 <div class="page">
 
-  <!-- Hero -->
   <div class="hero">
     <div class="hero-badge">🏆 26期實戰班</div>
     <h1>決戰威斯汀<br>衝刺計畫</h1>
@@ -195,7 +82,6 @@ body::before{
     <div class="hero-motto">「一個人玩不是玩，一群人玩才是玩。」</div>
   </div>
 
-  <!-- 終極目標 -->
   <div class="section">
     <div class="target-card">
       <div class="target-num">800<span style="font-size:24px">分</span></div>
@@ -206,7 +92,6 @@ body::before{
 
   <div class="divider"></div>
 
-  <!-- 誰適合 -->
   <div class="section">
     <div class="section-tag">適合對象</div>
     <div class="section-title">誰適合參加？</div>
@@ -230,7 +115,6 @@ body::before{
 
   <div class="divider"></div>
 
-  <!-- 時程 -->
   <div class="section">
     <div class="section-tag">培訓時程</div>
     <div class="section-title">5/24 開班 → 6月底達標</div>
@@ -264,7 +148,6 @@ body::before{
 
   <div class="divider"></div>
 
-  <!-- 入學門檻 -->
   <div class="section">
     <div class="section-tag">入學門檻</div>
     <div class="section-title">先篩意願，再給資源</div>
@@ -306,7 +189,6 @@ body::before{
 
   <div class="divider"></div>
 
-  <!-- 行動積分 -->
   <div class="section">
     <div class="section-tag">行動積分制</div>
     <div class="section-title">每個行動都有分數</div>
@@ -325,7 +207,6 @@ body::before{
 
   <div class="divider"></div>
 
-  <!-- 實戰班之夜 -->
   <div class="section">
     <div class="section-tag">每週盛會</div>
     <div class="section-title">實戰班之夜</div>
@@ -345,10 +226,9 @@ body::before{
 
   <div class="divider"></div>
 
-  <!-- CTA -->
   <div class="cta-section">
     <div class="cta-text">準備好了嗎？<br>威斯汀在等你。</div>
-    <a class="cta-btn" href="https://npplus.club/npcombat/register.html">立即報名 →</a>
+    <a class="cta-btn" href="register.html">立即報名 →</a>
     <div class="cta-date">⚠️ 報名截止：5/21（三）晚上 23:00 ── 逾期不候</div>
   </div>
 
@@ -358,6 +238,5 @@ body::before{
   </div>
 
 </div>
-
 </body>
 </html>
