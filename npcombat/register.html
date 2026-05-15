@@ -33,7 +33,6 @@
     min-height: 100vh;
   }
 
-  /* ── Hero ── */
   .hero {
     background: linear-gradient(160deg, var(--navy) 0%, #1a3068 100%);
     color: #fff;
@@ -70,26 +69,29 @@
   }
   .hero h1 span { color: #f0d080; }
 
-  /* ── 開班資訊卡 ── */
   .info-card {
     background: rgba(255,255,255,.1);
     border: 1px solid rgba(255,255,255,.15);
     border-radius: 12px;
     margin: 16px 0 0;
     padding: 14px 16px;
-    text-align: left;
+    text-align: center;
   }
   .info-row {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    font-size: 13px;
-    color: rgba(255,255,255,.9);
-    line-height: 1.8;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.4;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,.08);
   }
-  .info-row .label { color: rgba(255,255,255,.6); font-size: 12px; white-space: nowrap; }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .label { color: rgba(255,255,255,.5); font-size: 12px; white-space: nowrap; letter-spacing: 1px; }
 
-  /* ── 分隔線 ── */
   .divider {
     display: flex;
     align-items: center;
@@ -106,14 +108,12 @@
     letter-spacing: 2px; white-space: nowrap; font-weight: 600;
   }
 
-  /* ── 表單容器 ── */
   .form-wrap {
     padding: 0 16px 60px;
     max-width: 480px;
     margin: 0 auto;
   }
 
-  /* ── 欄位 ── */
   .field { margin-bottom: 18px; }
   .field label {
     display: flex; align-items: center; gap: 5px;
@@ -152,7 +152,6 @@
     color: var(--text-sub); line-height: 1.5;
   }
 
-  /* ── 靜態顯示欄位 ── */
   .field-static {
     background: var(--bg-card);
     border: 1.5px solid var(--border);
@@ -162,7 +161,6 @@
     color: var(--text-sub);
   }
 
-  /* ── Radio 選項 ── */
   .radio-group {
     display: flex;
     flex-direction: column;
@@ -204,7 +202,6 @@
     margin-top: 2px;
   }
 
-  /* ── 銀行資訊卡 ── */
   .bank-card {
     background: var(--info-bg);
     border: 1px solid var(--info-bd);
@@ -231,7 +228,6 @@
   .bank-row .bv { font-weight: 700; }
   .bank-row .bv.accent { color: #1a3068; }
 
-  /* ── 警告提示 ── */
   .warn-box {
     background: #fff8e1;
     border: 1px solid #ffe082;
@@ -244,7 +240,6 @@
   }
   .warn-box strong { display: block; margin-bottom: 4px; font-size: 13px; }
 
-  /* ── 名單輸入區 ── */
   .name-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -277,7 +272,6 @@
     box-shadow: 0 0 0 3px rgba(184,146,42,.12);
   }
 
-  /* ── 送出按鈕 ── */
   .btn-submit {
     width: 100%;
     padding: 16px;
@@ -307,7 +301,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── 狀態畫面 ── */
   .screen {
     display: none;
     flex-direction: column;
@@ -338,7 +331,6 @@
     font-weight: 600;
   }
 
-  /* ── 錯誤訊息 ── */
   .error-msg {
     display: none;
     background: #fdf2f2;
@@ -349,7 +341,6 @@
     margin-bottom: 16px; line-height: 1.5;
   }
 
-  /* ── 身份選擇卡 ── */
   .role-wrap { padding: 0 16px 60px; max-width: 480px; margin: 0 auto; }
   .role-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .role-card {
@@ -375,7 +366,6 @@
   }
   .role-card .role-desc { font-size: 11px; color: var(--text-sub); line-height: 1.6; }
 
-  /* ── 載入中 ── */
   #loading-screen {
     display: flex; align-items: center;
     justify-content: center; min-height: 100vh;
@@ -391,7 +381,6 @@
   .dot-loader span:nth-child(3) { animation-delay: .4s; }
   @keyframes dot { 0%,80%,100%{transform:scale(.6);opacity:.3} 40%{transform:scale(1);opacity:1} }
 
-  /* ── rejected 專用樣式 ── */
   .screen.rejected h2 { color: var(--danger); }
   .screen.rejected .screen-icon { filter: grayscale(0.2); }
 </style>
@@ -431,18 +420,32 @@
   <p>資料已送出，教練將盡快審核。<br>請保持 LINE 通知開啟，靜候佳音。</p>
 </div>
 
-<!-- 教練：已登記 -->
-<div class="screen" id="screen-coach-exists">
-  <div class="screen-icon">🎖️</div>
-  <h2>已完成登記</h2>
-  <p>你已是本期教練，無需重複登記。<br>學員報名時可在下拉選單找到你。</p>
+<!-- 教練：審核中 -->
+<div class="screen" id="screen-coach-pending">
+  <div class="screen-icon">📋</div>
+  <h2>教練登記已送出</h2>
+  <p>資料審核中，審核通過後學員即可在報名時選擇你為上線。<br>請耐心等候通知。</p>
 </div>
 
-<!-- 教練：登記成功 -->
+<!-- 教練：已通過 -->
+<div class="screen" id="screen-coach-approved">
+  <div class="screen-icon">🎖️</div>
+  <h2>已是本期教練</h2>
+  <p>你已通過審核，無需重複登記。<br>學員報名時可在下拉選單找到你。</p>
+</div>
+
+<!-- 教練：未通過 -->
+<div class="screen rejected" id="screen-coach-rejected">
+  <div class="screen-icon">❌</div>
+  <h2>教練登記未通過</h2>
+  <p>本次登記未通過審核，請聯繫班主了解原因。</p>
+</div>
+
+<!-- 教練：登記成功（剛送出） -->
 <div class="screen" id="screen-coach-success">
   <div class="screen-icon">✅</div>
-  <h2>教練登記成功！</h2>
-  <p>已加入26期實戰班教練名單。<br>學員報名時即可在下拉選單找到你。</p>
+  <h2>教練登記已送出！</h2>
+  <p>資料已送出，班主將盡快審核。<br>審核通過後學員即可選擇你為上線。</p>
 </div>
 
 <!-- 主畫面 -->
@@ -501,17 +504,22 @@
         <label>是否已在 A Plus 系統官網完成註冊？<span class="req">*</span></label>
         <div class="radio-group">
           <label class="radio-option">
-            <input type="radio" name="registered" value="yes">
+            <input type="radio" name="registered" value="yes" onchange="document.getElementById('aplus-warn').style.display='none'">
             <div>
               <div class="radio-label">✅ 是（已完成註冊並能登入）</div>
             </div>
           </label>
           <label class="radio-option">
-            <input type="radio" name="registered" value="no">
+            <input type="radio" name="registered" value="no" onchange="document.getElementById('aplus-warn').style.display='block'">
             <div>
-              <div class="radio-label">❌ 否（請先完成註冊，再回來填此報名表）</div>
+              <div class="radio-label">❌ 否</div>
             </div>
           </label>
+        </div>
+        <div class="warn-box" id="aplus-warn" style="display:none;margin-top:10px;">
+          <strong>⚠️ 尚未完成註冊</strong>
+          請先至 A Plus 系統官網完成註冊後，再回來填寫報名表。<br>
+          <a href="https://unpaplus.com/login/" target="_blank" style="color:#1a3068;font-weight:700;text-decoration:underline;">👉 前往 A Plus 系統官網註冊</a>
         </div>
       </div>
 
@@ -525,7 +533,7 @@
         <select id="f-coach">
           <option value="">— 請選擇 —</option>
         </select>
-        <p class="hint">若找不到你的上線，請聯繫對方確認是否已完成登記。</p>
+        <p class="hint">若找不到你的上線，請聯繫對方確認是否已完成登記並通過審核。</p>
       </div>
 
       <div class="field">
@@ -595,7 +603,7 @@
       <div class="field">
         <label>姓名 <span class="req">*</span></label>
         <input type="text" id="c-name" placeholder="請輸入真實姓名" maxlength="20">
-        <p class="hint">學員報名時的「上線（教練）」下拉選單將顯示此名稱。</p>
+        <p class="hint">審核通過後，學員報名時的「上線（教練）」下拉選單將顯示此名稱。</p>
       </div>
 
       <div class="field">
@@ -635,12 +643,10 @@
 </div>
 
 <script>
-// ── 設定區 ──────────────────────────────────────
 const LIFF_ID      = '2010082073-87iRs2A9';
 const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-const BATCH_ID     = 1; // 26期實戰班
-// ────────────────────────────────────────────────
+const BATCH_ID     = 1;
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: 'npcombat' }
@@ -653,7 +659,9 @@ document.getElementById('f-intro').addEventListener('input', function() {
 
 const ALL_SCREENS = [
   'screen-exists', 'screen-approved', 'screen-rejected',
-  'screen-success', 'screen-coach-exists', 'screen-coach-success'
+  'screen-success',
+  'screen-coach-pending', 'screen-coach-approved', 'screen-coach-rejected',
+  'screen-coach-success'
 ];
 
 function showScreen(id) {
@@ -670,12 +678,14 @@ function showRole(role) {
   document.getElementById('section-coach').style.display   = role === 'coach'   ? 'block' : 'none';
 }
 
+// ★ 只撈已審核通過的教練
 async function loadCoaches() {
   try {
     const { data, error } = await sb
       .from('batch_coaches')
       .select('id, members_master(name)')
       .eq('batch_id', BATCH_ID)
+      .eq('status', 'approved')
       .order('created_at');
     if (error || !data) return;
     const sel = document.getElementById('f-coach');
@@ -796,20 +806,12 @@ async function handleCoachSubmit() {
       .select('id').single();
     if (memberErr) throw memberErr;
 
-    const { data: coach, error: coachErr } = await sb.from('batch_coaches').insert({
-      batch_id: BATCH_ID, member_id: member.id, phone, rank, cfc
-    }).select('id').single();
-    if (coachErr) throw coachErr;
-
-    // 教練同時加入 batch_students（自己也是參與者）
-    const { error: selfStuErr } = await sb.from('batch_students').insert({
-      batch_id:   BATCH_ID,
-      member_id:  member.id,
-      coach_id:   coach.id,
-      group_name: '教練',
-      status:     'approved'
+    // ★ 教練寫入 status: 'pending'，等班主審核
+    // ★ 不再自動插入 batch_students（教練不是自己的學員）
+    const { error: coachErr } = await sb.from('batch_coaches').insert({
+      batch_id: BATCH_ID, member_id: member.id, phone, rank, cfc, status: 'pending'
     });
-    if (selfStuErr) throw selfStuErr;
+    if (coachErr) throw coachErr;
 
     showScreen('screen-coach-success');
   } catch(e) {
@@ -835,19 +837,24 @@ async function init() {
       .eq('line_user_id', lineUserId).single();
 
     if (member) {
+      // 先查學員
       const { data: student } = await sb.from('batch_students').select('status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
 
       if (student) {
         if (student.status === 'approved')  { showScreen('screen-approved'); return; }
         if (student.status === 'rejected')  { showScreen('screen-rejected'); return; }
-        showScreen('screen-exists'); // pending
-        return;
+        showScreen('screen-exists'); return;
       }
 
-      const { data: coach } = await sb.from('batch_coaches').select('id')
+      // ★ 再查教練（區分 pending / approved / rejected）
+      const { data: coach } = await sb.from('batch_coaches').select('id, status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
-      if (coach) { showScreen('screen-coach-exists'); return; }
+      if (coach) {
+        if (coach.status === 'approved')  { showScreen('screen-coach-approved'); return; }
+        if (coach.status === 'rejected')  { showScreen('screen-coach-rejected'); return; }
+        showScreen('screen-coach-pending'); return;
+      }
     }
 
     await loadCoaches();
