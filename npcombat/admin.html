@@ -20,7 +20,6 @@
   body{font-family:'Noto Sans TC',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;padding:16px}
   .wrap{max-width:1000px;margin:0 auto}
 
-  /* ── Header ── */
   .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;margin-bottom:16px}
   .hd h1{font-size:20px;font-weight:700;color:var(--gold)}
   .hd-right{display:flex;align-items:center;gap:10px}
@@ -28,21 +27,21 @@
   .btn-ref{background:var(--gold-lt);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:.2s}
   .btn-ref:hover{background:var(--gold-bd)}
 
-  /* ── Stats ── */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
   .st{background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;padding:14px;text-align:center}
   .st-n{font-size:28px;font-weight:700;color:var(--gold)}
   .st-l{font-size:12px;color:var(--muted);margin-top:4px}
 
-  /* ── Tabs ── */
   .tabs{display:flex;margin-bottom:16px;border-bottom:1px solid var(--gold-bd)}
   .tab{background:none;border:none;color:var(--muted);padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;transition:.2s}
   .tab:hover{color:var(--gold)}
   .tab.on{color:var(--gold);border-bottom-color:var(--gold)}
-
   .panel{display:none}.panel.on{display:block}
 
-  /* ── Toolbar (search + actions) ── */
+  .sec-title{font-size:15px;font-weight:600;color:var(--gold);margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--gold-bd);display:flex;justify-content:space-between;align-items:center}
+  .sec-title:first-child{margin-top:0}
+  .sec-count{font-size:12px;font-weight:400;color:var(--muted)}
+
   .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
   .search-box{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 12px;color:var(--white);font-size:13px;font-family:inherit;width:220px;transition:.2s}
   .search-box:focus{outline:none;border-color:var(--gold-bd)}
@@ -54,7 +53,6 @@
   .btn-csv{background:var(--blue-bg);color:var(--blue);border-color:rgba(91,141,239,.3)}
   .btn-csv:hover{background:rgba(91,141,239,.3)}
 
-  /* ── Cards ── */
   .card{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;transition:.2s}
   .card:hover{border-color:var(--gold-bd)}
   .card-left{flex:1;min-width:0}
@@ -73,7 +71,6 @@
   .btn-no{background:var(--red-bg);color:var(--red);border-color:rgba(224,92,92,.3)}
   .btn-no:hover{background:rgba(224,92,92,.3)}
 
-  /* ── Coach expandable ── */
   .coach-card{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:10px;transition:.2s;overflow:hidden}
   .coach-card:hover{border-color:var(--gold-bd)}
   .coach-header{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
@@ -82,13 +79,12 @@
   .coach-count{background:var(--gold-lt);color:var(--gold);padding:4px 10px;border-radius:5px;font-size:12px;font-weight:600}
   .coach-count.zero{background:rgba(138,143,168,.12);color:var(--muted)}
   .coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
-  .coach-card.open .coach-body{max-height:600px}
+  .coach-card.open .coach-body{max-height:800px}
   .coach-stu{padding:8px 16px 8px 32px;border-top:1px solid rgba(255,255,255,.04);font-size:13px;display:flex;justify-content:space-between;align-items:center}
   .coach-stu-name{color:var(--white)}
   .coach-stu-meta{color:var(--muted);font-size:11px}
   .coach-empty{padding:12px 32px;color:var(--muted);font-size:12px;font-style:italic}
 
-  /* ── Pairing ── */
   .pair-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   .pair-col h3{font-size:14px;color:var(--gold);margin-bottom:10px}
   .pick{padding:10px 12px;margin-bottom:6px;background:var(--navy3);border:2px solid transparent;border-radius:8px;cursor:pointer;transition:.2s}
@@ -100,32 +96,19 @@
   .btn-pair:hover:not(:disabled){background:var(--gold-bd)}
   .btn-pair:disabled{opacity:.4;cursor:not-allowed}
 
-  /* ── Paired list (grouped by coach) ── */
   .paired-section{margin-top:20px}
   .paired-section h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
   .paired-search{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 10px;color:var(--white);font-size:12px;font-family:inherit;width:180px}
   .paired-search:focus{outline:none;border-color:var(--gold-bd)}
   .paired-search::placeholder{color:var(--muted)}
-  .paired-coach{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:.2s}
-  .paired-coach:hover{border-color:var(--gold-bd)}
-  .paired-coach-hd{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
-  .paired-coach-hd .card-name{font-size:14px}
-  .paired-coach-arrow{color:var(--muted);font-size:11px;transition:transform .2s;margin-left:6px}
-  .paired-coach.open .paired-coach-arrow{transform:rotate(180deg)}
-  .paired-coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
-  .paired-coach.open .paired-coach-body{max-height:800px}
-  .paired-item{padding:8px 14px 8px 28px;border-top:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;align-items:center;font-size:13px}
-  .paired-item span{color:var(--muted);font-size:11px}
   .btn-unpair{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(224,92,92,.3);background:var(--red-bg);color:var(--red);font-family:inherit;transition:.2s}
   .btn-unpair:hover{background:rgba(224,92,92,.3)}
 
-  /* ── Empty & Loading ── */
   .empty{text-align:center;padding:48px 16px;color:var(--muted)}
   .empty-icon{font-size:36px;margin-bottom:12px}
   .empty-text{font-size:14px}
   .loading{text-align:center;padding:40px;color:var(--muted);font-size:13px}
 
-  /* ── Toast ── */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy2);border:1px solid var(--gold-bd);color:var(--gold);padding:10px 24px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
@@ -142,7 +125,6 @@
 </head>
 <body>
 <div class="wrap">
-  <!-- Header -->
   <div class="hd">
     <h1>實戰班主系統管理</h1>
     <div class="hd-right">
@@ -151,69 +133,46 @@
     </div>
   </div>
 
-  <!-- Stats -->
   <div class="stats">
-    <div class="st"><div class="st-n" id="nP">-</div><div class="st-l">待審核</div></div>
-    <div class="st"><div class="st-n" id="nA">-</div><div class="st-l">已批准</div></div>
-    <div class="st"><div class="st-n" id="nR">-</div><div class="st-l">已拒絕</div></div>
+    <div class="st"><div class="st-n" id="nPC">-</div><div class="st-l">教練待審</div></div>
+    <div class="st"><div class="st-n" id="nPS">-</div><div class="st-l">學員待審</div></div>
+    <div class="st"><div class="st-n" id="nA">-</div><div class="st-l">已批准學員</div></div>
     <div class="st"><div class="st-n" id="nC">-</div><div class="st-l">教練</div></div>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs">
-    <button class="tab on" data-t="review">學員審核</button>
-    <button class="tab" data-t="coaches">教練名單</button>
+    <button class="tab on" data-t="review">審核區</button>
+    <button class="tab" data-t="org">教練組織</button>
     <button class="tab" data-t="pairing">配對管理</button>
   </div>
 
-  <!-- Panels -->
-  <div class="panel on" id="p-review"><div id="reviewList" class="loading">載入中…</div></div>
-  <div class="panel" id="p-coaches"><div id="coachList" class="loading">載入中…</div></div>
+  <div class="panel on" id="p-review"><div id="reviewArea" class="loading">載入中…</div></div>
+  <div class="panel" id="p-org"><div id="orgArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-pairing"><div id="pairArea" class="loading">載入中…</div></div>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// Supabase
-// ============================================================
 const sb = window.supabase.createClient(
   'https://nsgqsopqlkhayuefdout.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y',
   { db: { schema: 'npcombat' } }
 );
 
-let bid = 1;
-let students = [];
-let coaches  = [];
-let selS = null;
-let selC = null;
-let searchTerm = '';
+let bid = 1, students = [], coaches = [], selS = null, selC = null, searchReview = '';
 
-// ============================================================
-// Toast
-// ============================================================
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-// ============================================================
-// Init
-// ============================================================
 async function init() {
   const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false });
   const sel = document.getElementById('selBatch');
-  sel.innerHTML = (batches || []).map(b =>
-    `<option value="${b.id}">${b.name}</option>`
-  ).join('');
+  sel.innerHTML = (batches || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('');
   if (batches?.length) { bid = batches[0].id; sel.value = bid; }
   sel.addEventListener('change', e => { bid = Number(e.target.value); load(); });
-
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
@@ -222,30 +181,22 @@ async function init() {
       document.getElementById('p-' + btn.dataset.t).classList.add('on');
     });
   });
-
   await load();
 }
 
-// ============================================================
-// Load
-// ============================================================
 async function load() {
   const { data: s } = await sb.from('batch_students')
     .select('id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
     .eq('batch_id', bid);
   students = s || [];
-
   const { data: c } = await sb.from('batch_coaches')
-    .select('id, phone, rank, cfc, created_at, members_master(name, member_code)')
+    .select('id, phone, rank, cfc, status, created_at, members_master(name, member_code)')
     .eq('batch_id', bid);
   coaches = c || [];
-
   render();
 }
 
-// ============================================================
-// Helpers
-// ============================================================
+// ── Helpers ──
 const nm = r => r.members_master?.name || '（未知）';
 const mc = r => { const c = r.members_master?.member_code; return c ? `（${c}）` : ''; };
 const sp = r => r.sponsor?.members_master?.name || '';
@@ -254,292 +205,266 @@ const bdg = s => {
   const m = { pending:['b-pending','待審核'], approved:['b-approved','已批准'], rejected:['b-rejected','已拒絕'] };
   const [cls,txt] = m[s]||['',s]; return `<span class="badge ${cls}">${txt}</span>`;
 };
-const stuCnt = cid => students.filter(s => s.coach_id === cid && s.status === 'approved').length;
-const stuOf = cid => students.filter(s => s.coach_id === cid && s.status === 'approved');
+const approvedCoaches = () => coaches.filter(c => c.status === 'approved');
+const sponsorStudents = cid => students.filter(s => s.sponsor_id === cid && s.status === 'approved');
+const pairedStudents  = cid => students.filter(s => s.coach_id === cid && s.status === 'approved');
 
-function matchSearch(student) {
-  if (!searchTerm) return true;
-  const t = searchTerm.toLowerCase();
-  const name = nm(student).toLowerCase();
-  const code = (student.members_master?.member_code || '').toLowerCase();
-  const phone = (student.phone || '').toLowerCase();
-  const group = (student.group_name || '').toLowerCase();
-  return name.includes(t) || code.includes(t) || phone.includes(t) || group.includes(t);
+function matchSearch(item) {
+  if (!searchReview) return true;
+  const t = searchReview.toLowerCase();
+  return (nm(item)+mc(item)+(item.phone||'')).toLowerCase().includes(t);
 }
 
-// ============================================================
-// Render
-// ============================================================
 function render() {
-  // Stats
-  document.getElementById('nP').textContent = students.filter(s => s.status === 'pending').length;
-  document.getElementById('nA').textContent = students.filter(s => s.status === 'approved').length;
-  document.getElementById('nR').textContent = students.filter(s => s.status === 'rejected').length;
-  document.getElementById('nC').textContent = coaches.length;
-
-  renderReview();
-  renderCoaches();
-  renderPairing();
+  document.getElementById('nPC').textContent = coaches.filter(c => c.status === 'pending').length;
+  document.getElementById('nPS').textContent = students.filter(s => s.status === 'pending').length;
+  document.getElementById('nA').textContent  = students.filter(s => s.status === 'approved').length;
+  document.getElementById('nC').textContent  = approvedCoaches().length;
+  renderReview(); renderOrg(); renderPairing();
 }
 
-// ── 學員審核 ──
+// ════════════════════════════════════════════
+// Tab 1: 審核區
+// ════════════════════════════════════════════
 function renderReview() {
-  const pending = students.filter(s => s.status === 'pending' && matchSearch(s));
-  const allPending = students.filter(s => s.status === 'pending');
+  const pCoaches  = coaches.filter(c => c.status === 'pending' && matchSearch(c));
+  const apCoaches = coaches.filter(c => c.status === 'pending');
+  const pStudents = students.filter(s => s.status === 'pending' && matchSearch(s));
+  const apStudents= students.filter(s => s.status === 'pending');
 
-  let html = `
-    <div class="toolbar">
-      <input class="search-box" placeholder="搜尋姓名、會員編號、電話…" value="${searchTerm}" oninput="searchTerm=this.value;renderReview()">
-      <div class="toolbar-acts">
-        ${allPending.length > 1 ? `<button class="btn-batch btn-batch-ok" onclick="approveAll()">全部批准（${allPending.length}）</button>` : ''}
-        <button class="btn-batch btn-csv" onclick="exportCSV()">匯出 CSV</button>
-      </div>
-    </div>`;
+  let h = `<div class="toolbar">
+    <input class="search-box" placeholder="搜尋姓名、會員編號、電話…" value="${searchReview}" oninput="searchReview=this.value;renderReview()">
+    <div class="toolbar-acts"><button class="btn-batch btn-csv" onclick="exportCSV()">匯出 CSV</button></div>
+  </div>`;
 
-  html += pending.length
-    ? pending.map(s => `
+  // 教練審核
+  h += `<div class="sec-title"><span>教練審核</span><span class="sec-count">${apCoaches.length} 待審</span></div>`;
+  h += pCoaches.length
+    ? pCoaches.map(c => `
+      <div class="card">
+        <div class="card-left">
+          <div class="card-name">${nm(c)}${mc(c)}</div>
+          <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+        </div>
+        <div class="acts">${bdg(c.status)}
+          <button class="btn btn-ok" onclick="approveCoach('${c.id}')">批准</button>
+          <button class="btn btn-no" onclick="rejectCoach('${c.id}')">拒絕</button>
+        </div>
+      </div>`).join('')
+    : `<div class="empty" style="padding:24px"><div class="empty-icon">✓</div><div class="empty-text">${apCoaches.length?'無符合搜尋的結果':'無待審核教練'}</div></div>`;
+
+  // 學員審核
+  h += `<div class="sec-title"><span>學員審核</span><span class="sec-count">${apStudents.length} 待審</span></div>`;
+  if (apStudents.length > 1) h += `<div style="margin-bottom:10px"><button class="btn-batch btn-batch-ok" onclick="approveAllStudents()">全部批准學員（${apStudents.length}）</button></div>`;
+  h += pStudents.length
+    ? pStudents.map(s => `
       <div class="card">
         <div class="card-left">
           <div class="card-name">${nm(s)}${mc(s)}</div>
-          <div class="card-meta">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s) ? ' ｜ 上線：'+sp(s) : ''}</div>
+          <div class="card-meta">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
           ${s.name_list?`<div class="card-meta">名單：${nl(s.name_list)}</div>`:''}
           ${s.introduction?`<div class="card-meta">自我介紹：${s.introduction}</div>`:''}
         </div>
-        <div class="acts">
-          ${bdg(s.status)}
-          <button class="btn btn-ok" onclick="approve('${s.id}')">批准</button>
-          <button class="btn btn-no" onclick="reject('${s.id}')">拒絕</button>
+        <div class="acts">${bdg(s.status)}
+          <button class="btn btn-ok" onclick="approveStudent('${s.id}')">批准</button>
+          <button class="btn btn-no" onclick="rejectStudent('${s.id}')">拒絕</button>
         </div>
       </div>`).join('')
-    : `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${allPending.length ? '無符合搜尋的結果' : '無待審核學員'}</div></div>`;
+    : `<div class="empty" style="padding:24px"><div class="empty-icon">✓</div><div class="empty-text">${apStudents.length?'無符合搜尋的結果':'無待審核學員'}</div></div>`;
 
-  document.getElementById('reviewList').innerHTML = html;
+  document.getElementById('reviewArea').innerHTML = h;
 }
 
-// ── 教練名單（可展開看學員）──
-function renderCoaches() {
-  if (!coaches.length) {
-    document.getElementById('coachList').innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">此班次尚無教練</div></div>';
+// ════════════════════════════════════════════
+// Tab 2: 教練組織（sponsor_id 歸類）
+// ════════════════════════════════════════════
+function renderOrg() {
+  const ac = approvedCoaches();
+  if (!ac.length) {
+    document.getElementById('orgArea').innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">此班次尚無已批准教練</div></div>';
     return;
   }
+  const noSponsor = students.filter(s => !s.sponsor_id && s.status === 'approved');
 
-  document.getElementById('coachList').innerHTML = coaches.map(c => {
-    const myStudents = stuOf(c.id);
+  let h = `<div class="toolbar"><input class="search-box" placeholder="搜尋教練或學員…" oninput="filterOrg(this.value)"></div>`;
+  h += ac.map(c => {
+    const myStu = sponsorStudents(c.id);
+    const cnt = myStu.length;
     return `
-    <div class="coach-card" id="cc-${c.id}">
-      <div class="coach-header" onclick="toggleCoach('${c.id}')">
+    <div class="coach-card org-card" data-orgnames="${nm(c)} ${myStu.map(s=>nm(s)).join(' ')}">
+      <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
         <div class="card-left">
           <div class="card-name">${nm(c)}${mc(c)}</div>
           <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="coach-count${myStudents.length ? '' : ' zero'}">${myStudents.length} 名學員</span>
+          <span class="coach-count${cnt?'':' zero'}">${cnt} 名學員</span>
           <span class="coach-arrow">▼</span>
         </div>
       </div>
       <div class="coach-body">
-        ${myStudents.length
-          ? myStudents.map(s => `
-            <div class="coach-stu">
-              <div>
-                <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
-                <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-              </div>
-            </div>`).join('')
-          : '<div class="coach-empty">尚無配對學員</div>'}
+        ${cnt ? myStu.map(s => `
+          <div class="coach-stu"><div>
+            <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
+            <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
+          </div></div>`).join('')
+        : '<div class="coach-empty">尚無報名學員</div>'}
       </div>
     </div>`;
   }).join('');
+
+  if (noSponsor.length) {
+    h += `
+    <div class="coach-card org-card" data-orgnames="未指定上線 ${noSponsor.map(s=>nm(s)).join(' ')}">
+      <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="card-left"><div class="card-name" style="color:var(--muted)">未指定上線</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="coach-count zero">${noSponsor.length} 名</span>
+          <span class="coach-arrow">▼</span>
+        </div>
+      </div>
+      <div class="coach-body">
+        ${noSponsor.map(s => `
+          <div class="coach-stu"><div>
+            <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
+            <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
+          </div></div>`).join('')}
+      </div>
+    </div>`;
+  }
+  document.getElementById('orgArea').innerHTML = h;
 }
 
-function toggleCoach(id) {
-  document.getElementById('cc-' + id)?.classList.toggle('open');
+function filterOrg(t) {
+  t = t.toLowerCase();
+  document.querySelectorAll('.org-card').forEach(el => {
+    el.style.display = (el.dataset.orgnames||'').toLowerCase().includes(t) ? '' : 'none';
+  });
 }
 
-// ── 配對管理（含已配對列表 + 解除配對）──
+// ════════════════════════════════════════════
+// Tab 3: 配對管理（coach_id）
+// ════════════════════════════════════════════
 function renderPairing() {
+  const ac = approvedCoaches();
   const unpaired = students.filter(s => s.status === 'approved' && !s.coach_id);
-  const paired = students.filter(s => s.status === 'approved' && s.coach_id);
+  const paired   = students.filter(s => s.status === 'approved' && s.coach_id);
   selS = null; selC = null;
 
-  let html = '';
-
-  // 未配對區
+  let h = '';
   if (unpaired.length) {
-    html += `
-    <div class="pair-grid">
+    h += `<div class="pair-grid">
       <div class="pair-col">
         <h3>待配對學員（${unpaired.length}）</h3>
         ${unpaired.map(s => `
           <div class="pick" data-sid="${s.id}" onclick="pickS('${s.id}')">
             <div class="pick-name">${nm(s)}</div>
-            <div class="pick-meta">${s.group_name||'—'} ｜ ${s.phone||'—'}${sp(s) ? ' ｜ 上線：'+sp(s) : ''}</div>
+            <div class="pick-meta">${s.group_name||'—'} ｜ ${s.phone||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
           </div>`).join('')}
       </div>
       <div class="pair-col">
-        <h3>教練（${coaches.length}）</h3>
-        ${coaches.map(c => `
+        <h3>教練（${ac.length}）</h3>
+        ${ac.map(c => `
           <div class="pick" data-cid="${c.id}" onclick="pickC('${c.id}')">
             <div class="pick-name">${nm(c)}</div>
-            <div class="pick-meta">${c.rank||'—'} ｜ 目前 ${stuCnt(c.id)} 名</div>
+            <div class="pick-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名</div>
           </div>`).join('')}
         <button class="btn-pair" id="btnPair" disabled onclick="doPair()">請選擇學員和教練</button>
       </div>
     </div>`;
   } else {
-    html += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${students.some(s=>s.status==='approved')?'所有已批准學員皆已配對':'無已批准學員'}</div></div>`;
+    h += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${students.some(s=>s.status==='approved')?'所有已批准學員皆已配對':'無已批准學員'}</div></div>`;
   }
 
-  // 已配對列表（按教練分組）
   if (paired.length) {
-    // group by coach
     const groups = {};
     paired.forEach(s => {
       const cid = s.coach_id;
       if (!groups[cid]) groups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
       groups[cid].students.push(s);
     });
-
-    html += `
-    <div class="paired-section">
-      <h3>
+    h += `<div class="paired-section"><h3>
         <span>已配對（${paired.length}）</span>
-        <input class="paired-search" id="pairSearch" placeholder="搜尋學員或教練…" oninput="filterPaired(this.value)">
-      </h3>
-      <div id="pairedGroups">
+        <input class="paired-search" placeholder="搜尋學員或教練…" oninput="filterPaired(this.value)">
+      </h3><div id="pairedGroups">
       ${Object.values(groups).map(g => {
-        const coachName = g.coach ? nm(g.coach) : '（未知）';
-        const coachCode = g.coach ? mc(g.coach) : '';
-        const gid = g.coach?.id || 'unknown';
+        const cN = g.coach ? nm(g.coach) : '（未知）';
+        const cC = g.coach ? mc(g.coach) : '';
         return `
-        <div class="paired-coach" data-pcid="${gid}" data-pnames="${coachName} ${g.students.map(s=>nm(s)).join(' ')}">
-          <div class="paired-coach-hd" onclick="togglePaired('${gid}')">
-            <div>
-              <span class="card-name">${coachName}${coachCode}</span>
-              <span style="color:var(--muted);font-size:12px;margin-left:6px">教練</span>
-            </div>
+        <div class="coach-card paired-card" data-pnames="${cN} ${g.students.map(s=>nm(s)).join(' ')}">
+          <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
+            <div><span class="card-name">${cN}${cC}</span><span style="color:var(--muted);font-size:12px;margin-left:6px">教練</span></div>
             <div style="display:flex;align-items:center;gap:6px">
               <span class="coach-count">${g.students.length} 名</span>
-              <span class="paired-coach-arrow">▼</span>
+              <span class="coach-arrow">▼</span>
             </div>
           </div>
-          <div class="paired-coach-body">
+          <div class="coach-body">
             ${g.students.map(s => `
-            <div class="paired-item">
-              <div>${nm(s)}${mc(s)} <span>｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span></div>
+            <div class="coach-stu">
+              <div><span class="coach-stu-name">${nm(s)}${mc(s)}</span>
+              <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span></div>
               <button class="btn-unpair" onclick="unpair('${s.id}','${nm(s)}')">解除</button>
             </div>`).join('')}
           </div>
         </div>`;
       }).join('')}
-      </div>
-    </div>`;
+      </div></div>`;
   }
-
-  document.getElementById('pairArea').innerHTML = html;
+  document.getElementById('pairArea').innerHTML = h;
 }
 
-// ============================================================
-// 配對選擇
-// ============================================================
-function pickS(id) {
-  selS = id;
-  document.querySelectorAll('[data-sid]').forEach(e => e.classList.toggle('sel', e.dataset.sid === id));
-  updBtn();
-}
-function pickC(id) {
-  selC = id;
-  document.querySelectorAll('[data-cid]').forEach(e => e.classList.toggle('sel', e.dataset.cid === id));
-  updBtn();
-}
-function updBtn() {
-  const b = document.getElementById('btnPair');
-  if (!b) return;
-  b.disabled = !(selS && selC);
-  b.textContent = (selS && selC) ? '確認配對' : '請選擇學員和教練';
-}
-
-function togglePaired(id) {
-  document.querySelector(`[data-pcid="${id}"]`)?.classList.toggle('open');
-}
-
-function filterPaired(term) {
-  const t = term.toLowerCase();
-  document.querySelectorAll('.paired-coach').forEach(el => {
-    const names = (el.dataset.pnames || '').toLowerCase();
-    el.style.display = names.includes(t) ? '' : 'none';
+function filterPaired(t) {
+  t = t.toLowerCase();
+  document.querySelectorAll('.paired-card').forEach(el => {
+    el.style.display = (el.dataset.pnames||'').toLowerCase().includes(t) ? '' : 'none';
   });
 }
 
-// ============================================================
-// DB 操作
-// ============================================================
-async function approve(id) {
-  const { error } = await sb.from('batch_students').update({ status: 'approved' }).eq('id', id);
-  if (error) return alert('失敗：' + error.message);
-  toast('已批准');
-  await load();
-}
+function pickS(id) { selS = id; document.querySelectorAll('[data-sid]').forEach(e => e.classList.toggle('sel', e.dataset.sid===id)); updBtn(); }
+function pickC(id) { selC = id; document.querySelectorAll('[data-cid]').forEach(e => e.classList.toggle('sel', e.dataset.cid===id)); updBtn(); }
+function updBtn() { const b=document.getElementById('btnPair'); if(!b)return; b.disabled=!(selS&&selC); b.textContent=(selS&&selC)?'確認配對':'請選擇學員和教練'; }
 
-async function reject(id) {
-  if (!confirm('確認拒絕？')) return;
-  const { error } = await sb.from('batch_students').update({ status: 'rejected' }).eq('id', id);
-  if (error) return alert('失敗：' + error.message);
-  toast('已拒絕');
-  await load();
+// ════════════════════════════════════════════
+// DB
+// ════════════════════════════════════════════
+async function approveCoach(id)  { const{error}=await sb.from('batch_coaches').update({status:'approved'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('教練已批准'); await load(); }
+async function rejectCoach(id)   { if(!confirm('確認拒絕此教練？'))return; const{error}=await sb.from('batch_coaches').update({status:'rejected'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('教練已拒絕'); await load(); }
+async function approveStudent(id){ const{error}=await sb.from('batch_students').update({status:'approved'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('學員已批准'); await load(); }
+async function rejectStudent(id) { if(!confirm('確認拒絕此學員？'))return; const{error}=await sb.from('batch_students').update({status:'rejected'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('學員已拒絕'); await load(); }
+async function approveAllStudents() {
+  const ids = students.filter(s=>s.status==='pending').map(s=>s.id);
+  if(!ids.length)return;
+  if(!confirm(`確認批准全部 ${ids.length} 名學員？`))return;
+  const{error}=await sb.from('batch_students').update({status:'approved'}).in('id',ids);
+  if(error)return alert('批量批准失敗：'+error.message);
+  toast(`已批准 ${ids.length} 名學員`); await load();
 }
-
-async function approveAll() {
-  const pendingIds = students.filter(s => s.status === 'pending').map(s => s.id);
-  if (!pendingIds.length) return;
-  if (!confirm(`確認批准全部 ${pendingIds.length} 名學員？`)) return;
-  const { error } = await sb.from('batch_students').update({ status: 'approved' }).in('id', pendingIds);
-  if (error) return alert('批量批准失敗：' + error.message);
-  toast(`已批准 ${pendingIds.length} 名學員`);
-  await load();
-}
-
 async function doPair() {
-  if (!selS || !selC) return;
-  const { error } = await sb.from('batch_students').update({ coach_id: selC }).eq('id', selS);
-  if (error) return alert('配對失敗：' + error.message);
-  toast('配對成功');
-  await load();
+  if(!selS||!selC)return;
+  const{error}=await sb.from('batch_students').update({coach_id:selC}).eq('id',selS);
+  if(error)return alert('配對失敗：'+error.message);
+  toast('配對成功'); await load();
+}
+async function unpair(id,name) {
+  if(!confirm(`確認解除「${name}」的教練配對？`))return;
+  const{error}=await sb.from('batch_students').update({coach_id:null}).eq('id',id);
+  if(error)return alert('解除失敗：'+error.message);
+  toast('已解除配對'); await load();
 }
 
-async function unpair(id, name) {
-  if (!confirm(`確認解除「${name}」的教練配對？`)) return;
-  const { error } = await sb.from('batch_students').update({ coach_id: null }).eq('id', id);
-  if (error) return alert('解除失敗：' + error.message);
-  toast('已解除配對');
-  await load();
-}
-
-// ============================================================
-// CSV 匯出
-// ============================================================
 function exportCSV() {
-  const rows = [['姓名','會員編號','電話','組別','狀態','教練','匯款末5碼']];
+  const ac = approvedCoaches();
+  const rows = [['姓名','會員編號','電話','組別','狀態','上線(組織)','配對教練','匯款末5碼']];
   students.forEach(s => {
-    const coach = s.coach_id ? coaches.find(c => c.id === s.coach_id) : null;
-    rows.push([
-      nm(s),
-      s.members_master?.member_code || '',
-      s.phone || '',
-      s.group_name || '',
-      s.status,
-      coach ? nm(coach) : '',
-      s.transfer_code || ''
-    ]);
+    const sponsor = s.sponsor_id ? ac.find(c=>c.id===s.sponsor_id) : null;
+    const paired  = s.coach_id ? coaches.find(c=>c.id===s.coach_id) : null;
+    rows.push([nm(s), s.members_master?.member_code||'', s.phone||'', s.group_name||'', s.status, sponsor?nm(sponsor):'', paired?nm(paired):'', s.transfer_code||'']);
   });
-  const bom = '\uFEFF';
-  const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const csv = '\uFEFF' + rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `實戰班_學員名冊.csv`;
-  a.click();
-  toast('CSV 已下載');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = '實戰班_名冊.csv'; a.click(); toast('CSV 已下載');
 }
 
 init();
