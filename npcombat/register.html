@@ -448,6 +448,13 @@
   <p>資料已送出，班主將盡快審核。<br>審核通過後學員即可選擇你為上線。</p>
 </div>
 
+<!-- 非 LINE 環境 -->
+<div class="screen" id="screen-no-liff">
+  <div class="screen-icon">📱</div>
+  <h2>請從 LINE 開啟</h2>
+  <p>此頁面需透過 LINE 開啟才能使用。<br>請點選 LINE 官方帳號傳送的連結進入。</p>
+</div>
+
 <!-- 主畫面 -->
 <div id="main-form">
   <div class="hero">
@@ -661,7 +668,7 @@ const ALL_SCREENS = [
   'screen-exists', 'screen-approved', 'screen-rejected',
   'screen-success',
   'screen-coach-pending', 'screen-coach-approved', 'screen-coach-rejected',
-  'screen-coach-success'
+  'screen-coach-success', 'screen-no-liff'
 ];
 
 function showScreen(id) {
@@ -860,10 +867,12 @@ async function init() {
     await loadCoaches();
     showScreen(null);
   } catch(e) {
-    console.warn('非 LIFF 環境，進入預覽模式');
-    lineUserId = 'preview-' + Date.now();
-    try { await loadCoaches(); } catch(_) {}
-    showScreen(null);
+    // 非 LIFF 環境（直接用瀏覽器開），擋住不讓填
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('main-form').style.display = 'none';
+    ALL_SCREENS.forEach(s => document.getElementById(s).classList.remove('active'));
+    const errScreen = document.getElementById('screen-no-liff');
+    if (errScreen) errScreen.classList.add('active');
   }
 }
 
