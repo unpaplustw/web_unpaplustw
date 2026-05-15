@@ -867,12 +867,19 @@ async function init() {
     await loadCoaches();
     showScreen(null);
   } catch(e) {
-    // 非 LIFF 環境（直接用瀏覽器開），擋住不讓填
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('main-form').style.display = 'none';
     ALL_SCREENS.forEach(s => document.getElementById(s).classList.remove('active'));
     const errScreen = document.getElementById('screen-no-liff');
-    if (errScreen) errScreen.classList.add('active');
+    if (errScreen) {
+      const isLineApp = /Line\//i.test(navigator.userAgent);
+      if (isLineApp) {
+        // 在 LINE 裡但 init 失敗，顯示實際錯誤方便除錯
+        errScreen.querySelector('h2').textContent = 'LIFF 載入失敗';
+        errScreen.querySelector('p').innerHTML = '錯誤訊息：<br><strong>' + e.message + '</strong><br><br>請截圖回報給班主。';
+      }
+      errScreen.classList.add('active');
+    }
   }
 }
 
