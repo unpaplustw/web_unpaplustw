@@ -80,6 +80,7 @@
   .coach-arrow{color:var(--muted);font-size:12px;transition:transform .2s;margin-left:8px}
   .coach-card.open .coach-arrow{transform:rotate(180deg)}
   .coach-count{background:var(--gold-lt);color:var(--gold);padding:4px 10px;border-radius:5px;font-size:12px;font-weight:600}
+  .coach-count.zero{background:rgba(138,143,168,.12);color:var(--muted)}
   .coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
   .coach-card.open .coach-body{max-height:600px}
   .coach-stu{padding:8px 16px 8px 32px;border-top:1px solid rgba(255,255,255,.04);font-size:13px;display:flex;justify-content:space-between;align-items:center}
@@ -99,12 +100,22 @@
   .btn-pair:hover:not(:disabled){background:var(--gold-bd)}
   .btn-pair:disabled{opacity:.4;cursor:not-allowed}
 
-  /* ── Paired list ── */
+  /* ── Paired list (grouped by coach) ── */
   .paired-section{margin-top:20px}
-  .paired-section h3{font-size:14px;color:var(--gold);margin-bottom:10px}
-  .paired-item{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
-  .paired-info{font-size:13px}
-  .paired-info span{color:var(--muted);font-size:12px}
+  .paired-section h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .paired-search{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 10px;color:var(--white);font-size:12px;font-family:inherit;width:180px}
+  .paired-search:focus{outline:none;border-color:var(--gold-bd)}
+  .paired-search::placeholder{color:var(--muted)}
+  .paired-coach{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:.2s}
+  .paired-coach:hover{border-color:var(--gold-bd)}
+  .paired-coach-hd{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+  .paired-coach-hd .card-name{font-size:14px}
+  .paired-coach-arrow{color:var(--muted);font-size:11px;transition:transform .2s;margin-left:6px}
+  .paired-coach.open .paired-coach-arrow{transform:rotate(180deg)}
+  .paired-coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .paired-coach.open .paired-coach-body{max-height:800px}
+  .paired-item{padding:8px 14px 8px 28px;border-top:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;align-items:center;font-size:13px}
+  .paired-item span{color:var(--muted);font-size:11px}
   .btn-unpair{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(224,92,92,.3);background:var(--red-bg);color:var(--red);font-family:inherit;transition:.2s}
   .btn-unpair:hover{background:rgba(224,92,92,.3)}
 
@@ -322,7 +333,7 @@ function renderCoaches() {
           <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="coach-count">${myStudents.length} 名學員</span>
+          <span class="coach-count${myStudents.length ? '' : ' zero'}">${myStudents.length} 名學員</span>
           <span class="coach-arrow">▼</span>
         </div>
       </div>
@@ -379,21 +390,49 @@ function renderPairing() {
     html += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${students.some(s=>s.status==='approved')?'所有已批准學員皆已配對':'無已批准學員'}</div></div>`;
   }
 
-  // 已配對列表
+  // 已配對列表（按教練分組）
   if (paired.length) {
+    // group by coach
+    const groups = {};
+    paired.forEach(s => {
+      const cid = s.coach_id;
+      if (!groups[cid]) groups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
+      groups[cid].students.push(s);
+    });
+
     html += `
     <div class="paired-section">
-      <h3>已配對（${paired.length}）</h3>
-      ${paired.map(s => {
-        const coach = coaches.find(c => c.id === s.coach_id);
+      <h3>
+        <span>已配對（${paired.length}）</span>
+        <input class="paired-search" id="pairSearch" placeholder="搜尋學員或教練…" oninput="filterPaired(this.value)">
+      </h3>
+      <div id="pairedGroups">
+      ${Object.values(groups).map(g => {
+        const coachName = g.coach ? nm(g.coach) : '（未知）';
+        const coachCode = g.coach ? mc(g.coach) : '';
+        const gid = g.coach?.id || 'unknown';
         return `
-        <div class="paired-item">
-          <div class="paired-info">
-            ${nm(s)}${mc(s)} <span>→ 教練：${coach ? nm(coach) : '（未知）'}</span>
+        <div class="paired-coach" data-pcid="${gid}" data-pnames="${coachName} ${g.students.map(s=>nm(s)).join(' ')}">
+          <div class="paired-coach-hd" onclick="togglePaired('${gid}')">
+            <div>
+              <span class="card-name">${coachName}${coachCode}</span>
+              <span style="color:var(--muted);font-size:12px;margin-left:6px">教練</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="coach-count">${g.students.length} 名</span>
+              <span class="paired-coach-arrow">▼</span>
+            </div>
           </div>
-          <button class="btn-unpair" onclick="unpair('${s.id}','${nm(s)}')">解除配對</button>
+          <div class="paired-coach-body">
+            ${g.students.map(s => `
+            <div class="paired-item">
+              <div>${nm(s)}${mc(s)} <span>｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span></div>
+              <button class="btn-unpair" onclick="unpair('${s.id}','${nm(s)}')">解除</button>
+            </div>`).join('')}
+          </div>
         </div>`;
       }).join('')}
+      </div>
     </div>`;
   }
 
@@ -418,6 +457,18 @@ function updBtn() {
   if (!b) return;
   b.disabled = !(selS && selC);
   b.textContent = (selS && selC) ? '確認配對' : '請選擇學員和教練';
+}
+
+function togglePaired(id) {
+  document.querySelector(`[data-pcid="${id}"]`)?.classList.toggle('open');
+}
+
+function filterPaired(term) {
+  const t = term.toLowerCase();
+  document.querySelectorAll('.paired-coach').forEach(el => {
+    const names = (el.dataset.pnames || '').toLowerCase();
+    el.style.display = names.includes(t) ? '' : 'none';
+  });
 }
 
 // ============================================================
