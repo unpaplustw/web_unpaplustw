@@ -390,6 +390,10 @@
   .dot-loader span:nth-child(2) { animation-delay: .2s; }
   .dot-loader span:nth-child(3) { animation-delay: .4s; }
   @keyframes dot { 0%,80%,100%{transform:scale(.6);opacity:.3} 40%{transform:scale(1);opacity:1} }
+
+  /* ── rejected 專用樣式 ── */
+  .screen.rejected h2 { color: var(--danger); }
+  .screen.rejected .screen-icon { filter: grayscale(0.2); }
 </style>
 </head>
 <body>
@@ -411,6 +415,13 @@
   <div class="screen-icon">🏆</div>
   <h2>已是正式學員</h2>
   <p>你已通過審核，正式加入26期實戰班。<br>全力衝刺，一起達標！</p>
+</div>
+
+<!-- 學員：未通過 -->
+<div class="screen rejected" id="screen-rejected">
+  <div class="screen-icon">❌</div>
+  <h2>報名未通過審核</h2>
+  <p>本次報名未通過，請聯繫你的教練了解原因，確認後可重新報名。</p>
 </div>
 
 <!-- 學員：報名成功 -->
@@ -640,7 +651,10 @@ document.getElementById('f-intro').addEventListener('input', function() {
   document.getElementById('intro-count').textContent = `已輸入 ${this.value.length} 字`;
 });
 
-const ALL_SCREENS = ['screen-exists','screen-approved','screen-success','screen-coach-exists','screen-coach-success'];
+const ALL_SCREENS = [
+  'screen-exists', 'screen-approved', 'screen-rejected',
+  'screen-success', 'screen-coach-exists', 'screen-coach-success'
+];
 
 function showScreen(id) {
   document.getElementById('loading-screen').style.display = 'none';
@@ -823,10 +837,14 @@ async function init() {
     if (member) {
       const { data: student } = await sb.from('batch_students').select('status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
+
       if (student) {
-        showScreen(student.status === 'approved' ? 'screen-approved' : 'screen-exists');
+        if (student.status === 'approved')  { showScreen('screen-approved'); return; }
+        if (student.status === 'rejected')  { showScreen('screen-rejected'); return; }
+        showScreen('screen-exists'); // pending
         return;
       }
+
       const { data: coach } = await sb.from('batch_coaches').select('id')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
       if (coach) { showScreen('screen-coach-exists'); return; }
