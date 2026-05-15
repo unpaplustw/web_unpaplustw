@@ -228,9 +228,7 @@ body::before{
 <script>
 const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-const sb = typeof supabase !== 'undefined' 
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'npcombat' } }) 
-  : null;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'npcombat' } });
 
 const AWARDS = [
   { key:'total',     emoji:'🏅', name:'本週得分王',  desc:'全部行動加權加總',   unit:'分', fun:false },
@@ -248,10 +246,6 @@ let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
 
-// ========== DEMO 模式 ==========
-// 部署時改為 false 即切回 Supabase 即時資料
-const DEMO_MODE = true;
-
 // ========== 蓋牌時間設定 ==========
 // 週六 23:59 蓋牌 → 週日 22:00 解封
 function isBlackout() {
@@ -266,7 +260,6 @@ function isBlackout() {
 function getNextRevealTime() {
   const now = new Date();
   const reveal = new Date(now);
-  // 找到本週日 22:00
   if (now.getDay() === 6) { reveal.setDate(reveal.getDate() + 1); }
   reveal.setHours(22, 0, 0, 0);
   return reveal;
@@ -308,49 +301,12 @@ function showBlackout() {
   setInterval(updateCountdown, 1000);
 }
 
-// ========== Demo 資料 ==========
-function genDemoWeekData() {
-  const data = [
-    { name:'王志明', code:'NP2201', group:'火箭隊', list:10, schedule:8, social:6, recommend:4, invite:2, company:350, ghosted:1, rejected:3 },
-    { name:'林美玲', code:'NP2202', group:'火箭隊', list:7,  schedule:6, social:7, recommend:5, invite:1, company:200, ghosted:2, rejected:5 },
-    { name:'陳大偉', code:'NP2203', group:'閃電隊', list:5,  schedule:9, social:3, recommend:3, invite:3, company:280, ghosted:0, rejected:2 },
-    { name:'張雅婷', code:'NP2204', group:'閃電隊', list:8,  schedule:4, social:5, recommend:6, invite:1, company:150, ghosted:3, rejected:6 },
-    { name:'李建宏', code:'NP2205', group:'旋風隊', list:3,  schedule:7, social:8, recommend:2, invite:0, company:50,  ghosted:4, rejected:4 },
-    { name:'黃淑芬', code:'NP2206', group:'旋風隊', list:6,  schedule:5, social:4, recommend:4, invite:2, company:300, ghosted:1, rejected:1 },
-    { name:'劉家豪', code:'NP2207', group:'火箭隊', list:4,  schedule:3, social:2, recommend:1, invite:0, company:0,   ghosted:2, rejected:7 },
-    { name:'吳佳蓉', code:'NP2208', group:'閃電隊', list:9,  schedule:6, social:5, recommend:3, invite:1, company:180, ghosted:0, rejected:3 },
-    { name:'蔡明哲', code:'NP2209', group:'旋風隊', list:2,  schedule:2, social:1, recommend:1, invite:1, company:100, ghosted:3, rejected:2 },
-    { name:'許雅琪', code:'NP2210', group:'火箭隊', list:6,  schedule:7, social:9, recommend:5, invite:2, company:250, ghosted:1, rejected:4 },
-  ];
-  return data.map(d => ({ ...d, total: 0 }));
-}
-
-function genDemoCumulativeData() {
-  const data = [
-    { name:'王志明', code:'NP2201', group:'火箭隊', list:28, schedule:22, social:18, recommend:12, invite:5, company:980,  ghosted:3,  rejected:8 },
-    { name:'林美玲', code:'NP2202', group:'火箭隊', list:20, schedule:17, social:21, recommend:14, invite:3, company:620,  ghosted:6,  rejected:14 },
-    { name:'陳大偉', code:'NP2203', group:'閃電隊', list:15, schedule:25, social:10, recommend:9,  invite:7, company:850,  ghosted:1,  rejected:5 },
-    { name:'張雅婷', code:'NP2204', group:'閃電隊', list:22, schedule:12, social:16, recommend:17, invite:3, company:480,  ghosted:9,  rejected:18 },
-    { name:'李建宏', code:'NP2205', group:'旋風隊', list:9,  schedule:19, social:24, recommend:6,  invite:1, company:150,  ghosted:12, rejected:11 },
-    { name:'黃淑芬', code:'NP2206', group:'旋風隊', list:18, schedule:15, social:13, recommend:11, invite:5, company:900,  ghosted:2,  rejected:4 },
-    { name:'劉家豪', code:'NP2207', group:'火箭隊', list:12, schedule:8,  social:7,  recommend:3,  invite:1, company:80,   ghosted:7,  rejected:20 },
-    { name:'吳佳蓉', code:'NP2208', group:'閃電隊', list:25, schedule:18, social:15, recommend:10, invite:4, company:550,  ghosted:1,  rejected:9 },
-    { name:'蔡明哲', code:'NP2209', group:'旋風隊', list:6,  schedule:6,  social:4,  recommend:3,  invite:2, company:300,  ghosted:8,  rejected:6 },
-    { name:'許雅琪', code:'NP2210', group:'火箭隊', list:17, schedule:20, social:26, recommend:15, invite:6, company:780,  ghosted:3,  rejected:12 },
-  ];
-  return data.map(d => ({ ...d, total: 0 }));
-}
-
 async function init() {
-  if (DEMO_MODE) {
-    currentBatch = { id:1, name:'26期實戰班', event_name:'威斯汀', target_points:800, start_date:'2026-05-24', end_date:'2026-06-28' };
-  } else {
-    const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false }).limit(1);
-    if (!batches || !batches.length) { showEmpty('尚未建立班次'); return; }
-    currentBatch = batches[0];
-  }
+  const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false }).limit(1);
+  if (!batches || !batches.length) { showEmpty('尚未建立班次'); return; }
+  currentBatch = batches[0];
 
-  document.getElementById('batchName').textContent = 
+  document.getElementById('batchName').textContent =
     `${currentBatch.name}｜目標 ${currentBatch.target_points} 分 → ${currentBatch.event_name}`;
 
   if (!currentBatch.start_date || !currentBatch.end_date) { showEmpty('班次日期尚未設定'); return; }
@@ -385,11 +341,7 @@ async function init() {
 
   renderWeekBar();
 
-  // 蓋牌檢查
-  if (isBlackout()) {
-    showBlackout();
-    return;
-  }
+  if (isBlackout()) { showBlackout(); return; }
 
   loadWeek(currentWeek);
 }
@@ -414,7 +366,7 @@ function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 async function loadWeek(idx) {
   if (isBlackout()) { showBlackout(); return; }
   currentWeek = idx;
-  // 更新 UI
+
   const dd = document.getElementById('weekDropdown');
   const allBtn = document.getElementById('allBtn');
   if (idx === -1) {
@@ -427,60 +379,51 @@ async function loadWeek(idx) {
 
   document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div>正在統計戰績...</div></div>';
 
-  let arr;
+  let query = sb.from('action_logs')
+    .select('*, batch_students(group_name, member_id, members_master(name, member_code))')
+    .eq('batch_id', currentBatch.id);
 
-  if (DEMO_MODE) {
-    arr = idx === -1 ? genDemoCumulativeData() : genDemoWeekData();
-    arr.forEach(s => {
-      s.total = s.list * 1 + s.schedule * 1 + s.social * 2 + s.recommend * 5 + s.invite * 20 + s.company;
-    });
-  } else {
-    // 查詢 action_logs
-    let query = sb.from('action_logs').select('*, batch_students(group_name, member_id, members_master(name, member_code))')
-      .eq('batch_id', currentBatch.id);
-
-    if (idx >= 0 && idx < weeks.length) {
-      query = query.gte('log_date', fmtDateISO(weeks[idx].start))
-                   .lte('log_date', fmtDateISO(weeks[idx].end));
-    }
-
-    const { data: logs, error } = await query;
-    if (error) { showEmpty('資料載入失敗：' + error.message); return; }
-    if (!logs || !logs.length) { showEmpty('本週尚無行動紀錄，開始衝吧！💪'); return; }
-
-    // 彙總每位學員
-    const students = {};
-    logs.forEach(log => {
-      const sid = log.student_id;
-      const info = log.batch_students;
-      const name = info?.members_master?.name || '未知';
-      const code = info?.members_master?.member_code || '';
-      const group = info?.group_name || '未分組';
-
-      if (!students[sid]) {
-        students[sid] = {
-          name, code, group,
-          list: 0, schedule: 0, social: 0, recommend: 0,
-          invite: 0, company: 0, ghosted: 0, rejected: 0, total: 0
-        };
-      }
-      const s = students[sid];
-      s.list      += log.action_list || 0;
-      s.schedule  += log.action_schedule || 0;
-      s.social    += log.action_social || 0;
-      s.recommend += log.action_recommend || 0;
-      s.invite    += log.action_invite || 0;
-      s.company   += log.company_points || 0;
-      s.ghosted   += log.action_ghosted || 0;
-      s.rejected  += log.action_rejected || 0;
-    });
-
-    Object.values(students).forEach(s => {
-      s.total = s.list * 1 + s.schedule * 1 + s.social * 2 + s.recommend * 5 + s.invite * 20 + s.company;
-    });
-
-    arr = Object.values(students);
+  if (idx >= 0 && idx < weeks.length) {
+    query = query
+      .gte('log_date', fmtDateISO(weeks[idx].start))
+      .lte('log_date', fmtDateISO(weeks[idx].end));
   }
+
+  const { data: logs, error } = await query;
+  if (error) { showEmpty('資料載入失敗：' + error.message); return; }
+  if (!logs || !logs.length) { showEmpty('本週尚無行動紀錄，開始衝吧！💪'); return; }
+
+  // 彙總每位學員
+  const students = {};
+  logs.forEach(log => {
+    const sid = log.student_id;
+    const info = log.batch_students;
+    const name = info?.members_master?.name || '未知';
+    const code = info?.members_master?.member_code || '';
+    const group = info?.group_name || '未分組';
+
+    if (!students[sid]) {
+      students[sid] = {
+        name, code, group,
+        list: 0, schedule: 0, social: 0, recommend: 0,
+        invite: 0, company: 0, ghosted: 0, rejected: 0, total: 0
+      };
+    }
+    const s = students[sid];
+    s.list      += log.action_list || 0;
+    s.schedule  += log.action_schedule || 0;
+    s.social    += log.action_social || 0;
+    s.recommend += log.action_recommend || 0;
+    s.invite    += log.action_invite || 0;
+    s.company   += log.company_points || 0;
+    s.ghosted   += log.action_ghosted || 0;
+    s.rejected  += log.action_rejected || 0;
+  });
+
+  const arr = Object.values(students);
+  arr.forEach(s => {
+    s.total = s.list * 1 + s.schedule * 1 + s.social * 2 + s.recommend * 5 + s.invite * 20 + s.company;
+  });
 
   // 排名函式
   const rank = (key) => {
@@ -512,25 +455,20 @@ async function loadWeek(idx) {
   let html = '';
   const periodLabel = idx === -1 ? '整期' : '本週';
 
-  // 正式獎項
   html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
   html += '<div class="awards-grid">';
   AWARDS.filter(a => !a.fun).forEach(award => {
-    const top3 = rank(keyMap[award.key]);
-    html += renderAwardCard(award, top3);
+    html += renderAwardCard(award, rank(keyMap[award.key]));
   });
   html += '</div>';
 
-  // 趣味獎項
   html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
   html += '<div class="awards-grid">';
   AWARDS.filter(a => a.fun).forEach(award => {
-    const top3 = rank(keyMap[award.key]);
-    html += renderAwardCard(award, top3);
+    html += renderAwardCard(award, rank(keyMap[award.key]));
   });
   html += '</div>';
 
-  // 團隊獎
   html += `<div class="section-title">👥 ${periodLabel}小隊對決</div>`;
   html += '<div class="awards-grid">';
   html += renderTeamCard(teamRank);
