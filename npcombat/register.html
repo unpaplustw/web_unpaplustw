@@ -658,7 +658,9 @@ const BATCH_ID     = 1;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: 'npcombat' }
 });
-let lineUserId = null;
+
+let lineUserId  = null;
+let lineProfile = null;   // ★ 新增：保留完整 profile 供 submit handler 使用
 
 document.getElementById('f-intro').addEventListener('input', function() {
   document.getElementById('intro-count').textContent = `已輸入 ${this.value.length} 字`;
@@ -685,7 +687,7 @@ function showRole(role) {
   document.getElementById('section-coach').style.display   = role === 'coach'   ? 'block' : 'none';
 }
 
-// ★ 只撈已審核通過的教練
+// 只撈已審核通過的教練
 async function loadCoaches() {
   try {
     const { data, error } = await sb
@@ -745,10 +747,15 @@ async function handleStudentSubmit() {
   document.getElementById('btn-loading').style.display = 'block';
 
   try {
+    // ★ upsert 帶入 picture_url
     const { data: member, error: memberErr } = await sb
       .from('members_master')
-      .upsert({ line_user_id: lineUserId, member_code: memberCodeClean, name },
-               { onConflict: 'line_user_id' })
+      .upsert({
+        line_user_id: lineUserId,
+        member_code:  memberCodeClean,
+        name,
+        picture_url:  lineProfile?.pictureUrl || null
+      }, { onConflict: 'line_user_id' })
       .select('id').single();
     if (memberErr) throw memberErr;
 
@@ -806,15 +813,18 @@ async function handleCoachSubmit() {
   document.getElementById('btn-coach-loading').style.display = 'block';
 
   try {
+    // ★ upsert 帶入 picture_url
     const { data: member, error: memberErr } = await sb
       .from('members_master')
-      .upsert({ line_user_id: lineUserId, member_code: memberCodeClean, name },
-               { onConflict: 'line_user_id' })
+      .upsert({
+        line_user_id: lineUserId,
+        member_code:  memberCodeClean,
+        name,
+        picture_url:  lineProfile?.pictureUrl || null
+      }, { onConflict: 'line_user_id' })
       .select('id').single();
     if (memberErr) throw memberErr;
 
-    // ★ 教練寫入 status: 'pending'，等班主審核
-    // ★ 不再自動插入 batch_students（教練不是自己的學員）
     const { error: coachErr } = await sb.from('batch_coaches').insert({
       batch_id: BATCH_ID, member_id: member.id, phone, rank, cfc, status: 'pending'
     });
@@ -836,8 +846,9 @@ async function init() {
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
 
-    const profile = await liff.getProfile();
-    lineUserId = profile.userId;
+    // ★ 存到 module-level lineProfile
+    lineProfile = await liff.getProfile();
+    lineUserId  = lineProfile.userId;
 
     const { data: member } = await sb
       .from('members_master').select('id')
@@ -854,7 +865,7 @@ async function init() {
         showScreen('screen-exists'); return;
       }
 
-      // ★ 再查教練（區分 pending / approved / rejected）
+      // 再查教練
       const { data: coach } = await sb.from('batch_coaches').select('id, status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
       if (coach) {
@@ -874,7 +885,6 @@ async function init() {
     if (errScreen) {
       const isLineApp = /Line\//i.test(navigator.userAgent);
       if (isLineApp) {
-        // 在 LINE 裡但 init 失敗，顯示實際錯誤方便除錯
         errScreen.querySelector('h2').textContent = 'LIFF 載入失敗';
         errScreen.querySelector('p').innerHTML = '錯誤訊息：<br><strong>' + e.message + '</strong><br><br>請截圖回報給班主。';
       }
