@@ -84,6 +84,9 @@
   .coach-stu-name{color:var(--white)}
   .coach-stu-meta{color:var(--muted);font-size:11px}
   .coach-empty{padding:12px 32px;color:var(--muted);font-size:12px;font-style:italic}
+  .btn-reassign{padding:3px 10px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(91,141,239,.3);background:var(--blue-bg);color:var(--blue);font-family:inherit;transition:.2s}
+  .btn-reassign:hover{background:rgba(91,141,239,.3)}
+  .reassign-sel{background:var(--navy3);border:1px solid var(--gold-bd);border-radius:6px;padding:4px 8px;color:var(--white);font-size:12px;font-family:inherit;margin-right:6px}
 
   .pair-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   .pair-col h3{font-size:14px;color:var(--gold);margin-bottom:10px}
@@ -112,6 +115,69 @@
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy2);border:1px solid var(--gold-bd);color:var(--gold);padding:10px 24px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  .roster-card{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:.2s}
+  .roster-card:hover{border-color:var(--gold-bd)}
+  .roster-top{display:flex;justify-content:space-between;align-items:center}
+  .roster-info{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6}
+  .roster-checks{display:flex;gap:12px;margin-top:6px}
+  .roster-check{font-size:12px;cursor:pointer;padding:2px 8px;border-radius:4px;transition:.2s}
+  .roster-check:hover{background:var(--navy3)}
+  .roster-check .has{color:var(--green)}
+  .roster-check .no{color:var(--muted)}
+  .btn-edit{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(91,141,239,.3);background:var(--blue-bg);color:var(--blue);font-family:inherit;transition:.2s}
+  .btn-edit:hover{background:rgba(91,141,239,.3)}
+  .edit-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:end}
+  .edit-field{display:flex;flex-direction:column;gap:3px}
+  .edit-field label{font-size:11px;color:var(--muted)}
+  .edit-field input{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit;width:140px}
+  .edit-field input:focus{outline:none;border-color:var(--gold-bd)}
+  .btn-save{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(76,175,130,.3);background:var(--green-bg);color:var(--green);font-family:inherit;transition:.2s}
+  .btn-save:hover{background:rgba(76,175,130,.3)}
+  .btn-cancel{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(138,143,168,.3);background:transparent;color:var(--muted);font-family:inherit;transition:.2s}
+  .btn-cancel:hover{background:rgba(138,143,168,.1)}
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:998;display:flex;align-items:center;justify-content:center}
+  .modal-box{background:var(--navy2);border:1px solid var(--gold-bd);border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:70vh;overflow-y:auto}
+  .modal-title{font-size:15px;font-weight:600;color:var(--gold);margin-bottom:12px}
+  .modal-body{font-size:13px;color:var(--white);line-height:1.8;white-space:pre-wrap}
+  .modal-close{margin-top:14px;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid var(--gold-bd);background:var(--gold-lt);color:var(--gold);font-family:inherit;margin-right:8px}
+  .modal-edit-btn{margin-top:14px;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid rgba(91,141,239,.3);background:var(--blue-bg);color:var(--blue);font-family:inherit}
+  .modal-save-btn{margin-top:14px;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid rgba(76,175,130,.3);background:var(--green-bg);color:var(--green);font-family:inherit;margin-right:8px}
+  .modal-textarea{width:100%;background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;color:var(--white);font-size:13px;font-family:inherit;line-height:1.8;resize:vertical;min-height:150px}
+  .modal-textarea:focus{outline:none;border-color:var(--gold-bd)}
+
+  .bonus-form{background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;padding:16px;margin-bottom:16px}
+  .bonus-row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+  .bonus-field{display:flex;flex-direction:column;gap:4px}
+  .bonus-field label{font-size:11px;color:var(--muted)}
+  .bonus-field select,.bonus-field input{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
+  .bonus-field select:focus,.bonus-field input:focus{outline:none;border-color:var(--gold-bd)}
+  .btn-add-bonus{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--gold-bd);background:var(--gold-lt);color:var(--gold);font-family:inherit;transition:.2s;align-self:end}
+  .btn-add-bonus:hover{background:var(--gold-bd)}
+  .bonus-table{width:100%;border-collapse:collapse;margin-top:4px}
+  .bonus-table th{text-align:left;font-size:12px;color:var(--muted);font-weight:400;padding:8px 10px;border-bottom:1px solid var(--gold-bd)}
+  .bonus-table td{font-size:13px;padding:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+  .bonus-active{color:var(--green)}
+  .bonus-expired{color:var(--muted)}
+  .bonus-upcoming{color:var(--yellow)}
+
+  .fin-table{width:100%;border-collapse:collapse}
+  .fin-table th{text-align:left;font-size:12px;color:var(--muted);font-weight:400;padding:8px 10px;border-bottom:1px solid var(--gold-bd)}
+  .fin-table td{font-size:13px;padding:10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+  .fin-confirmed{color:var(--green);font-weight:600}
+  .fin-pending{color:var(--yellow)}
+  .btn-confirm{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(76,175,130,.3);background:var(--green-bg);color:var(--green);font-family:inherit;transition:.2s}
+  .btn-confirm:hover{background:rgba(76,175,130,.3)}
+  .btn-unconfirm{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(224,92,92,.3);background:var(--red-bg);color:var(--red);font-family:inherit;transition:.2s}
+  .btn-unconfirm:hover{background:rgba(224,92,92,.3)}
+
+  .perm-card{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;transition:.2s}
+  .perm-card:hover{border-color:var(--gold-bd)}
+  .perm-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .perm-tag{font-size:11px;padding:3px 8px;border-radius:4px;background:var(--gold-lt);color:var(--gold)}
+  .perm-tag.off{background:rgba(138,143,168,.1);color:var(--muted);text-decoration:line-through}
+  .perm-add-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px}
+  .perm-add-row select{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
+
   @media(max-width:600px){
     .stats{grid-template-columns:repeat(2,1fr)}
     .pair-grid{grid-template-columns:1fr}
@@ -133,22 +199,32 @@
     </div>
   </div>
 
-  <div class="stats">
-    <div class="st"><div class="st-n" id="nPC">-</div><div class="st-l">教練待審</div></div>
-    <div class="st"><div class="st-n" id="nPS">-</div><div class="st-l">學員待審</div></div>
-    <div class="st"><div class="st-n" id="nA">-</div><div class="st-l">已批准學員</div></div>
-    <div class="st"><div class="st-n" id="nC">-</div><div class="st-l">教練</div></div>
-  </div>
-
   <div class="tabs">
-    <button class="tab on" data-t="review">審核區</button>
+    <button class="tab on" data-t="dashboard">資訊版</button>
+    <button class="tab" data-t="review">審核區</button>
+    <button class="tab" data-t="roster">名冊</button>
     <button class="tab" data-t="org">教練組織</button>
     <button class="tab" data-t="pairing">配對管理</button>
+    <button class="tab" data-t="bonus">加權設定</button>
+    <button class="tab" data-t="finance">帳務管理</button>
+    <button class="tab" data-t="perm">權限管理</button>
   </div>
 
-  <div class="panel on" id="p-review"><div id="reviewArea" class="loading">載入中…</div></div>
+  <div class="panel on" id="p-dashboard">
+    <div class="stats">
+      <div class="st"><div class="st-n" id="nPC">-</div><div class="st-l">教練待審</div></div>
+      <div class="st"><div class="st-n" id="nPS">-</div><div class="st-l">學員待審</div></div>
+      <div class="st"><div class="st-n" id="nA">-</div><div class="st-l">已批准學員</div></div>
+      <div class="st"><div class="st-n" id="nC">-</div><div class="st-l">教練</div></div>
+    </div>
+  </div>
+  <div class="panel" id="p-review"><div id="reviewArea" class="loading">載入中…</div></div>
+  <div class="panel" id="p-roster"><div id="rosterArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-org"><div id="orgArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-pairing"><div id="pairArea" class="loading">載入中…</div></div>
+  <div class="panel" id="p-bonus"><div id="bonusArea" class="loading">載入中…</div></div>
+  <div class="panel" id="p-finance"><div id="financeArea" class="loading">載入中…</div></div>
+  <div class="panel" id="p-perm"><div id="permArea" class="loading">載入中…</div></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -159,7 +235,7 @@ const sb = window.supabase.createClient(
   { db: { schema: 'npcombat' } }
 );
 
-let bid = 1, students = [], coaches = [], selS = null, selC = null, searchReview = '';
+let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], selS = null, selC = null, searchReview = '';
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -186,15 +262,25 @@ async function init() {
 
 async function load() {
   const { data: s } = await sb.from('batch_students')
-    .select('id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .select('id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
     .eq('batch_id', bid);
   students = s || [];
   const { data: c } = await sb.from('batch_coaches')
     .select('id, phone, rank, cfc, status, created_at, members_master(name, member_code)')
     .eq('batch_id', bid);
   coaches = c || [];
+  const { data: br } = await sb.from('bonus_rules')
+    .select('*').eq('batch_id', bid).order('start_date');
+  bonusRules = br || [];
+  const { data: au } = await sb.from('admin_users')
+    .select('*, members_master(name, member_code)');
+  adminUsers = au || [];
   render();
 }
+
+const ACTION_LABELS = { list:'列名單', schedule:'安排行程', social:'社交活動', recommend:'推薦', invite:'邀約' };
+const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
+const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 
 // ── Helpers ──
 const nm = r => r.members_master?.name || '（未知）';
@@ -220,7 +306,7 @@ function render() {
   document.getElementById('nPS').textContent = students.filter(s => s.status === 'pending').length;
   document.getElementById('nA').textContent  = students.filter(s => s.status === 'approved').length;
   document.getElementById('nC').textContent  = approvedCoaches().length;
-  renderReview(); renderOrg(); renderPairing();
+  renderReview(); renderRoster(); renderOrg(); renderPairing(); renderBonus(); renderFinance(); renderPerm();
 }
 
 // ════════════════════════════════════════════
@@ -263,7 +349,7 @@ function renderReview() {
           <div class="card-name">${nm(s)}${mc(s)}</div>
           <div class="card-meta">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
           ${s.name_list?`<div class="card-meta">名單：${nl(s.name_list)}</div>`:''}
-          ${s.introduction?`<div class="card-meta">自我介紹：${s.introduction}</div>`:''}
+          ${s.introduction?`<div class="card-meta">自我定位：${s.introduction}</div>`:''}
         </div>
         <div class="acts">${bdg(s.status)}
           <button class="btn btn-ok" onclick="approveStudent('${s.id}')">批准</button>
@@ -276,7 +362,189 @@ function renderReview() {
 }
 
 // ════════════════════════════════════════════
-// Tab 2: 教練組織（sponsor_id 歸類）
+// Tab 2: 名冊
+// ════════════════════════════════════════════
+let rosterSearch = '', rosterFilter = 'all';
+
+function renderRoster() {
+  const ac = approvedCoaches();
+  let sList = students.filter(s => s.status === 'approved');
+  if (rosterFilter === 'no-coach') sList = sList.filter(s => !s.coach_id);
+  if (rosterFilter === 'no-phone') sList = sList.filter(s => !s.phone);
+  let cList = ac;
+  if (rosterSearch) {
+    const t = rosterSearch.toLowerCase();
+    sList = sList.filter(s => (nm(s)+mc(s)+(s.phone||'')+(s.group_name||'')).toLowerCase().includes(t));
+    cList = cList.filter(c => (nm(c)+mc(c)+(c.phone||'')+(c.rank||'')).toLowerCase().includes(t));
+  }
+  if (rosterFilter === 'no-phone') cList = cList.filter(c => !c.phone);
+  const totalS = students.filter(s => s.status === 'approved').length;
+
+  let h = `<div class="toolbar">
+    <input class="search-box" placeholder="搜尋姓名、電話、組別…" value="${rosterSearch}" oninput="rosterSearch=this.value;renderRoster()">
+    <div class="toolbar-acts">
+      <select class="hd select" style="background:var(--navy3);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit" onchange="rosterFilter=this.value;renderRoster()">
+        <option value="all"${rosterFilter==='all'?' selected':''}>全部</option>
+        <option value="no-coach"${rosterFilter==='no-coach'?' selected':''}>未配對教練</option>
+        <option value="no-phone"${rosterFilter==='no-phone'?' selected':''}>缺電話</option>
+      </select>
+    </div>
+  </div>`;
+
+  // 教練區
+  if (rosterFilter !== 'no-coach') {
+    h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
+    if (cList.length) {
+      cList.forEach(c => {
+        h += `
+        <div class="roster-card" id="rc-c-${c.id}">
+          <div class="roster-top">
+            <div>
+              <div class="card-name">${nm(c)}${mc(c)}</div>
+              <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+            </div>
+            <button class="btn-edit" onclick="showEditCoach('${c.id}')">編輯</button>
+          </div>
+          <div id="edit-c-${c.id}"></div>
+        </div>`;
+      });
+    } else {
+      h += `<div class="empty" style="padding:20px"><div class="empty-text">無符合條件的教練</div></div>`;
+    }
+  }
+
+  // 學員區
+  h += `<div class="sec-title"><span>學員</span><span class="sec-count">${sList.length} / ${totalS} 人</span></div>`;
+  if (sList.length) {
+    sList.forEach(s => {
+      const coachObj = s.coach_id ? coaches.find(c => c.id === s.coach_id) : null;
+      const coachName = coachObj ? nm(coachObj) : '未配對';
+      const hasList = s.name_list && (Array.isArray(s.name_list) ? s.name_list.length > 0 : String(s.name_list).trim());
+      const hasIntro = s.introduction && String(s.introduction).trim();
+      h += `
+      <div class="roster-card" id="rc-${s.id}">
+        <div class="roster-top">
+          <div>
+            <div class="card-name">${nm(s)}${mc(s)}</div>
+            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 教練：${coachName}</div>
+            <div class="roster-checks">
+              <span class="roster-check" onclick="showDetail('${s.id}','name_list')"><span class="${hasList?'has':'no'}">${hasList?'✓':'✗'}</span> 名單</span>
+              <span class="roster-check" onclick="showDetail('${s.id}','introduction')"><span class="${hasIntro?'has':'no'}">${hasIntro?'✓':'✗'}</span> 自我定位</span>
+            </div>
+          </div>
+          <button class="btn-edit" onclick="showEdit('${s.id}')">編輯</button>
+        </div>
+        <div id="edit-${s.id}"></div>
+      </div>`;
+    });
+  } else {
+    h += `<div class="empty" style="padding:20px"><div class="empty-text">無符合條件的學員</div></div>`;
+  }
+  document.getElementById('rosterArea').innerHTML = h;
+}
+
+function showEditCoach(cid) {
+  const c = coaches.find(x => x.id === cid);
+  if (!c) return;
+  const el = document.getElementById('edit-c-' + cid);
+  const rankOpts = RANK_OPTIONS.map(r => `<option value="${r}"${c.rank===r?' selected':''}>${r}</option>`).join('');
+  const cfcOpts = CFC_OPTIONS.map(f => `<option value="${f}"${c.cfc===f?' selected':''}>${f}</option>`).join('');
+  el.innerHTML = `<div class="edit-row">
+    <div class="edit-field"><label>電話</label><input id="ec-phone-${cid}" value="${c.phone||''}"></div>
+    <div class="edit-field"><label>資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>
+    <div class="edit-field"><label>CFC</label><select id="ec-cfc-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${cfcOpts}</select></div>
+    <button class="btn-save" onclick="saveEditCoach('${cid}')">儲存</button>
+    <button class="btn-cancel" onclick="renderRoster()">取消</button>
+  </div>`;
+}
+
+async function saveEditCoach(cid) {
+  const phone = document.getElementById('ec-phone-' + cid).value.trim();
+  const rank = document.getElementById('ec-rank-' + cid).value.trim();
+  const cfc = document.getElementById('ec-cfc-' + cid).value.trim();
+  const { error } = await sb.from('batch_coaches').update({ phone, rank, cfc }).eq('id', cid);
+  if (error) return alert('儲存失敗：' + error.message);
+  toast('教練資料已更新'); await load();
+}
+
+function showEdit(sid) {
+  const s = students.find(x => x.id === sid);
+  if (!s) return;
+  const el = document.getElementById('edit-' + sid);
+  el.innerHTML = `<div class="edit-row">
+    <div class="edit-field"><label>電話</label><input id="ef-phone-${sid}" value="${s.phone||''}"></div>
+    <div class="edit-field"><label>組別</label><input id="ef-group-${sid}" value="${s.group_name||''}"></div>
+    <button class="btn-save" onclick="saveEdit('${sid}')">儲存</button>
+    <button class="btn-cancel" onclick="renderRoster()">取消</button>
+  </div>`;
+}
+
+async function saveEdit(sid) {
+  const phone = document.getElementById('ef-phone-' + sid).value.trim();
+  const group_name = document.getElementById('ef-group-' + sid).value.trim();
+  const { error } = await sb.from('batch_students').update({ phone, group_name }).eq('id', sid);
+  if (error) return alert('儲存失敗：' + error.message);
+  toast('資料已更新'); await load();
+}
+
+function showDetail(sid, field) {
+  const s = students.find(x => x.id === sid);
+  if (!s) return;
+  const title = field === 'name_list' ? '名單' : '自我定位';
+  let content = '';
+  if (field === 'name_list') {
+    const v = s.name_list;
+    content = !v ? '（無資料）' : Array.isArray(v) ? v.join('、') : String(v);
+  } else {
+    content = s.introduction || '（無資料）';
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal-box">
+    <div class="modal-title">${nm(s)} — ${title}</div>
+    <div class="modal-body" id="modal-content-${sid}">${content.replace(/</g,'&lt;')}</div>
+    <div id="modal-actions-${sid}">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">關閉</button>
+      <button class="modal-edit-btn" onclick="editDetail('${sid}','${field}')">編輯</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+function editDetail(sid, field) {
+  const s = students.find(x => x.id === sid);
+  if (!s) return;
+  const contentEl = document.getElementById('modal-content-' + sid);
+  const actionsEl = document.getElementById('modal-actions-' + sid);
+  let val = '';
+  if (field === 'name_list') {
+    const v = s.name_list;
+    val = !v ? '' : Array.isArray(v) ? v.join('\n') : String(v);
+  } else {
+    val = s.introduction || '';
+  }
+  const hint = field === 'name_list' ? '一行一個名字' : '';
+  contentEl.innerHTML = `<textarea class="modal-textarea" id="modal-edit-val-${sid}">${val.replace(/</g,'&lt;')}</textarea>${hint ? '<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+hint+'</div>' : ''}`;
+  actionsEl.innerHTML = `<button class="modal-save-btn" onclick="saveDetail('${sid}','${field}')">儲存</button><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">取消</button>`;
+}
+
+async function saveDetail(sid, field) {
+  const val = document.getElementById('modal-edit-val-' + sid).value.trim();
+  let update = {};
+  if (field === 'name_list') {
+    update.name_list = val ? val.split('\n').map(s => s.trim()).filter(Boolean) : [];
+  } else {
+    update.introduction = val;
+  }
+  const { error } = await sb.from('batch_students').update(update).eq('id', sid);
+  if (error) return alert('儲存失敗：' + error.message);
+  document.querySelector('.modal-overlay')?.remove();
+  toast('已更新'); await load();
+}
+
+// ════════════════════════════════════════════
+// Tab 3: 教練組織（sponsor_id 歸類）
 // ════════════════════════════════════════════
 function renderOrg() {
   const ac = approvedCoaches();
@@ -307,7 +575,7 @@ function renderOrg() {
           <div class="coach-stu"><div>
             <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
             <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-          </div></div>`).join('')
+          </div><div id="reassign-${s.id}">${reassignBtn(s)}</div></div>`).join('')
         : '<div class="coach-empty">尚無報名學員</div>'}
       </div>
     </div>`;
@@ -328,11 +596,33 @@ function renderOrg() {
           <div class="coach-stu"><div>
             <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
             <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-          </div></div>`).join('')}
+          </div><div id="reassign-${s.id}">${reassignBtn(s)}</div></div>`).join('')}
       </div>
     </div>`;
   }
   document.getElementById('orgArea').innerHTML = h;
+}
+
+function reassignBtn(s) {
+  return `<button class="btn-reassign" onclick="event.stopPropagation();showReassign('${s.id}')">調整上線</button>`;
+}
+
+function showReassign(sid) {
+  const el = document.getElementById('reassign-' + sid);
+  if (!el) return;
+  const ac = approvedCoaches();
+  const s = students.find(x => x.id === sid);
+  const opts = ac.map(c => `<option value="${c.id}"${s && s.sponsor_id === c.id ? ' selected' : ''}>${nm(c)}</option>`).join('');
+  el.innerHTML = `<select class="reassign-sel" id="rsel-${sid}"><option value="">無</option>${opts}</select><button class="btn-reassign" onclick="event.stopPropagation();doReassign('${sid}')">確認</button><button class="btn-reassign" onclick="event.stopPropagation();renderOrg()" style="margin-left:4px;color:var(--muted);border-color:rgba(138,143,168,.3)">取消</button>`;
+}
+
+async function doReassign(sid) {
+  const sel = document.getElementById('rsel-' + sid);
+  const val = sel ? sel.value : null;
+  const sponsor_id = val ? val : null;
+  const { error } = await sb.from('batch_students').update({ sponsor_id }).eq('id', sid);
+  if (error) return alert('調整失敗：' + error.message);
+  toast('上線已調整'); await load();
 }
 
 function filterOrg(t) {
@@ -453,6 +743,205 @@ async function unpair(id,name) {
   toast('已解除配對'); await load();
 }
 
+// ════════════════════════════════════════════
+// Tab 4: 加權設定
+// ════════════════════════════════════════════
+function renderBonus() {
+  const today = new Date().toISOString().slice(0,10);
+  const actionOpts = Object.entries(ACTION_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+
+  let h = `<div class="bonus-form">
+    <div class="sec-title" style="margin-top:0"><span>新增加權規則</span></div>
+    <div class="bonus-row">
+      <div class="bonus-field"><label>項目</label><select id="br_action">${actionOpts}</select></div>
+      <div class="bonus-field"><label>倍率</label><input id="br_multi" type="number" min="1.5" max="10" step="0.5" value="2" style="width:70px"></div>
+      <div class="bonus-field"><label>開始日期</label><input id="br_start" type="date"></div>
+      <div class="bonus-field"><label>結束日期</label><input id="br_end" type="date"></div>
+      <button class="btn-add-bonus" onclick="addBonus()">新增</button>
+    </div>
+  </div>`;
+
+  h += `<div class="sec-title"><span>目前規則</span><span class="sec-count">${bonusRules.length} 筆</span></div>`;
+  if (bonusRules.length) {
+    h += `<table class="bonus-table"><thead><tr><th>項目</th><th>倍率</th><th>期間</th><th>狀態</th><th></th></tr></thead><tbody>`;
+    bonusRules.forEach(r => {
+      let st, cls;
+      if (today > r.end_date) { st = '已結束'; cls = 'bonus-expired'; }
+      else if (today < r.start_date) { st = '未開始'; cls = 'bonus-upcoming'; }
+      else { st = '生效中'; cls = 'bonus-active'; }
+      h += `<tr>
+        <td>${ACTION_LABELS[r.action_field]||r.action_field}</td>
+        <td style="color:var(--gold);font-weight:600">×${r.multiplier}</td>
+        <td>${r.start_date} ~ ${r.end_date}</td>
+        <td><span class="${cls}">${st}</span></td>
+        <td><button class="btn btn-no" onclick="delBonus(${r.id})">刪除</button></td>
+      </tr>`;
+    });
+    h += `</tbody></table>`;
+  } else {
+    h += `<div class="empty"><div class="empty-icon">⚡</div><div class="empty-text">尚無加權規則</div></div>`;
+  }
+  document.getElementById('bonusArea').innerHTML = h;
+}
+
+async function addBonus() {
+  const action = document.getElementById('br_action').value;
+  const multiplier = parseFloat(document.getElementById('br_multi').value);
+  const start_date = document.getElementById('br_start').value;
+  const end_date = document.getElementById('br_end').value;
+  if (!start_date || !end_date) return alert('請選擇起訖日期');
+  if (end_date < start_date) return alert('結束日期不可早於開始日期');
+  if (isNaN(multiplier) || multiplier < 1) return alert('倍率至少為 1');
+  const { error } = await sb.from('bonus_rules').insert({ batch_id: bid, action_field: action, multiplier, start_date, end_date });
+  if (error) return alert('新增失敗：' + error.message);
+  toast('加權規則已新增'); await load();
+}
+
+async function delBonus(id) {
+  if (!confirm('確認刪除此加權規則？')) return;
+  const { error } = await sb.from('bonus_rules').delete().eq('id', id);
+  if (error) return alert('刪除失敗：' + error.message);
+  toast('加權規則已刪除'); await load();
+}
+
+// ════════════════════════════════════════════
+// Tab 6: 帳務管理
+// ════════════════════════════════════════════
+let finSearch = '';
+
+function renderFinance() {
+  let list = students.filter(s => s.status === 'approved');
+  if (finSearch) {
+    const t = finSearch.toLowerCase();
+    list = list.filter(s => (nm(s)+mc(s)+(s.phone||'')+(s.transfer_code||'')).toLowerCase().includes(t));
+  }
+  const confirmed = students.filter(s => s.status === 'approved' && s.payment_confirmed).length;
+  const total = students.filter(s => s.status === 'approved').length;
+
+  let h = `<div class="toolbar">
+    <input class="search-box" placeholder="搜尋姓名、電話、末5碼…" value="${finSearch}" oninput="finSearch=this.value;renderFinance()">
+    <div class="toolbar-acts"><span style="font-size:12px;color:var(--muted)">已入帳 ${confirmed} / ${total}</span></div>
+  </div>`;
+
+  if (!list.length) {
+    h += `<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">無符合條件的學員</div></div>`;
+  } else {
+    h += `<table class="fin-table"><thead><tr><th>姓名</th><th>會員編號</th><th>電話</th><th>上線</th><th>CFC</th><th>末5碼</th><th>入帳</th></tr></thead><tbody>`;
+    list.forEach(s => {
+      const sponsorObj = s.sponsor_id ? coaches.find(c => c.id === s.sponsor_id) : null;
+      const sponsorName = sponsorObj ? nm(sponsorObj) : '—';
+      const sponsorCfc = sponsorObj ? (sponsorObj.cfc || '—') : '—';
+      const confirmed = s.payment_confirmed;
+      h += `<tr>
+        <td>${nm(s)}</td>
+        <td>${s.members_master?.member_code||'—'}</td>
+        <td>${s.phone||'—'}</td>
+        <td>${sponsorName}</td>
+        <td style="font-size:11px">${sponsorCfc}</td>
+        <td style="font-weight:600">${s.transfer_code||'—'}</td>
+        <td>${confirmed
+          ? `<span class="fin-confirmed">✓ ${s.payment_date||''}</span> <button class="btn-unconfirm" onclick="unconfirmPayment('${s.id}')">撤銷</button>`
+          : `<div style="display:flex;align-items:center;gap:6px"><input type="date" id="fin-date-${s.id}" value="${new Date().toISOString().slice(0,10)}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 8px;color:var(--white);font-size:12px;font-family:inherit"><button class="btn-confirm" onclick="confirmPayment('${s.id}')">確認</button></div>`
+        }</td>
+      </tr>`;
+    });
+    h += `</tbody></table>`;
+  }
+  document.getElementById('financeArea').innerHTML = h;
+}
+
+async function confirmPayment(sid) {
+  const dateEl = document.getElementById('fin-date-' + sid);
+  const payment_date = dateEl ? dateEl.value : new Date().toISOString().slice(0,10);
+  if (!payment_date) return alert('請選擇日期');
+  const { error } = await sb.from('batch_students').update({ payment_confirmed: true, payment_date }).eq('id', sid);
+  if (error) return alert('確認失敗：' + error.message);
+  toast('已確認入帳'); await load();
+}
+
+async function unconfirmPayment(sid) {
+  if (!confirm('確認撤銷入帳？')) return;
+  const { error } = await sb.from('batch_students').update({ payment_confirmed: false, payment_date: null }).eq('id', sid);
+  if (error) return alert('撤銷失敗：' + error.message);
+  toast('已撤銷入帳'); await load();
+}
+
+// ════════════════════════════════════════════
+// Tab 7: 權限管理
+// ════════════════════════════════════════════
+const ALL_TABS = [
+  { key:'dashboard', label:'資訊版' },
+  { key:'review', label:'審核區' },
+  { key:'roster', label:'名冊' },
+  { key:'org', label:'教練組織' },
+  { key:'pairing', label:'配對管理' },
+  { key:'bonus', label:'加權設定' },
+  { key:'finance', label:'帳務管理' },
+  { key:'perm', label:'權限管理' }
+];
+
+function renderPerm() {
+  const allMembers = [...coaches.map(c => ({ id: c.members_master?.member_code, mid: c.member_id, name: nm(c), code: mc(c) }))];
+
+  let h = `<div class="sec-title"><span>新增管理員</span></div>
+  <div class="perm-add-row">
+    <div class="edit-field"><label>會員</label><select id="perm-member" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit">
+      <option value="">— 選擇教練 —</option>
+      ${coaches.map(c => `<option value="${c.member_id || ''}">${nm(c)}${mc(c)}</option>`).join('')}
+    </select></div>
+    <button class="btn-add-bonus" onclick="addAdmin()">新增</button>
+  </div>`;
+
+  h += `<div class="sec-title"><span>管理員清單</span><span class="sec-count">${adminUsers.length} 人</span></div>`;
+
+  if (!adminUsers.length) {
+    h += `<div class="empty"><div class="empty-icon">🔐</div><div class="empty-text">尚無管理員</div></div>`;
+  } else {
+    adminUsers.forEach(a => {
+      const tabs = a.allowed_tabs || [];
+      h += `<div class="perm-card">
+        <div>
+          <div class="card-name">${a.members_master?.name||'（未知）'}${a.members_master?.member_code ? '（'+a.members_master.member_code+'）' : ''}</div>
+          <div class="perm-tags">
+            ${ALL_TABS.map(t => `<span class="perm-tag ${tabs.includes(t.key)?'':'off'}" style="cursor:pointer" onclick="toggleTab(${a.id},'${t.key}',${!tabs.includes(t.key)})">${t.label}</span>`).join('')}
+          </div>
+        </div>
+        <button class="btn btn-no" onclick="removeAdmin(${a.id})">移除</button>
+      </div>`;
+    });
+  }
+  document.getElementById('permArea').innerHTML = h;
+}
+
+async function addAdmin() {
+  const memberId = document.getElementById('perm-member').value;
+  if (!memberId) return alert('請選擇教練');
+  const existing = adminUsers.find(a => a.member_id === memberId);
+  if (existing) return alert('此人已是管理員');
+  const allKeys = ALL_TABS.map(t => t.key);
+  const { error } = await sb.from('admin_users').insert({ member_id: memberId, allowed_tabs: allKeys });
+  if (error) return alert('新增失敗：' + error.message);
+  toast('管理員已新增'); await load();
+}
+
+async function toggleTab(adminId, tabKey, enable) {
+  const admin = adminUsers.find(a => a.id === adminId);
+  if (!admin) return;
+  let tabs = [...(admin.allowed_tabs || [])];
+  if (enable && !tabs.includes(tabKey)) tabs.push(tabKey);
+  if (!enable) tabs = tabs.filter(t => t !== tabKey);
+  const { error } = await sb.from('admin_users').update({ allowed_tabs: tabs }).eq('id', adminId);
+  if (error) return alert('更新失敗：' + error.message);
+  toast('權限已更新'); await load();
+}
+
+async function removeAdmin(adminId) {
+  if (!confirm('確認移除此管理員？')) return;
+  const { error } = await sb.from('admin_users').delete().eq('id', adminId);
+  if (error) return alert('移除失敗：' + error.message);
+  toast('管理員已移除'); await load();
+}
+
 function exportCSV() {
   const ac = approvedCoaches();
   const rows = [['姓名','會員編號','電話','組別','狀態','上線(組織)','配對教練','匯款末5碼']];
@@ -461,7 +950,7 @@ function exportCSV() {
     const paired  = s.coach_id ? coaches.find(c=>c.id===s.coach_id) : null;
     rows.push([nm(s), s.members_master?.member_code||'', s.phone||'', s.group_name||'', s.status, sponsor?nm(sponsor):'', paired?nm(paired):'', s.transfer_code||'']);
   });
-  const csv = '\uFEFF' + rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv = '﻿' + rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = '實戰班_名冊.csv'; a.click(); toast('CSV 已下載');
