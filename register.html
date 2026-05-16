@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NP Plus 會員註冊</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root {
+  --primary: #8a2be2;
+  --secondary: #4b0082;
+  --accent: #00d2ff;
+  --text-main: #ffffff;
+  --text-muted: #a0aabf;
+  --glass-bg: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+body {
+  background-color: #0f172a;
+  background-image: radial-gradient(at 0% 0%, rgba(138,43,226,0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(0,210,255,0.2) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 40px 30px;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  animation: floatIn 0.8s cubic-bezier(0.2,0.8,0.2,1) forwards;
+  opacity: 0; transform: translateY(20px); position: relative;
+}
+@keyframes floatIn { to { opacity: 1; transform: translateY(0); } }
+.profile-section { display: none; flex-direction: column; align-items: center; margin-bottom: 30px; }
+.avatar { width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.2); margin-bottom: 12px; object-fit: cover; }
+.greeting { font-size: 1.2rem; font-weight: 600; text-align: center; }
+.greeting span { color: var(--accent); }
+.header-title { text-align: center; margin-bottom: 30px; }
+.header-title h1 { font-size: 1.8rem; margin-bottom: 8px; background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header-title p { color: var(--text-muted); font-size: 0.9rem; }
+.form-group { margin-bottom: 24px; position: relative; }
+.form-group label { display: block; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-weight: 500; }
+.styled-input {
+  width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 16px; color: white; font-size: 1rem;
+  transition: all 0.3s ease; outline: none;
+}
+.styled-input:focus { background: rgba(0,0,0,0.3); border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,210,255,0.1); }
+.styled-input::placeholder { color: rgba(255,255,255,0.2); }
+.submit-btn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border: none; border-radius: 12px; color: white;
+  font-size: 1.05rem; font-weight: 600; cursor: pointer;
+  transition: all 0.3s ease; box-shadow: 0 10px 20px -10px var(--accent);
+  display: flex; justify-content: center; align-items: center; gap: 10px;
+}
+.submit-btn:hover { transform: translateY(-2px); }
+.submit-btn:active { transform: translateY(1px); }
+.submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+.spinner { display: none; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--glass-bg); border-radius: 24px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10;
+}
+.loading-text { margin-top: 15px; color: var(--accent); font-weight: 500; font-size: 0.9rem; }
+
+/* 結果提示框（取代 alert） */
+.result-box {
+  display: none;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+}
+.result-box.error {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  color: #ff8080;
+}
+.result-box.warning {
+  background: rgba(255, 190, 50, 0.15);
+  border: 1px solid rgba(255, 190, 50, 0.4);
+  color: #ffd070;
+}
+</style>
+</head>
+<body>
+<div class="glass-card">
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner" style="display:block;width:40px;height:40px;border-width:4px;"></div>
+    <div class="loading-text">載入您的專屬身份中...</div>
+  </div>
+  <div class="header-title" id="headerTitle">
+    <h1>會員註冊</h1>
+    <p>填寫資料以開通 AI 服務權限</p>
+  </div>
+  <div class="profile-section" id="profileSection">
+    <img src="https://via.placeholder.com/80" alt="Avatar" class="avatar" id="userAvatar">
+    <div class="greeting">您好，<span id="userName">貴賓</span>！</div>
+  </div>
+
+  <!-- 結果提示框（取代 alert） -->
+  <div class="result-box" id="resultBox"></div>
+
+  <form id="registrationForm">
+    <input type="hidden" id="lineId" name="lineId">
+    <input type="hidden" id="displayName" name="displayName">
+    <input type="hidden" id="oaId" name="oaId">
+    <div class="form-group">
+      <label for="memberId">會員編號</label>
+      <input type="text" id="memberId" class="styled-input" placeholder="請輸入您的 7 碼會員編號" required maxlength="7">
+    </div>
+    <div class="form-group">
+      <label for="realName">真實姓名</label>
+      <input type="text" id="realName" class="styled-input" placeholder="請輸入姓名" required>
+      <div style="font-size:0.8rem;color:#ff6b6b;margin-top:8px;">如果與系統紀錄比對失敗，將無法自動通過驗證</div>
+    </div>
+    <div class="form-group">
+      <label for="phone">行動電話</label>
+      <input type="tel" id="phone" class="styled-input" placeholder="0912345678" pattern="[0-9]{10}" required maxlength="10">
+    </div>
+    <div class="form-group">
+      <label for="email">電子信箱（選填）</label>
+      <input type="email" id="email" class="styled-input" placeholder="your@email.com">
+    </div>
+    <button type="submit" id="submitBtn" class="submit-btn" disabled>
+      <span id="btnText">確認開通</span>
+      <div class="spinner" id="btnSpinner"></div>
+    </button>
+  </form>
+</div>
+
+<script>
+const MY_LIFF_ID = "2009692859-9mE2Ymmb";
+const N8N_WEBHOOK_URL = "https://aplustw.zeabur.app/webhook/member-registration";
+
+function getOaFromUrl() {
+  try {
+    return new URLSearchParams(window.location.search).get('oa') || '';
+  } catch(e) { return ''; }
+}
+
+function showResult(message, type) {
+  // type: 'error' | 'warning'
+  const box = document.getElementById('resultBox');
+  box.className = 'result-box ' + type;
+  box.textContent = message;
+  box.style.display = 'block';
+  // 捲動到提示框
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideResult() {
+  document.getElementById('resultBox').style.display = 'none';
+}
+
+function resetBtn() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = false;
+  document.getElementById('btnText').textContent = '確認開通';
+  document.getElementById('btnSpinner').style.display = 'none';
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  initializeLiff(MY_LIFF_ID);
+});
+
+async function initializeLiff(liffId) {
+  try {
+    await liff.init({ liffId: liffId });
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href });
+    } else {
+      const profile = await liff.getProfile();
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('headerTitle').style.display = 'none';
+      const ps = document.getElementById('profileSection');
+      ps.style.display = 'flex';
+      document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/80';
+      document.getElementById('userName').textContent = profile.displayName;
+      document.getElementById('lineId').value = profile.userId;
+      document.getElementById('displayName').value = profile.displayName;
+      document.getElementById('oaId').value = getOaFromUrl();
+      document.getElementById('submitBtn').disabled = false;
+    }
+  } catch(error) {
+    console.error('LIFF init failed', error);
+    document.getElementById('loadingOverlay').innerHTML =
+      '<div class="loading-text" style="color:#ff6b6b;">系統載入失敗，請嘗試從 LINE 內部開啟。</div>';
+  }
+}
+
+document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  hideResult();
+
+  const btn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('btnText');
+  const btnSpinner = document.getElementById('btnSpinner');
+
+  btn.disabled = true;
+  btnText.textContent = '資料送出中...';
+  btnSpinner.style.display = 'block';
+
+  const memberIdVal = document.getElementById('memberId').value.trim();
+  const realName = document.getElementById('realName').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+
+  // 前端驗證
+  if (!/^\d{7}$/.test(memberIdVal)) {
+    showResult('會員編號必須是 7 碼數字，請確認後重試。', 'error');
+    resetBtn(); return;
+  }
+  if (realName.length < 2) {
+    showResult('請輸入正確姓名（至少 2 個字）。', 'error');
+    resetBtn(); return;
+  }
+  if (!/^09\d{8}$/.test(phone)) {
+    showResult('請輸入正確的 10 碼手機號碼（09 開頭）。', 'error');
+    resetBtn(); return;
+  }
+
+  const payload = {
+    line_id:    document.getElementById('lineId').value,
+    line_name:  document.getElementById('displayName').value,
+    oa_id:      document.getElementById('oaId').value,
+    member_id:  memberIdVal,
+    name:       realName,
+    phone:      phone,
+    email:      document.getElementById('email').value.trim()
+  };
+
+  try {
+    const response = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+
+      if (result.success === false) {
+        // n8n 明確回傳失敗（已是正式會員 / 審核中）
+        showResult(result.message || '操作失敗，請聯絡您的專員。', 'warning');
+        resetBtn();
+      } else {
+        // 真正成功 → 顯示成功訊息後關閉
+        btnText.textContent = '送出成功！即將關閉...';
+        btnSpinner.style.display = 'none';
+        btn.style.background = 'linear-gradient(135deg, #00b09b, #96c93d)';
+        setTimeout(() => { liff.closeWindow(); }, 2000);
+      }
+    } else {
+      throw new Error('伺服器回應錯誤 ' + response.status);
+    }
+  } catch(error) {
+    console.error('Submit error:', error);
+    showResult('送出失敗：' + error.message + '\n請稍後再試。', 'error');
+    resetBtn();
+  }
+});
+</script>
+</body>
+</html>
