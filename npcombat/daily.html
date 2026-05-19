@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>每日回報｜實戰班</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#f7f5f0; --card:#ffffff; --gold:#b8960c; --gold-lt:#f5ecd5;
+    --text:#2d2a24; --muted:#8c8577; --border:#e8e2d6;
+    --green:#4a9e6f; --green-bg:#eaf5ef;
+    --red:#c45c5c; --red-bg:#faeaea;
+    --shadow:0 2px 12px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 100px}
+
+  /* ── Header ── */
+  .hd{background:var(--card);padding:20px 20px 16px;border-bottom:1px solid var(--border);text-align:center}
+  .hd-name{font-size:20px;font-weight:700;color:var(--gold)}
+  .hd-date{font-size:14px;color:var(--muted);margin-top:4px}
+  .hd-day{display:inline-block;background:var(--gold-lt);color:var(--gold);font-size:13px;font-weight:600;padding:4px 14px;border-radius:20px;margin-top:8px}
+
+  /* ── Section ── */
+  .sec{padding:0 16px;max-width:500px;margin:0 auto}
+  .sec-hd{font-size:13px;font-weight:600;color:var(--muted);margin:20px 0 10px;padding-left:4px;letter-spacing:1px}
+
+  /* ── Grid ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  /* ── Action Card ── */
+  .act{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);transition:border-color .2s}
+  .act.has-value{border-color:var(--gold)}
+  .act-emoji{font-size:32px;line-height:1}
+  .act-label{font-size:15px;font-weight:600;color:var(--text);margin-top:6px}
+  .act-ctrl{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px}
+  .act-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:24px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
+  .act-btn:active{background:var(--gold-lt);border-color:var(--gold)}
+  .act-num{font-size:36px;font-weight:700;color:var(--gold);min-width:48px;text-align:center}
+  .act-num.zero{color:var(--muted)}
+
+  /* ── Negative cards ── */
+  .act.neg{background:#fffbf7}
+  .act.neg .act-num{color:var(--red)}
+  .act.neg .act-num.zero{color:var(--muted)}
+  .act.neg.has-value{border-color:var(--red)}
+  .act.neg .act-btn{color:var(--red)}
+  .act.neg .act-btn:active{background:var(--red-bg);border-color:var(--red)}
+
+  /* ── Close Section ── */
+  .close-sec{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);transition:border-color .2s}
+  .close-sec.has-value{border-color:var(--green)}
+  .close-sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .close-sec-emoji{font-size:28px}
+  .close-sec-title{font-size:17px;font-weight:700;color:var(--text)}
+  .close-sec-count{font-size:13px;color:var(--muted);margin-left:auto}
+
+  .close-entry{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;position:relative}
+  .close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
+  .close-entry-row{display:flex;gap:8px;flex-wrap:wrap}
+  .close-pill{padding:10px 14px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0}
+  .close-pill.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
+  .close-pill-sub{font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
+  .close-pill.sel .close-pill-sub{color:var(--gold)}
+
+  .close-half-row{display:flex;gap:8px;margin-top:8px}
+  .close-half{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .close-half.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
+
+  .close-badge-row{display:flex;gap:8px;margin-top:8px}
+  .close-badge{flex:1;padding:8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent;color:var(--muted)}
+  .close-badge.sel{border-color:#d4a017;background:#fef9e7;color:#b8960c;font-weight:700}
+
+  .close-pts{text-align:right;margin-top:8px;font-size:14px;font-weight:700;color:var(--green)}
+  .close-pts.sub-only{color:var(--muted);font-weight:500}
+
+  .btn-del-entry{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;-webkit-tap-highlight-color:transparent}
+  .btn-del-entry:active{color:var(--red)}
+
+  .btn-add-close{width:100%;padding:14px;border:2px dashed var(--border);border-radius:12px;background:transparent;font-size:15px;font-weight:600;color:var(--gold);cursor:pointer;font-family:inherit;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .btn-add-close:active{background:var(--gold-lt);border-color:var(--gold)}
+
+  /* ── Subscription toggle ── */
+  .sub-toggle{margin-top:10px;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:var(--bg);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .sub-check{width:24px;height:24px;border-radius:6px;border:2px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:14px;transition:.15s;flex-shrink:0}
+  .sub-check.on{background:var(--gold);border-color:var(--gold);color:#fff}
+  .sub-label{font-size:14px;color:var(--text)}
+  .sub-note{font-size:12px;color:var(--muted)}
+
+  /* ── Submit ── */
+  .submit-wrap{padding:20px 16px;max-width:500px;margin:0 auto}
+  .btn-submit{width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(184,150,12,.3);transition:.2s;-webkit-tap-highlight-color:transparent}
+  .btn-submit:active{transform:scale(.97)}
+  .btn-submit:disabled{background:var(--muted);box-shadow:none;cursor:not-allowed}
+
+  /* ── Result Card ── */
+  .result{display:none;padding:16px;max-width:500px;margin:0 auto}
+  .result.show{display:block}
+  .result-card{background:var(--card);border-radius:16px;padding:24px 20px;box-shadow:var(--shadow);text-align:center}
+  .result-emoji{font-size:48px}
+  .result-msg{font-size:18px;font-weight:600;color:var(--text);margin-top:12px;line-height:1.6}
+  .result-sub{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.6}
+
+  .result-summary{margin-top:20px;text-align:left}
+  .result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .result-row:last-child{border:none}
+  .result-row-label{font-size:15px;color:var(--text)}
+  .result-row-val{font-size:16px;font-weight:700;color:var(--gold)}
+  .result-row-val.neg-val{color:var(--red)}
+  .result-row-val.zero-val{color:var(--muted)}
+
+  .result-close-detail{font-size:13px;color:var(--muted);padding:4px 0 8px 24px}
+
+  .result-pts{margin-top:16px;padding:16px;background:var(--gold-lt);border-radius:12px;text-align:center}
+  .result-pts-label{font-size:13px;color:var(--muted)}
+  .result-pts-num{font-size:32px;font-weight:700;color:var(--gold);margin-top:4px}
+
+  .btn-edit{width:100%;padding:14px;background:transparent;color:var(--gold);border:2px solid var(--gold);border-radius:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:16px;-webkit-tap-highlight-color:transparent}
+
+  /* ── Accumulation ── */
+  .accum{margin-top:20px;padding:20px 16px;background:var(--bg);border-radius:12px}
+  .accum-title{font-size:14px;font-weight:700;color:var(--gold);text-align:center;margin-bottom:14px}
+  .accum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .accum-item{background:var(--card);border-radius:10px;padding:10px 12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .accum-item-val{font-size:22px;font-weight:700;color:var(--gold)}
+  .accum-item-label{font-size:12px;color:var(--muted);margin-top:2px}
+  .accum-total{grid-column:1/-1;background:var(--gold-lt);border-radius:10px;padding:14px;text-align:center;margin-top:4px}
+  .accum-total-label{font-size:12px;color:var(--muted)}
+  .accum-total-val{font-size:28px;font-weight:700;color:var(--gold);margin-top:2px}
+  .accum-days{text-align:center;margin-top:10px;font-size:13px;color:var(--muted)}
+  .accum-streak{color:var(--green);font-weight:600}
+
+  /* ── Footer ── */
+  .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
+
+  /* ── Toast ── */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(min-width:500px){
+    .grid{gap:16px}
+    .act{padding:20px 16px}
+    .act-emoji{font-size:36px}
+    .act-btn{width:56px;height:56px;font-size:28px}
+    .act-num{font-size:40px}
+  }
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-name" id="userName">載入中…</div>
+  <div class="hd-date" id="dateText"></div>
+  <div class="hd-day" id="dayCount"></div>
+</div>
+
+<div id="formArea">
+
+  <!-- ── 規劃區 ── -->
+  <div class="sec">
+    <div class="sec-hd">📋 規劃</div>
+    <div class="grid">
+      <div class="act" data-key="meet">
+        <div class="act-emoji">🤝</div>
+        <div class="act-label">認識新友</div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('meet',-1)">−</button>
+          <div class="act-num zero" id="n-meet">0</div>
+          <button class="act-btn" onclick="adj('meet',1)">＋</button>
+        </div>
+      </div>
+      <div class="act" data-key="invite">
+        <div class="act-emoji">📞</div>
+        <div class="act-label">邀約見面</div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('invite',-1)">−</button>
+          <div class="act-num zero" id="n-invite">0</div>
+          <button class="act-btn" onclick="adj('invite',1)">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 行動區 ── -->
+  <div class="sec">
+    <div class="sec-hd">🎯 行動</div>
+    <div class="grid">
+      <div class="act" data-key="present">
+        <div class="act-emoji">🗣️</div>
+        <div class="act-label">溝通本說明</div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('present',-1)">−</button>
+          <div class="act-num zero" id="n-present">0</div>
+          <button class="act-btn" onclick="adj('present',1)">＋</button>
+        </div>
+      </div>
+      <div class="act" data-key="seminar">
+        <div class="act-emoji">🏛️</div>
+        <div class="act-label">邀請說明會</div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('seminar',-1)">−</button>
+          <div class="act-num zero" id="n-seminar">0</div>
+          <button class="act-btn" onclick="adj('seminar',1)">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 挫折區 ── -->
+  <div class="sec">
+    <div class="sec-hd">🛡️ 挫折也是養分</div>
+    <div class="grid">
+      <div class="act neg" data-key="ghosted">
+        <div class="act-emoji">🕊️</div>
+        <div class="act-label">被放鴿子</div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('ghosted',-1)">−</button>
+          <div class="act-num zero" id="n-ghosted">0</div>
+          <button class="act-btn" onclick="adj('ghosted',1)">＋</button>
+        </div>
+      </div>
+      <div class="act neg" data-key="rejected">
+        <div class="act-emoji">💪</div>
+        <div class="act-label">締結未果</div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('rejected',-1)">−</button>
+          <div class="act-num zero" id="n-rejected">0</div>
+          <button class="act-btn" onclick="adj('rejected',1)">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 締結區 ── -->
+  <div class="sec">
+    <div class="sec-hd">✅ 締結成功</div>
+    <div class="close-sec" id="closeSec">
+      <div class="close-sec-hd">
+        <div class="close-sec-emoji">🎉</div>
+        <div class="close-sec-title">今日締結</div>
+        <div class="close-sec-count" id="closeCount">0 筆</div>
+      </div>
+      <div id="closeEntries"></div>
+      <button class="btn-add-close" onclick="addCloseEntry()">＋ 新增一筆締結</button>
+
+      <div class="sub-toggle" onclick="toggleSub()">
+        <div class="sub-check" id="subCheck"></div>
+        <div>
+          <div class="sub-label">📦 今日有訂閱客戶</div>
+          <div class="sub-note">月月購，不算獎勵積分但值得記錄</div>
+        </div>
+      </div>
+      <div id="subCountWrap" style="display:none;margin-top:8px;padding:0 12px">
+        <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+          <button class="act-btn" onclick="adjSub(-1)" style="width:40px;height:40px;font-size:20px">−</button>
+          <div class="act-num zero" id="n-sub" style="font-size:28px">0</div>
+          <button class="act-btn" onclick="adjSub(1)" style="width:40px;height:40px;font-size:20px">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-wrap">
+    <button class="btn-submit" id="btnSubmit" onclick="submit()">送出今日回報</button>
+  </div>
+</div>
+
+<div class="result" id="resultArea">
+  <div class="result-card">
+    <div class="result-emoji" id="resEmoji"></div>
+    <div class="result-msg" id="resMsg"></div>
+    <div class="result-sub" id="resSub"></div>
+
+    <div class="result-summary" id="resSummary"></div>
+
+    <div class="result-pts">
+      <div class="result-pts-label">今日獲得積分</div>
+      <div class="result-pts-num" id="resTotalPts">0</div>
+    </div>
+
+    <div class="accum" id="accumArea"></div>
+
+    <button class="btn-edit" onclick="backToEdit()">修改回報</button>
+  </div>
+</div>
+
+<div class="ft">實戰班委員會</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEMO_MODE = false;
+const LIFF_ID = '2010082073-87iRs2A9';
+const BATCH_ID = 1;
+
+const sb = window.supabase.createClient(
+  'https://nsgqsopqlkhayuefdout.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y',
+  { db: { schema: 'npcombat' } }
+);
+
+let memberId = null; // members_master.id
+
+// ── Counter fields ──
+const COUNT_FIELDS = [
+  { key:'meet',     emoji:'🤝', label:'認識新友',     pts:1 },
+  { key:'invite',   emoji:'📞', label:'邀約見面',     pts:2 },
+  { key:'present',  emoji:'🗣️', label:'溝通本說明',   pts:5 },
+  { key:'seminar',  emoji:'🏛️', label:'邀請說明會',   pts:5 },
+  { key:'ghosted',  emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
+  { key:'rejected', emoji:'💪', label:'締結未果',     pts:1, neg:true },
+];
+
+// ── Close plans ──
+const PLANS = [
+  { key:'20k', label:'2萬PV', full:260, half:130 },
+  { key:'15k', label:'1.5萬PV', full:200, half:100 },
+  { key:'10k', label:'1萬PV', full:120, half:60 },
+];
+const BADGES = [
+  { key:'small_gold', label:'🏅 小金（3單位）' },
+  { key:'big_gold',   label:'🏆 大金（7單位）' },
+];
+
+let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
+let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
+let subOn = false, subCount = 0;
+let bid = 1, studentId = null, existingId = null;
+let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
+
+// ── Helpers ──
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function today() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function formatDate(d) {
+  const [y,m,dd] = d.split('-');
+  return `${y} 年 ${+m} 月 ${+dd} 日`;
+}
+
+// ── +/- control ──
+function adj(key, delta) {
+  vals[key] = Math.max(0, vals[key] + delta);
+  const el = document.getElementById('n-' + key);
+  el.textContent = vals[key];
+  el.classList.toggle('zero', vals[key] === 0);
+  const card = el.closest('.act');
+  card.classList.toggle('has-value', vals[key] > 0);
+}
+
+// ── Subscription ──
+function toggleSub() {
+  subOn = !subOn;
+  document.getElementById('subCheck').classList.toggle('on', subOn);
+  document.getElementById('subCheck').textContent = subOn ? '✓' : '';
+  document.getElementById('subCountWrap').style.display = subOn ? '' : 'none';
+  if (!subOn) { subCount = 0; document.getElementById('n-sub').textContent = '0'; document.getElementById('n-sub').classList.add('zero'); }
+}
+function adjSub(delta) {
+  subCount = Math.max(0, subCount + delta);
+  const el = document.getElementById('n-sub');
+  el.textContent = subCount;
+  el.classList.toggle('zero', subCount === 0);
+}
+
+// ── Close entries ──
+function addCloseEntry() {
+  closeEntries.push({ plan:null, size:null, badge:null });
+  renderCloseEntries();
+}
+
+function delCloseEntry(i) {
+  closeEntries.splice(i, 1);
+  renderCloseEntries();
+}
+
+function setPlan(i, plan) {
+  closeEntries[i].plan = plan;
+  renderCloseEntries();
+}
+
+function setSize(i, size) {
+  closeEntries[i].size = size;
+  renderCloseEntries();
+}
+
+function toggleBadge(i, badge) {
+  const e = closeEntries[i];
+  e.badge = e.badge === badge ? null : badge;
+  renderCloseEntries();
+}
+
+function getEntryPts(e) {
+  if (!e.plan || !e.size) return 0;
+  const p = PLANS.find(p => p.key === e.plan);
+  return e.size === 'full' ? p.full : p.half;
+}
+
+function renderCloseEntries() {
+  const wrap = document.getElementById('closeEntries');
+  let h = '';
+  closeEntries.forEach((e, i) => {
+    const pts = getEntryPts(e);
+    h += `<div class="close-entry">
+      <button class="btn-del-entry" onclick="delCloseEntry(${i})">✕</button>
+      <div class="close-entry-num">第 ${i+1} 筆</div>
+      <div class="close-entry-row">
+        ${PLANS.map(p => `<div class="close-pill ${e.plan===p.key?'sel':''}" onclick="setPlan(${i},'${p.key}')">
+          ${p.label}
+        </div>`).join('')}
+      </div>
+      ${e.plan ? `<div class="close-half-row">
+        <div class="close-half ${e.size==='full'?'sel':''}" onclick="setSize(${i},'full')">一套</div>
+        <div class="close-half ${e.size==='half'?'sel':''}" onclick="setSize(${i},'half')">半套</div>
+      </div>` : ''}
+      ${e.plan && e.size ? `<div class="close-badge-row">
+        ${BADGES.map(b => `<div class="close-badge ${e.badge===b.key?'sel':''}" onclick="toggleBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
+      </div>` : ''}
+      ${pts > 0 ? `<div class="close-pts">＋${pts} 分${e.badge ? ' 🎖️' : ''}</div>` : ''}
+    </div>`;
+  });
+  wrap.innerHTML = h;
+
+  const total = closeEntries.length;
+  document.getElementById('closeCount').textContent = total + ' 筆';
+  document.getElementById('closeSec').classList.toggle('has-value', total > 0);
+}
+
+// ── Init ──
+async function init() {
+  const d = today();
+  document.getElementById('dateText').textContent = formatDate(d);
+
+  if (DEMO_MODE) {
+    document.getElementById('userName').textContent = '測試學員';
+    document.getElementById('dayCount').textContent = '第 8 天';
+    accumData = { meet:23, invite:15, present:8, seminar:3, ghosted:5, rejected:4, close_count:3, close_pts:590, sub_count:2, total_pts:712, report_days:7, streak:5 };
+    return;
+  }
+
+  try {
+    // LIFF 登入
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+
+    // 查會員
+    const { data: member } = await sb.from('members_master').select('id, name')
+      .eq('line_user_id', profile.userId).single();
+    if (!member) { document.getElementById('userName').textContent = '非會員'; toast('查無會員資料'); return; }
+    memberId = member.id;
+
+    // 查本期學員身份
+    const { data: stu } = await sb.from('batch_students').select('id, status')
+      .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
+    if (!stu || stu.status !== 'approved') { document.getElementById('userName').textContent = member.name; toast('非本期已批准學員'); return; }
+    studentId = stu.id;
+    document.getElementById('userName').textContent = member.name;
+
+    // 檢查今天是否已填
+    const { data: existing } = await sb.from('action_logs').select('id')
+      .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('log_date', d).single();
+    if (existing) {
+      existingId = existing.id;
+      toast('今天已回報過，可修改重送');
+    }
+
+    // 載入累積資料
+    const { data: logs } = await sb.from('action_logs').select('meet, invite, present, seminar, ghosted, rejected, log_date, confirmed')
+      .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('confirmed', true);
+    const { data: closes } = await sb.from('closing_records').select('points')
+      .eq('member_id', memberId);
+
+    // 查活動起迄算天數
+    const { data: batch } = await sb.from('batches').select('start_date, challenge_start').eq('id', BATCH_ID).single();
+    const startDate = batch?.challenge_start || batch?.start_date || d;
+
+    const allLogs = logs || [];
+    const allCloses = closes || [];
+    const closePts = allCloses.reduce((s, c) => s + c.points, 0);
+
+    // 連續天數計算
+    const logDates = allLogs.map(l => l.log_date).sort().reverse();
+    let streak = 0;
+    const todayDate = new Date(d);
+    for (let i = 0; i < logDates.length; i++) {
+      const expected = new Date(todayDate);
+      expected.setDate(expected.getDate() - i - 1);
+      if (logDates[i] === expected.toISOString().slice(0, 10)) { streak++; } else break;
+    }
+
+    const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
+
+    accumData = {
+      meet: allLogs.reduce((s, l) => s + l.meet, 0),
+      invite: allLogs.reduce((s, l) => s + l.invite, 0),
+      present: allLogs.reduce((s, l) => s + l.present, 0),
+      seminar: allLogs.reduce((s, l) => s + l.seminar, 0),
+      ghosted: allLogs.reduce((s, l) => s + l.ghosted, 0),
+      rejected: allLogs.reduce((s, l) => s + l.rejected, 0),
+      close_count: allCloses.length,
+      close_pts: closePts,
+      sub_count: 0,
+      total_pts: totalActionPts + closePts,
+      report_days: allLogs.length,
+      streak: streak
+    };
+
+    const dayNum = allLogs.length + 1;
+    document.getElementById('dayCount').textContent = `第 ${dayNum} 天`;
+
+  } catch (e) {
+    document.getElementById('userName').textContent = '載入失敗';
+    toast('錯誤：' + e.message);
+  }
+}
+
+// ── Submit ──
+async function submit() {
+  const counterTotal = COUNT_FIELDS.reduce((s,f) => s + vals[f.key], 0);
+  const hasClose = closeEntries.some(e => e.plan && e.size);
+  if (counterTotal === 0 && !hasClose && subCount === 0) { toast('至少填一格再送出'); return; }
+
+  // validate close entries
+  for (let i = 0; i < closeEntries.length; i++) {
+    const e = closeEntries[i];
+    if (!e.plan || !e.size) { toast(`第 ${i+1} 筆締結尚未選完方案`); return; }
+  }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.textContent = '送出中…';
+
+  if (!DEMO_MODE) {
+    try {
+      // 寫 action_logs（upsert，今天重複送就覆蓋）
+      const logRow = {
+        batch_id: BATCH_ID, student_id: studentId, log_date: today(),
+        meet: vals.meet, invite: vals.invite, present: vals.present,
+        seminar: vals.seminar, ghosted: vals.ghosted, rejected: vals.rejected
+      };
+      if (existingId) {
+        await sb.from('action_logs').update(logRow).eq('id', existingId);
+      } else {
+        const { data } = await sb.from('action_logs').insert(logRow).select('id').single();
+        if (data) existingId = data.id;
+      }
+
+      // 寫 closing_records（先刪今天的舊紀錄再重建，避免重複送時疊加）
+      await sb.from('closing_records').delete()
+        .eq('member_id', memberId).eq('close_date', today()).eq('source', 'daily');
+      if (closeEntries.length > 0) {
+        const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => ({
+          member_id: memberId, close_date: today(),
+          points: getEntryPts(e), source: 'daily'
+        }));
+        if (closeRows.length) await sb.from('closing_records').insert(closeRows);
+      }
+    } catch (e) {
+      btn.disabled = false; btn.textContent = '送出今日回報';
+      toast('儲存失敗：' + e.message); return;
+    }
+  }
+
+  showResult();
+}
+
+function showResult() {
+  document.getElementById('formArea').style.display = 'none';
+  const r = document.getElementById('resultArea');
+  r.classList.add('show');
+
+  let totalPts = 0;
+  let html = '';
+
+  // counter fields
+  COUNT_FIELDS.forEach(f => {
+    const v = vals[f.key];
+    const pts = v * f.pts;
+    totalPts += pts;
+    const cls = v === 0 ? 'zero-val' : (f.neg ? 'neg-val' : '');
+    html += `<div class="result-row">
+      <span class="result-row-label">${f.emoji} ${f.label}</span>
+      <span class="result-row-val ${cls}">${v} 次 → ${pts} 分</span>
+    </div>`;
+  });
+
+  // close entries
+  if (closeEntries.length > 0) {
+    let closePts = 0;
+    let details = [];
+    closeEntries.forEach(e => {
+      const p = PLANS.find(p => p.key === e.plan);
+      const pts = getEntryPts(e);
+      closePts += pts;
+      const sizeLabel = e.size === 'full' ? '一套' : '半套';
+      const badgeLabel = e.badge ? (e.badge === 'small_gold' ? ' 🏅小金' : ' 🏆大金') : '';
+      details.push(`${p.label} ${sizeLabel}${badgeLabel} → ${pts}分`);
+    });
+    totalPts += closePts;
+    html += `<div class="result-row">
+      <span class="result-row-label">✅ 締結成功</span>
+      <span class="result-row-val">${closeEntries.length} 筆 → ${closePts} 分</span>
+    </div>`;
+    html += `<div class="result-close-detail">${details.join('<br>')}</div>`;
+  }
+
+  // subscription
+  if (subCount > 0) {
+    html += `<div class="result-row">
+      <span class="result-row-label">📦 訂閱客戶</span>
+      <span class="result-row-val" style="color:var(--muted)">${subCount} 人（不計分，但超棒！）</span>
+    </div>`;
+  }
+
+  document.getElementById('resSummary').innerHTML = html;
+  document.getElementById('resTotalPts').textContent = totalPts;
+
+  // encouragement
+  const enc = getEncouragement(totalPts);
+  document.getElementById('resEmoji').textContent = enc.emoji;
+  document.getElementById('resMsg').textContent = enc.msg;
+  document.getElementById('resSub').textContent = enc.sub;
+
+  // accumulation
+  renderAccum(totalPts);
+}
+
+function renderAccum(todayPts) {
+  if (!accumData) { document.getElementById('accumArea').innerHTML = ''; return; }
+  const a = accumData;
+  // add today's data to accumulation for display
+  const newTotal = a.total_pts + todayPts;
+  const newDays = a.report_days + 1;
+  const newStreak = a.streak + 1;
+  const newMeet = a.meet + vals.meet;
+  const newInvite = a.invite + vals.invite;
+  const newPresent = a.present + vals.present;
+  const newSeminar = a.seminar + vals.seminar;
+  const newClose = a.close_count + closeEntries.length;
+  const newGhosted = a.ghosted + vals.ghosted;
+  const newRejected = a.rejected + vals.rejected;
+
+  document.getElementById('accumArea').innerHTML = `
+    <div class="accum-title">📊 開班累積紀錄</div>
+    <div class="accum-grid">
+      <div class="accum-item"><div class="accum-item-val">${newMeet}</div><div class="accum-item-label">🤝 認識新友</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newInvite}</div><div class="accum-item-label">📞 邀約見面</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newPresent}</div><div class="accum-item-label">🗣️ 溝通本說明</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newSeminar}</div><div class="accum-item-label">🏛️ 邀請說明會</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newClose}</div><div class="accum-item-label">✅ 締結成功</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newGhosted + newRejected}</div><div class="accum-item-label">🛡️ 勇氣印記</div></div>
+      <div class="accum-total">
+        <div class="accum-total-label">累積總積分</div>
+        <div class="accum-total-val">${newTotal}</div>
+      </div>
+    </div>
+    <div class="accum-days">已回報 ${newDays} 天 ｜ 連續 <span class="accum-streak">${newStreak} 天</span></div>
+  `;
+}
+
+function getEncouragement(pts) {
+  if (closeEntries.length > 0) return { emoji:'🎉', msg:'恭喜締結成功！', sub:'今天的努力化成了實質成果，太棒了！' };
+  if (pts >= 20) return { emoji:'🔥', msg:'今天火力全開！', sub:'這樣的行動量，成果只是時間問題。' };
+  if (pts >= 10) return { emoji:'💪', msg:'很有節奏感！', sub:'持續這樣的步調，累積會帶來驚喜。' };
+  if (pts >= 5) return { emoji:'👍', msg:'穩定輸出！', sub:'每天進步一點點，就是最強的複利。' };
+  if (vals.ghosted > 0 || vals.rejected > 0) return { emoji:'🛡️', msg:'勇者無懼！', sub:'被拒絕是成功的養分，你今天又更強了。' };
+  return { emoji:'🌱', msg:'種子已種下！', sub:'有開始就有機會，明天繼續加油！' };
+}
+
+function backToEdit() {
+  document.getElementById('formArea').style.display = '';
+  document.getElementById('resultArea').classList.remove('show');
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = false; btn.textContent = '送出今日回報';
+}
+
+init();
+</script>
+</body>
+</html>

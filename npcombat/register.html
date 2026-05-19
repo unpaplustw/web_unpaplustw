@@ -660,7 +660,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 let lineUserId  = null;
-let lineProfile = null;   // ★ 新增：保留完整 profile 供 submit handler 使用
+let lineProfile = null;
 
 document.getElementById('f-intro').addEventListener('input', function() {
   document.getElementById('intro-count').textContent = `已輸入 ${this.value.length} 字`;
@@ -687,7 +687,6 @@ function showRole(role) {
   document.getElementById('section-coach').style.display   = role === 'coach'   ? 'block' : 'none';
 }
 
-// 只撈已審核通過的教練
 async function loadCoaches() {
   try {
     const { data, error } = await sb
@@ -747,7 +746,6 @@ async function handleStudentSubmit() {
   document.getElementById('btn-loading').style.display = 'block';
 
   try {
-    // ★ upsert 帶入 picture_url
     const { data: member, error: memberErr } = await sb
       .from('members_master')
       .upsert({
@@ -813,7 +811,6 @@ async function handleCoachSubmit() {
   document.getElementById('btn-coach-loading').style.display = 'block';
 
   try {
-    // ★ upsert 帶入 picture_url
     const { data: member, error: memberErr } = await sb
       .from('members_master')
       .upsert({
@@ -846,7 +843,6 @@ async function init() {
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
 
-    // ★ 存到 module-level lineProfile
     lineProfile = await liff.getProfile();
     lineUserId  = lineProfile.userId;
 
@@ -855,7 +851,6 @@ async function init() {
       .eq('line_user_id', lineUserId).single();
 
     if (member) {
-      // 先查學員
       const { data: student } = await sb.from('batch_students').select('status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
 
@@ -865,7 +860,6 @@ async function init() {
         showScreen('screen-exists'); return;
       }
 
-      // 再查教練
       const { data: coach } = await sb.from('batch_coaches').select('id, status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
       if (coach) {

@@ -167,7 +167,7 @@ body::before{
 /* Footer */
 .footer{text-align:center;padding:40px 0 24px;color:var(--txt2);font-size:11px}
 
-/* Blackout 蓋牌 */
+/* Blackout */
 .blackout{
   text-align:center;padding:80px 20px;
   animation:fadeIn .6s ease;
@@ -226,32 +226,34 @@ body::before{
 </div>
 
 <script>
-const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'npcombat' } });
+const sb = supabase.createClient(
+  'https://nsgqsopqlkhayuefdout.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y',
+  { db: { schema: 'npcombat' } }
+);
 
+// ── 獎項定義（對齊新 DB 欄位）──
 const AWARDS = [
-  { key:'total',     emoji:'🏅', name:'本週得分王',  desc:'全部行動加權加總',   unit:'分', fun:false },
-  { key:'締結',      emoji:'🔫', name:'叫我締結王',  desc:'本週公司積分最高',   unit:'分', fun:false },
-  { key:'social',    emoji:'🦋', name:'社交蝴蝶',    desc:'本週拓展社交次數',   unit:'次', fun:false },
-  { key:'recommend', emoji:'💬', name:'談笑風聲',    desc:'本週溝通次數',       unit:'次', fun:false },
-  { key:'invite',    emoji:'🎯', name:'邀約達人',    desc:'本週邀約說明會次數', unit:'次', fun:false },
-  { key:'list',      emoji:'📋', name:'滿門抄斬',    desc:'本週列名單筆數',     unit:'筆', fun:false },
-  { key:'schedule',  emoji:'📅', name:'燃燒生命',    desc:'本週安排行程次數',   unit:'次', fun:false },
-  { key:'ghosted',   emoji:'🕊️', name:'和平鴿王',   desc:'被放鳥最多，但不放棄', unit:'次', fun:true },
-  { key:'rejected',  emoji:'🍋', name:'檸檬勇士',   desc:'被拒絕最多，越挫越勇', unit:'次', fun:true },
+  { key:'total',     emoji:'🏅', name:'得分王',    desc:'行動分＋締結分加總',       unit:'分', fun:false },
+  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'締結積分最高',             unit:'分', fun:false },
+  { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
+  { key:'present',   emoji:'💬', name:'談笑風聲',  desc:'溝通本說明次數最多',       unit:'次', fun:false },
+  { key:'seminar',   emoji:'🎯', name:'邀約達人',  desc:'邀請說明會次數最多',       unit:'次', fun:false },
+  { key:'name_list', emoji:'📋', name:'滿門抄斬',  desc:'羅列名單筆數最多',         unit:'筆', fun:false },
+  { key:'schedule',  emoji:'📅', name:'燃燒生命',  desc:'安排行程次數最多',         unit:'次', fun:false },
+  { key:'ghosted',   emoji:'🕊️', name:'和平鴿王', desc:'被放鴿子最多，但不放棄',   unit:'次', fun:true },
+  { key:'rejected',  emoji:'🍋', name:'檸檬勇士', desc:'締結未果最多，越挫越勇',   unit:'次', fun:true },
 ];
 
 let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
+let batchStudents = []; // 預載學員清單（含 member_id 對應）
 
-// ========== 蓋牌時間設定 ==========
-// 週六 23:59 蓋牌 → 週日 22:00 解封
+// ── 蓋牌：週六 23:59 → 週日 22:00 ──
 function isBlackout() {
   const now = new Date();
-  const day = now.getDay(); // 0=週日, 6=週六
-  const h = now.getHours(), m = now.getMinutes();
+  const day = now.getDay(), h = now.getHours(), m = now.getMinutes();
   if (day === 6 && h === 23 && m >= 59) return true;
   if (day === 0 && h < 22) return true;
   return false;
@@ -260,7 +262,7 @@ function isBlackout() {
 function getNextRevealTime() {
   const now = new Date();
   const reveal = new Date(now);
-  if (now.getDay() === 6) { reveal.setDate(reveal.getDate() + 1); }
+  if (now.getDay() === 6) reveal.setDate(reveal.getDate() + 1);
   reveal.setHours(22, 0, 0, 0);
   return reveal;
 }
@@ -268,27 +270,18 @@ function getNextRevealTime() {
 function showBlackout() {
   document.getElementById('weekSelector').style.display = 'none';
   const reveal = getNextRevealTime();
-
-  function updateCountdown() {
-    const now = new Date();
-    const diff = reveal - now;
+  function tick() {
+    const diff = reveal - new Date();
     if (diff <= 0) { location.reload(); return; }
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    document.getElementById('cd-h').textContent = String(hrs).padStart(2, '0');
-    document.getElementById('cd-m').textContent = String(mins).padStart(2, '0');
-    document.getElementById('cd-s').textContent = String(secs).padStart(2, '0');
+    document.getElementById('cd-h').textContent = String(Math.floor(diff / 3600000)).padStart(2, '0');
+    document.getElementById('cd-m').textContent = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    document.getElementById('cd-s').textContent = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
   }
-
   document.getElementById('content').innerHTML = `
     <div class="blackout">
       <div class="blackout-icon">🃏</div>
       <div class="blackout-title">排行榜已封鎖</div>
-      <div class="blackout-sub">
-        本週戰績統計完畢，結果已蓋牌！<br>
-        今晚實戰班之夜將揭曉所有獎項 🏆
-      </div>
+      <div class="blackout-sub">本週戰績統計完畢，結果已蓋牌！<br>今晚實戰班之夜將揭曉所有獎項 🏆</div>
       <div class="blackout-countdown">
         <div class="countdown-unit"><span class="countdown-num" id="cd-h">--</span><span class="countdown-label">時</span></div>
         <div class="countdown-unit"><span class="countdown-num" id="cd-m">--</span><span class="countdown-label">分</span></div>
@@ -296,28 +289,42 @@ function showBlackout() {
       </div>
       <div class="blackout-hint">📍 週日 21:00 Zoom 見！</div>
     </div>`;
-
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
+  tick();
+  setInterval(tick, 1000);
 }
 
+// ── Init ──
 async function init() {
+  // 載入最新班次
   const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false }).limit(1);
   if (!batches || !batches.length) { showEmpty('尚未建立班次'); return; }
   currentBatch = batches[0];
 
   document.getElementById('batchName').textContent =
-    `${currentBatch.name}｜目標 ${currentBatch.target_points} 分 → ${currentBatch.event_name}`;
+    currentBatch.event_name ? `${currentBatch.name}｜${currentBatch.event_name}` : currentBatch.name;
 
   if (!currentBatch.start_date || !currentBatch.end_date) { showEmpty('班次日期尚未設定'); return; }
+
+  // 預載本期已批准學員（建立 member_id ↔ student_id 對應）
+  const { data: stuData } = await sb.from('batch_students')
+    .select('id, member_id, group_name, members_master(name, member_code)')
+    .eq('batch_id', currentBatch.id).eq('status', 'approved');
+  batchStudents = (stuData || []).map(s => ({
+    id: s.id,
+    member_id: s.member_id,
+    group: s.group_name || '未分組',
+    name: s.members_master?.name || '未知',
+    code: s.members_master?.member_code || ''
+  }));
+
+  // 建立週次
   const start = new Date(currentBatch.start_date);
   const end = new Date(currentBatch.end_date);
   const today = new Date();
   let ws = new Date(start);
   let i = 1;
   while (ws <= end) {
-    let we = new Date(ws);
-    we.setDate(we.getDate() + 6);
+    let we = new Date(ws); we.setDate(we.getDate() + 6);
     if (we > end) we = new Date(end);
     weeks.push({ num: i, start: new Date(ws), end: we });
     ws.setDate(ws.getDate() + 7);
@@ -327,10 +334,7 @@ async function init() {
   if (weeks.length > 1) {
     const last = weeks[weeks.length - 1];
     const days = (last.end - last.start) / 86400000;
-    if (days < 3) {
-      weeks[weeks.length - 2].end = last.end;
-      weeks.pop();
-    }
+    if (days < 3) { weeks[weeks.length - 2].end = last.end; weeks.pop(); }
   }
 
   currentWeek = 0;
@@ -340,104 +344,100 @@ async function init() {
   }
 
   renderWeekBar();
-
   if (isBlackout()) { showBlackout(); return; }
-
   loadWeek(currentWeek);
 }
 
 function renderWeekBar() {
   const dd = document.getElementById('weekDropdown');
   dd.innerHTML = weeks.map((w, i) => {
-    const s = fmtDate(w.start);
-    const e = fmtDate(w.end);
+    const s = fmtDate(w.start), e = fmtDate(w.end);
     return `<option value="${i}" ${i === currentWeek ? 'selected' : ''}>第${w.num}週（${s} - ${e}）</option>`;
   }).join('');
 }
 
-function onWeekChange() {
-  const idx = parseInt(document.getElementById('weekDropdown').value);
-  loadWeek(idx);
-}
-
+function onWeekChange() { loadWeek(parseInt(document.getElementById('weekDropdown').value)); }
 function fmtDate(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
 function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 
+// ── 載入週資料 ──
 async function loadWeek(idx) {
   if (isBlackout()) { showBlackout(); return; }
   currentWeek = idx;
 
   const dd = document.getElementById('weekDropdown');
   const allBtn = document.getElementById('allBtn');
-  if (idx === -1) {
-    dd.value = '';
-    allBtn.classList.add('active');
-  } else {
-    dd.value = idx;
-    allBtn.classList.remove('active');
-  }
+  if (idx === -1) { dd.value = ''; allBtn.classList.add('active'); }
+  else { dd.value = idx; allBtn.classList.remove('active'); }
 
   document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div>正在統計戰績...</div></div>';
 
-  let query = sb.from('action_logs')
-    .select('*, batch_students(group_name, member_id, members_master(name, member_code))')
-    .eq('batch_id', currentBatch.id);
-
+  // 日期範圍
+  let startDate = null, endDate = null;
   if (idx >= 0 && idx < weeks.length) {
-    query = query
-      .gte('log_date', fmtDateISO(weeks[idx].start))
-      .lte('log_date', fmtDateISO(weeks[idx].end));
+    startDate = fmtDateISO(weeks[idx].start);
+    endDate = fmtDateISO(weeks[idx].end);
   }
 
-  const { data: logs, error } = await query;
-  if (error) { showEmpty('資料載入失敗：' + error.message); return; }
-  if (!logs || !logs.length) { showEmpty('本週尚無行動紀錄，開始衝吧！💪'); return; }
+  // 查 action_logs
+  let logQ = sb.from('action_logs').select('student_id, meet, invite, present, seminar, ghosted, rejected, name_list, schedule, follow_up')
+    .eq('batch_id', currentBatch.id);
+  if (startDate) logQ = logQ.gte('log_date', startDate).lte('log_date', endDate);
+  const { data: logs, error: logErr } = await logQ;
+  if (logErr) { showEmpty('資料載入失敗：' + logErr.message); return; }
+
+  // 查 closing_records
+  const memberIds = batchStudents.map(s => s.member_id);
+  let closeQ = sb.from('closing_records').select('member_id, points').in('member_id', memberIds);
+  if (startDate) closeQ = closeQ.gte('close_date', startDate).lte('close_date', endDate);
+  const { data: closes } = await closeQ;
+
+  // member_id → student_id 對應
+  const memberToStu = {};
+  batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   // 彙總每位學員
   const students = {};
-  logs.forEach(log => {
-    const sid = log.student_id;
-    const info = log.batch_students;
-    const name = info?.members_master?.name || '未知';
-    const code = info?.members_master?.member_code || '';
-    const group = info?.group_name || '未分組';
-
-    if (!students[sid]) {
-      students[sid] = {
-        name, code, group,
-        list: 0, schedule: 0, social: 0, recommend: 0,
-        invite: 0, company: 0, ghosted: 0, rejected: 0, total: 0
-      };
-    }
-    const s = students[sid];
-    s.list      += log.action_list || 0;
-    s.schedule  += log.action_schedule || 0;
-    s.social    += log.action_social || 0;
-    s.recommend += log.action_recommend || 0;
-    s.invite    += log.action_invite || 0;
-    s.company   += log.company_points || 0;
-    s.ghosted   += log.action_ghosted || 0;
-    s.rejected  += log.action_rejected || 0;
+  batchStudents.forEach(s => {
+    students[s.id] = {
+      name: s.name, code: s.code, group: s.group,
+      meet:0, invite:0, present:0, seminar:0,
+      ghosted:0, rejected:0,
+      name_list:0, schedule:0, follow_up:0,
+      close_pts:0, total:0
+    };
   });
 
+  (logs || []).forEach(log => {
+    const s = students[log.student_id];
+    if (!s) return;
+    s.meet      += log.meet || 0;
+    s.invite    += log.invite || 0;
+    s.present   += log.present || 0;
+    s.seminar   += log.seminar || 0;
+    s.ghosted   += log.ghosted || 0;
+    s.rejected  += log.rejected || 0;
+    s.name_list += log.name_list || 0;
+    s.schedule  += log.schedule || 0;
+    s.follow_up += log.follow_up || 0;
+  });
+
+  (closes || []).forEach(c => {
+    const sid = memberToStu[c.member_id];
+    if (sid && students[sid]) students[sid].close_pts += c.points || 0;
+  });
+
+  // 計算總分：meet×1 + invite×2 + present×5 + seminar×5 + ghosted×1 + rejected×1 + 締結分
   const arr = Object.values(students);
   arr.forEach(s => {
-    s.total = s.list * 1 + s.schedule * 1 + s.social * 2 + s.recommend * 5 + s.invite * 20 + s.company;
+    s.total = s.meet * 1 + s.invite * 2 + s.present * 5 + s.seminar * 5
+            + s.ghosted * 1 + s.rejected * 1 + s.close_pts;
   });
 
-  // 排名函式
-  const rank = (key) => {
-    const sorted = [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0);
-    return sorted.slice(0, 3);
-  };
+  if (arr.every(s => s.total === 0)) { showEmpty('本週尚無行動紀錄，開始衝吧！💪'); return; }
 
-  // 欄位對應
-  const keyMap = {
-    total: 'total', '締結': 'company', social: 'social',
-    recommend: 'recommend', invite: 'invite',
-    list: 'list', schedule: 'schedule',
-    ghosted: 'ghosted', rejected: 'rejected'
-  };
+  // 排名
+  const rank = (key) => [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0).slice(0, 3);
 
   // 團隊排名
   const groups = {};
@@ -452,21 +452,17 @@ async function loadWeek(idx) {
     .slice(0, 3);
 
   // 渲染
-  let html = '';
   const periodLabel = idx === -1 ? '整期' : '本週';
+  let html = '';
 
   html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
   html += '<div class="awards-grid">';
-  AWARDS.filter(a => !a.fun).forEach(award => {
-    html += renderAwardCard(award, rank(keyMap[award.key]));
-  });
+  AWARDS.filter(a => !a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
   html += '</div>';
 
   html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
   html += '<div class="awards-grid">';
-  AWARDS.filter(a => a.fun).forEach(award => {
-    html += renderAwardCard(award, rank(keyMap[award.key]));
-  });
+  AWARDS.filter(a => a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
   html += '</div>';
 
   html += `<div class="section-title">👥 ${periodLabel}小隊對決</div>`;
@@ -487,7 +483,7 @@ function renderAwardCard(award, top3) {
       <div class="podium-row rank-${i+1}">
         <div class="rank-badge">${i+1}</div>
         <div class="podium-name">${s.name}</div>
-        <div class="podium-score">${s[getField(award.key)]}<span class="podium-unit">${award.unit}</span></div>
+        <div class="podium-score">${s[award.key]}<span class="podium-unit">${award.unit}</span></div>
       </div>`).join('') + '</div>';
   }
   return `
@@ -526,12 +522,6 @@ function renderTeamCard(teams) {
       </div>
       ${podium}
     </div>`;
-}
-
-function getField(key) {
-  return { total:'total', '締結':'company', social:'social', recommend:'recommend',
-           invite:'invite', list:'list', schedule:'schedule',
-           ghosted:'ghosted', rejected:'rejected' }[key];
 }
 
 function showEmpty(msg) {

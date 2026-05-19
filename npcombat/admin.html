@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>實戰班主系統管理</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
@@ -178,6 +179,28 @@
   .perm-add-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px}
   .perm-add-row select{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
 
+  /* ── Dashboard interaction matrix ── */
+  .dash-progress{display:flex;gap:12px;margin-bottom:16px}
+  .dash-prog-card{flex:1;background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;padding:14px;text-align:center}
+  .dash-prog-n{font-size:24px;font-weight:700;color:var(--gold)}
+  .dash-prog-l{font-size:12px;color:var(--muted);margin-top:4px}
+  .dash-prog-bar{height:6px;background:var(--navy3);border-radius:3px;margin-top:8px;overflow:hidden}
+  .dash-prog-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
+  .dash-coach-row{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:8px;overflow:hidden}
+  .dash-coach-row .coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .dash-coach-row.open .coach-body{max-height:800px}
+  .dash-coach-row.open .coach-arrow{transform:rotate(180deg)}
+  .dash-coach-hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;user-select:none}
+  .dash-coach-hd:hover{background:var(--navy3)}
+  .dash-stu-row{display:flex;justify-content:space-between;align-items:center;padding:8px 16px 8px 32px;border-top:1px solid rgba(255,255,255,.04);font-size:13px}
+  .dash-stu-status{display:flex;gap:6px;align-items:center}
+  .dash-chip{padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500}
+  .dash-chip-filled{background:var(--green-bg);color:var(--green)}
+  .dash-chip-confirmed{background:var(--gold-lt);color:var(--gold)}
+  .dash-chip-empty{background:rgba(138,143,168,.12);color:var(--muted)}
+  .dash-chip-pending{background:var(--yellow-bg);color:var(--yellow)}
+  .dash-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
+
   @media(max-width:600px){
     .stats{grid-template-columns:repeat(2,1fr)}
     .pair-grid{grid-template-columns:1fr}
@@ -201,8 +224,7 @@
 
   <div class="tabs">
     <button class="tab on" data-t="dashboard">資訊版</button>
-    <button class="tab" data-t="review">審核區</button>
-    <button class="tab" data-t="roster">名冊</button>
+    <button class="tab" data-t="review">審核名冊</button>
     <button class="tab" data-t="org">教練組織</button>
     <button class="tab" data-t="pairing">配對管理</button>
     <button class="tab" data-t="bonus">加權設定</button>
@@ -210,16 +232,8 @@
     <button class="tab" data-t="perm">權限管理</button>
   </div>
 
-  <div class="panel on" id="p-dashboard">
-    <div class="stats">
-      <div class="st"><div class="st-n" id="nPC">-</div><div class="st-l">教練待審</div></div>
-      <div class="st"><div class="st-n" id="nPS">-</div><div class="st-l">學員待審</div></div>
-      <div class="st"><div class="st-n" id="nA">-</div><div class="st-l">已批准學員</div></div>
-      <div class="st"><div class="st-n" id="nC">-</div><div class="st-l">教練</div></div>
-    </div>
-  </div>
+  <div class="panel on" id="p-dashboard"><div class="loading">載入中…</div></div>
   <div class="panel" id="p-review"><div id="reviewArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-roster"><div id="rosterArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-org"><div id="orgArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-pairing"><div id="pairArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-bonus"><div id="bonusArea" class="loading">載入中…</div></div>
@@ -235,7 +249,9 @@ const sb = window.supabase.createClient(
   { db: { schema: 'npcombat' } }
 );
 
-let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], selS = null, selC = null, searchReview = '';
+const LIFF_ID = '2010082073-87iRs2A9';
+let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], selS = null, selC = null, searchReview = '';
+let myAllowedTabs = [];
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -244,6 +260,44 @@ function toast(msg) {
 }
 
 async function init() {
+  // ── LIFF 門禁 ──
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+
+    const { data: member } = await sb.from('members_master').select('id, name')
+      .eq('line_user_id', profile.userId).single();
+    if (!member) { document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🚫</div><div class="empty-text">查無會員資料</div></div>'; return; }
+
+    const { data: admin } = await sb.from('admin_users').select('allowed_tabs')
+      .eq('member_id', member.id).single();
+    if (!admin) { document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-text">無管理權限</div></div>'; return; }
+
+    myAllowedTabs = admin.allowed_tabs || [];
+
+    // 隱藏無權限的 Tab
+    document.querySelectorAll('.tab').forEach(btn => {
+      const t = btn.dataset.t;
+      if (!myAllowedTabs.includes(t)) {
+        btn.style.display = 'none';
+        document.getElementById('p-' + t).style.display = 'none';
+      }
+    });
+    // 確保預設顯示第一個有權限的 Tab
+    const firstTab = document.querySelector('.tab[style=""]') || document.querySelector('.tab:not([style*="none"])');
+    if (firstTab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+      firstTab.classList.add('on');
+      document.getElementById('p-' + firstTab.dataset.t).classList.add('on');
+    }
+  } catch (e) {
+    document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">登入失敗：' + e.message + '</div></div>';
+    return;
+  }
+
+  // ── 原始初始化 ──
   const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false });
   const sel = document.getElementById('selBatch');
   sel.innerHTML = (batches || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('');
@@ -275,10 +329,15 @@ async function load() {
   const { data: au } = await sb.from('admin_users')
     .select('*, members_master(name, member_code)');
   adminUsers = au || [];
+  // 今日回報（action_logs）
+  const today = new Date().toISOString().slice(0,10);
+  const { data: logs } = await sb.from('action_logs')
+    .select('*').eq('batch_id', bid).eq('log_date', today);
+  todayLogs = logs || [];
   render();
 }
 
-const ACTION_LABELS = { list:'列名單', schedule:'安排行程', social:'社交活動', recommend:'推薦', invite:'邀約' };
+const ACTION_LABELS = { meet:'認識新友', invite:'邀約見面', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果', name_list:'羅列名單', schedule:'安排行程', follow_up:'跟進狀況' };
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
 const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 
@@ -302,15 +361,105 @@ function matchSearch(item) {
 }
 
 function render() {
-  document.getElementById('nPC').textContent = coaches.filter(c => c.status === 'pending').length;
-  document.getElementById('nPS').textContent = students.filter(s => s.status === 'pending').length;
-  document.getElementById('nA').textContent  = students.filter(s => s.status === 'approved').length;
-  document.getElementById('nC').textContent  = approvedCoaches().length;
-  renderReview(); renderRoster(); renderOrg(); renderPairing(); renderBonus(); renderFinance(); renderPerm();
+  renderDashboard(); renderReview(); renderOrg(); renderPairing(); renderBonus(); renderFinance(); renderPerm();
 }
 
 // ════════════════════════════════════════════
-// Tab 1: 審核區
+// Tab 0: 資訊版
+// ════════════════════════════════════════════
+function renderDashboard() {
+  const pendingC = coaches.filter(c => c.status === 'pending').length;
+  const pendingS = students.filter(s => s.status === 'pending').length;
+  const approvedS = students.filter(s => s.status === 'approved').length;
+  const totalC = approvedCoaches().length;
+
+  // Stats cards
+  let h = `<div class="stats">
+    <div class="st"><div class="st-n">${pendingC}</div><div class="st-l">教練待審</div></div>
+    <div class="st"><div class="st-n">${pendingS}</div><div class="st-l">學員待審</div></div>
+    <div class="st"><div class="st-n">${approvedS}</div><div class="st-l">已批准學員</div></div>
+    <div class="st"><div class="st-n">${totalC}</div><div class="st-l">教練</div></div>
+  </div>`;
+
+  // Interaction matrix
+  const today = new Date().toISOString().slice(0,10);
+  const approvedStudents = students.filter(s => s.status === 'approved');
+  const logMap = {};
+  todayLogs.forEach(l => { logMap[l.student_id] = l; });
+
+  const filledCount = approvedStudents.filter(s => logMap[s.id]).length;
+  const confirmedCount = approvedStudents.filter(s => logMap[s.id]?.confirmed).length;
+  const totalStu = approvedStudents.length;
+  const fillPct = totalStu ? Math.round(filledCount / totalStu * 100) : 0;
+  const confirmPct = totalStu ? Math.round(confirmedCount / totalStu * 100) : 0;
+
+  h += `<div class="sec-title"><span>📊 今日回報進度</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
+  h += `<div class="dash-progress">
+    <div class="dash-prog-card">
+      <div class="dash-prog-n">${filledCount} / ${totalStu}</div>
+      <div class="dash-prog-l">學員填報率 ${fillPct}%</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${fillPct}%"></div></div>
+    </div>
+    <div class="dash-prog-card">
+      <div class="dash-prog-n">${confirmedCount} / ${totalStu}</div>
+      <div class="dash-prog-l">教練確認率 ${confirmPct}%</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${confirmPct}%"></div></div>
+    </div>
+  </div>`;
+
+  if (!totalStu) {
+    h += `<div class="dash-empty">尚無已批准學員</div>`;
+  } else {
+    // Group by coach
+    const ac = approvedCoaches();
+    const groups = {};
+    ac.forEach(c => { groups[c.id] = { coach: c, students: [] }; });
+    groups['_none'] = { coach: null, students: [] };
+    approvedStudents.forEach(s => {
+      const gid = s.coach_id && groups[s.coach_id] ? s.coach_id : '_none';
+      groups[gid].students.push(s);
+    });
+
+    Object.values(groups).forEach(g => {
+      if (!g.students.length) return;
+      const cName = g.coach ? nm(g.coach) : '未配對教練';
+      const filled = g.students.filter(s => logMap[s.id]).length;
+      const confirmed = g.students.filter(s => logMap[s.id]?.confirmed).length;
+      const total = g.students.length;
+
+      h += `<div class="dash-coach-row">
+        <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
+          <div>
+            <span class="card-name">${cName}</span>
+            <span style="color:var(--muted);font-size:12px;margin-left:8px">填 ${filled}/${total}${confirmed ? ' ｜ 確認 ' + confirmed : ''}</span>
+          </div>
+          <span class="coach-arrow">▼</span>
+        </div>
+        <div class="coach-body">
+          ${g.students.map(s => {
+            const log = logMap[s.id];
+            let statusHtml = '';
+            if (!log) {
+              statusHtml = '<span class="dash-chip dash-chip-empty">⬜ 未填寫</span>';
+            } else if (log.confirmed) {
+              statusHtml = '<span class="dash-chip dash-chip-confirmed">✅ 已確認</span>';
+            } else {
+              statusHtml = '<span class="dash-chip dash-chip-filled">📝 已填寫</span><span class="dash-chip dash-chip-pending">⏳ 待確認</span>';
+            }
+            return `<div class="dash-stu-row">
+              <span>${nm(s)}${mc(s)}</span>
+              <div class="dash-stu-status">${statusHtml}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    });
+  }
+  document.getElementById('p-dashboard').innerHTML = h;
+}
+
+// ════════════════════════════════════════════
+// Tab 1: 審核名冊
 // ════════════════════════════════════════════
 function renderReview() {
   const pCoaches  = coaches.filter(c => c.status === 'pending' && matchSearch(c));
@@ -320,7 +469,6 @@ function renderReview() {
 
   let h = `<div class="toolbar">
     <input class="search-box" placeholder="搜尋姓名、會員編號、電話…" value="${searchReview}" oninput="searchReview=this.value;renderReview()">
-    <div class="toolbar-acts"><button class="btn-batch btn-csv" onclick="exportCSV()">匯出 CSV</button></div>
   </div>`;
 
   // 教練審核
@@ -358,15 +506,15 @@ function renderReview() {
       </div>`).join('')
     : `<div class="empty" style="padding:24px"><div class="empty-icon">✓</div><div class="empty-text">${apStudents.length?'無符合搜尋的結果':'無待審核學員'}</div></div>`;
 
+  // ── 已批准名冊（原名冊 Tab 併入）──
+  h += renderRosterSection();
+
   document.getElementById('reviewArea').innerHTML = h;
 }
 
-// ════════════════════════════════════════════
-// Tab 2: 名冊
-// ════════════════════════════════════════════
 let rosterSearch = '', rosterFilter = 'all';
 
-function renderRoster() {
+function renderRosterSection() {
   const ac = approvedCoaches();
   let sList = students.filter(s => s.status === 'approved');
   if (rosterFilter === 'no-coach') sList = sList.filter(s => !s.coach_id);
@@ -380,18 +528,20 @@ function renderRoster() {
   if (rosterFilter === 'no-phone') cList = cList.filter(c => !c.phone);
   const totalS = students.filter(s => s.status === 'approved').length;
 
-  let h = `<div class="toolbar">
-    <input class="search-box" placeholder="搜尋姓名、電話、組別…" value="${rosterSearch}" oninput="rosterSearch=this.value;renderRoster()">
+  let h = `<div class="sec-title" style="margin-top:28px;padding-top:20px;border-top:2px solid var(--gold-bd)"><span>📋 已批准名冊</span><span class="sec-count">${totalS} 學員 / ${ac.length} 教練</span></div>`;
+
+  h += `<div class="toolbar">
+    <input class="search-box" placeholder="搜尋姓名、電話、組別…" value="${rosterSearch}" oninput="rosterSearch=this.value;renderReview()">
     <div class="toolbar-acts">
-      <select class="hd select" style="background:var(--navy3);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit" onchange="rosterFilter=this.value;renderRoster()">
+      <select class="hd select" style="background:var(--navy3);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit" onchange="rosterFilter=this.value;renderReview()">
         <option value="all"${rosterFilter==='all'?' selected':''}>全部</option>
         <option value="no-coach"${rosterFilter==='no-coach'?' selected':''}>未配對教練</option>
         <option value="no-phone"${rosterFilter==='no-phone'?' selected':''}>缺電話</option>
       </select>
+      <button class="btn-batch btn-csv" onclick="exportCSV()">匯出 CSV</button>
     </div>
   </div>`;
 
-  // 教練區
   if (rosterFilter !== 'no-coach') {
     h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
     if (cList.length) {
@@ -413,7 +563,6 @@ function renderRoster() {
     }
   }
 
-  // 學員區
   h += `<div class="sec-title"><span>學員</span><span class="sec-count">${sList.length} / ${totalS} 人</span></div>`;
   if (sList.length) {
     sList.forEach(s => {
@@ -440,7 +589,7 @@ function renderRoster() {
   } else {
     h += `<div class="empty" style="padding:20px"><div class="empty-text">無符合條件的學員</div></div>`;
   }
-  document.getElementById('rosterArea').innerHTML = h;
+  return h;
 }
 
 function showEditCoach(cid) {
@@ -871,8 +1020,7 @@ async function unconfirmPayment(sid) {
 // ════════════════════════════════════════════
 const ALL_TABS = [
   { key:'dashboard', label:'資訊版' },
-  { key:'review', label:'審核區' },
-  { key:'roster', label:'名冊' },
+  { key:'review', label:'審核名冊' },
   { key:'org', label:'教練組織' },
   { key:'pairing', label:'配對管理' },
   { key:'bonus', label:'加權設定' },

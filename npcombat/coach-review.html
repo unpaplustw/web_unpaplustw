@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>教練回報｜實戰班</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#f7f5f0; --card:#ffffff; --gold:#b8960c; --gold-lt:#f5ecd5;
+    --text:#2d2a24; --muted:#8c8577; --border:#e8e2d6;
+    --green:#4a9e6f; --green-bg:#eaf5ef;
+    --red:#c45c5c; --red-bg:#faeaea;
+    --blue:#4a7fbf; --blue-bg:#e8f0fa;
+    --shadow:0 2px 12px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 100px}
+
+  .hd{background:var(--card);padding:20px 20px 16px;border-bottom:1px solid var(--border);text-align:center}
+  .hd-name{font-size:20px;font-weight:700;color:var(--gold)}
+  .hd-date{font-size:14px;color:var(--muted);margin-top:4px}
+  .hd-badge{display:inline-block;background:var(--blue-bg);color:var(--blue);font-size:13px;font-weight:600;padding:4px 14px;border-radius:20px;margin-top:8px}
+
+  /* ── Day Toggle ── */
+  .day-toggle{display:flex;gap:0;max-width:500px;margin:16px auto 0;padding:0 16px}
+  .day-btn{flex:1;padding:12px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .day-btn:first-child{border-radius:10px 0 0 10px}
+  .day-btn:last-child{border-radius:0 10px 10px 0}
+  .day-btn.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
+
+  /* ── Summary Table ── */
+  .summary-wrap{padding:12px 16px;max-width:500px;margin:0 auto}
+  .summary-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .summary-hd{padding:12px 16px;font-size:14px;font-weight:700;color:var(--gold);border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+  .summary-row{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;transition:.1s;-webkit-tap-highlight-color:transparent}
+  .summary-row:last-child{border:none}
+  .summary-row:active{background:var(--gold-lt)}
+  .summary-name{flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .summary-col{width:52px;text-align:center;font-weight:600;font-size:13px}
+  .summary-col.pts{color:var(--gold)}
+  .summary-col.close-pts{color:var(--green)}
+  .summary-icon{width:28px;text-align:center;font-size:14px}
+  .summary-total{display:flex;padding:10px 16px;background:var(--bg);font-size:13px;font-weight:600;color:var(--muted)}
+  .summary-total .summary-name{color:var(--muted)}
+  .summary-total .summary-col{color:var(--gold)}
+
+  /* ── Student Selector (hidden, use summary to navigate) ── */
+  .sec{padding:0 16px;max-width:500px;margin:0 auto}
+  .sec-hd{font-size:13px;font-weight:600;color:var(--muted);margin:20px 0 10px;padding-left:4px;letter-spacing:1px;display:flex;justify-content:space-between}
+
+  /* ── Status Bar ── */
+  .status-bar{max-width:500px;margin:0 auto;padding:12px 16px 0}
+  .status-chip{display:inline-block;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600}
+  .status-filled{background:var(--green-bg);color:var(--green)}
+  .status-empty{background:var(--red-bg);color:var(--red)}
+  .status-confirmed{background:var(--gold-lt);color:var(--gold)}
+
+  /* ── Editable student rows ── */
+  .stu-data-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:8px 16px;overflow:hidden}
+  .stu-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .stu-row:last-child{border:none}
+  .stu-row-label{font-size:15px;color:var(--text);flex:1}
+  .stu-row-ctrl{display:flex;align-items:center;gap:8px}
+  .stu-adj{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:18px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .stu-adj:active{background:var(--gold-lt);border-color:var(--gold)}
+  .stu-adj.neg-btn{color:var(--red)}
+  .stu-adj.neg-btn:active{background:var(--red-bg);border-color:var(--red)}
+  .stu-adj:disabled{opacity:.3;cursor:not-allowed}
+  .stu-adj:disabled:active{background:var(--card);border-color:var(--border)}
+  .stu-val{font-size:20px;font-weight:700;color:var(--gold);min-width:32px;text-align:center}
+  .stu-val.zero{color:var(--muted)}
+  .stu-val.neg{color:var(--red)}
+
+  .data-close-detail{padding:4px 0 8px;font-size:13px;color:var(--muted);line-height:1.8}
+  .data-sub-row{padding:8px 0;font-size:14px;color:var(--muted)}
+  .stu-empty{padding:24px;text-align:center;color:var(--muted);font-size:14px;background:var(--card);border-radius:12px;box-shadow:var(--shadow)}
+
+  /* ── Coach input cards ── */
+  .coach-card{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);transition:border-color .2s}
+  .coach-card.has-value{border-color:var(--blue)}
+  .coach-emoji{font-size:28px;line-height:1}
+  .coach-label{font-size:15px;font-weight:600;color:var(--text);margin-top:4px}
+  .coach-ctrl{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}
+  .coach-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:24px;font-weight:700;color:var(--blue);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
+  .coach-btn:active{background:var(--blue-bg);border-color:var(--blue)}
+  .coach-btn:disabled{opacity:.3;cursor:not-allowed}
+  .coach-btn:disabled:active{background:var(--card);border-color:var(--border)}
+  .coach-num{font-size:36px;font-weight:700;color:var(--blue);min-width:48px;text-align:center}
+  .coach-num.zero{color:var(--muted)}
+  .grid3{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3-full{grid-column:1/-1;max-width:calc(50% - 5px);margin:0 auto}
+
+  /* ── Buttons ── */
+  .submit-wrap{padding:20px 16px;max-width:500px;margin:0 auto;display:flex;gap:10px}
+  .btn-submit{flex:1;padding:18px;background:var(--blue);color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(74,127,191,.3);transition:.2s;-webkit-tap-highlight-color:transparent}
+  .btn-submit:active{transform:scale(.97)}
+  .btn-submit:disabled{background:var(--muted);box-shadow:none;cursor:not-allowed}
+  .btn-undo{padding:18px 24px;background:var(--card);color:var(--red);border:2px solid var(--red);border-radius:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;display:none}
+  .btn-undo:active{background:var(--red-bg)}
+  .btn-undo.show{display:block}
+
+  .btn-back{display:block;max-width:500px;margin:12px auto 0;padding:12px 20px;background:var(--card);border:2px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .btn-back:active{background:var(--gold-lt);border-color:var(--gold)}
+
+  /* ── Nav ── */
+  .nav-wrap{display:flex;justify-content:space-between;align-items:center;padding:0 16px;max-width:500px;margin:12px auto 0}
+  .nav-btn{padding:10px 20px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;color:var(--text);cursor:pointer;font-family:inherit;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .nav-btn:active{background:var(--gold-lt);border-color:var(--gold)}
+  .nav-btn:disabled{opacity:.3;cursor:not-allowed}
+  .nav-info{font-size:13px;color:var(--muted)}
+
+  .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(min-width:500px){
+    .coach-btn{width:56px;height:56px;font-size:28px}
+    .coach-num{font-size:40px}
+  }
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-name" id="coachName">載入中…</div>
+  <div class="hd-date" id="dateText"></div>
+  <div class="hd-badge">教練回報</div>
+</div>
+
+<!-- Day Toggle -->
+<div class="day-toggle">
+  <button class="day-btn on" id="btnToday" onclick="setDay('today')">今天</button>
+  <button class="day-btn" id="btnYesterday" onclick="setDay('yesterday')">昨天</button>
+</div>
+
+<!-- Summary View -->
+<div id="summaryView">
+  <div class="summary-wrap">
+    <div class="summary-card">
+      <div class="summary-hd">
+        <span>日總表</span>
+        <span id="summaryDate"></span>
+      </div>
+      <div id="summaryBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail View -->
+<div id="detailView" style="display:none">
+  <button class="btn-back" onclick="backToSummary()">← 返回總表</button>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="sec">
+    <div class="sec-hd"><span id="stuNameLabel">📊 學員數據</span><span id="stuDateLabel"></span></div>
+    <div id="stuDataArea"></div>
+  </div>
+
+  <div class="sec coach-sec">
+    <div class="sec-hd"><span>✏️ 教練補充</span></div>
+    <div class="grid3">
+      <div class="coach-card" data-key="name_list">
+        <div class="coach-emoji">📋</div>
+        <div class="coach-label">羅列名單</div>
+        <div class="coach-ctrl">
+          <button class="coach-btn" onclick="adjCoach('name_list',-1)">−</button>
+          <div class="coach-num zero" id="c-name_list">0</div>
+          <button class="coach-btn" onclick="adjCoach('name_list',1)">＋</button>
+        </div>
+      </div>
+      <div class="coach-card" data-key="schedule">
+        <div class="coach-emoji">📅</div>
+        <div class="coach-label">安排行程</div>
+        <div class="coach-ctrl">
+          <button class="coach-btn" onclick="adjCoach('schedule',-1)">−</button>
+          <div class="coach-num zero" id="c-schedule">0</div>
+          <button class="coach-btn" onclick="adjCoach('schedule',1)">＋</button>
+        </div>
+      </div>
+      <div class="coach-card grid3-full" data-key="follow_up">
+        <div class="coach-emoji">🔄</div>
+        <div class="coach-label">跟進狀況</div>
+        <div class="coach-ctrl">
+          <button class="coach-btn" onclick="adjCoach('follow_up',-1)">−</button>
+          <div class="coach-num zero" id="c-follow_up">0</div>
+          <button class="coach-btn" onclick="adjCoach('follow_up',1)">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-wrap">
+    <button class="btn-submit" id="btnSubmit" onclick="submitCoach()">確認送出</button>
+    <button class="btn-undo" id="btnUndo" onclick="undoConfirm()">撤銷</button>
+  </div>
+
+  <div class="nav-wrap">
+    <button class="nav-btn" id="btnPrev" onclick="navStudent(-1)">← 上一位</button>
+    <span class="nav-info" id="navInfo"></span>
+    <button class="nav-btn" id="btnNext" onclick="navStudent(1)">下一位 →</button>
+  </div>
+</div>
+
+<div class="ft">實戰班委員會</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LIFF_ID = '2010082073-87iRs2A9';
+const BATCH_ID = 1;
+
+const sb = window.supabase.createClient(
+  'https://nsgqsopqlkhayuefdout.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y',
+  { db: { schema: 'npcombat' } }
+);
+
+let coachMemberId = null;
+
+const STU_FIELDS = [
+  { key:'meet',     emoji:'🤝', label:'認識新友',     pts:1 },
+  { key:'invite',   emoji:'📞', label:'邀約見面',     pts:2 },
+  { key:'present',  emoji:'🗣️', label:'溝通本說明',   pts:5 },
+  { key:'seminar',  emoji:'🏛️', label:'邀請說明會',   pts:5 },
+  { key:'close',    emoji:'✅', label:'締結成功', special:true },
+  { key:'ghosted',  emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
+  { key:'rejected', emoji:'💪', label:'締結未果',     pts:1, neg:true },
+];
+const COACH_FIELDS = ['name_list','schedule','follow_up'];
+
+let coachId = null;
+let studentList = [];
+let currentIdx = -1;
+let coachVals = { name_list:0, schedule:0, follow_up:0 };
+let currentDay = 'today';
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function getDateStr(which) {
+  const d = new Date();
+  if (which === 'yesterday') d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function formatDate(d) {
+  const [y,m,dd] = d.split('-');
+  return `${+m}/${+dd}`;
+}
+
+function getStuData(stu) { return currentDay === 'today' ? stu.today : stu.yesterday; }
+function getCoachData(stu) { return currentDay === 'today' ? stu.coach_today : stu.coach_yesterday; }
+
+function calcActionPts(d) {
+  if (!d) return 0;
+  let pts = 0;
+  STU_FIELDS.forEach(f => { if (!f.special) pts += (d[f.key]||0) * (f.pts||0); });
+  return pts;
+}
+function calcClosePts(d) {
+  if (!d || !d.close_entries) return 0;
+  return d.close_entries.reduce((s,e) => s + e.pts, 0);
+}
+
+// ── Init（LIFF 登入 + 載入即時資料）──
+async function init() {
+  document.getElementById('dateText').textContent = getDateStr('today').replace(/-/g,' / ');
+
+  try {
+    // LIFF 登入
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+
+    // 查會員
+    const { data: member } = await sb.from('members_master').select('id, name')
+      .eq('line_user_id', profile.userId).single();
+    if (!member) { document.getElementById('coachName').textContent = '非會員'; toast('查無會員資料'); return; }
+    coachMemberId = member.id;
+
+    // 查本期教練身份
+    const { data: coach } = await sb.from('batch_coaches').select('id, status')
+      .eq('batch_id', BATCH_ID).eq('member_id', coachMemberId).single();
+    if (!coach || coach.status !== 'approved') {
+      document.getElementById('coachName').textContent = member.name;
+      toast('非本期已批准教練'); return;
+    }
+    coachId = coach.id;
+    document.getElementById('coachName').textContent = member.name + ' 教練';
+
+    // 查配對學員（只撈已批准）
+    const { data: students } = await sb.from('batch_students').select('id, member_id')
+      .eq('coach_id', coachId).eq('status', 'approved');
+    if (!students || students.length === 0) { toast('目前無配對學員'); renderSummary(); return; }
+
+    // 查學員基本資料
+    const memberIds = students.map(s => s.member_id);
+    const { data: memberInfos } = await sb.from('members_master').select('id, name, member_code')
+      .in('id', memberIds);
+    const memberMap = {};
+    (memberInfos || []).forEach(m => memberMap[m.id] = m);
+
+    // 查今天 + 昨天的 action_logs
+    const todayStr = getDateStr('today');
+    const yesterdayStr = getDateStr('yesterday');
+    const studentIds = students.map(s => s.id);
+
+    const { data: logs } = await sb.from('action_logs').select('*')
+      .eq('batch_id', BATCH_ID)
+      .in('student_id', studentIds)
+      .in('log_date', [todayStr, yesterdayStr]);
+
+    // 查今天 + 昨天的 closing_records
+    const { data: closes } = await sb.from('closing_records').select('*')
+      .in('member_id', memberIds)
+      .in('close_date', [todayStr, yesterdayStr]);
+
+    // 組裝 studentList
+    studentList = students.map(stu => {
+      const info = memberMap[stu.member_id] || {};
+      const stuLogs = (logs || []).filter(l => l.student_id === stu.id);
+      const stuCloses = (closes || []).filter(c => c.member_id === stu.member_id);
+
+      const todayLog = stuLogs.find(l => l.log_date === todayStr);
+      const yesterdayLog = stuLogs.find(l => l.log_date === yesterdayStr);
+      const todayCloses = stuCloses.filter(c => c.close_date === todayStr);
+      const yesterdayCloses = stuCloses.filter(c => c.close_date === yesterdayStr);
+
+      function buildDayData(log, dayCloses) {
+        if (!log) return null;
+        return {
+          meet: log.meet || 0, invite: log.invite || 0,
+          present: log.present || 0, seminar: log.seminar || 0,
+          ghosted: log.ghosted || 0, rejected: log.rejected || 0,
+          close_entries: dayCloses.map(c => ({ pts: c.points })),
+          sub_count: 0
+        };
+      }
+
+      function buildCoachData(log) {
+        return {
+          name_list: log?.name_list || 0,
+          schedule: log?.schedule || 0,
+          follow_up: log?.follow_up || 0,
+          confirmed: log?.confirmed || false
+        };
+      }
+
+      return {
+        id: stu.id,
+        member_id: stu.member_id,
+        name: info.name || '未知',
+        code: info.member_code || '',
+        today: buildDayData(todayLog, todayCloses),
+        yesterday: buildDayData(yesterdayLog, yesterdayCloses),
+        coach_today: buildCoachData(todayLog),
+        coach_yesterday: buildCoachData(yesterdayLog),
+        _logId_today: todayLog?.id || null,
+        _logId_yesterday: yesterdayLog?.id || null
+      };
+    });
+
+  } catch (e) {
+    document.getElementById('coachName').textContent = '載入失敗';
+    toast('錯誤：' + e.message);
+  }
+
+  renderSummary();
+}
+
+// ── Day Toggle ──
+function setDay(day) {
+  currentDay = day;
+  document.getElementById('btnToday').classList.toggle('on', day === 'today');
+  document.getElementById('btnYesterday').classList.toggle('on', day === 'yesterday');
+  if (document.getElementById('detailView').style.display !== 'none') {
+    renderStudent();
+  }
+  renderSummary();
+}
+
+// ── Summary ──
+function renderSummary() {
+  const dateStr = formatDate(getDateStr(currentDay));
+  document.getElementById('summaryDate').textContent = dateStr;
+
+  let totalAction = 0, totalClose = 0;
+  let h = `<div style="display:flex;padding:8px 16px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)">
+    <span style="flex:1">學員</span>
+    <span style="width:52px;text-align:center">行動</span>
+    <span style="width:52px;text-align:center">締結</span>
+    <span style="width:28px;text-align:center">📝</span>
+    <span style="width:28px;text-align:center">✅</span>
+  </div>`;
+
+  studentList.forEach((stu, i) => {
+    const d = getStuData(stu);
+    const c = getCoachData(stu);
+    const actionPts = calcActionPts(d);
+    const closePts = calcClosePts(d);
+    totalAction += actionPts;
+    totalClose += closePts;
+    const filled = d ? '📝' : '⬜';
+    const confirmed = c?.confirmed ? '✅' : '⬜';
+
+    h += `<div class="summary-row" onclick="openStudent(${i})">
+      <span class="summary-name">${stu.name}</span>
+      <span class="summary-col pts">${actionPts}</span>
+      <span class="summary-col close-pts">${closePts || '—'}</span>
+      <span class="summary-icon">${filled}</span>
+      <span class="summary-icon">${confirmed}</span>
+    </div>`;
+  });
+
+  h += `<div class="summary-total">
+    <span class="summary-name">合計</span>
+    <span class="summary-col">${totalAction}</span>
+    <span class="summary-col">${totalClose || '—'}</span>
+    <span class="summary-icon"></span>
+    <span class="summary-icon"></span>
+  </div>`;
+
+  document.getElementById('summaryBody').innerHTML = h;
+}
+
+// ── Detail View ──
+function openStudent(idx) {
+  currentIdx = idx;
+  document.getElementById('summaryView').style.display = 'none';
+  document.getElementById('detailView').style.display = '';
+  document.querySelector('.day-toggle').style.display = 'none';
+  renderStudent();
+}
+
+function backToSummary() {
+  document.getElementById('summaryView').style.display = '';
+  document.getElementById('detailView').style.display = 'none';
+  document.querySelector('.day-toggle').style.display = '';
+  currentIdx = -1;
+  renderSummary();
+}
+
+function navStudent(delta) {
+  let next = currentIdx + delta;
+  if (next < 0 || next >= studentList.length) return;
+  currentIdx = next;
+  renderStudent();
+}
+
+function renderStudent() {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  const c = getCoachData(stu);
+  const isLocked = c?.confirmed === true;
+
+  document.getElementById('stuNameLabel').textContent = `📊 ${stu.name}（${stu.code}）`;
+
+  // Status
+  let statusHtml = '';
+  if (!d) {
+    statusHtml = '<span class="status-chip status-empty">⬜ 學員尚未填寫</span>';
+  } else if (isLocked) {
+    statusHtml = '<span class="status-chip status-confirmed">✅ 已確認（鎖定中）</span>';
+  } else {
+    statusHtml = '<span class="status-chip status-filled">📝 學員已填寫，待教練確認</span>';
+  }
+  document.getElementById('statusBar').innerHTML = statusHtml;
+
+  // Student data
+  let dataHtml = '';
+  if (!d) {
+    dataHtml = '<div class="stu-empty">學員尚未填寫回報</div>';
+    document.getElementById('stuDataArea').innerHTML = dataHtml;
+    document.getElementById('stuDateLabel').textContent = '未填寫';
+    document.querySelectorAll('.coach-sec, .submit-wrap').forEach(el => el.style.display = 'none');
+    updateNav();
+    return;
+  }
+
+  document.querySelectorAll('.coach-sec, .submit-wrap').forEach(el => el.style.display = '');
+  const td = d;
+  const dis = isLocked ? 'disabled' : '';
+  dataHtml = '<div class="stu-data-card">';
+  STU_FIELDS.forEach(f => {
+    if (f.special) return;
+    const v = td[f.key] || 0;
+    const valCls = v === 0 ? 'zero' : (f.neg ? 'neg' : '');
+    const btnCls = f.neg ? 'neg-btn' : '';
+    dataHtml += `<div class="stu-row">
+      <span class="stu-row-label">${f.emoji} ${f.label}</span>
+      <div class="stu-row-ctrl">
+        <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',-1)" ${dis}>−</button>
+        <div class="stu-val ${valCls}" id="s-${f.key}">${v}</div>
+        <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',1)" ${dis}>＋</button>
+      </div>
+    </div>`;
+  });
+
+  if (td.close_entries && td.close_entries.length > 0) {
+    const totalPts = td.close_entries.reduce((s,e) => s + e.pts, 0);
+    dataHtml += `<div class="stu-row">
+      <span class="stu-row-label">✅ 締結成功</span>
+      <div class="stu-val">${td.close_entries.length} 筆 / ${totalPts} 分</div>
+    </div>`;
+    const details = td.close_entries.map((e,i) => `第${i+1}筆 → ${e.pts}分`).join('<br>');
+    dataHtml += `<div class="data-close-detail">${details}</div>`;
+  } else {
+    dataHtml += `<div class="stu-row">
+      <span class="stu-row-label">✅ 締結成功</span>
+      <div class="stu-val zero">0</div>
+    </div>`;
+  }
+
+  if (td.sub_count > 0) {
+    dataHtml += `<div class="data-sub-row">📦 訂閱客戶 ${td.sub_count} 人</div>`;
+  }
+  dataHtml += '</div>';
+  document.getElementById('stuDataArea').innerHTML = dataHtml;
+  document.getElementById('stuDateLabel').textContent = formatDate(getDateStr(currentDay));
+
+  // Coach vals
+  coachVals = { name_list: c?.name_list||0, schedule: c?.schedule||0, follow_up: c?.follow_up||0 };
+  COACH_FIELDS.forEach(k => {
+    const el = document.getElementById('c-' + k);
+    el.textContent = coachVals[k];
+    el.classList.toggle('zero', coachVals[k] === 0);
+    el.closest('.coach-card').classList.toggle('has-value', coachVals[k] > 0);
+  });
+  // Lock coach buttons
+  document.querySelectorAll('.coach-btn').forEach(btn => btn.disabled = isLocked);
+
+  // Submit / Undo
+  const btnSubmit = document.getElementById('btnSubmit');
+  const btnUndo = document.getElementById('btnUndo');
+  if (isLocked) {
+    btnSubmit.textContent = '已確認 ✓';
+    btnSubmit.disabled = true;
+    btnUndo.classList.add('show');
+  } else {
+    btnSubmit.textContent = '確認送出';
+    btnSubmit.disabled = false;
+    btnUndo.classList.remove('show');
+  }
+
+  updateNav();
+}
+
+function updateNav() {
+  document.getElementById('btnPrev').disabled = currentIdx === 0;
+  document.getElementById('btnNext').disabled = currentIdx === studentList.length - 1;
+  document.getElementById('navInfo').textContent = `${currentIdx+1} / ${studentList.length}`;
+}
+
+// ── Adjust ──
+function adjStu(key, delta) {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  if (!d || getCoachData(stu)?.confirmed) return;
+  d[key] = Math.max(0, (d[key]||0) + delta);
+  const el = document.getElementById('s-' + key);
+  const f = STU_FIELDS.find(f => f.key === key);
+  el.textContent = d[key];
+  el.className = 'stu-val' + (d[key] === 0 ? ' zero' : (f?.neg ? ' neg' : ''));
+}
+
+function adjCoach(key, delta) {
+  if (getCoachData(studentList[currentIdx])?.confirmed) return;
+  coachVals[key] = Math.max(0, coachVals[key] + delta);
+  const el = document.getElementById('c-' + key);
+  el.textContent = coachVals[key];
+  el.classList.toggle('zero', coachVals[key] === 0);
+  el.closest('.coach-card').classList.toggle('has-value', coachVals[key] > 0);
+}
+
+// ── Submit（教練確認：寫入 action_logs）──
+async function submitCoach() {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.textContent = '送出中…';
+
+  try {
+    const dateStr = getDateStr(currentDay);
+    const logIdKey = currentDay === 'today' ? '_logId_today' : '_logId_yesterday';
+    const logId = stu[logIdKey];
+
+    // 組裝更新資料：學員6欄（教練可能有修正）+ 教練3欄 + confirmed
+    const updateData = {
+      meet: d.meet, invite: d.invite, present: d.present,
+      seminar: d.seminar, ghosted: d.ghosted, rejected: d.rejected,
+      name_list: coachVals.name_list, schedule: coachVals.schedule,
+      follow_up: coachVals.follow_up, confirmed: true
+    };
+
+    if (logId) {
+      // 學員已填，更新該筆
+      const { error } = await sb.from('action_logs').update(updateData).eq('id', logId);
+      if (error) throw error;
+    } else {
+      // 學員沒填但教練要補建（防呆）
+      const insertData = { ...updateData, batch_id: BATCH_ID, student_id: stu.id, log_date: dateStr };
+      const { data, error } = await sb.from('action_logs').insert(insertData).select('id').single();
+      if (error) throw error;
+      stu[logIdKey] = data.id;
+    }
+
+    // 更新本地資料
+    const cKey = currentDay === 'today' ? 'coach_today' : 'coach_yesterday';
+    stu[cKey] = { ...coachVals, confirmed: true };
+    toast(`${stu.name} 已確認 ✓`);
+    renderStudent();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '確認送出';
+    toast('儲存失敗：' + e.message);
+  }
+}
+
+// ── Undo（撤銷確認）──
+async function undoConfirm() {
+  const stu = studentList[currentIdx];
+  const logIdKey = currentDay === 'today' ? '_logId_today' : '_logId_yesterday';
+  const logId = stu[logIdKey];
+
+  if (!logId) { toast('找不到記錄'); return; }
+
+  try {
+    const { error } = await sb.from('action_logs').update({ confirmed: false }).eq('id', logId);
+    if (error) throw error;
+
+    const cKey = currentDay === 'today' ? 'coach_today' : 'coach_yesterday';
+    stu[cKey].confirmed = false;
+    toast(`${stu.name} 已撤銷確認`);
+    renderStudent();
+  } catch (e) {
+    toast('撤銷失敗：' + e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
