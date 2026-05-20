@@ -1,0 +1,436 @@
+{\rtf1\ansi\ansicpg950\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!DOCTYPE html>\
+<html lang="zh-TW" class="scroll-smooth">\
+<head>\
+    <meta charset="UTF-8">\
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">\
+    <title>AI\uc0\u36070 \u33021  - \u38283 \u21855 \u24744 \u30340 \u28961 \u38480 \u21487 \u33021 </title>\
+    <script src="https://cdn.tailwindcss.com"></script>\
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">\
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">\
+    \
+    <script>\
+        tailwind.config = \{\
+            theme: \{\
+                extend: \{\
+                    fontFamily: \{\
+                        sans: ['"SF Pro Text"', '"SF Pro Display"', '"Noto Sans TC"', 'sans-serif'],\
+                    \},\
+                    colors: \{\
+                        apple: \{\
+                            dark: '#1d1d1f',    // Apple \uc0\u20027 \u27161 \u38988 /\u20839 \u25991 \u38991 \u33394 \
+                            gray: '#86868b',    // Apple \uc0\u27425 \u35201 \u25991 \u23383 \u38991 \u33394 \
+                            light: '#f5f5f7',   // Apple \uc0\u32147 \u20856 \u28154 \u28784 \u32972 \u26223 \
+                            blue: '#0071e3',    // Apple \uc0\u32147 \u20856 \u36899 \u32080 /\u25353 \u37397 \u34253 \u33394 \
+                            bluehover: '#0077ed',\
+                        \}\
+                    \},\
+                    animation: \{\
+                        'fade-in': 'fadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) forwards',\
+                        'slide-up': 'slideUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards',\
+                        'draw': 'draw 1.5s ease-out forwards',\
+                        'fill-bar': 'fill-bar 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',\
+                    \},\
+                    keyframes: \{\
+                        fadeIn: \{\
+                            '0%': \{ opacity: '0' \},\
+                            '100%': \{ opacity: '1' \},\
+                        \},\
+                        slideUp: \{\
+                            '0%': \{ opacity: '0', transform: 'translateY(20px)' \},\
+                            '100%': \{ opacity: '1', transform: 'translateY(0)' \},\
+                        \},\
+                        draw: \{\
+                            '0%': \{ strokeDasharray: '1000', strokeDashoffset: '1000' \},\
+                            '100%': \{ strokeDasharray: '1000', strokeDashoffset: '0' \},\
+                        \},\
+                        'fill-bar': \{\
+                            '0%': \{ width: '0%' \},\
+                        \}\
+                    \}\
+                \}\
+            \}\
+        \}\
+    </script>\
+    \
+    <style>\
+        body \{\
+            -webkit-font-smoothing: antialiased;\
+            -moz-osx-font-smoothing: grayscale;\
+        \}\
+\
+        /* Apple \uc0\u39080 \u26684 \u30340 \u26580 \u21644 \u38512 \u24433 \u33287 \u21345 \u29255  */\
+        .apple-card \{\
+            background-color: #ffffff;\
+            border-radius: 24px;\
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);\
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);\
+        \}\
+        \
+        .apple-card:hover \{\
+            transform: scale(1.02);\
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);\
+        \}\
+\
+        /* \uc0\u28414 \u21205 \u21205 \u30059 \u22522 \u24213  */\
+        .reveal-up \{\
+            opacity: 0;\
+            transform: translateY(30px);\
+            transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1);\
+        \}\
+        \
+        .reveal-up.visible \{\
+            opacity: 1;\
+            transform: translateY(0);\
+        \}\
+\
+        /* \uc0\u23566 \u35261 \u21015 \u27611 \u29627 \u29827 \u25928 \u26524  */\
+        #navbar \{\
+            background-color: rgba(255, 255, 255, 0.8);\
+            backdrop-filter: saturate(180%) blur(20px);\
+            -webkit-backdrop-filter: saturate(180%) blur(20px);\
+            transition: background-color 0.3s ease, border-bottom 0.3s ease;\
+        \}\
+        #navbar.scrolled \{\
+            background-color: rgba(255, 255, 255, 0.95);\
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);\
+        \}\
+\
+        /* \uc0\u38577 \u34255 \u38928 \u35373 \u25458 \u21205 \u26781  */\
+        ::-webkit-scrollbar \{ width: 8px; \}\
+        ::-webkit-scrollbar-track \{ background: #f5f5f7; \}\
+        ::-webkit-scrollbar-thumb \{ background: #d2d2d7; border-radius: 4px; \}\
+        ::-webkit-scrollbar-thumb:hover \{ background: #86868b; \}\
+    </style>\
+</head>\
+<body class="bg-white text-apple-dark overflow-x-hidden">\
+\
+    <nav id="navbar" class="fixed w-full z-50 py-3 top-0">\
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\
+            <div class="flex justify-between items-center h-12">\
+                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="window.scrollTo(0,0)">\
+                    <span class="text-xl font-semibold tracking-wide flex items-center">\
+                        <i class="fa-solid fa-microchip mr-2 bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text"></i>\
+                        <span class="bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text">AI\uc0\u36070 \u33021 </span>\
+                    </span>\
+                </div>\
+                \
+                <div class="hidden md:flex space-x-10 items-center">\
+                    <a href="#ai-era" class="text-[13px] text-apple-dark/80 hover:text-apple-dark transition-colors font-medium tracking-wide">AI\uc0\u26178 \u20195 </a>\
+                    <a href="#health-explore" class="text-[13px] text-apple-dark/80 hover:text-apple-dark transition-colors font-medium tracking-wide">\uc0\u20581 \u24247 \u25506 \u32034 </a>\
+                    <a href="#career-explore" class="text-[13px] text-apple-dark/80 hover:text-apple-dark transition-colors font-medium tracking-wide">\uc0\u20107 \u26989 \u25506 \u32034 </a>\
+                    <!-- \uc0\u26356 \u26032 \u28858 \u30097 \u24942 \u34389 \u29702  -->\
+                    <a href="#faq" class="text-[13px] text-apple-dark/80 hover:text-apple-dark transition-colors font-medium tracking-wide">\uc0\u30097 \u24942 \u34389 \u29702 </a>\
+                </div>\
+\
+                <div class="md:hidden flex items-center">\
+                    <button id="mobile-menu-btn" class="text-apple-dark focus:outline-none">\
+                        <i class="fa-solid fa-bars text-xl"></i>\
+                    </button>\
+                </div>\
+            </div>\
+        </div>\
+\
+        <!-- \uc0\u25163 \u27231 \u36984 \u21934  -->\
+        <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-md absolute w-full left-0 top-full border-t border-gray-100 shadow-lg">\
+            <div class="px-4 pt-2 pb-4 space-y-2">\
+                <a href="#ai-era" class="block px-3 py-3 text-sm font-medium text-apple-dark border-b border-gray-100">AI\uc0\u26178 \u20195 </a>\
+                <a href="#health-explore" class="block px-3 py-3 text-sm font-medium text-apple-dark border-b border-gray-100">\uc0\u20581 \u24247 \u25506 \u32034 </a>\
+                <a href="#career-explore" class="block px-3 py-3 text-sm font-medium text-apple-dark border-b border-gray-100">\uc0\u20107 \u26989 \u25506 \u32034 </a>\
+                <a href="#faq" class="block px-3 py-3 text-sm font-medium text-apple-dark">\uc0\u30097 \u24942 \u34389 \u29702 </a>\
+            </div>\
+        </div>\
+    </nav>\
+\
+    <section class="relative h-screen flex flex-col items-center justify-center bg-white pt-16">\
+        <div class="relative z-10 text-center px-4 animate-slide-up">\
+            <h1 class="text-5xl md:text-7xl font-bold text-apple-dark tracking-tight mb-2">\
+                \uc0\u35299 \u37782 \u26410 \u20358 \
+            </h1>\
+            <h2 class="text-5xl md:text-7xl font-bold tracking-tight mb-6">\
+                <span class="bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text">\uc0\u30001  AI \u36070 \u33021 \u12290 </span>\
+            </h2>\
+            <p class="text-xl md:text-2xl text-apple-gray font-medium mt-4 max-w-2xl mx-auto tracking-wide">\
+                \uc0\u36939 \u29992 \u20808 \u36914 \u31185 \u25216 \u65292 \u37325 \u26032 \u23450 \u32681 \u20581 \u24247 \u33287 \u20107 \u26989 \u30340 \u36556 \u36321 \u12290 \
+            </p>\
+        </div>\
+        \
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity">\
+            <a href="#ai-era" class="text-apple-dark flex flex-col items-center">\
+                <i class="fa-solid fa-chevron-down text-2xl animate-bounce"></i>\
+            </a>\
+        </div>\
+    </section>\
+\
+    <section id="ai-era" class="py-32 bg-apple-light relative">\
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\
+            <div class="text-center mb-20 reveal-up">\
+                <h2 class="text-4xl md:text-5xl font-bold text-apple-dark tracking-tight">AI \uc0\u26178 \u20195 \u65292 \u24744 \u22914 \u20309 \u36984 \u25799 \u65311 </h2>\
+                <p class="mt-6 text-xl text-apple-gray font-medium">\uc0\u27770 \u23450 \u26410 \u20358 \u30340 \u33258 \u30001 \u24230 \u65292 \u24744 \u30446 \u21069 \u22312 \u21738 \u26781 \u36335 \u24465 \u65311 </p>\
+            </div>\
+\
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">\
+                <!-- Path 1 -->\
+                <div class="apple-card p-10 flex flex-col items-center text-center reveal-up">\
+                    <div class="w-16 h-16 rounded-full bg-gray-100 text-apple-gray flex items-center justify-center mb-6">\
+                        <i class="fa-solid fa-hourglass-half text-2xl"></i>\
+                    </div>\
+                    <h3 class="text-xl font-semibold text-apple-dark mb-3">\uc0\u20659 \u32113 \u32218 \u24615 \u25910 \u20837 </h3>\
+                    <p class="text-[15px] text-apple-gray leading-relaxed">\
+                        \uc0\u20197 \u26178 \u38291 \u25563 \u21462 \u22266 \u23450 \u34218 \u36039 \u12290 \u25910 \u20837 \u21463 \u38480 \u26044 \u24037 \u26178 \u65292 \u20572 \u24037 \u21363 \u20572 \u25910 \u12290 \
+                    </p>\
+                </div>\
+\
+                <!-- Path 2 -->\
+                <div class="apple-card p-10 flex flex-col items-center text-center reveal-up" style="transition-delay: 0.1s;">\
+                    <div class="w-16 h-16 rounded-full bg-gray-100 text-apple-gray flex items-center justify-center mb-6">\
+                        <i class="fa-solid fa-user-tie text-2xl"></i>\
+                    </div>\
+                    <h3 class="text-xl font-semibold text-apple-dark mb-3">\uc0\u23560 \u26989 \u33258 \u29151 \u27169 \u24335 </h3>\
+                    <p class="text-[15px] text-apple-gray leading-relaxed">\
+                        \uc0\u39640 \u34218 \u20294 \u25215 \u25812 \u39640 \u22739 \u12290 \u26178 \u38291 \u34987 \u24037 \u20316 \u32129 \u27515 \u65292 \u38627 \u20197 \u20860 \u39015 \u29983 \u27963 \u21697 \u36074 \u12290 \
+                    </p>\
+                </div>\
+\
+                <!-- Path 3 (Highlight) -->\
+                <div class="apple-card p-10 flex flex-col items-center text-center reveal-up relative overflow-hidden" style="transition-delay: 0.2s;">\
+                    <!-- Subtle gradient highlight line at top -->\
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-teal-400"></div>\
+                    <div class="w-16 h-16 rounded-full bg-blue-50/50 flex items-center justify-center mb-6">\
+                        <i class="fa-solid fa-project-diagram text-2xl bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text"></i>\
+                    </div>\
+                    <h3 class="text-xl font-semibold text-apple-dark mb-3">\uc0\u31995 \u32113 \u36039 \u29986 \u27169 \u24335 </h3>\
+                    <p class="text-[15px] text-apple-gray leading-relaxed">\
+                        \uc0\u25171 \u36896 \u25345 \u32396 \u24615 \u36039 \u29986 \u25910 \u20837 \u12290 \u35731 \u31995 \u32113 \u28858 \u24744 \u36939 \u20316 \u65292 \u23526 \u29694 \u26178 \u38291 \u33287 \u36001 \u21209 \u33258 \u30001 \u12290 \
+                    </p>\
+                </div>\
+            </div>\
+\
+            <!-- \uc0\u26032 \u22686 \u25105 \u24819 \u20102 \u35299 \u25353 \u37397  -->\
+            <div class="mt-16 flex justify-center reveal-up" style="transition-delay: 0.3s;">\
+                <a href="#" class="inline-flex items-center justify-center px-8 py-3 bg-apple-dark text-white text-[15px] font-medium rounded-full hover:bg-black transition-colors duration-300">\
+                    \uc0\u25105 \u24819 \u20102 \u35299  <i class="fa-solid fa-arrow-right ml-2 text-sm"></i>\
+                </a>\
+            </div>\
+        </div>\
+    </section>\
+\
+    <section id="health-explore" class="py-32 bg-white relative">\
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\
+            <div class="text-center mb-20 reveal-up">\
+                <h2 class="text-4xl md:text-5xl font-bold text-apple-dark tracking-tight">\uc0\u20581 \u24247 \u25506 \u32034 </h2>\
+            </div>\
+\
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">\
+                <!-- KC\uc0\u27298 \u28204  -->\
+                <div class="bg-apple-light rounded-[32px] p-12 flex flex-col items-center text-center reveal-up">\
+                    <div class="text-4xl mb-6">\
+                        <i class="fa-solid fa-microscope bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text"></i>\
+                    </div>\
+                    <h3 class="text-3xl font-bold mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text">KC\uc0\u27298 \u28204 </h3>\
+                    <p class="text-[17px] text-apple-gray mb-10 leading-relaxed">\
+                        \uc0\u36939 \u29992 \u38750 \u20405 \u20837 \u24335 \u24863 \u28204 \u25216 \u34899 \u65292 \u24555 \u36895 \u25475 \u25551 \u36523 \u39636 \u27231 \u33021 \u25351 \u27161 \u12290 \u22312 \u24190 \u20998 \u37912 \u20839 \u65292 \u29554 \u21462 \u36523 \u39636 \u20998 \u26512 \u25976 \u25818 \u12290 \
+                    </p>\
+                    <a href="#" class="mt-auto px-8 py-3 bg-apple-dark text-white text-[15px] font-medium rounded-full hover:bg-black transition-colors">\
+                        \uc0\u38283 \u22987 \
+                    </a>\
+                </div>\
+\
+                <!-- \uc0\u37327 \u36523 \u23450 \u20570  -->\
+                <div class="bg-apple-light rounded-[32px] p-12 flex flex-col items-center text-center reveal-up" style="transition-delay: 0.1s;">\
+                    <div class="text-4xl mb-6">\
+                        <i class="fa-solid fa-clipboard-user bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text"></i>\
+                    </div>\
+                    <h3 class="text-3xl font-bold mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text">\uc0\u37327 \u36523 \u23450 \u20570 </h3>\
+                    <p class="text-[17px] text-apple-gray mb-10 leading-relaxed">\
+                        \uc0\u22522 \u26044  KC \u27298 \u28204 \u32080 \u26524 \u65292 \u20581 \u24247 \u39015 \u21839 \u23559 \u28858 \u24744 \u29983 \u25104 \u23560 \u23660 \u30340 \u25913 \u21892 \u35336 \u30059 \u12290 \
+                    </p>\
+                    <a href="#" class="mt-auto px-8 py-3 bg-white text-apple-dark border border-gray-300 text-[15px] font-medium rounded-full hover:bg-gray-50 transition-colors">\
+                        \uc0\u38283 \u22987 \
+                    </a>\
+                </div>\
+            </div>\
+        </div>\
+    </section>\
+\
+    <section id="career-explore" class="py-32 bg-apple-light relative">\
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\
+            <div class="text-center mb-24 reveal-up">\
+                <h2 class="text-4xl md:text-5xl font-bold text-apple-dark tracking-tight">\uc0\u20107 \u26989 \u25506 \u32034 </h2>\
+            </div>\
+\
+            <!-- \uc0\u20154 \u29983 \u27169 \u25836 \u22120  -->\
+            <div class="flex flex-col md:flex-row items-center gap-16 mb-32">\
+                <div class="w-full md:w-1/2 reveal-up">\
+                    <div class="apple-card overflow-hidden">\
+                        <div class="bg-gray-100 px-5 py-4 border-b border-gray-200 flex items-center">\
+                            <span class="text-[13px] font-semibold text-apple-gray uppercase tracking-widest">\uc0\u36001 \u21209 \u29694 \u27841 \u27169 \u25836 </span>\
+                        </div>\
+                        <div class="p-10 space-y-8">\
+                            <div>\
+                                <div class="flex justify-between text-[15px] mb-3">\
+                                    <span class="text-apple-gray">\uc0\u38928 \u20272 \u32317 \u25910 \u20837 </span>\
+                                    <span class="text-apple-dark font-semibold">$ 25,000,000</span>\
+                                </div>\
+                                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">\
+                                    <div class="bg-apple-blue h-full rounded-full transition-all duration-1500" style="width: 40%"></div>\
+                                </div>\
+                            </div>\
+                            <div>\
+                                <div class="flex justify-between text-[15px] mb-3">\
+                                    <span class="text-apple-gray">\uc0\u29702 \u24819 \u32317 \u38283 \u37559 </span>\
+                                    <span class="text-apple-dark font-semibold">$ 48,000,000</span>\
+                                </div>\
+                                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">\
+                                    <div class="bg-gray-400 h-full rounded-full transition-all duration-1500" style="width: 80%"></div>\
+                                </div>\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>\
+                \
+                <div class="w-full md:w-1/2 reveal-up" style="transition-delay: 0.1s;">\
+                    <h3 class="text-3xl font-bold text-apple-dark mb-5 tracking-tight">\uc0\u20154 \u29983 \u27169 \u25836 \u22120 </h3>\
+                    <p class="text-[17px] text-apple-gray mb-8 leading-relaxed">\
+                        \uc0\u25581 \u38283 \u36001 \u21209 \u30495 \u30456 \u12290 \u36664 \u20837 \u30446 \u21069 \u25910 \u25903 \u65292 \u31995 \u32113 \u23559 \u27169 \u25836 \u26410 \u20358 \u30340 \u36001 \u21209 \u36556 \u36321 \u65292 \u35731 \u24744 \u19968 \u30524 \u30475 \u28165 \u29702 \u24819 \u33287 \u29694 \u23526 \u30340 \u24046 \u36317 \u65292 \u25552 \u26089 \u20570 \u20986 \u25913 \u35722 \u12290 \
+                    </p>\
+                    <a href="#" class="text-apple-blue text-[17px] hover:text-apple-bluehover font-medium flex items-center">\
+                        \uc0\u38283 \u22987 \u35430 \u31639  <i class="fa-solid fa-chevron-right ml-2 text-sm"></i>\
+                    </a>\
+                </div>\
+            </div>\
+\
+            <!-- \uc0\u39000 \u26223 \u20296 \u23616  -->\
+            <div class="flex flex-col md:flex-row-reverse items-center gap-16">\
+                <div class="w-full md:w-1/2 reveal-up">\
+                    <div class="apple-card p-10 flex items-center justify-center min-h-[280px]">\
+                        <div class="flex items-center justify-between w-full max-w-sm mx-auto">\
+                            <!-- \uc0\u21934 \u20154  -->\
+                            <div class="flex flex-col items-center">\
+                                <div class="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center text-apple-gray mb-3 border border-gray-100">\
+                                    <i class="fa-solid fa-user text-lg"></i>\
+                                </div>\
+                                <span class="text-sm text-apple-gray">\uc0\u21934 \u25171 \u29544 \u39717 </span>\
+                            </div>\
+                            \
+                            <!-- \uc0\u32218 \u26781  -->\
+                            <div class="flex-1 px-4 relative">\
+                                <div class="w-full h-[2px] bg-gray-200"></div>\
+                                <i class="fa-solid fa-chevron-right absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-300 bg-white px-2 text-xs"></i>\
+                            </div>\
+                            \
+                            <!-- \uc0\u20296 \u23616  -->\
+                            <div class="flex flex-col items-center">\
+                                <div class="w-16 h-16 bg-apple-dark rounded-2xl flex items-center justify-center text-white mb-3 shadow-lg">\
+                                    <i class="fa-solid fa-network-wired text-xl"></i>\
+                                </div>\
+                                <span class="text-sm text-apple-dark font-semibold">\uc0\u31995 \u32113 \u20296 \u23616 </span>\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>\
+                \
+                <div class="w-full md:w-1/2 reveal-up" style="transition-delay: 0.1s;">\
+                    <h3 class="text-3xl font-bold text-apple-dark mb-5 tracking-tight">\uc0\u39000 \u26223 \u20296 \u23616 </h3>\
+                    <p class="text-[17px] text-apple-gray mb-8 leading-relaxed">\
+                        \uc0\u25484 \u25569 \u12300 \u21516 \u24037 \u19981 \u21516 \u37228 \u12301 \u30340 \u20493 \u22686 \u21147 \u37327 \u12290 \u19981 \u20877 \u21934 \u25171 \u29544 \u39717 \u65292 \u36939 \u29992 \u27491 \u30906 \u30340 \u21830 \u26989 \u27169 \u24335 \u33287 \u31995 \u32113 \u27091 \u26751 \u65292 \u35731 \u27599 \u19968 \u20998 \u21162 \u21147 \u30332 \u25582 \u26368 \u22823 \u20729 \u20540 \u12290 \
+                    </p>\
+                    <a href="#" class="text-apple-blue text-[17px] hover:text-apple-bluehover font-medium flex items-center">\
+                        \uc0\u20102 \u35299 \u20296 \u23616  <i class="fa-solid fa-chevron-right ml-2 text-sm"></i>\
+                    </a>\
+                </div>\
+            </div>\
+        </div>\
+    </section>\
+\
+    <section id="faq" class="py-32 bg-white relative">\
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal-up">\
+            <h2 class="text-4xl md:text-5xl font-bold mb-6 tracking-tight">\
+                <span class="bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text">AI \uc0\u30097 \u24942 \u34389 \u29702 </span>\
+            </h2>\
+            \
+            <p class="text-[19px] text-apple-gray mb-12 leading-relaxed">\
+                \uc0\u38754 \u23565 \u26410 \u30693 \u30340 \u36681 \u25563 \u65292 \u26377 \u30097 \u24942 \u26159 \u27491 \u24120 \u30340 \u12290 \u25105 \u20497 \u28310 \u20633 \u20102 \u35443 \u30433 \u30340 \u35498 \u26126 \u33287 \u23560 \u26989 \u39015 \u21839 \u22296 \u38538 \u65292 \u38568 \u26178 \u28858 \u24744 \u35299 \u31572 \u12290 \
+            </p>\
+\
+            <button class="inline-flex items-center justify-center px-8 py-4 bg-apple-dark text-white text-[17px] font-medium rounded-full hover:bg-black transition-colors duration-300">\
+                \uc0\u35299 \u27770 \u24744 \u30340 \u30097 \u24942  <i class="fa-solid fa-arrow-right ml-3"></i>\
+            </button>\
+        </div>\
+    </section>\
+\
+    <footer class="bg-apple-light py-10 border-t border-gray-200">\
+        <div class="max-w-7xl mx-auto px-4 text-center">\
+            <span class="text-lg font-semibold tracking-wide mb-2 flex justify-center items-center">\
+                <i class="fa-solid fa-microchip mr-2 bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text"></i>\
+                <span class="bg-gradient-to-r from-blue-600 to-teal-400 text-transparent bg-clip-text">AI\uc0\u36070 \u33021 </span>\
+            </span>\
+            <p class="text-apple-gray text-[13px] mt-2">\'a9 2026 AI \uc0\u36070 \u33021 \u24179 \u21488 . All rights reserved.</p>\
+        </div>\
+    </footer>\
+\
+    <script>\
+        document.addEventListener('DOMContentLoaded', () => \{\
+            \
+            // 1. \uc0\u28414 \u21205 \u28129 \u20837 \u21205 \u30059  (Reveal Up)\
+            const observerOptions = \{ root: null, rootMargin: '0px', threshold: 0.15 \};\
+            const observer = new IntersectionObserver((entries, observer) => \{\
+                entries.forEach(entry => \{\
+                    if (entry.isIntersecting) \{\
+                        entry.target.classList.add('visible');\
+                        observer.unobserve(entry.target); \
+                    \}\
+                \});\
+            \}, observerOptions);\
+\
+            document.querySelectorAll('.reveal-up').forEach(elem => observer.observe(elem));\
+\
+            // 2. \uc0\u23566 \u35261 \u21015 \u27611 \u29627 \u29827 \u28414 \u21205 \u25928 \u26524 \
+            const navbar = document.getElementById('navbar');\
+            window.addEventListener('scroll', () => \{\
+                if (window.scrollY > 10) \{\
+                    navbar.classList.add('scrolled');\
+                \} else \{\
+                    navbar.classList.remove('scrolled');\
+                \}\
+            \});\
+\
+            // 3. \uc0\u25163 \u27231 \u29256 \u36984 \u21934 \u20999 \u25563 \
+            const mobileMenu = document.getElementById('mobile-menu');\
+            const menuBtn = document.getElementById('mobile-menu-btn');\
+            \
+            menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));\
+            document.querySelectorAll('#mobile-menu a').forEach(link => \{\
+                link.addEventListener('click', () => mobileMenu.classList.add('hidden'));\
+            \});\
+\
+            // 4. \uc0\u24179 \u28369 \u28414 \u21205 \
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => \{\
+                anchor.addEventListener('click', function (e) \{\
+                    e.preventDefault();\
+                    const targetId = this.getAttribute('href');\
+                    if(targetId === '#') return;\
+                    \
+                    const targetElement = document.querySelector(targetId);\
+                    if (targetElement) \{\
+                        const headerOffset = 60; \
+                        const elementPosition = targetElement.getBoundingClientRect().top;\
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;\
+  \
+                        window.scrollTo(\{\
+                            top: offsetPosition,\
+                            behavior: "smooth"\
+                        \});\
+                    \}\
+                \});\
+            \});\
+        \});\
+    </script>\
+</body>\
+</html>}
