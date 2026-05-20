@@ -146,11 +146,19 @@ body::before{
       </div>
       <div class="nav-arrow">›</div>
     </a>
-    <a class="nav-card" href="leaderboard.html" onclick="return false;" id="navReport" style="opacity:0.4;pointer-events:none">
+    <a class="nav-card" href="daily.html">
       <div class="nav-icon">📊</div>
       <div class="nav-info">
-        <div class="nav-title">每日回報</div>
-        <div class="nav-desc">教練填寫學員行動紀錄（即將開放）</div>
+        <div class="nav-title">學員每日回報</div>
+        <div class="nav-desc">填寫今日行動量與締結紀錄</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </a>
+    <a class="nav-card" href="coach-review.html">
+      <div class="nav-icon">✏️</div>
+      <div class="nav-info">
+        <div class="nav-title">教練回報</div>
+        <div class="nav-desc">審查學員回報、補充教練欄位、確認鎖定</div>
       </div>
       <div class="nav-arrow">›</div>
     </a>
@@ -236,17 +244,38 @@ async function init() {
     return;
   }
 
+  // 查行動紀錄（新欄位）
   const { data: logs } = await sb.from('action_logs')
-    .select('student_id, company_points, action_list, action_social, action_recommend, action_invite, action_schedule')
+    .select('student_id, meet, invite, present, seminar, ghosted, rejected')
     .eq('batch_id', 1);
 
+  // 查締結紀錄
+  const stuIds = students.map(s => s.id);
+  const { data: stuMembers } = await sb.from('batch_students')
+    .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
+  const sidToMid = {};
+  (stuMembers || []).forEach(s => sidToMid[s.id] = s.member_id);
+  const memberIds = Object.values(sidToMid);
+  const { data: closes } = await sb.from('closing_records')
+    .select('member_id, points').in('member_id', memberIds);
+
+  // 彙總每位學員積分
   const sums = {};
   let allActions = 0;
   (logs || []).forEach(log => {
     const sid = log.student_id;
     if (!sums[sid]) sums[sid] = 0;
-    sums[sid] += log.company_points || 0;
-    allActions += (log.action_list||0) + (log.action_social||0) + (log.action_recommend||0) + (log.action_invite||0) + (log.action_schedule||0);
+    const actionPts = (log.meet||0)*1 + (log.invite||0)*2 + (log.present||0)*5 + (log.seminar||0)*5 + (log.ghosted||0)*1 + (log.rejected||0)*1;
+    sums[sid] += actionPts;
+    allActions += (log.meet||0) + (log.invite||0) + (log.present||0) + (log.seminar||0) + (log.ghosted||0) + (log.rejected||0);
+  });
+
+  // 加上締結分
+  const midToSid = {};
+  Object.entries(sidToMid).forEach(([sid, mid]) => midToSid[mid] = sid);
+  (closes || []).forEach(c => {
+    const sid = midToSid[c.member_id];
+    if (sid) { if (!sums[sid]) sums[sid] = 0; sums[sid] += c.points || 0; }
   });
 
   const achieved = Object.values(sums).filter(v => v >= TARGET).length;
