@@ -112,6 +112,18 @@
   .nav-btn:disabled{opacity:.3;cursor:not-allowed}
   .nav-info{font-size:13px;color:var(--muted)}
 
+  /* ── Mode Tabs ── */
+  .mode-tabs{display:flex;gap:0;max-width:500px;margin:0 auto;padding:12px 16px 0}
+  .mode-tab{flex:1;padding:12px;border:none;border-bottom:3px solid transparent;background:none;font-size:15px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .mode-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+
+  /* ── My Report ── */
+  .my-report{max-width:500px;margin:0 auto;padding:16px}
+  .my-report .stu-data-card{margin-bottom:16px}
+  .my-status{text-align:center;padding:12px;font-size:14px;font-weight:600}
+  .my-status.saved{color:var(--green)}
+  .my-status.unsaved{color:var(--muted)}
+
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -130,14 +142,31 @@
   <div class="hd-badge">教練回報</div>
 </div>
 
+<!-- Mode Tabs -->
+<div class="mode-tabs">
+  <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">我的回報</button>
+  <button class="mode-tab" id="tabReview" onclick="setMode('review')">學員審查</button>
+</div>
+
 <!-- Day Toggle -->
 <div class="day-toggle">
   <button class="day-btn on" id="btnToday" onclick="setDay('today')">今天</button>
   <button class="day-btn" id="btnYesterday" onclick="setDay('yesterday')">昨天</button>
 </div>
 
+<!-- My Report View -->
+<div id="myReportView">
+  <div class="my-report">
+    <div id="myStatusArea"></div>
+    <div id="myDataArea"></div>
+    <div style="padding:8px 0">
+      <button class="btn-submit" id="btnMySubmit" onclick="submitMyReport()" style="width:100%">儲存我的回報</button>
+    </div>
+  </div>
+</div>
+
 <!-- Summary View -->
-<div id="summaryView">
+<div id="summaryView" style="display:none">
   <div class="summary-wrap">
     <div class="summary-card">
       <div class="summary-hd">
@@ -232,6 +261,10 @@ const STU_FIELDS = [
 const COACH_FIELDS = ['name_list','schedule','follow_up'];
 
 let coachId = null;
+let myStudentId = null;
+let myData = { today: null, yesterday: null, _logId_today: null, _logId_yesterday: null };
+let myVals = { meet:0, invite:0, present:0, seminar:0, ghosted:0, rejected:0 };
+let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
 let coachVals = { name_list:0, schedule:0, follow_up:0 };
@@ -292,6 +325,24 @@ async function init() {
     }
     coachId = coach.id;
     document.getElementById('coachName').textContent = member.name + ' 教練';
+
+    // 查教練自己的 batch_students 記錄（用來填自己的回報）
+    const { data: myStu } = await sb.from('batch_students').select('id')
+      .eq('batch_id', BATCH_ID).eq('member_id', coachMemberId).eq('status', 'approved').single();
+    if (myStu) {
+      myStudentId = myStu.id;
+      const todayStr = getDateStr('today');
+      const yesterdayStr = getDateStr('yesterday');
+      const { data: myLogs } = await sb.from('action_logs').select('*')
+        .eq('batch_id', BATCH_ID).eq('student_id', myStudentId)
+        .in('log_date', [todayStr, yesterdayStr]);
+      const myTodayLog = (myLogs||[]).find(l => l.log_date === todayStr);
+      const myYesterdayLog = (myLogs||[]).find(l => l.log_date === yesterdayStr);
+      myData._logId_today = myTodayLog?.id || null;
+      myData._logId_yesterday = myYesterdayLog?.id || null;
+      myData.today = myTodayLog ? { meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 } : null;
+      myData.yesterday = myYesterdayLog ? { meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 } : null;
+    }
 
     // 查配對學員（只撈已批准）
     const { data: students } = await sb.from('batch_students').select('id, member_id')
@@ -370,7 +421,111 @@ async function init() {
     toast('錯誤：' + e.message);
   }
 
+  renderMyReport();
   renderSummary();
+  setMode('my');
+}
+
+// ── Mode Toggle ──
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('tabMyReport').classList.toggle('on', mode === 'my');
+  document.getElementById('tabReview').classList.toggle('on', mode === 'review');
+  document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
+  document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
+  document.getElementById('detailView').style.display = 'none';
+  document.querySelector('.day-toggle').style.display = '';
+  if (mode === 'my') renderMyReport();
+  if (mode === 'review') renderSummary();
+}
+
+// ── My Report ──
+function getMyDayData() { return currentDay === 'today' ? myData.today : myData.yesterday; }
+
+function renderMyReport() {
+  const d = getMyDayData();
+  const dateStr = formatDate(getDateStr(currentDay));
+
+  let statusHtml = '';
+  if (d) {
+    statusHtml = `<div class="my-status saved">✅ ${dateStr} 已填寫</div>`;
+  } else {
+    statusHtml = `<div class="my-status unsaved">📝 ${dateStr} 尚未填寫</div>`;
+  }
+  document.getElementById('myStatusArea').innerHTML = statusHtml;
+
+  // 初始化 myVals
+  const MY_FIELDS = STU_FIELDS.filter(f => !f.special);
+  if (d) {
+    MY_FIELDS.forEach(f => { myVals[f.key] = d[f.key] || 0; });
+  } else {
+    MY_FIELDS.forEach(f => { myVals[f.key] = 0; });
+  }
+
+  let h = '<div class="stu-data-card">';
+  MY_FIELDS.forEach(f => {
+    const v = myVals[f.key];
+    const valCls = v === 0 ? 'zero' : (f.neg ? 'neg' : '');
+    const btnCls = f.neg ? 'neg-btn' : '';
+    h += `<div class="stu-row">
+      <span class="stu-row-label">${f.emoji} ${f.label}</span>
+      <div class="stu-row-ctrl">
+        <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',-1)">−</button>
+        <div class="stu-val ${valCls}" id="my-${f.key}">${v}</div>
+        <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',1)">＋</button>
+      </div>
+    </div>`;
+  });
+  h += '</div>';
+  document.getElementById('myDataArea').innerHTML = h;
+
+  const btn = document.getElementById('btnMySubmit');
+  btn.textContent = d ? '更新我的回報' : '儲存我的回報';
+  btn.disabled = !myStudentId;
+}
+
+function adjMy(key, delta) {
+  myVals[key] = Math.max(0, (myVals[key]||0) + delta);
+  const el = document.getElementById('my-' + key);
+  const f = STU_FIELDS.find(f => f.key === key);
+  el.textContent = myVals[key];
+  el.className = 'stu-val' + (myVals[key] === 0 ? ' zero' : (f?.neg ? ' neg' : ''));
+}
+
+async function submitMyReport() {
+  if (!myStudentId) { toast('找不到學員記錄'); return; }
+  const btn = document.getElementById('btnMySubmit');
+  btn.disabled = true; btn.textContent = '送出中…';
+
+  try {
+    const dateStr = getDateStr(currentDay);
+    const logIdKey = currentDay === 'today' ? '_logId_today' : '_logId_yesterday';
+    const logId = myData[logIdKey];
+
+    const payload = {
+      meet: myVals.meet, invite: myVals.invite, present: myVals.present,
+      seminar: myVals.seminar, ghosted: myVals.ghosted, rejected: myVals.rejected
+    };
+
+    if (logId) {
+      const { error } = await sb.from('action_logs').update(payload).eq('id', logId);
+      if (error) throw error;
+    } else {
+      const insertData = { ...payload, batch_id: BATCH_ID, student_id: myStudentId, log_date: dateStr };
+      const { data, error } = await sb.from('action_logs').insert(insertData).select('id').single();
+      if (error) throw error;
+      myData[logIdKey] = data.id;
+    }
+
+    // 更新本地
+    const dayKey = currentDay === 'today' ? 'today' : 'yesterday';
+    myData[dayKey] = { ...myVals };
+    toast('回報已儲存 ✓');
+    renderMyReport();
+  } catch (e) {
+    toast('儲存失敗：' + e.message);
+  }
+  btn.disabled = false;
 }
 
 // ── Day Toggle ──
@@ -378,6 +533,7 @@ function setDay(day) {
   currentDay = day;
   document.getElementById('btnToday').classList.toggle('on', day === 'today');
   document.getElementById('btnYesterday').classList.toggle('on', day === 'yesterday');
+  if (currentMode === 'my') { renderMyReport(); return; }
   if (document.getElementById('detailView').style.display !== 'none') {
     renderStudent();
   }
