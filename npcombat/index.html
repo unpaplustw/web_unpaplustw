@@ -130,14 +130,6 @@ body::before{
       </div>
       <div class="nav-arrow">›</div>
     </a>
-    <a class="nav-card" href="register.html">
-      <div class="nav-icon">📝</div>
-      <div class="nav-info">
-        <div class="nav-title">報名挑戰</div>
-        <div class="nav-desc">學員與教練報名登記</div>
-      </div>
-      <div class="nav-arrow">›</div>
-    </a>
     <a class="nav-card" href="leaderboard.html">
       <div class="nav-icon">🏆</div>
       <div class="nav-info">
@@ -149,7 +141,7 @@ body::before{
     <a class="nav-card" href="daily.html">
       <div class="nav-icon">📊</div>
       <div class="nav-info">
-        <div class="nav-title">學員每日回報</div>
+        <div class="nav-title">學員回報</div>
         <div class="nav-desc">填寫今日行動量與締結紀錄</div>
       </div>
       <div class="nav-arrow">›</div>
@@ -174,30 +166,23 @@ const sb = typeof supabase !== 'undefined'
   ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'npcombat' } })
   : null;
 
-const DEMO_MODE = false;
-const BATCH_END = new Date('2026-05-24T21:00:00');
-const BATCH_START = new Date('2026-05-24');
-const TARGET = 800;
+let batchStart = null, batchEnd = null, target = 800;
 
 function startCountdown() {
   function tick() {
     const now = new Date();
-    const diff = BATCH_END - now;
+    const diff = (batchStart || now) - now;
     if (diff <= 0) {
       document.getElementById('cdDays').textContent = '0';
-      document.getElementById('cdHrs').textContent = '0';
-      document.getElementById('cdMins').textContent = '0';
-      document.getElementById('cdSecs').textContent = '0';
+      document.getElementById('cdHrs').textContent = '00';
+      document.getElementById('cdMins').textContent = '00';
+      document.getElementById('cdSecs').textContent = '00';
       return;
     }
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    document.getElementById('cdDays').textContent = d;
-    document.getElementById('cdHrs').textContent = String(h).padStart(2,'0');
-    document.getElementById('cdMins').textContent = String(m).padStart(2,'0');
-    document.getElementById('cdSecs').textContent = String(s).padStart(2,'0');
+    document.getElementById('cdDays').textContent = Math.floor(diff / 86400000);
+    document.getElementById('cdHrs').textContent = String(Math.floor((diff % 86400000) / 3600000)).padStart(2,'0');
+    document.getElementById('cdMins').textContent = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
+    document.getElementById('cdSecs').textContent = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
   }
   tick();
   setInterval(tick, 1000);
@@ -210,28 +195,38 @@ function animateRing(pct) {
     document.getElementById('ringFg').style.strokeDashoffset = offset;
   }, 300);
   let current = 0;
-  const target = Math.round(pct);
-  const step = Math.max(1, Math.floor(target / 40));
+  const t = Math.round(pct);
+  const step = Math.max(1, Math.floor(t / 40));
   const timer = setInterval(() => {
     current += step;
-    if (current >= target) { current = target; clearInterval(timer); }
+    if (current >= t) { current = t; clearInterval(timer); }
     document.getElementById('pctNum').textContent = current;
   }, 30);
 }
 
 function getCurrentWeek() {
+  if (!batchStart) return 0;
   const now = new Date();
-  if (now < BATCH_START) return 0;
-  const diff = now - BATCH_START;
-  return Math.min(Math.floor(diff / (7 * 86400000)) + 1, 5);
+  if (now < batchStart) return 0;
+  return Math.min(Math.floor((now - batchStart) / (7 * 86400000)) + 1, 5);
 }
 
 async function init() {
+  // 從資料庫讀班次資訊
+  const { data: batch } = await sb.from('batches').select('start_date, end_date, single_month_score')
+    .eq('id', 1).single();
+  if (batch) {
+    batchStart = new Date(batch.start_date);
+    batchEnd = new Date(batch.end_date);
+    target = batch.single_month_score || 800;
+  }
+
   startCountdown();
 
-  const { data: students } = await sb.from('batch_students')
-    .select('id').eq('batch_id', 1).eq('status', 'approved');
-  const total = students ? students.length : 0;
+  // 一次查學員（含 member_id）
+  const { data: stuData } = await sb.from('batch_students')
+    .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
+  const total = stuData ? stuData.length : 0;
 
   document.getElementById('totalNum').textContent = total;
   document.getElementById('statWeek').textContent = '第' + getCurrentWeek() + '週';
@@ -244,18 +239,15 @@ async function init() {
     return;
   }
 
-  // 查行動紀錄（新欄位）
+  // 建立對應表
+  const sidToMid = {}, midToSid = {};
+  stuData.forEach(s => { sidToMid[s.id] = s.member_id; midToSid[s.member_id] = s.id; });
+  const memberIds = stuData.map(s => s.member_id);
+
+  // 查行動紀錄 + 締結紀錄
   const { data: logs } = await sb.from('action_logs')
     .select('student_id, meet, invite, present, seminar, ghosted, rejected')
     .eq('batch_id', 1);
-
-  // 查締結紀錄
-  const stuIds = students.map(s => s.id);
-  const { data: stuMembers } = await sb.from('batch_students')
-    .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
-  const sidToMid = {};
-  (stuMembers || []).forEach(s => sidToMid[s.id] = s.member_id);
-  const memberIds = Object.values(sidToMid);
   const { data: closes } = await sb.from('closing_records')
     .select('member_id, points').in('member_id', memberIds);
 
@@ -265,20 +257,16 @@ async function init() {
   (logs || []).forEach(log => {
     const sid = log.student_id;
     if (!sums[sid]) sums[sid] = 0;
-    const actionPts = (log.meet||0)*1 + (log.invite||0)*2 + (log.present||0)*5 + (log.seminar||0)*5 + (log.ghosted||0)*1 + (log.rejected||0)*1;
-    sums[sid] += actionPts;
+    sums[sid] += (log.meet||0)*1 + (log.invite||0)*2 + (log.present||0)*5 + (log.seminar||0)*5 + (log.ghosted||0)*1 + (log.rejected||0)*1;
     allActions += (log.meet||0) + (log.invite||0) + (log.present||0) + (log.seminar||0) + (log.ghosted||0) + (log.rejected||0);
   });
 
-  // 加上締結分
-  const midToSid = {};
-  Object.entries(sidToMid).forEach(([sid, mid]) => midToSid[mid] = sid);
   (closes || []).forEach(c => {
     const sid = midToSid[c.member_id];
     if (sid) { if (!sums[sid]) sums[sid] = 0; sums[sid] += c.points || 0; }
   });
 
-  const achieved = Object.values(sums).filter(v => v >= TARGET).length;
+  const achieved = Object.values(sums).filter(v => v >= target).length;
   const totalScore = Object.values(sums).reduce((a,b) => a+b, 0);
   const avgScore = total > 0 ? Math.round(totalScore / total) : 0;
   const pct = total > 0 ? Math.round((achieved / total) * 100) : 0;
