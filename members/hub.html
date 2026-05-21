@@ -338,6 +338,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 
         <button class="filter-chip on" data-filter="all" onclick="setSaFilter('all')">全部</button>
         <button class="filter-chip" data-filter="pending" onclick="setSaFilter('pending')">待審核</button>
         <button class="filter-chip" data-filter="approved" onclick="setSaFilter('approved')">已通過</button>
+        <button class="filter-chip" data-filter="visitor" onclick="setSaFilter('visitor')">訪客</button>
       </div>
       <div id="sa-member-list"></div>
     </div>
@@ -873,7 +874,9 @@ function renderSaMembers() {
   let list = allMembers;
   if (oaFilter) list = list.filter(m => m.tenant_id === oaFilter);
   if (saFilter === 'pending') list = list.filter(m => m.level === 0 && m.np_member_code);
-  if (saFilter === 'approved') list = list.filter(m => m.level >= 1);
+  else if (saFilter === 'approved') list = list.filter(m => m.level >= 1);
+  else if (saFilter === 'visitor') list = list.filter(m => m.level === 0 && !m.np_member_code);
+  else list = list.filter(m => m.level >= 1 || m.np_member_code);
   if (q) list = list.filter(m =>
     (m.name || '').toLowerCase().includes(q) ||
     (m.np_member_code || '').includes(q) ||
