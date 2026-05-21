@@ -467,9 +467,7 @@ function renderReview() {
   const pStudents = students.filter(s => s.status === 'pending' && matchSearch(s));
   const apStudents= students.filter(s => s.status === 'pending');
 
-  let h = `<div class="toolbar">
-    <input class="search-box" placeholder="搜尋姓名、會員編號、電話…" value="${searchReview}" oninput="searchReview=this.value;renderReview()">
-  </div>`;
+  let h = '';
 
   // 教練審核
   h += `<div class="sec-title"><span>教練審核</span><span class="sec-count">${apCoaches.length} 待審</span></div>`;
@@ -530,17 +528,6 @@ function renderRosterSection() {
 
   let h = `<div class="sec-title" style="margin-top:28px;padding-top:20px;border-top:2px solid var(--gold-bd)"><span>📋 已批准名冊</span><span class="sec-count">${totalS} 學員 / ${ac.length} 教練</span></div>`;
 
-  h += `<div class="toolbar">
-    <input class="search-box" placeholder="搜尋姓名、電話、組別…" value="${rosterSearch}" oninput="rosterSearch=this.value;renderReview()">
-    <div class="toolbar-acts">
-      <select class="hd select" style="background:var(--navy3);color:var(--gold);border:1px solid var(--gold-bd);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit" onchange="rosterFilter=this.value;renderReview()">
-        <option value="all"${rosterFilter==='all'?' selected':''}>全部</option>
-        <option value="no-coach"${rosterFilter==='no-coach'?' selected':''}>未配對教練</option>
-        <option value="no-phone"${rosterFilter==='no-phone'?' selected':''}>缺電話</option>
-      </select>
-      <button class="btn-batch btn-csv" onclick="exportCSV()">匯出 CSV</button>
-    </div>
-  </div>`;
 
   if (rosterFilter !== 'no-coach') {
     h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
@@ -584,7 +571,10 @@ function renderRosterSection() {
               <span class="roster-check" onclick="showDetail('${s.id}','introduction')"><span class="${hasIntro?'has':'no'}">${hasIntro?'✓':'✗'}</span> 自我定位</span>
             </div>
           </div>
-          <button class="btn-edit" onclick="showEdit('${s.id}')">編輯</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn-edit" onclick="showEdit('${s.id}')">編輯</button>
+            <button class="btn-edit" style="background:rgba(220,38,38,.15);color:#f87171" onclick="deleteStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">刪除</button>
+          </div>
         </div>
         <div id="edit-${s.id}"></div>
       </div>`;
@@ -625,6 +615,13 @@ async function deleteCoach(cid, cname) {
   const { error } = await sb.from('batch_coaches').delete().eq('id', cid);
   if (error) return alert('刪除失敗：' + error.message);
   toast('教練已刪除'); await load();
+}
+
+async function deleteStudent(sid, sname) {
+  if (!confirm(`確認刪除學員「${sname}」？\n（只移除學員資格，會員資料不受影響，對方可重新登入報名）`)) return;
+  const { error } = await sb.from('batch_students').delete().eq('id', sid);
+  if (error) return alert('刪除失敗：' + error.message);
+  toast('學員已刪除'); await load();
 }
 
 function showEdit(sid) {
@@ -1101,19 +1098,6 @@ async function removeAdmin(adminId) {
   toast('管理員已移除'); await load();
 }
 
-function exportCSV() {
-  const ac = approvedCoaches();
-  const rows = [['姓名','會員編號','電話','組別','狀態','上線(組織)','配對教練','匯款末5碼']];
-  students.forEach(s => {
-    const sponsor = s.sponsor_id ? ac.find(c=>c.id===s.sponsor_id) : null;
-    const paired  = s.coach_id ? coaches.find(c=>c.id===s.coach_id) : null;
-    rows.push([nm(s), s.members_master?.member_code||'', s.phone||'', s.group_name||'', s.status, sponsor?nm(sponsor):'', paired?nm(paired):'', s.transfer_code||'']);
-  });
-  const csv = '﻿' + rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download = '實戰班_名冊.csv'; a.click(); toast('CSV 已下載');
-}
 
 init();
 </script>
