@@ -544,8 +544,6 @@ function renderRosterSection() {
 
   if (rosterFilter !== 'no-coach') {
     h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
-    h += `<div id="addCoachArea"></div>`;
-    h += `<div style="margin-bottom:10px"><button class="btn-batch" style="background:var(--gold);color:#000;font-weight:700" onclick="addCoachForm()">＋ 新增教練</button></div>`;
     if (cList.length) {
       cList.forEach(c => {
         h += `
@@ -621,49 +619,6 @@ async function saveEditCoach(cid) {
   toast('教練資料已更新'); await load();
 }
 
-let addCoachResults = [];
-
-function addCoachForm() {
-  const el = document.getElementById('addCoachArea');
-  if (!el) return;
-  el.innerHTML = `<div class="roster-card" style="border:1px solid var(--gold-bd)">
-    <div style="margin-bottom:8px;font-weight:700;color:var(--gold)">新增教練</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input id="coachSearchInput" class="search-box" style="flex:1;min-width:160px" placeholder="輸入會員編號或姓名搜尋…" oninput="searchMemberForCoach(this.value)">
-      <button class="btn-cancel" onclick="document.getElementById('addCoachArea').innerHTML=''">取消</button>
-    </div>
-    <div id="coachSearchResults" style="margin-top:8px"></div>
-  </div>`;
-}
-
-async function searchMemberForCoach(q) {
-  const el = document.getElementById('coachSearchResults');
-  if (!q || q.length < 2) { el.innerHTML = ''; addCoachResults = []; return; }
-  const { data } = await sb.from('members_master').select('id, name, member_code')
-    .or(`name.ilike.%${q}%,member_code.ilike.%${q}%`).limit(10);
-  addCoachResults = data || [];
-  const existingIds = coaches.map(c => c.member_id);
-  if (!addCoachResults.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px">查無結果</div>'; return; }
-  el.innerHTML = addCoachResults.map(m => {
-    const already = existingIds.includes(m.id);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.05)">
-      <span style="font-size:13px">${m.name}（${m.member_code || '—'}）</span>
-      ${already
-        ? '<span style="font-size:11px;color:var(--muted)">已是教練</span>'
-        : `<button class="btn-batch" style="background:var(--gold);color:#000;font-size:11px;padding:3px 10px" onclick="submitAddCoach('${m.id}')">加入</button>`}
-    </div>`;
-  }).join('');
-}
-
-async function submitAddCoach(memberId) {
-  const { error } = await sb.from('batch_coaches').insert({
-    batch_id: bid, member_id: memberId, status: 'approved'
-  });
-  if (error) return alert('新增失敗：' + error.message);
-  toast('教練已新增');
-  document.getElementById('addCoachArea').innerHTML = '';
-  await load();
-}
 
 async function deleteCoach(cid, cname) {
   if (!confirm(`確認刪除教練「${cname}」？\n（不會刪除會員資料，只移除教練身份）`)) return;
