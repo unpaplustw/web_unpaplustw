@@ -995,7 +995,13 @@ function renderFinance() {
         <td>${s.phone||'—'}</td>
         <td>${sponsorName}</td>
         <td style="font-size:11px">${sponsorCfc}</td>
-        <td style="font-weight:600">${s.transfer_code||'—'}</td>
+        <td style="font-weight:600">
+          <span id="tc-show-${s.id}" onclick="editTransferCode('${s.id}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,.3)">${s.transfer_code||'—'}</span>
+          <span id="tc-edit-${s.id}" style="display:none">
+            <input id="tc-input-${s.id}" value="${s.transfer_code||''}" style="width:70px;background:var(--navy3);border:1px solid var(--gold-bd);border-radius:4px;padding:3px 6px;color:var(--white);font-size:12px" onkeydown="if(event.key==='Enter')saveTransferCode('${s.id}');if(event.key==='Escape')cancelTransferCode('${s.id}')">
+            <button style="background:var(--gold);color:#000;border:none;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer" onclick="saveTransferCode('${s.id}')">✓</button>
+          </span>
+        </td>
         <td>${confirmed
           ? `<span class="fin-confirmed">✓ ${s.payment_date||''}</span> <button class="btn-unconfirm" onclick="unconfirmPayment('${s.id}')">撤銷</button>`
           : `<div style="display:flex;align-items:center;gap:6px"><input type="date" id="fin-date-${s.id}" value="${new Date().toISOString().slice(0,10)}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 8px;color:var(--white);font-size:12px;font-family:inherit"><button class="btn-confirm" onclick="confirmPayment('${s.id}')">確認</button></div>`
@@ -1021,6 +1027,24 @@ async function unconfirmPayment(sid) {
   const { error } = await sb.from('batch_students').update({ payment_confirmed: false, payment_date: null }).eq('id', sid);
   if (error) return alert('撤銷失敗：' + error.message);
   toast('已撤銷入帳'); await load();
+}
+
+function editTransferCode(sid) {
+  document.getElementById('tc-show-' + sid).style.display = 'none';
+  document.getElementById('tc-edit-' + sid).style.display = '';
+  document.getElementById('tc-input-' + sid).focus();
+}
+
+function cancelTransferCode(sid) {
+  document.getElementById('tc-show-' + sid).style.display = '';
+  document.getElementById('tc-edit-' + sid).style.display = 'none';
+}
+
+async function saveTransferCode(sid) {
+  const val = document.getElementById('tc-input-' + sid).value.trim();
+  const { error } = await sb.from('batch_students').update({ transfer_code: val || null }).eq('id', sid);
+  if (error) return alert('儲存失敗：' + error.message);
+  toast('末5碼已更新'); await load();
 }
 
 // ════════════════════════════════════════════
