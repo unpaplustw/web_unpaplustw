@@ -714,19 +714,26 @@ async function renderSaTenants() {
     else counts[m.tenant_id].pending++;
   });
 
+  // 收集所有 admin line_user_ids 查名字
+  const allAdminIds = [...new Set(tenants.flatMap(t => t.admin_ids || []))];
   const adminNames = {};
-  const adminLineIds = tenants.map(t => t.admin_line_user_id).filter(Boolean);
-  if (adminLineIds.length) {
+  if (allAdminIds.length) {
     const { data: admins } = await sb
       .from('members')
       .select('line_user_id, name')
-      .in('line_user_id', adminLineIds);
+      .in('line_user_id', allAdminIds);
     (admins || []).forEach(a => { adminNames[a.line_user_id] = a.name; });
   }
 
   document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
     const c = counts[t.id] || { total: 0, pending: 0, approved: 0 };
-    const adminName = t.admin_line_user_id ? (adminNames[t.admin_line_user_id] || '未知') : null;
+    const admins = (t.admin_ids || []).filter(Boolean);
+    const adminHtml = admins.length
+      ? admins.map(aid =>
+          '<span class="t-admin-name">' + esc(adminNames[aid] || '未知') + '</span>' +
+          ' <button class="btn-sm btn-remove" onclick="removeAdmin(\'' + t.id + '\',\'' + aid + '\',\'' + esc(adminNames[aid] || '') + '\')">移除</button>'
+        ).join('&nbsp;&nbsp;')
+      : '<span style="color:var(--yellow)">未指定</span>';
     return `
       <div class="t-card">
         <div class="t-top">
@@ -735,14 +742,10 @@ async function renderSaTenants() {
             <div class="t-handle">${esc(t.line_handle)}</div>
           </div>
           <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">
-            ${adminName ? '更換' : '指定'}管理員
+            新增管理員
           </button>
         </div>
-        <div class="t-admin">
-          管理員：${adminName
-            ? '<span class="t-admin-name">' + esc(adminName) + '</span> <button class="btn-sm btn-remove" onclick="removeAdmin(\'' + t.id + '\',\'' + esc(t.owner_name) + '\')">移除</button>'
-            : '<span style="color:var(--yellow)">未指定</span>'}
-        </div>
+        <div class="t-admin">管理員：${adminHtml}</div>
         <div class="t-stats">
           <div class="t-stat">👥 <span class="num">${c.total}</span> 人</div>
           <div class="t-stat">⏳ <span class="num">${c.pending}</span> 待審</div>
@@ -752,15 +755,16 @@ async function renderSaTenants() {
   }).join('');
 }
 
-async function removeAdmin(tenantId, tenantName) {
-  if (!confirm('確認移除「' + tenantName + '」的管理員？')) return;
+async function removeAdmin(tenantId, adminLineId, adminName) {
+  if (!confirm('確認移除「' + adminName + '」的管理員身份？')) return;
   const { data, error } = await sb.rpc('admin_set_tenant_admin', {
     p_caller_line_id: lineUserId,
     p_tenant_id: tenantId,
-    p_admin_line_id: ''
+    p_admin_line_id: adminLineId,
+    p_action: 'remove'
   });
   if (error || !data?.success) { toast('操作失敗'); return; }
-  toast('已移除管理員');
+  toast(adminName + ' 已移除');
   const { data: fresh } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
   ctx = fresh;
   await renderSaTenants();
@@ -812,7 +816,8 @@ async function confirmAssign() {
     const { data, error } = await sb.rpc('admin_set_tenant_admin', {
       p_caller_line_id: lineUserId,
       p_tenant_id: assignTenantId,
-      p_admin_line_id: assignPickedLineId
+      p_admin_line_id: assignPickedLineId,
+      p_action: 'add'
     });
     if (error) throw error;
     if (!data.success) { toast(data.message); return; }
@@ -920,16 +925,16 @@ const MOCK = {
     role:'super_admin',
     member:{id:'x',name:'游育杰',np_member_code:'2675630',phone:'0939804476',email:'',level:1,ai_credits:37,tenant_id:'t1',joined_at:'2026-04-22T09:53:21Z'},
     all_tenants:[
-      {id:'t1',owner_name:'Aplus',line_handle:'@752oqdzy',admin_line_user_id:null,is_active:true},
-      {id:'t2',owner_name:'魷魚團隊',line_handle:'@453ajvfv',admin_line_user_id:'U_mock_admin',is_active:true},
-      {id:'t3',owner_name:'舜心團隊',line_handle:'@659pbthw',admin_line_user_id:null,is_active:true},
-      {id:'t4',owner_name:'威達團隊',line_handle:'@802czzku',admin_line_user_id:null,is_active:true},
-      {id:'t5',owner_name:'基紐團隊',line_handle:'@741zwxpr',admin_line_user_id:null,is_active:true},
-      {id:'t6',owner_name:'宥妍團隊',line_handle:'@185ouwvh',admin_line_user_id:null,is_active:true},
-      {id:'t7',owner_name:'輝岳團隊',line_handle:'@568yngtp',admin_line_user_id:null,is_active:true},
-      {id:'t8',owner_name:'敬豪團隊',line_handle:'@809lipop',admin_line_user_id:null,is_active:true},
-      {id:'t9',owner_name:'姍玥團隊',line_handle:'@579cpvba',admin_line_user_id:null,is_active:true},
-      {id:'t10',owner_name:'翊迅團隊',line_handle:'@514okzir',admin_line_user_id:null,is_active:true}
+      {id:'t1',owner_name:'Aplus',line_handle:'@752oqdzy',admin_ids:['U_mock_admin'],is_active:true},
+      {id:'t2',owner_name:'魷魚團隊',line_handle:'@453ajvfv',admin_ids:['U_mock_admin','U1'],is_active:true},
+      {id:'t3',owner_name:'舜心團隊',line_handle:'@659pbthw',admin_ids:[],is_active:true},
+      {id:'t4',owner_name:'威達團隊',line_handle:'@802czzku',admin_ids:[],is_active:true},
+      {id:'t5',owner_name:'基紐團隊',line_handle:'@741zwxpr',admin_ids:[],is_active:true},
+      {id:'t6',owner_name:'宥妍團隊',line_handle:'@185ouwvh',admin_ids:[],is_active:true},
+      {id:'t7',owner_name:'輝岳團隊',line_handle:'@568yngtp',admin_ids:[],is_active:true},
+      {id:'t8',owner_name:'敬豪團隊',line_handle:'@809lipop',admin_ids:[],is_active:true},
+      {id:'t9',owner_name:'姍玥團隊',line_handle:'@579cpvba',admin_ids:[],is_active:true},
+      {id:'t10',owner_name:'翊迅團隊',line_handle:'@514okzir',admin_ids:[],is_active:true}
     ]
   },
   oa_admin: {
@@ -1037,14 +1042,17 @@ function previewRenderTenants() {
 
   document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
     const c = counts[t.id] || { total:0, pending:0, approved:0 };
-    const adminName = t.admin_line_user_id ? (adminNames[t.admin_line_user_id] || '未知') : null;
+    const admins = (t.admin_ids || []).filter(Boolean);
+    const adminHtml = admins.length
+      ? admins.map(aid => '<span class="t-admin-name">' + esc(adminNames[aid] || '未知') + '</span>').join('&nbsp;&nbsp;')
+      : '<span style="color:var(--yellow)">未指定</span>';
     return `
       <div class="t-card">
         <div class="t-top">
           <div><div class="t-name">${esc(t.owner_name)}</div><div class="t-handle">${esc(t.line_handle)}</div></div>
-          <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">${adminName ? '更換' : '指定'}管理員</button>
+          <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">新增管理員</button>
         </div>
-        <div class="t-admin">管理員：${adminName ? '<span class="t-admin-name">' + esc(adminName) + '</span>' : '<span style="color:var(--yellow)">未指定</span>'}</div>
+        <div class="t-admin">管理員：${adminHtml}</div>
         <div class="t-stats">
           <div class="t-stat">👥 <span class="num">${c.total}</span> 人</div>
           <div class="t-stat">⏳ <span class="num">${c.pending}</span> 待審</div>
