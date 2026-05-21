@@ -212,23 +212,23 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 
       <div class="hint" style="color:var(--red);opacity:.8">如果與系統紀錄比對失敗，將無法自動通過驗證</div>
     </div>
     <div class="field">
-      <label>手機號碼 <span class="req">*</span></label>
-      <input type="tel" id="up-phone" placeholder="0912345678" maxlength="10" inputmode="tel">
-    </div>
-    <div class="field">
-      <label>電子信箱（選填）</label>
-      <input type="email" id="up-email" placeholder="your@email.com">
+      <label>性別 <span class="req">*</span></label>
+      <div style="display:flex;gap:8px">
+        <label class="radio-pill"><input type="radio" name="up-gender" value="male"><span>男</span></label>
+        <label class="radio-pill"><input type="radio" name="up-gender" value="female"><span>女</span></label>
+      </div>
     </div>
     <div class="field">
       <label>出生日期 <span class="req">*</span></label>
       <input type="date" id="up-birthday" style="color-scheme:dark">
     </div>
     <div class="field">
-      <label>性別 <span class="req">*</span></label>
-      <div style="display:flex;gap:8px">
-        <label class="radio-pill"><input type="radio" name="up-gender" value="male"><span>男</span></label>
-        <label class="radio-pill"><input type="radio" name="up-gender" value="female"><span>女</span></label>
-      </div>
+      <label>手機號碼 <span class="req">*</span></label>
+      <input type="tel" id="up-phone" placeholder="0912345678" maxlength="10" inputmode="tel">
+    </div>
+    <div class="field">
+      <label>電子信箱（選填）</label>
+      <input type="email" id="up-email" placeholder="your@email.com">
     </div>
     <button class="btn-primary" id="up-btn" onclick="handleUpgrade()">
       <span id="up-btn-text">確認送出</span>

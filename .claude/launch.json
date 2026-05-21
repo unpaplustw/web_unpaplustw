@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hub-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/randophmac/pCloud Drive/GitHub/web_unpaplustw", "-l", "3456", "--no-clipboard"],
+      "port": 3456
+    }
+  ]
+}
