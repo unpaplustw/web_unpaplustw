@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>會員中心 — NP Plus</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg:#0f172a; --bg2:#1e293b; --bg3:#334155;
+  --border:rgba(255,255,255,.08); --border-hl:rgba(255,255,255,.15);
+  --primary:#8a2be2; --accent:#00d2ff;
+  --text:#ffffff; --muted:#94a3b8;
+  --green:#34d399; --green-bg:rgba(52,211,153,.12);
+  --red:#f87171; --red-bg:rgba(248,113,113,.12);
+  --yellow:#fbbf24; --yellow-bg:rgba(251,191,36,.12);
+  --glass:rgba(255,255,255,.05); --glass-bd:rgba(255,255,255,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 0%,rgba(138,43,226,.15) 0,transparent 50%),radial-gradient(at 100% 100%,rgba(0,210,255,.15) 0,transparent 50%);pointer-events:none;z-index:0}
+
+.wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:20px 16px 80px}
+
+/* HEADER */
+.hd{text-align:center;padding:20px 0 16px}
+.hd-icon{font-size:40px;margin-bottom:8px}
+.hd-title{font-size:22px;font-weight:700;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hd-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.hd-role{display:inline-block;font-size:11px;padding:3px 10px;border-radius:12px;margin-top:8px;font-weight:600}
+.hd-role.super{background:rgba(138,43,226,.2);color:#c084fc;border:1px solid rgba(138,43,226,.3)}
+.hd-role.admin{background:rgba(0,210,255,.15);color:var(--accent);border:1px solid rgba(0,210,255,.25)}
+.hd-role.member{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.25)}
+
+/* SCREENS */
+.screen{display:none}.screen.active{display:block}
+
+/* FULLSCREEN CENTERED */
+.center-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;padding:40px 24px}
+.center-screen.active{display:flex}
+.center-screen .icon{font-size:56px;margin-bottom:16px}
+.center-screen h2{font-size:20px;font-weight:700;margin-bottom:10px}
+.center-screen p{font-size:14px;color:var(--muted);line-height:1.8;max-width:300px}
+
+/* LOADING */
+#screen-loading{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:13px;color:var(--muted)}
+
+/* CARDS */
+.card{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--glass-bd);border-radius:16px;padding:20px;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.card-row:last-child{border:none}
+.card-row .label{color:var(--muted);font-size:13px}
+.card-row .value{font-weight:600}
+
+/* FORM */
+.field{margin-bottom:20px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.field .req{color:var(--red)}
+.field input{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--glass-bd);border-radius:10px;padding:14px;color:#fff;font-size:15px;outline:none;transition:border .2s}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,210,255,.1)}
+.field input::placeholder{color:rgba(255,255,255,.2)}
+.field .hint{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* BUTTONS */
+.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--primary),var(--accent));border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 8px 20px -8px rgba(0,210,255,.3)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-sm{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:.2s}
+.btn-approve{background:var(--green-bg);color:var(--green);border-color:rgba(52,211,153,.25)}
+.btn-approve:hover{background:rgba(52,211,153,.25)}
+.btn-reject{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,.25)}
+.btn-reject:hover{background:rgba(248,113,113,.25)}
+.btn-assign{background:rgba(138,43,226,.12);color:#c084fc;border-color:rgba(138,43,226,.25)}
+.btn-assign:hover{background:rgba(138,43,226,.2)}
+.btn-remove{background:transparent;color:var(--muted);border-color:var(--border);font-size:11px}
+.btn-remove:hover{color:var(--red);border-color:rgba(248,113,113,.25)}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin-bottom:16px;padding:4px;background:var(--bg2);border-radius:10px}
+.tab{flex:1;text-align:center;padding:10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.2s;border:none;background:none}
+.tab.on{background:var(--glass);color:var(--accent)}
+.tab:hover:not(.on){color:var(--text)}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.b-pending{background:var(--yellow-bg);color:var(--yellow)}
+.b-approved{background:var(--green-bg);color:var(--green)}
+.b-level0{background:rgba(148,163,184,.12);color:var(--muted)}
+.b-team{background:rgba(138,43,226,.15);color:#c084fc;border:1px solid rgba(138,43,226,.2);font-size:10px;padding:1px 7px;margin-left:4px}
+
+/* OA SELECT */
+.oa-select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+.oa-select:focus{outline:none;border-color:var(--accent)}
+
+/* RADIO PILL */
+.radio-pill{flex:1;cursor:pointer}
+.radio-pill input{display:none}
+.radio-pill span{display:block;text-align:center;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-size:14px;font-weight:600;transition:.2s}
+.radio-pill input:checked+span{border-color:var(--accent);color:var(--accent);background:rgba(0,210,255,.08)}
+
+/* OA LINK LIST */
+.oa-link{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:border-color .2s}
+.oa-link:hover{border-color:var(--border-hl)}
+.oa-link .oa-name{font-size:14px;font-weight:600}
+.oa-link .oa-handle{font-size:12px;color:var(--muted)}
+.oa-link .oa-go{font-size:12px;color:var(--accent);font-weight:600}
+
+/* MEMBER CARD (admin list) */
+.m-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .2s}
+.m-card:hover{border-color:var(--border-hl)}
+.m-row{display:flex;align-items:center;gap:10px}
+.m-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.m-avatar-placeholder{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);border:1px solid var(--border)}
+.m-left{flex:1;min-width:0}
+.m-name{font-size:14px;font-weight:600}
+.m-meta{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.m-acts{display:flex;gap:6px;margin-top:8px;padding-left:46px}
+
+/* TENANT CARD */
+.t-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;transition:border-color .2s}
+.t-card:hover{border-color:var(--border-hl)}
+.t-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.t-name{font-size:16px;font-weight:700}
+.t-handle{font-size:12px;color:var(--muted)}
+.t-admin{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.t-admin-name{color:var(--accent);font-weight:600}
+.t-stats{display:flex;gap:12px;margin-top:10px;font-size:12px;color:var(--muted)}
+.t-stat{display:flex;align-items:center;gap:4px}
+.t-stat .num{color:var(--text);font-weight:700;font-size:14px}
+
+/* SEARCH */
+.search{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;margin-bottom:12px;transition:border .2s}
+.search:focus{border-color:var(--accent)}
+.search::placeholder{color:rgba(255,255,255,.25)}
+
+/* SECTION TITLE */
+.sec-title{font-size:14px;font-weight:600;color:var(--accent);margin:16px 0 10px;display:flex;justify-content:space-between;align-items:center}
+.sec-count{font-size:12px;color:var(--muted);font-weight:400}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#1e293b;border:1px solid var(--glass-bd);color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;opacity:0;transition:.3s;z-index:999;pointer-events:none;backdrop-filter:blur(12px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--glass-bd);border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px}
+.pick{padding:12px;margin-bottom:6px;background:var(--bg);border:2px solid transparent;border-radius:8px;cursor:pointer;transition:.2s}
+.pick:hover{border-color:rgba(0,210,255,.3)}
+.pick.sel{border-color:var(--accent);background:rgba(0,210,255,.08)}
+.pick-name{font-size:14px;font-weight:600}
+.pick-meta{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+
+/* FILTER */
+.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.filter-chip{padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:.2s}
+.filter-chip.on{border-color:var(--accent);color:var(--accent);background:rgba(0,210,255,.08)}
+
+</style>
+</head>
+<body>
+
+<!-- ===== LOADING ===== -->
+<div id="screen-loading">
+  <div class="spinner"></div>
+  <div class="load-text">載入會員中心...</div>
+</div>
+
+<!-- ===== ERROR ===== -->
+<div class="center-screen" id="screen-error">
+  <div class="icon">📱</div>
+  <h2 id="error-title">請先加入團隊 LINE</h2>
+  <p id="error-msg">此頁面需透過團隊 LINE 官方帳號進入。<br>請先加入您的團隊 LINE，與 AI 顧問對話後再回來開通。</p>
+</div>
+
+<!-- ===== UPGRADE (level 0, no member code) ===== -->
+<div class="screen" id="screen-upgrade">
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-icon">✨</div>
+      <div class="hd-title">開通正式會員</div>
+      <div class="hd-sub">填寫資料，申請升級 AI 服務權限</div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <img id="up-avatar" src="" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--glass-bd);object-fit:cover">
+        <div>
+          <div style="font-weight:600" id="up-display-name"></div>
+          <div style="font-size:12px;color:var(--muted)" id="up-team-name"></div>
+        </div>
+      </div>
+    </div>
+    <div id="up-error" style="display:none;background:var(--red-bg);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:12px;font-size:13px;color:var(--red);margin-bottom:16px;text-align:center"></div>
+    <div class="field">
+      <label>會員編號 <span class="req">*</span></label>
+      <input type="text" id="up-code" placeholder="請輸入 7 碼會員編號" maxlength="7" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>真實姓名 <span class="req">*</span></label>
+      <input type="text" id="up-name" placeholder="請輸入真實姓名" maxlength="20">
+      <div class="hint" style="color:var(--red);opacity:.8">如果與系統紀錄比對失敗，將無法自動通過驗證</div>
+    </div>
+    <div class="field">
+      <label>手機號碼 <span class="req">*</span></label>
+      <input type="tel" id="up-phone" placeholder="0912345678" maxlength="10" inputmode="tel">
+    </div>
+    <div class="field">
+      <label>電子信箱（選填）</label>
+      <input type="email" id="up-email" placeholder="your@email.com">
+    </div>
+    <div class="field">
+      <label>出生日期 <span class="req">*</span></label>
+      <input type="date" id="up-birthday" style="color-scheme:dark">
+    </div>
+    <div class="field">
+      <label>性別 <span class="req">*</span></label>
+      <div style="display:flex;gap:8px">
+        <label class="radio-pill"><input type="radio" name="up-gender" value="male"><span>男</span></label>
+        <label class="radio-pill"><input type="radio" name="up-gender" value="female"><span>女</span></label>
+      </div>
+    </div>
+    <button class="btn-primary" id="up-btn" onclick="handleUpgrade()">
+      <span id="up-btn-text">確認送出</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== PENDING (level 0, has member code) ===== -->
+<div class="center-screen" id="screen-pending">
+  <div class="icon">📋</div>
+  <h2>資料審核中</h2>
+  <p>您的開通申請已送出，<br>團隊管理員將盡快審核。<br>請保持 LINE 通知開啟，靜候佳音。</p>
+  <div class="card" style="margin-top:20px;text-align:left;width:100%;max-width:300px">
+    <div class="card-row"><span class="label">姓名</span><span class="value" id="pd-name">-</span></div>
+    <div class="card-row"><span class="label">會員編號</span><span class="value" id="pd-code">-</span></div>
+  </div>
+</div>
+
+<!-- ===== REJECTED ===== -->
+<div class="screen" id="screen-rejected">
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-icon">🔄</div>
+      <div class="hd-title">申請已退回</div>
+      <div class="hd-sub">團隊管理員不認識您的申請資料</div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        <p style="margin-bottom:8px">可能原因：您加入了非所屬的團隊 LINE。</p>
+        <p>請聯繫您的推薦人確認團隊，或從下方找到正確的團隊加入後重新申請。</p>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px">所有團隊</div>
+    <div id="rejected-oa-list"></div>
+    <div style="margin-top:12px;padding:12px;border-radius:10px;background:rgba(138,43,226,.08);border:1px solid rgba(138,43,226,.2)">
+      <div style="font-size:13px;font-weight:600;color:#c084fc;margin-bottom:4px">不確定所屬團隊？</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">如果您是環貫綠佳利夥伴但非 Aplus 團隊，請加入 <b style="color:var(--text)">Aplus 公關帳號</b>（@752oqdzy），我們會協助您歸隊。</div>
+    </div>
+    <button class="btn-primary" style="margin-top:20px" onclick="clearRejectedAndRetry()">重新填寫申請</button>
+  </div>
+</div>
+
+<!-- ===== MEMBER (level 1+) ===== -->
+<div class="screen" id="screen-member">
+  <div class="wrap">
+    <div class="hd">
+      <img id="mb-avatar" src="" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--glass-bd);object-fit:cover;display:none">
+      <div class="hd-icon" id="mb-icon">🏆</div>
+      <div class="hd-title" id="mb-greeting">歡迎回來</div>
+      <div class="hd-role member">正式會員</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👤 會員資訊</div>
+      <div class="card-row"><span class="label">姓名</span><span class="value" id="mb-name">-</span></div>
+      <div class="card-row"><span class="label">會員編號</span><span class="value" id="mb-code">-</span></div>
+      <div class="card-row"><span class="label">手機</span><span class="value" id="mb-phone">-</span></div>
+      <div class="card-row"><span class="label">生日</span><span class="value" id="mb-birthday">-</span></div>
+      <div class="card-row"><span class="label">AI 點數</span><span class="value" id="mb-credits">-</span></div>
+      <div class="card-row"><span class="label">加入日期</span><span class="value" id="mb-joined">-</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OA ADMIN ===== -->
+<div class="screen" id="screen-oa-admin">
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-icon">🛡️</div>
+      <div class="hd-title" id="oa-title">團隊管理</div>
+      <div class="hd-role admin">OA 管理員</div>
+    </div>
+    <div class="sec-title">⏳ 待審核 <span class="sec-count" id="oa-pending-count"></span></div>
+    <div id="oa-pending-list"></div>
+    <div class="sec-title">✅ 已通過 <span class="sec-count" id="oa-approved-count"></span></div>
+    <div id="oa-approved-list"></div>
+  </div>
+</div>
+
+<!-- ===== SUPER ADMIN ===== -->
+<div class="screen" id="screen-super-admin">
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-icon">👑</div>
+      <div class="hd-title">主控台</div>
+      <div class="hd-sub" id="sa-name"></div>
+      <div class="hd-role super">Super Admin</div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="saTab('tenants')">🏢 團隊管理</button>
+      <button class="tab" onclick="saTab('members')">👥 全部會員</button>
+    </div>
+
+    <!-- Tab: Tenants -->
+    <div class="sa-panel" id="panel-tenants">
+      <div id="sa-tenant-list"></div>
+    </div>
+
+    <!-- Tab: Members -->
+    <div class="sa-panel" id="panel-members" style="display:none">
+      <input type="text" class="search" id="sa-search" placeholder="搜尋姓名、編號、手機..." oninput="renderSaMembers()">
+      <div class="filter-row">
+        <select class="oa-select" id="sa-oa-filter" onchange="renderSaMembers()">
+          <option value="">所有團隊</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <button class="filter-chip on" data-filter="all" onclick="setSaFilter('all')">全部</button>
+        <button class="filter-chip" data-filter="pending" onclick="setSaFilter('pending')">待審核</button>
+        <button class="filter-chip" data-filter="approved" onclick="setSaFilter('approved')">已通過</button>
+      </div>
+      <div id="sa-member-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Assign Admin -->
+<div class="modal-bg" id="modal-assign">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h3 id="modal-title">指定管理員</h3>
+    <input type="text" class="search" id="modal-search" placeholder="搜尋會員..." oninput="renderModalPicks()">
+    <div id="modal-picks"></div>
+    <button class="btn-primary" id="modal-confirm" style="margin-top:12px" onclick="confirmAssign()" disabled>確認指定</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LIFF_ID = '2009692859-9mE2Ymmb';
+const SB_URL  = 'https://nsgqsopqlkhayuefdout.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
+
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+let lineUserId = null;
+let lineProfile = null;
+let ctx = null; // hub context from RPC
+let allMembers = []; // for super admin
+let saFilter = 'all';
+let assignTenantId = null;
+let assignPickedLineId = null;
+
+// ========== UTILS ==========
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function show(id) {
+  document.querySelectorAll('.screen, .center-screen, #screen-loading').forEach(el => {
+    el.classList.remove('active');
+    if (el.id === 'screen-loading') el.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('active');
+    if (id === 'screen-loading') el.style.display = 'flex';
+  }
+}
+
+function fmtDate(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function closeModal() {
+  document.getElementById('modal-assign').classList.remove('open');
+  assignTenantId = null;
+  assignPickedLineId = null;
+}
+
+// ========== INIT ==========
+
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: window.location.href }); return; }
+
+    lineProfile = await liff.getProfile();
+    lineUserId = lineProfile.userId;
+
+    const { data, error } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
+    if (error) throw error;
+    ctx = data;
+
+    const updates = {};
+    if (lineProfile.pictureUrl) updates.picture_url = lineProfile.pictureUrl;
+
+    const oaParam = new URLSearchParams(window.location.search).get('oa');
+    if (oaParam && ctx.member && ctx.member.level === 0) {
+      const { data: tenant } = await sb.from('tenants').select('id').eq('line_handle', oaParam).single();
+      if (tenant) updates.tenant_id = tenant.id;
+    }
+
+    if (Object.keys(updates).length) {
+      sb.from('members').update(updates).eq('line_user_id', lineUserId).then(() => {});
+    }
+
+    route();
+  } catch (e) {
+    console.error('init error:', e);
+    const isLine = /Line\//i.test(navigator.userAgent);
+    if (isLine) {
+      document.getElementById('error-title').textContent = '載入失敗';
+      document.getElementById('error-msg').innerHTML = '錯誤：' + e.message + '<br><br>請截圖回報給管理員。';
+    }
+    show('screen-error');
+  }
+}
+
+function route() {
+  const role = ctx.role;
+
+  if (role === 'not_found') {
+    show('screen-error');
+    return;
+  }
+
+  if (role === 'super_admin') {
+    showSuperAdmin();
+    return;
+  }
+
+  if (role === 'oa_admin') {
+    showOaAdmin();
+    return;
+  }
+
+  if (role === 'member') {
+    showMember();
+    return;
+  }
+
+  if (role === 'pending') {
+    showPending();
+    return;
+  }
+
+  if (role === 'rejected') {
+    showRejected();
+    return;
+  }
+
+  if (role === 'upgrade') {
+    showUpgrade();
+    return;
+  }
+
+  show('screen-error');
+}
+
+// ========== REJECTED ==========
+
+function showRejected() {
+  const oaList = ctx.oa_list || [];
+  document.getElementById('rejected-oa-list').innerHTML = oaList.map(oa => `
+    <a class="oa-link" href="https://line.me/R/ti/p/${encodeURIComponent(oa.line_handle)}" target="_blank">
+      <div>
+        <div class="oa-name">${esc(oa.owner_name)}</div>
+        <div class="oa-handle">${esc(oa.line_handle)}</div>
+      </div>
+      <div class="oa-go">加入 →</div>
+    </a>
+  `).join('');
+  show('screen-rejected');
+}
+
+async function clearRejectedAndRetry() {
+  await sb.from('members').update({ rejected_at: null }).eq('line_user_id', lineUserId);
+  ctx.role = 'upgrade';
+  showUpgrade();
+}
+
+// ========== UPGRADE ==========
+
+function showUpgrade() {
+  document.getElementById('up-avatar').src = lineProfile.pictureUrl || '';
+  document.getElementById('up-display-name').textContent = lineProfile.displayName || '';
+  const tenantName = ctx.member?.tenant_id ? '' : '';
+  document.getElementById('up-team-name').textContent = '申請開通正式會員';
+  show('screen-upgrade');
+}
+
+async function handleUpgrade() {
+  const code = document.getElementById('up-code').value.trim().replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  const name = document.getElementById('up-name').value.trim();
+  const phone = document.getElementById('up-phone').value.trim();
+  const email = document.getElementById('up-email').value.trim();
+  const birthday = document.getElementById('up-birthday').value;
+  const genderEl = document.querySelector('input[name="up-gender"]:checked');
+  const gender = genderEl ? genderEl.value : '';
+  const errEl = document.getElementById('up-error');
+  errEl.style.display = 'none';
+
+  const errors = [];
+  if (!/^\d{7}$/.test(code)) errors.push('會員編號必須是 7 碼數字');
+  if (name.length < 2) errors.push('請輸入正確姓名（至少 2 個字）');
+  if (!/^09\d{8}$/.test(phone)) errors.push('請輸入正確的 10 碼手機號碼（09 開頭）');
+  if (!birthday) errors.push('請選擇出生日期');
+  if (!gender) errors.push('請選擇性別');
+
+  if (errors.length) {
+    errEl.innerHTML = errors.join('<br>');
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const btn = document.getElementById('up-btn');
+  const btnText = document.getElementById('up-btn-text');
+  btn.disabled = true;
+  btnText.textContent = '送出中...';
+
+  try {
+    const { data, error } = await sb.rpc('upgrade_member', {
+      p_line_user_id: lineUserId,
+      p_np_member_code: code,
+      p_name: name,
+      p_phone: phone,
+      p_email: email || null,
+      p_birthday: birthday,
+      p_gender: gender
+    });
+    if (error) throw error;
+
+    if (data.success) {
+      toast('資料已送出！');
+      document.getElementById('pd-name').textContent = name;
+      document.getElementById('pd-code').textContent = code;
+      show('screen-pending');
+    } else {
+      errEl.textContent = data.message;
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = '送出失敗：' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = '確認送出';
+  }
+}
+
+// ========== PENDING ==========
+
+function showPending() {
+  const m = ctx.member;
+  document.getElementById('pd-name').textContent = m.name || '-';
+  document.getElementById('pd-code').textContent = m.np_member_code || '-';
+  show('screen-pending');
+}
+
+// ========== MEMBER ==========
+
+function showMember() {
+  const m = ctx.member;
+  const pic = m.picture_url || (typeof lineProfile !== 'undefined' && lineProfile?.pictureUrl);
+  const avatarEl = document.getElementById('mb-avatar');
+  const iconEl = document.getElementById('mb-icon');
+  if (pic) {
+    avatarEl.src = pic;
+    avatarEl.style.display = 'block';
+    iconEl.style.display = 'none';
+  } else {
+    avatarEl.style.display = 'none';
+    iconEl.style.display = '';
+  }
+  document.getElementById('mb-greeting').textContent = (m.name || '會員') + '，歡迎回來';
+  document.getElementById('mb-name').textContent = m.name || '-';
+  document.getElementById('mb-code').textContent = m.np_member_code || '-';
+  document.getElementById('mb-phone').textContent = m.phone || '-';
+  document.getElementById('mb-birthday').textContent = m.birthday ? fmtDate(m.birthday) : '-';
+  document.getElementById('mb-credits').textContent = m.ai_credits ?? '-';
+  document.getElementById('mb-joined').textContent = fmtDate(m.joined_at);
+  show('screen-member');
+}
+
+// ========== OA ADMIN ==========
+
+async function showOaAdmin() {
+  const tenants = ctx.admin_tenants || [];
+  const tenantNames = tenants.map(t => t.owner_name).join('、');
+  document.getElementById('oa-title').textContent = tenantNames + ' 管理';
+  show('screen-oa-admin');
+
+  const tenantIds = tenants.map(t => t.id);
+  const { data: members, error } = await sb
+    .from('members')
+    .select('id, line_user_id, name, np_member_code, phone, email, level, joined_at')
+    .in('tenant_id', tenantIds)
+    .order('level', { ascending: true })
+    .order('joined_at', { ascending: false });
+
+  if (error) { toast('載入失敗：' + error.message); return; }
+
+  const pending = (members || []).filter(m => m.level === 0 && m.np_member_code);
+  const approved = (members || []).filter(m => m.level >= 1);
+
+  document.getElementById('oa-pending-count').textContent = pending.length + ' 筆';
+  document.getElementById('oa-approved-count').textContent = approved.length + ' 筆';
+
+  renderMemberList('oa-pending-list', pending, true);
+  renderMemberList('oa-approved-list', approved, false);
+}
+
+function renderMemberList(containerId, members, showActions) {
+  const el = document.getElementById(containerId);
+  if (!members.length) {
+    el.innerHTML = '<div class="empty">暫無資料</div>';
+    return;
+  }
+  el.innerHTML = members.map(m => `
+    <div class="m-card" id="mc-${m.line_user_id}">
+      <div class="m-row">
+        ${avatarHtml(m)}
+        <div class="m-left">
+          <div class="m-name">${esc(m.name || '未填寫')} ${m.level >= 1 ? '<span class="badge b-approved">已通過</span>' : m.np_member_code ? '<span class="badge b-pending">待審核</span>' : '<span class="badge b-level0">未申請</span>'}</div>
+          <div class="m-meta">${esc(m.np_member_code || '-')} · ${esc(m.phone || '-')} · ${fmtDate(m.joined_at)}</div>
+        </div>
+      </div>
+      ${showActions ? `<div class="m-acts">
+        <button class="btn-sm btn-approve" onclick="doApprove('${m.line_user_id}','${esc(m.name)}')">通過</button>
+        <button class="btn-sm btn-reject" onclick="doReject('${m.line_user_id}','${esc(m.name)}')">退回</button>
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+
+async function doApprove(lineId, name) {
+  if (!confirm('確認通過「' + name + '」的申請？')) return;
+  try {
+    const { error } = await sb.rpc('approve_member', { p_line_id: lineId });
+    if (error) throw error;
+    toast(name + ' 已通過！');
+    if (ctx.role === 'super_admin') await loadSaMembers();
+    else await showOaAdmin();
+  } catch (e) { toast('操作失敗：' + e.message); }
+}
+
+async function doReject(lineId, name) {
+  if (!confirm('確認退回「' + name + '」的申請？退回後對方可重新提交。')) return;
+  try {
+    const { error } = await sb.rpc('reject_member', { p_line_id: lineId });
+    if (error) throw error;
+    toast(name + ' 已退回');
+    if (ctx.role === 'super_admin') await loadSaMembers();
+    else await showOaAdmin();
+  } catch (e) { toast('操作失敗：' + e.message); }
+}
+
+// ========== SUPER ADMIN ==========
+
+async function showSuperAdmin() {
+  document.getElementById('sa-name').textContent = ctx.member.name;
+  show('screen-super-admin');
+  await Promise.all([renderSaTenants(), loadSaMembers()]);
+}
+
+function saTab(tab) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.sa-panel').forEach(p => p.style.display = 'none');
+  event.target.classList.add('on');
+  document.getElementById('panel-' + tab).style.display = 'block';
+}
+
+async function renderSaTenants() {
+  const tenants = ctx.all_tenants || [];
+  const { data: members } = await sb
+    .from('members')
+    .select('tenant_id, level');
+
+  const counts = {};
+  (members || []).forEach(m => {
+    if (!m.tenant_id) return;
+    if (!counts[m.tenant_id]) counts[m.tenant_id] = { total: 0, pending: 0, approved: 0 };
+    counts[m.tenant_id].total++;
+    if (m.level >= 1) counts[m.tenant_id].approved++;
+    else counts[m.tenant_id].pending++;
+  });
+
+  const adminNames = {};
+  const adminLineIds = tenants.map(t => t.admin_line_user_id).filter(Boolean);
+  if (adminLineIds.length) {
+    const { data: admins } = await sb
+      .from('members')
+      .select('line_user_id, name')
+      .in('line_user_id', adminLineIds);
+    (admins || []).forEach(a => { adminNames[a.line_user_id] = a.name; });
+  }
+
+  document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
+    const c = counts[t.id] || { total: 0, pending: 0, approved: 0 };
+    const adminName = t.admin_line_user_id ? (adminNames[t.admin_line_user_id] || '未知') : null;
+    return `
+      <div class="t-card">
+        <div class="t-top">
+          <div>
+            <div class="t-name">${esc(t.owner_name)}</div>
+            <div class="t-handle">${esc(t.line_handle)}</div>
+          </div>
+          <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">
+            ${adminName ? '更換' : '指定'}管理員
+          </button>
+        </div>
+        <div class="t-admin">
+          管理員：${adminName
+            ? '<span class="t-admin-name">' + esc(adminName) + '</span> <button class="btn-sm btn-remove" onclick="removeAdmin(\'' + t.id + '\',\'' + esc(t.owner_name) + '\')">移除</button>'
+            : '<span style="color:var(--yellow)">未指定</span>'}
+        </div>
+        <div class="t-stats">
+          <div class="t-stat">👥 <span class="num">${c.total}</span> 人</div>
+          <div class="t-stat">⏳ <span class="num">${c.pending}</span> 待審</div>
+          <div class="t-stat">✅ <span class="num">${c.approved}</span> 通過</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function removeAdmin(tenantId, tenantName) {
+  if (!confirm('確認移除「' + tenantName + '」的管理員？')) return;
+  const { data, error } = await sb.rpc('admin_set_tenant_admin', {
+    p_caller_line_id: lineUserId,
+    p_tenant_id: tenantId,
+    p_admin_line_id: ''
+  });
+  if (error || !data?.success) { toast('操作失敗'); return; }
+  toast('已移除管理員');
+  const { data: fresh } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
+  ctx = fresh;
+  await renderSaTenants();
+}
+
+// ========== ASSIGN MODAL ==========
+
+function openAssignModal(tenantId, tenantName) {
+  assignTenantId = tenantId;
+  assignPickedLineId = null;
+  document.getElementById('modal-title').textContent = '指定「' + tenantName + '」管理員';
+  document.getElementById('modal-search').value = '';
+  document.getElementById('modal-confirm').disabled = true;
+  renderModalPicks();
+  document.getElementById('modal-assign').classList.add('open');
+}
+
+function renderModalPicks() {
+  const q = document.getElementById('modal-search').value.trim().toLowerCase();
+  const filtered = allMembers.filter(m => {
+    if (!q) return m.level >= 1;
+    return (m.name || '').toLowerCase().includes(q) ||
+           (m.np_member_code || '').includes(q) ||
+           (m.phone || '').includes(q);
+  }).slice(0, 30);
+
+  document.getElementById('modal-picks').innerHTML = filtered.length
+    ? filtered.map(m => `
+      <div class="pick ${assignPickedLineId === m.line_user_id ? 'sel' : ''}" onclick="pickAdmin('${m.line_user_id}')">
+        <div class="pick-name">${esc(m.name || '未填寫')}</div>
+        <div class="pick-meta">${esc(m.np_member_code || '-')} · ${esc(m.phone || '-')}</div>
+      </div>`).join('')
+    : '<div class="empty">找不到符合的會員</div>';
+}
+
+function pickAdmin(lineId) {
+  assignPickedLineId = lineId;
+  document.getElementById('modal-confirm').disabled = false;
+  renderModalPicks();
+}
+
+async function confirmAssign() {
+  if (!assignTenantId || !assignPickedLineId) return;
+  const btn = document.getElementById('modal-confirm');
+  btn.disabled = true;
+  btn.textContent = '指定中...';
+
+  try {
+    const { data, error } = await sb.rpc('admin_set_tenant_admin', {
+      p_caller_line_id: lineUserId,
+      p_tenant_id: assignTenantId,
+      p_admin_line_id: assignPickedLineId
+    });
+    if (error) throw error;
+    if (!data.success) { toast(data.message); return; }
+
+    toast('管理員已指定！');
+    closeModal();
+    const { data: fresh } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
+    ctx = fresh;
+    await renderSaTenants();
+  } catch (e) {
+    toast('操作失敗：' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '確認指定';
+  }
+}
+
+// ========== SA MEMBERS TAB ==========
+
+async function loadSaMembers() {
+  const { data, error } = await sb
+    .from('members')
+    .select('id, line_user_id, name, np_member_code, phone, email, level, ai_credits, tenant_id, joined_at, picture_url')
+    .order('level', { ascending: true })
+    .order('joined_at', { ascending: false });
+  if (error) { toast('載入會員失敗'); return; }
+  allMembers = data || [];
+  renderSaMembers();
+}
+
+function setSaFilter(f) {
+  saFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', c.dataset.filter === f));
+  renderSaMembers();
+}
+
+function renderSaMembers() {
+  const q = (document.getElementById('sa-search')?.value || '').trim().toLowerCase();
+  const oaFilter = document.getElementById('sa-oa-filter')?.value || '';
+  const tenantMap = {};
+  (ctx.all_tenants || []).forEach(t => { tenantMap[t.id] = t.owner_name; });
+
+  const sel = document.getElementById('sa-oa-filter');
+  if (sel && sel.options.length <= 1) {
+    (ctx.all_tenants || []).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.owner_name;
+      sel.appendChild(opt);
+    });
+  }
+
+  let list = allMembers;
+  if (oaFilter) list = list.filter(m => m.tenant_id === oaFilter);
+  if (saFilter === 'pending') list = list.filter(m => m.level === 0 && m.np_member_code);
+  if (saFilter === 'approved') list = list.filter(m => m.level >= 1);
+  if (q) list = list.filter(m =>
+    (m.name || '').toLowerCase().includes(q) ||
+    (m.np_member_code || '').includes(q) ||
+    (m.phone || '').includes(q)
+  );
+
+  const el = document.getElementById('sa-member-list');
+  if (!list.length) { el.innerHTML = '<div class="empty">無符合資料</div>'; return; }
+
+  el.innerHTML = list.map(m => {
+    const team = tenantMap[m.tenant_id] || '';
+    const isPending = m.level === 0 && m.np_member_code;
+    return `
+    <div class="m-card">
+      <div class="m-row">
+        ${avatarHtml(m)}
+        <div class="m-left">
+          <div class="m-name">${esc(m.name || '未填寫')} ${m.level >= 1 ? '<span class="badge b-approved">正式</span>' : m.np_member_code ? '<span class="badge b-pending">待審</span>' : '<span class="badge b-level0">訪客</span>'}${team ? ' <span class="badge b-team">' + esc(team) + '</span>' : ''}</div>
+          <div class="m-meta">${esc(m.np_member_code || '-')} · ${esc(m.phone || '-')} · ${fmtDate(m.joined_at)}</div>
+        </div>
+      </div>
+      ${isPending ? `<div class="m-acts">
+        <button class="btn-sm btn-approve" onclick="doApprove('${m.line_user_id}','${esc(m.name)}')">通過</button>
+        <button class="btn-sm btn-reject" onclick="doReject('${m.line_user_id}','${esc(m.name)}')">退回</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ========== HELPERS ==========
+
+function avatarHtml(m) {
+  if (m.picture_url) return `<img class="m-avatar" src="${esc(m.picture_url)}" alt="">`;
+  const initial = (m.name || '?').charAt(0);
+  return `<div class="m-avatar-placeholder">${esc(initial)}</div>`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ========== PREVIEW MODE ==========
+
+const MOCK = {
+  super_admin: {
+    role:'super_admin',
+    member:{id:'x',name:'游育杰',np_member_code:'2675630',phone:'0939804476',email:'',level:1,ai_credits:37,tenant_id:'t1',joined_at:'2026-04-22T09:53:21Z'},
+    all_tenants:[
+      {id:'t1',owner_name:'Aplus',line_handle:'@752oqdzy',admin_line_user_id:null,is_active:true},
+      {id:'t2',owner_name:'魷魚團隊',line_handle:'@453ajvfv',admin_line_user_id:'U_mock_admin',is_active:true},
+      {id:'t3',owner_name:'舜心團隊',line_handle:'@659pbthw',admin_line_user_id:null,is_active:true},
+      {id:'t4',owner_name:'威達團隊',line_handle:'@802czzku',admin_line_user_id:null,is_active:true},
+      {id:'t5',owner_name:'基紐團隊',line_handle:'@741zwxpr',admin_line_user_id:null,is_active:true},
+      {id:'t6',owner_name:'宥妍團隊',line_handle:'@185ouwvh',admin_line_user_id:null,is_active:true},
+      {id:'t7',owner_name:'輝岳團隊',line_handle:'@568yngtp',admin_line_user_id:null,is_active:true},
+      {id:'t8',owner_name:'敬豪團隊',line_handle:'@809lipop',admin_line_user_id:null,is_active:true},
+      {id:'t9',owner_name:'姍玥團隊',line_handle:'@579cpvba',admin_line_user_id:null,is_active:true},
+      {id:'t10',owner_name:'翊迅團隊',line_handle:'@514okzir',admin_line_user_id:null,is_active:true}
+    ]
+  },
+  oa_admin: {
+    role:'oa_admin',
+    member:{id:'x',name:'張麗玲',np_member_code:'2758230',phone:'0932246528',email:'',level:1,ai_credits:76,tenant_id:'t2',joined_at:'2026-04-28T04:38:35Z'},
+    admin_tenants:[{id:'t2',owner_name:'魷魚團隊',line_handle:'@453ajvfv'}]
+  },
+  member: {
+    role:'member',
+    member:{id:'x',name:'林詩萍',np_member_code:'2812345',phone:'0912345678',email:'test@mail.com',level:1,ai_credits:80,tenant_id:'t2',joined_at:'2026-05-10T12:00:00Z',picture_url:'https://i.pravatar.cc/100?u=member',birthday:'1993-08-25',gender:'female'}
+  },
+  pending: {
+    role:'pending',
+    member:{id:'x',name:'王小明',np_member_code:'2899999',phone:'0987654321',email:'',level:0,ai_credits:30,tenant_id:'t3',joined_at:'2026-05-18T08:00:00Z'}
+  },
+  rejected: {
+    role:'rejected',
+    member:{id:'x',name:null,np_member_code:null,phone:null,email:null,level:0,ai_credits:30,tenant_id:'t1',joined_at:'2026-05-19T10:00:00Z',rejected_at:'2026-05-21T06:00:00Z'},
+    oa_list:[
+      {owner_name:'Aplus',line_handle:'@752oqdzy'},
+      {owner_name:'魷魚團隊',line_handle:'@453ajvfv'},
+      {owner_name:'舜心團隊',line_handle:'@659pbthw'},
+      {owner_name:'威達團隊',line_handle:'@802czzku'},
+      {owner_name:'基紐團隊',line_handle:'@741zwxpr'},
+      {owner_name:'宥妍團隊',line_handle:'@185ouwvh'},
+      {owner_name:'輝岳團隊',line_handle:'@568yngtp'},
+      {owner_name:'敬豪團隊',line_handle:'@809lipop'},
+      {owner_name:'姍玥團隊',line_handle:'@579cpvba'},
+      {owner_name:'翊迅團隊',line_handle:'@514okzir'}
+    ]
+  },
+  upgrade: {
+    role:'upgrade',
+    member:{id:'x',name:null,np_member_code:null,phone:null,email:null,level:0,ai_credits:30,tenant_id:'t1',joined_at:'2026-05-19T10:00:00Z'}
+  }
+};
+
+const MOCK_MEMBERS = [
+  {id:'m1',line_user_id:'U1',name:'張麗玲',np_member_code:'2758230',phone:'0932246528',email:'',level:1,ai_credits:76,tenant_id:'t2',joined_at:'2026-04-28T04:38:35Z',picture_url:'https://i.pravatar.cc/100?u=m1',birthday:'1985-03-15',gender:'female'},
+  {id:'m2',line_user_id:'U2',name:'王小明',np_member_code:'2899999',phone:'0987654321',email:'',level:0,ai_credits:30,tenant_id:'t3',joined_at:'2026-05-18T08:00:00Z',picture_url:'https://i.pravatar.cc/100?u=m2',birthday:'1990-07-22',gender:'male'},
+  {id:'m3',line_user_id:'U3',name:'李大華',np_member_code:'2877777',phone:'0911222333',email:'',level:0,ai_credits:30,tenant_id:'t2',joined_at:'2026-05-15T06:00:00Z',picture_url:null,birthday:'1978-11-08',gender:'male'},
+  {id:'m4',line_user_id:'U4',name:'陳美麗',np_member_code:null,phone:null,email:null,level:0,ai_credits:30,tenant_id:'t1',joined_at:'2026-05-19T14:00:00Z',picture_url:null,birthday:null,gender:null},
+  {id:'m5',line_user_id:'U5',name:'林大仁',np_member_code:'2866666',phone:'0922333444',email:'',level:1,ai_credits:55,tenant_id:'t5',joined_at:'2026-05-01T09:00:00Z',picture_url:'https://i.pravatar.cc/100?u=m5',birthday:'1992-01-30',gender:'male'},
+  {id:'m6',line_user_id:'U_mock_admin',name:'游育杰',np_member_code:'2675630',phone:'0939804476',email:'',level:1,ai_credits:37,tenant_id:'t1',joined_at:'2026-04-22T09:53:21Z',picture_url:'https://i.pravatar.cc/100?u=m6',birthday:'1988-06-12',gender:'male'},
+];
+
+function isPreview() {
+  return new URLSearchParams(window.location.search).has('preview') || window.location.hash === '#preview';
+}
+
+function previewInit() {
+  document.getElementById('screen-loading').style.display = 'none';
+
+  const nav = document.createElement('div');
+  nav.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1e293b;border-bottom:1px solid rgba(255,255,255,.1);padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center';
+  const screens = [
+    {k:'super_admin', label:'👑 主控台'},
+    {k:'oa_admin', label:'🛡️ OA管理'},
+    {k:'member', label:'🏆 正式會員'},
+    {k:'pending', label:'📋 審核中'},
+    {k:'rejected', label:'🔄 已退回'},
+    {k:'upgrade', label:'✨ 升級申請'},
+    {k:'error', label:'🚫 未加入'}
+  ];
+  nav.innerHTML = '<span style="font-size:11px;color:#94a3b8;margin-right:4px">預覽：</span>' +
+    screens.map(s =>
+      `<button onclick="previewShow('${s.k}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-size:11px;cursor:pointer">${s.label}</button>`
+    ).join('');
+  document.body.prepend(nav);
+  document.body.style.paddingTop = '44px';
+
+  lineProfile = { userId: 'PREVIEW', displayName: '預覽用戶', pictureUrl: '' };
+  lineUserId = 'PREVIEW';
+  allMembers = MOCK_MEMBERS;
+  previewShow('super_admin');
+}
+
+function previewShow(key) {
+  if (key === 'error') { show('screen-error'); return; }
+  ctx = JSON.parse(JSON.stringify(MOCK[key]));
+  allMembers = MOCK_MEMBERS.slice();
+  if (key === 'super_admin') {
+    document.getElementById('sa-name').textContent = ctx.member.name;
+    show('screen-super-admin');
+    previewRenderTenants();
+    document.getElementById('sa-oa-filter').innerHTML = '<option value="">所有團隊</option>';
+    renderSaMembers();
+  }
+  else if (key === 'oa_admin') { showOaAdminPreview(); }
+  else route();
+}
+
+function previewRenderTenants() {
+  const tenants = ctx.all_tenants || [];
+  const counts = {};
+  MOCK_MEMBERS.forEach(m => {
+    if (!m.tenant_id) return;
+    if (!counts[m.tenant_id]) counts[m.tenant_id] = { total:0, pending:0, approved:0 };
+    counts[m.tenant_id].total++;
+    if (m.level >= 1) counts[m.tenant_id].approved++;
+    else counts[m.tenant_id].pending++;
+  });
+  const adminNames = {};
+  MOCK_MEMBERS.forEach(m => { adminNames[m.line_user_id] = m.name; });
+
+  document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
+    const c = counts[t.id] || { total:0, pending:0, approved:0 };
+    const adminName = t.admin_line_user_id ? (adminNames[t.admin_line_user_id] || '未知') : null;
+    return `
+      <div class="t-card">
+        <div class="t-top">
+          <div><div class="t-name">${esc(t.owner_name)}</div><div class="t-handle">${esc(t.line_handle)}</div></div>
+          <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">${adminName ? '更換' : '指定'}管理員</button>
+        </div>
+        <div class="t-admin">管理員：${adminName ? '<span class="t-admin-name">' + esc(adminName) + '</span>' : '<span style="color:var(--yellow)">未指定</span>'}</div>
+        <div class="t-stats">
+          <div class="t-stat">👥 <span class="num">${c.total}</span> 人</div>
+          <div class="t-stat">⏳ <span class="num">${c.pending}</span> 待審</div>
+          <div class="t-stat">✅ <span class="num">${c.approved}</span> 通過</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function showOaAdminPreview() {
+  const tenants = ctx.admin_tenants || [];
+  document.getElementById('oa-title').textContent = tenants.map(t => t.owner_name).join('、') + ' 管理';
+  show('screen-oa-admin');
+  const tIds = tenants.map(t => t.id);
+  const members = MOCK_MEMBERS.filter(m => tIds.includes(m.tenant_id));
+  const pending = members.filter(m => m.level === 0 && m.np_member_code);
+  const approved = members.filter(m => m.level >= 1);
+  document.getElementById('oa-pending-count').textContent = pending.length + ' 筆';
+  document.getElementById('oa-approved-count').textContent = approved.length + ' 筆';
+  renderMemberList('oa-pending-list', pending, true);
+  renderMemberList('oa-approved-list', approved, false);
+}
+
+// ========== GO ==========
+
+if (isPreview()) previewInit();
+else init();
+</script>
+</body>
+</html>
