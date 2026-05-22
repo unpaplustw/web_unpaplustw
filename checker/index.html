@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>產品成分查詢</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ── 防複製 ── */
+*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{-webkit-user-select:text;user-select:text}
+
+/* ── 基底 ── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f5f0;--card:#fff;--border:rgba(0,0,0,.08);
+  --pri:#1a6b4a;--pri-lt:rgba(26,107,74,.1);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.08);
+  --yellow:#d97706;--yellow-bg:rgba(217,119,6,.08);
+  --gray:#6b7280;--gray-bg:rgba(107,114,128,.08);
+  --txt:#1a1a1a;--muted:#888;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.wrap{max-width:480px;margin:0 auto;padding:16px 16px 100px}
+
+/* ── 頂部 ── */
+.hd{text-align:center;padding:20px 0 16px}
+.hd-icon{font-size:36px}
+.hd-title{font-size:20px;font-weight:700;color:var(--pri);margin-top:4px}
+.hd-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* ── 搜尋區 ── */
+.search-box{position:relative;margin-bottom:12px}
+.search-input{width:100%;padding:14px 48px 14px 16px;border:2px solid var(--border);border-radius:14px;font-size:16px;background:var(--card);transition:.2s;box-shadow:var(--shadow)}
+.search-input:focus{outline:none;border-color:var(--pri)}
+.search-input::placeholder{color:#bbb}
+.btn-search{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:none;background:var(--pri);color:#fff;border-radius:10px;font-size:18px;cursor:pointer}
+.btn-search:active{opacity:.8}
+
+/* ── 拍照按鈕 ── */
+.photo-row{display:flex;gap:8px;margin-bottom:16px}
+.btn-photo{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:2px dashed var(--border);border-radius:12px;background:var(--card);font-size:14px;color:var(--muted);cursor:pointer;transition:.2s}
+.btn-photo:active{border-color:var(--pri);color:var(--pri)}
+.photo-input{display:none}
+
+/* ── autocomplete ── */
+.ac-list{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:10;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.ac-item{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);cursor:pointer}
+.ac-item:last-child{border:none}
+.ac-item:active{background:var(--pri-lt)}
+.ac-brand{color:var(--muted);font-size:12px;margin-top:2px}
+
+/* ── 結果區 ── */
+.result{display:none;margin-top:8px}
+.result-header{background:var(--card);border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.result-name{font-size:18px;font-weight:700}
+.result-brand{font-size:13px;color:var(--muted);margin-top:2px}
+.result-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-top:8px}
+.badge-reviewed{background:var(--pri-lt);color:var(--pri)}
+.badge-unreviewed{background:var(--yellow-bg);color:var(--yellow)}
+
+/* ── 四刀卡片 ── */
+.blade{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+.blade-header{display:flex;align-items:center;gap:10px;padding:16px;cursor:pointer;transition:.2s}
+.blade-header:active{background:rgba(0,0,0,.02)}
+.blade-icon{font-size:24px}
+.blade-title{flex:1;font-size:15px;font-weight:700}
+.blade-arrow{color:var(--muted);font-size:14px;transition:.3s}
+.blade-arrow.open{transform:rotate(90deg)}
+.blade-body{padding:0 16px 16px;display:none;font-size:14px;line-height:1.8;color:#333}
+.blade-body.open{display:block}
+.attack-point{margin-bottom:12px}
+.attack-label{font-weight:700;color:var(--pri);font-size:13px;margin-bottom:4px}
+
+/* ── 成分標籤 ── */
+.ingredient-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding:0 16px 16px}
+.ing-tag{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.ing-tag:active{transform:scale(.95)}
+.ing-tag.red{background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.ing-tag.yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(217,119,6,.2)}
+.ing-tag.gray{background:var(--gray-bg);color:var(--gray);border:1px solid rgba(107,114,128,.15)}
+
+/* ── 成分詳情彈窗 ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:24px 20px 40px;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.modal-name{font-size:18px;font-weight:700}
+.modal-category{font-size:13px;color:var(--muted);margin-top:2px}
+.modal-risk{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-top:8px}
+.modal-section{margin-top:16px}
+.modal-section-title{font-size:13px;font-weight:700;color:var(--pri);margin-bottom:6px}
+.modal-section-body{font-size:14px;line-height:1.8;color:#333}
+.modal-talk{background:var(--pri-lt);border-radius:10px;padding:12px;margin-top:12px;font-size:14px;line-height:1.6;color:var(--pri)}
+
+/* ── 串流中動畫 ── */
+.streaming .blade-body{display:block}
+.dot-loading::after{content:'';animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+
+/* ── loading ── */
+.loading-screen{text-align:center;padding:80px 20px}
+.loading-icon{font-size:48px;margin-bottom:12px}
+.loading-text{color:var(--muted);font-size:15px}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── 空狀態 ── */
+.empty{text-align:center;padding:60px 20px}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-text{color:var(--muted);font-size:15px}
+
+/* ── 歷史 ── */
+.history-section{margin-top:24px}
+.history-title{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;padding-left:4px}
+.history-item{background:var(--card);border-radius:10px;padding:12px 16px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;box-shadow:var(--shadow)}
+.history-item:active{opacity:.8}
+.history-name{font-size:14px;font-weight:600}
+.history-time{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ── 載入中 ── -->
+<div class="wrap" id="loadingScreen">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text">驗證身份中…</div>
+  </div>
+</div>
+
+<!-- ── 被擋 ── -->
+<div class="wrap" id="blockedScreen" style="display:none">
+  <div class="empty">
+    <div class="empty-icon">🔒</div>
+    <div class="empty-text" id="blockedMsg">無權限使用</div>
+  </div>
+</div>
+
+<!-- ── 主畫面 ── -->
+<div class="wrap" id="mainScreen" style="display:none">
+  <div class="hd">
+    <div class="hd-icon">🔬</div>
+    <div class="hd-title">產品成分查詢</div>
+    <div class="hd-sub" id="userName"></div>
+  </div>
+
+  <!-- 搜尋 -->
+  <div class="search-box">
+    <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱..." autocomplete="off">
+    <button class="btn-search" onclick="doSearch()">🔍</button>
+    <div class="ac-list" id="acList"></div>
+  </div>
+
+  <!-- 拍照 -->
+  <div class="photo-row">
+    <label class="btn-photo" id="photoBtn">
+      📷 拍成分表
+      <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
+  </div>
+
+  <!-- 分析中 -->
+  <div id="analyzingBox" style="display:none">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-text" id="analyzingText">分析成分中…</div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result" id="resultBox">
+    <div class="result-header">
+      <div class="result-name" id="resultName"></div>
+      <div class="result-brand" id="resultBrand"></div>
+      <div id="resultBadge"></div>
+    </div>
+
+    <!-- 含量刀 -->
+    <div class="blade" id="blade1">
+      <div class="blade-header" onclick="toggleBlade('blade1')">
+        <span class="blade-icon">🔪</span>
+        <span class="blade-title">含量攻擊</span>
+        <span class="blade-arrow" id="blade1Arrow">▶</span>
+      </div>
+      <div class="blade-body" id="blade1Body"></div>
+    </div>
+
+    <!-- 品質刀 -->
+    <div class="blade" id="blade2">
+      <div class="blade-header" onclick="toggleBlade('blade2')">
+        <span class="blade-icon">🔪</span>
+        <span class="blade-title">品質攻擊</span>
+        <span class="blade-arrow" id="blade2Arrow">▶</span>
+      </div>
+      <div class="blade-body" id="blade2Body"></div>
+    </div>
+
+    <!-- 安全刀 -->
+    <div class="blade" id="blade3">
+      <div class="blade-header" onclick="toggleBlade('blade3')">
+        <span class="blade-icon">🔪</span>
+        <span class="blade-title">安全攻擊</span>
+        <span class="blade-arrow" id="blade3Arrow">▶</span>
+      </div>
+      <div class="blade-body" id="blade3Body"></div>
+    </div>
+
+    <!-- 信任刀 -->
+    <div class="blade" id="blade4">
+      <div class="blade-header" onclick="toggleBlade('blade4')">
+        <span class="blade-icon">🔪</span>
+        <span class="blade-title">信任攻擊</span>
+        <span class="blade-arrow" id="blade4Arrow">▶</span>
+      </div>
+      <div class="blade-body" id="blade4Body"></div>
+    </div>
+
+    <!-- 成分標籤 -->
+    <div class="ingredient-tags" id="ingTags"></div>
+  </div>
+
+  <!-- 歷史 -->
+  <div class="history-section" id="historySection">
+    <div class="history-title">最近查詢</div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- ── 成分詳情 Modal ── -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-category" id="modalCategory"></div>
+    <div id="modalRisk"></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ── 設定 ──
+const LIFF_ID = '__LIFF_ID__';  // TODO: 註冊後填入
+
+// Members DB（驗證身份）
+const SB_MEMBER_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
+const SB_MEMBER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
+
+// RAG DB（產品資料）
+const SB_RAG_URL = 'https://mkjtqzufohzrnbvebbfb.supabase.co';
+const SB_RAG_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ranRxenVmb2h6cm5idmViYmZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTI2NjEsImV4cCI6MjA4ODI2ODY2MX0.RWaj1eNeZfsln4qzGTNbOOyZA1S4GLsRSL95Pf8H-PA';
+
+// Edge Function
+const ANALYZE_URL = SB_RAG_URL + '/functions/v1/analyze-product';
+
+const sbMember = window.supabase.createClient(SB_MEMBER_URL, SB_MEMBER_KEY);
+const sbRag = window.supabase.createClient(SB_RAG_URL, SB_RAG_KEY);
+
+let currentUser = null;
+let searchTimer = null;
+
+// ── 初始化 ──
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+
+    // 查 members 表驗證等級
+    const { data: member } = await sbMember.from('members')
+      .select('id, name, level')
+      .eq('line_user_id', profile.userId)
+      .single();
+
+    if (!member || member.level < 1) {
+      showBlocked('權限不足，請聯繫上線開通');
+      return;
+    }
+
+    currentUser = { lineUserId: profile.userId, name: member.name, level: member.level };
+    document.getElementById('userName').textContent = member.name + '，找到對手的弱點';
+    showScreen('main');
+    loadHistory();
+  } catch (e) {
+    showBlocked('登入失敗：' + e.message);
+  }
+}
+
+function showScreen(name) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('blockedScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'none';
+  if (name === 'loading') document.getElementById('loadingScreen').style.display = '';
+  if (name === 'blocked') document.getElementById('blockedScreen').style.display = '';
+  if (name === 'main') document.getElementById('mainScreen').style.display = '';
+}
+
+function showBlocked(msg) {
+  document.getElementById('blockedMsg').textContent = msg;
+  showScreen('blocked');
+}
+
+// ── 搜尋 autocomplete ──
+const searchInput = document.getElementById('searchInput');
+const acList = document.getElementById('acList');
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 1) { acList.style.display = 'none'; return; }
+  searchTimer = setTimeout(() => autocomplete(q), 300);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { acList.style.display = 'none'; doSearch(); }
+});
+
+async function autocomplete(q) {
+  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 8 });
+  if (!data || !data.length) { acList.style.display = 'none'; return; }
+  acList.innerHTML = data.map(p => `
+    <div class="ac-item" onclick="selectProduct('${p.id}','${esc(p.name)}')">
+      <div>${highlight(p.name, q)}</div>
+      <div class="ac-brand">${p.brand || ''} ${p.dosage_form || ''}</div>
+    </div>
+  `).join('');
+  acList.style.display = 'block';
+}
+
+function highlight(text, q) {
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx < 0) return text;
+  return text.slice(0, idx) + '<b style="color:var(--pri)">' + text.slice(idx, idx + q.length) + '</b>' + text.slice(idx + q.length);
+}
+
+function esc(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+function selectProduct(id, name) {
+  acList.style.display = 'none';
+  searchInput.value = name;
+  analyzeById(id);
+}
+
+// ── 搜尋按鈕 ──
+async function doSearch() {
+  const q = searchInput.value.trim();
+  if (!q) return;
+  acList.style.display = 'none';
+
+  showAnalyzing('搜尋商品中…');
+  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1 });
+  if (data && data.length) {
+    analyzeById(data[0].id);
+  } else {
+    // 沒建檔，用文字直接分析
+    analyzeByText(q);
+  }
+}
+
+// ── 拍照 ──
+document.getElementById('photoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  showAnalyzing('辨識成分表中…');
+
+  // 壓縮圖片
+  const compressed = await compressImage(file, 1200, 0.8);
+  analyzeByImage(compressed);
+});
+
+async function compressImage(file, maxWidth, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = h * maxWidth / w; w = maxWidth; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(resolve, 'image/jpeg', quality);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ── 分析：已建檔商品 ──
+async function analyzeById(productId) {
+  showAnalyzing('讀取商品資料…');
+
+  // 查商品
+  const { data: product } = await sbRag.from('products')
+    .select('*, manufacturers(*)')
+    .eq('id', productId)
+    .single();
+
+  if (!product) { hideAnalyzing(); alert('查無此商品'); return; }
+
+  // 查成分知識
+  const ingredients = await matchIngredients(product.ingredients_raw);
+
+  // 呼叫 Claude 分析
+  showAnalyzing('AI 正在拆解成分…');
+  await callAnalyze({
+    type: 'product',
+    product_name: product.name,
+    brand: product.brand,
+    dosage_form: product.dosage_form,
+    ingredients_raw: product.ingredients_raw,
+    manufacturer: product.manufacturers,
+    certifications: product.certifications,
+    matched_knowledge: ingredients
+  }, product);
+
+  // 記錄
+  logQuery('text', product.name, productId, ingredients);
+}
+
+// ── 分析：未建檔（純文字） ──
+async function analyzeByText(query) {
+  showAnalyzing('AI 正在分析…');
+  await callAnalyze({
+    type: 'text_query',
+    query: query,
+    matched_knowledge: []
+  }, { name: query, brand: '未建檔商品' });
+
+  logQuery('text', query, null, []);
+}
+
+// ── 分析：拍照 ──
+async function analyzeByImage(imageBlob) {
+  const base64 = await blobToBase64(imageBlob);
+
+  await callAnalyze({
+    type: 'image',
+    image_base64: base64,
+    matched_knowledge: []
+  }, { name: '成分表辨識', brand: '拍照上傳' });
+
+  logQuery('image', 'image_upload', null, []);
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ── 比對成分知識庫 ──
+async function matchIngredients(ingredientsRaw) {
+  if (!ingredientsRaw) return [];
+  // 用逗號或頓號拆分，取前 15 個主要成分查詢
+  const names = ingredientsRaw.split(/[、，,]/).map(s => s.trim().replace(/\(.*?\)/g, '').trim()).filter(Boolean).slice(0, 15);
+
+  const results = [];
+  for (const name of names) {
+    const { data } = await sbRag.rpc('match_ingredient_by_name', { ingredient_name: name });
+    if (data && data.length) results.push(data[0]);
+  }
+  return results;
+}
+
+// ── 呼叫 Edge Function（串流） ──
+async function callAnalyze(payload, productInfo) {
+  // 顯示結果框
+  const resultBox = document.getElementById('resultBox');
+  document.getElementById('resultName').textContent = productInfo.name || '';
+  document.getElementById('resultBrand').textContent = productInfo.brand || '';
+  resultBox.style.display = 'block';
+
+  // 清空四刀
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('blade' + i + 'Body').innerHTML = '<span class="dot-loading">分析中</span>';
+    document.getElementById('blade' + i + 'Body').classList.add('open');
+    document.getElementById('blade' + i + 'Arrow').classList.add('open');
+  }
+  document.getElementById('ingTags').innerHTML = '';
+
+  hideAnalyzing();
+
+  try {
+    const res = await fetch(ANALYZE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SB_RAG_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('分析服務暫時無法使用');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // 解析 SSE 事件
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') break;
+          try {
+            const evt = JSON.parse(data);
+            handleStreamEvent(evt);
+          } catch (e) { /* skip */ }
+        }
+      }
+    }
+  } catch (e) {
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById('blade' + i + 'Body').innerHTML = '⚠️ ' + e.message;
+    }
+  }
+}
+
+// ── 串流事件處理 ──
+function handleStreamEvent(evt) {
+  if (evt.type === 'blade') {
+    const body = document.getElementById('blade' + evt.blade + 'Body');
+    body.innerHTML = formatAttack(evt.content);
+  }
+  if (evt.type === 'tags') {
+    renderTags(evt.tags);
+  }
+  if (evt.type === 'badge') {
+    const badgeBox = document.getElementById('resultBadge');
+    if (evt.reviewed) {
+      badgeBox.innerHTML = '<span class="result-badge badge-reviewed">✅ 已審核</span>';
+    } else {
+      badgeBox.innerHTML = '<span class="result-badge badge-unreviewed">⚠️ AI 分析，僅供參考</span>';
+    }
+  }
+}
+
+function formatAttack(content) {
+  // 簡單 markdown 轉 HTML
+  return content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── 成分標籤 ──
+function renderTags(tags) {
+  const box = document.getElementById('ingTags');
+  box.innerHTML = tags.map(t =>
+    `<span class="ing-tag ${t.risk}" onclick="showIngredient('${esc(t.name)}')">${t.name}</span>`
+  ).join('');
+}
+
+// ── 成分詳情 Modal ──
+async function showIngredient(name) {
+  const modal = document.getElementById('modal');
+  document.getElementById('modalName').textContent = name;
+  document.getElementById('modalCategory').textContent = '查詢中…';
+  document.getElementById('modalRisk').innerHTML = '';
+  document.getElementById('modalContent').innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+  modal.classList.add('open');
+
+  // 查知識庫
+  const { data } = await sbRag.rpc('match_ingredient_by_name', { ingredient_name: name });
+
+  if (data && data.length) {
+    const ing = data[0];
+    document.getElementById('modalCategory').textContent = (ing.type === 'additive' ? '添加物' : ing.type === 'nutrient' ? '營養素' : '賦形劑') + (ing.category ? ' · ' + ing.category : '');
+
+    const riskColors = { red: 'var(--red-bg)', yellow: 'var(--yellow-bg)', gray: 'var(--gray-bg)' };
+    const riskTextColors = { red: 'var(--red)', yellow: 'var(--yellow)', gray: 'var(--gray)' };
+    const riskLabels = { red: '高風險', yellow: '注意', gray: '一般' };
+    document.getElementById('modalRisk').innerHTML =
+      `<span class="modal-risk" style="background:${riskColors[ing.risk_level]};color:${riskTextColors[ing.risk_level]}">${riskLabels[ing.risk_level] || '一般'}</span>` +
+      (ing.reviewed ? ' <span style="font-size:12px;color:var(--pri)">✅ 已審核</span>' : ' <span style="font-size:12px;color:var(--yellow)">⚠️ 未審核</span>');
+
+    let html = '';
+    const sections = [
+      { title: '排序攻擊', content: ing.position_note },
+      { title: '灌水攻擊', content: ing.compound_note },
+      { title: '原料形式', content: ing.form_note },
+      { title: '劑型矛盾', content: ing.dosage_mismatch },
+      { title: '認證問題', content: ing.certification_note },
+      { title: '安全風險', content: ing.safety_risk },
+      { title: '交互作用', content: ing.interaction_note }
+    ];
+    sections.forEach(s => {
+      if (s.content) {
+        html += `<div class="modal-section"><div class="modal-section-title">${s.title}</div><div class="modal-section-body">${s.content}</div></div>`;
+      }
+    });
+    if (ing.talk_track) {
+      html += `<div class="modal-talk">💬 ${ing.talk_track}</div>`;
+    }
+    if (!html) html = '<div style="color:var(--muted);padding:20px 0;text-align:center">知識庫尚未建立此成分的攻擊素材</div>';
+    document.getElementById('modalContent').innerHTML = html;
+  } else {
+    document.getElementById('modalCategory').textContent = '知識庫未收錄';
+    document.getElementById('modalRisk').innerHTML = '';
+    document.getElementById('modalContent').innerHTML = '<div style="color:var(--muted);padding:20px 0;text-align:center">此成分尚未建檔，可請管理員新增</div>';
+  }
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+  }
+}
+
+// ── 四刀收合展開 ──
+function toggleBlade(id) {
+  const body = document.getElementById(id + 'Body');
+  const arrow = document.getElementById(id + 'Arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+// ── 分析中狀態 ──
+function showAnalyzing(text) {
+  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('analyzingBox').style.display = '';
+  document.getElementById('analyzingText').textContent = text;
+}
+function hideAnalyzing() {
+  document.getElementById('analyzingBox').style.display = 'none';
+}
+
+// ── 查詢紀錄 ──
+async function logQuery(type, input, productId, ingredients) {
+  try {
+    await sbRag.from('query_logs').insert({
+      line_user_id: currentUser.lineUserId,
+      query_type: type,
+      query_input: input,
+      product_id: productId,
+      ingredients_matched: ingredients.map(i => ({ id: i.id, name: i.name }))
+    });
+    loadHistory();
+  } catch (e) { /* silent */ }
+}
+
+async function loadHistory() {
+  if (!currentUser) return;
+  const { data } = await sbRag.from('query_logs')
+    .select('query_input, query_type, product_id, created_at')
+    .eq('line_user_id', currentUser.lineUserId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const box = document.getElementById('historyList');
+  if (!data || !data.length) {
+    box.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">尚無查詢紀錄</div>';
+    return;
+  }
+  box.innerHTML = data.map(q => {
+    const t = new Date(q.created_at);
+    const ts = `${t.getMonth()+1}/${t.getDate()} ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+    const icon = q.query_type === 'image' ? '📷' : '🔍';
+    const name = q.query_input === 'image_upload' ? '拍照查詢' : q.query_input;
+    return `<div class="history-item" onclick="searchInput.value='${esc(name)}';doSearch()">
+      <div class="history-name">${icon} ${name}</div>
+      <div class="history-time">${ts}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 啟動 ──
+init();
+</script>
+</body>
+</html>

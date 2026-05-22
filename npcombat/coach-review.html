@@ -263,7 +263,7 @@ const COACH_FIELDS = ['name_list','schedule','follow_up'];
 let coachId = null;
 let myStudentId = null;
 let myData = { today: null, yesterday: null, _logId_today: null, _logId_yesterday: null };
-let myVals = { meet:0, invite:0, present:0, seminar:0, ghosted:0, rejected:0 };
+let myVals = { meet:0, invite:0, present:0, seminar:0, ghosted:0, rejected:0, name_list:0, schedule:0, follow_up:0 };
 let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
@@ -340,8 +340,8 @@ async function init() {
       const myYesterdayLog = (myLogs||[]).find(l => l.log_date === yesterdayStr);
       myData._logId_today = myTodayLog?.id || null;
       myData._logId_yesterday = myYesterdayLog?.id || null;
-      myData.today = myTodayLog ? { meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 } : null;
-      myData.yesterday = myYesterdayLog ? { meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 } : null;
+      myData.today = myTodayLog ? { meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0, name_list:myTodayLog.name_list||0, schedule:myTodayLog.schedule||0, follow_up:myTodayLog.follow_up||0 } : null;
+      myData.yesterday = myYesterdayLog ? { meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0, name_list:myYesterdayLog.name_list||0, schedule:myYesterdayLog.schedule||0, follow_up:myYesterdayLog.follow_up||0 } : null;
     }
 
     // 查配對學員（只撈已批准）
@@ -456,10 +456,17 @@ function renderMyReport() {
 
   // 初始化 myVals
   const MY_FIELDS = STU_FIELDS.filter(f => !f.special);
+  const MY_COACH_FIELDS = [
+    { key:'name_list', emoji:'📋', label:'羅列名單' },
+    { key:'schedule',  emoji:'📅', label:'安排行程' },
+    { key:'follow_up', emoji:'🔄', label:'跟進狀況' }
+  ];
   if (d) {
     MY_FIELDS.forEach(f => { myVals[f.key] = d[f.key] || 0; });
+    MY_COACH_FIELDS.forEach(f => { myVals[f.key] = d[f.key] || 0; });
   } else {
     MY_FIELDS.forEach(f => { myVals[f.key] = 0; });
+    MY_COACH_FIELDS.forEach(f => { myVals[f.key] = 0; });
   }
 
   let h = '<div class="stu-data-card">';
@@ -476,7 +483,20 @@ function renderMyReport() {
       </div>
     </div>`;
   });
+  MY_COACH_FIELDS.forEach(f => {
+    const v = myVals[f.key];
+    const valCls = v === 0 ? 'zero' : '';
+    h += `<div class="stu-row">
+      <span class="stu-row-label">${f.emoji} ${f.label}</span>
+      <div class="stu-row-ctrl">
+        <button class="stu-adj" onclick="adjMy('${f.key}',-1)">−</button>
+        <div class="stu-val ${valCls}" id="my-${f.key}">${v}</div>
+        <button class="stu-adj" onclick="adjMy('${f.key}',1)">＋</button>
+      </div>
+    </div>`;
+  });
   h += '</div>';
+
   document.getElementById('myDataArea').innerHTML = h;
 
   const btn = document.getElementById('btnMySubmit');
@@ -504,7 +524,8 @@ async function submitMyReport() {
 
     const payload = {
       meet: myVals.meet, invite: myVals.invite, present: myVals.present,
-      seminar: myVals.seminar, ghosted: myVals.ghosted, rejected: myVals.rejected
+      seminar: myVals.seminar, ghosted: myVals.ghosted, rejected: myVals.rejected,
+      name_list: myVals.name_list, schedule: myVals.schedule, follow_up: myVals.follow_up
     };
 
     if (logId) {

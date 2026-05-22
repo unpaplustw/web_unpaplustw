@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINEAI 資料庫</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; padding: 16px; max-width: 800px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #00B900; margin-bottom: 16px; }
+.header h1 { font-size: 1.3em; color: #00B900; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { padding: 8px 16px; border: 1px solid #ddd; border-radius: 20px; cursor: pointer; font-size: 0.9em; background: white; user-select: none; }
+.tab.active { background: #00B900; color: white; border-color: #00B900; }
+.badge { background: #ff4444; color: white; border-radius: 10px; padding: 2px 6px; font-size: 0.75em; margin-left: 4px; }
+.card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.card-title { font-weight: bold; font-size: 1.1em; flex: 1; }
+.status-tag { font-size: 0.8em; padding: 4px 8px; border-radius: 12px; background: #e8f5e9; color: #2e7d32; white-space: nowrap; margin-left: 8px; }
+.status-tag.collision_blocked { background: #fff3e0; color: #e65100; }
+.status-tag.vector_failed { background: #ffebee; color: #c62828; }
+.versions { margin: 12px 0; }
+.vtab { display: inline-block; padding: 4px 10px; font-size: 0.8em; cursor: pointer; border-bottom: 2px solid transparent; color: #666; user-select: none; }
+.vtab.active { border-bottom-color: #00B900; color: #00B900; }
+.vcontent { background: #f9f9f9; padding: 12px; border-radius: 8px; font-size: 0.9em; line-height: 1.6; white-space: pre-wrap; max-height: 250px; overflow-y: auto; }
+.actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: 500; }
+.btn-approve { background: #00B900; color: white; }
+.btn-force { background: #ff9800; color: white; }
+.btn-replace { background: #2196f3; color: white; }
+.btn-reject { background: #f44336; color: white; }
+.btn-revision { background: #9c27b0; color: white; }
+.btn-retry { background: #607d8b; color: white; }
+.collision-box { background: #fff3e0; border: 1px solid #ff9800; border-radius: 8px; padding: 12px; margin: 8px 0; font-size: 0.85em; }
+.note-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 8px; font-size: 0.9em; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 999; display: none; }
+.empty { text-align: center; padding: 40px; color: #999; }
+.meta { font-size: 0.8em; color: #999; margin-top: 4px; }
+.kw { font-size: 0.85em; color: #666; margin: 4px 0; }
+.scope { font-size: 0.85em; color: #888; margin: 4px 0; padding: 8px; background: #f0f0f0; border-radius: 6px; }
+.vector-box { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 12px; margin: 10px 0; font-size: 0.85em; }
+.vector-box .vb-title { font-weight: bold; color: #1565c0; margin-bottom: 6px; font-size: 0.9em; }
+.vector-box .vb-row { margin: 4px 0; line-height: 1.5; }
+.vector-box .vb-label { color: #1565c0; font-weight: 500; }
+.btn-check { background: #1565c0; color: white; margin-top: 8px; font-size: 0.85em; padding: 6px 14px; }
+.check-result { margin-top: 8px; font-size: 0.85em; }
+.check-item { background: white; border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; margin: 4px 0; }
+.check-item.danger { border-color: #f44336; background: #ffebee; }
+.check-item.warn { border-color: #ff9800; background: #fff8e1; }
+.check-item.safe { border-color: #4caf50; background: #e8f5e9; }
+.sim-bar { display: inline-block; height: 8px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+.check-safe { color: #2e7d32; font-weight: 500; margin-top: 8px; }
+.batch-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.batch-bar .btn-batch { background: #00B900; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95em; font-weight: 600; white-space: nowrap; }
+.batch-bar .btn-batch:disabled { background: #ccc; cursor: not-allowed; }
+.batch-bar .progress-wrap { flex: 1; display: none; }
+.batch-bar .progress-bg { background: #e0e0e0; border-radius: 6px; height: 18px; overflow: hidden; }
+.batch-bar .progress-fill { background: #00B900; height: 100%; border-radius: 6px; transition: width 0.3s; width: 0%; }
+.batch-bar .progress-text { font-size: 0.8em; color: #666; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>LINEAI 資料庫</h1>
+    <span style="font-size:0.8em;color:#999">開放模式</span>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="pending">待審<span id="bp" class="badge" style="display:none"></span></div>
+    <div class="tab" data-tab="production">正式庫</div>
+    <div class="tab" data-tab="rejected">已退回</div>
+  </div>
+  <div class="batch-bar" id="batchBar" style="display:none;">
+    <button class="btn-batch" id="batchBtn" onclick="batchApprove()">🚀 全部通過</button>
+    <div class="progress-wrap" id="batchProgress">
+      <div class="progress-bg"><div class="progress-fill" id="batchFill"></div></div>
+      <div class="progress-text" id="batchText"></div>
+    </div>
+  </div>
+  <div id="ct"><div class="empty">載入中...</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var API = "https://mkjtqzufohzrnbvebbfb.supabase.co/functions/v1/approve-rag";
+var tab = "pending", SD = [], PD = [];
+
+function $(id) { return document.getElementById(id); }
+
+function api(b) {
+  return fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(b)
+  }).then(function(r) {
+    return r.json().then(function(d) { return { status: r.status, data: d }; });
+  });
+}
+
+function toast(m, d) {
+  var t = $("toast");
+  t.textContent = m;
+  t.style.display = "block";
+  setTimeout(function() { t.style.display = "none"; }, d || 2000);
+}
+
+function esc(s) {
+  if (!s) return "";
+  var d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function load() {
+  Promise.all([api({ action: "list_all" }), api({ action: "production" })]).then(function(r) {
+    SD = r[0].data || [];
+    PD = r[1].data || [];
+    var n = SD.filter(function(s) {
+      return ["pending", "vector_failed", "collision_blocked"].indexOf(s.status) >= 0;
+    }).length;
+    var b = $("bp");
+    if (n > 0) { b.textContent = n; b.style.display = "inline"; }
+    else { b.style.display = "none"; }
+    render();
+    autoCheck();
+  });
+}
+
+function autoCheck() {
+  var items = SD.filter(function(s) {
+    return ["pending", "vector_failed", "collision_blocked"].indexOf(s.status) >= 0;
+  });
+  items.forEach(function(it) { checkSim(it.id); });
+}
+
+function render() {
+  var el = $("ct");
+  if (tab === "pending") {
+    var items = SD.filter(function(s) {
+      return ["pending", "vector_failed", "collision_blocked"].indexOf(s.status) >= 0;
+    });
+    var bb = $("batchBar");
+    if (items.length > 1) { bb.style.display = "flex"; $("batchBtn").textContent = "🚀 全部通過（" + items.length + " 筆）"; }
+    else { bb.style.display = "none"; }
+    if (!items.length) { bb.style.display = "none"; el.innerHTML = '<div class="empty">✅ 沒有待審項目</div>'; return; }
+    el.innerHTML = items.map(stagingCard).join("");
+  } else if (tab === "production") {
+    if (!PD.length) { el.innerHTML = '<div class="empty">正式庫為空</div>'; return; }
+    el.innerHTML = PD.map(prodCard).join("");
+  } else {
+    var items2 = SD.filter(function(s) {
+      return ["rejected", "revision_needed"].indexOf(s.status) >= 0;
+    });
+    if (!items2.length) { el.innerHTML = '<div class="empty">沒有退回紀錄</div>'; return; }
+    el.innerHTML = items2.map(rejCard).join("");
+  }
+}
+
+function stagingCard(it) {
+  var sl = { pending: "待審", vector_failed: "向量化失敗", collision_blocked: "碰撞警告" };
+  var ch = "";
+  if (it.status === "collision_blocked" && it.collision_info) {
+    var h = Array.isArray(it.collision_info) ? it.collision_info : [it.collision_info];
+    ch = '<div class="collision-box"><strong>⚠️ 碰撞：</strong><br>' +
+      h.map(function(x) {
+        return "#" + x.id + " " + esc(x.title) + " (相似 " + ((x.similarity || 0) * 100).toFixed(1) + "%, 重疊 " + ((x.keyword_overlap || 0) * 100).toFixed(0) + "%)";
+      }).join("<br>") + "</div>";
+  }
+  var bt = "";
+  if (it.status === "vector_failed") bt += '<button class="btn btn-retry" onclick="retry(\'' + it.id + '\')">重試</button>';
+  if (it.status === "collision_blocked") bt += '<button class="btn btn-force" onclick="approve(\'' + it.id + '\',true)">強制新增</button><button class="btn btn-replace" onclick="repl(\'' + it.id + '\')">取代舊的</button>';
+  if (it.status === "pending") bt += '<button class="btn btn-approve" onclick="approve(\'' + it.id + '\',false)">✅ 通過</button>';
+  bt += '<button class="btn btn-reject" onclick="reject(\'' + it.id + '\',true)">❌ 不要</button>';
+  bt += '<button class="btn btn-revision" onclick="reject(\'' + it.id + '\',false)">✏️ 請改</button>';
+
+  return '<div class="card">' +
+    '<div class="card-header"><span class="card-title">' + esc(it.title) + '</span><span class="status-tag ' + it.status + '">' + sl[it.status] + '</span></div>' +
+    '<div class="meta">' + esc(it.content_type) + ' · ' + new Date(it.created_at).toLocaleDateString("zh-TW") + '</div>' +
+    '<div class="vector-box">' +
+    '<div class="vb-title">🔍 向量依據（embedding_source）</div>' +
+    '<div class="vb-row"><span class="vb-label">標題：</span>' + esc(it.title) + '</div>' +
+    '<div class="vb-row"><span class="vb-label">關鍵字：</span>' + esc(it.keywords) + '</div>' +
+    '<div class="vb-row"><span class="vb-label">語意範圍：</span>' + esc(it.semantic_scope || "(空)") + '</div>' +
+    '<button class="btn btn-check" onclick="checkSim(\'' + it.id + '\')">🔍 檢查相似</button>' +
+    '<div class="check-result" id="cr' + it.id + '"></div>' +
+    '</div>' +
+    ch +
+    '<div class="versions">' +
+    '<span class="vtab active" onclick="sv(this,\'mindset\',\'' + it.id + '\')">換框</span>' +
+    '<span class="vtab" onclick="sv(this,\'nudge\',\'' + it.id + '\')">施壓</span>' +
+    '<span class="vtab" onclick="sv(this,\'strike\',\'' + it.id + '\')">打擊</span>' +
+    '<span class="vtab" onclick="sv(this,\'close\',\'' + it.id + '\')">收尾</span></div>' +
+    '<div class="vcontent" id="vc' + it.id + '">' + esc(it.content_mindset || "(空)") + '</div>' +
+    '<input class="note-input" id="n' + it.id + '" placeholder="備註（退回時填）">' +
+    '<div class="actions">' + bt + '</div></div>';
+}
+
+function prodCard(it) {
+  return '<div class="card">' +
+    '<div class="card-header"><span class="card-title">#' + it.id + ' ' + esc(it.title) + '</span><span class="status-tag">' + esc(it.status) + '</span></div>' +
+    '<div class="kw">🏷 ' + esc(it.keywords) + '</div>' +
+    '<div class="meta">' + esc(it.content_type) + ' · 命中 ' + it.hit_count + ' 次 · ' + new Date(it.created_at).toLocaleDateString("zh-TW") + '</div></div>';
+}
+
+function rejCard(it) {
+  var sl = it.status === "rejected" ? "已拒絕" : "待修改";
+  return '<div class="card">' +
+    '<div class="card-header"><span class="card-title">' + esc(it.title) + '</span><span class="status-tag">' + sl + '</span></div>' +
+    '<div class="kw">🏷 ' + esc(it.keywords) + '</div>' +
+    '<div class="meta">' + esc(it.content_type) + ' · ' + new Date(it.created_at).toLocaleDateString("zh-TW") + '</div>' +
+    (it.review_note ? '<div class="collision-box">📝 ' + esc(it.review_note) + '</div>' : '') + '</div>';
+}
+
+var fm = { mindset: "content_mindset", nudge: "content_nudge", strike: "content_strike", close: "content_close" };
+function sv(el, v, id) {
+  var ts = el.parentElement.querySelectorAll(".vtab");
+  for (var i = 0; i < ts.length; i++) ts[i].classList.remove("active");
+  el.classList.add("active");
+  var it = SD.find(function(s) { return s.id === id; });
+  if (it) document.getElementById("vc" + id).textContent = it[fm[v]] || "(空)";
+}
+
+function approve(id, force) {
+  toast("處理中...", 15000);
+  api({ action: "approve", staging_id: id, force: force }).then(function(r) {
+    if (r.status === 200) { toast("✅ 已通過並向量化"); load(); }
+    else if (r.status === 409) { toast("⚠️ 碰撞，請查看警告"); load(); }
+    else { toast("❌ 失敗: " + (r.data.error || "?")); }
+  });
+}
+
+function repl(id) {
+  var it = SD.find(function(s) { return s.id === id; });
+  if (!it || !it.collision_info) return;
+  var h = Array.isArray(it.collision_info) ? it.collision_info : [it.collision_info];
+  var rid = h[0] && h[0].id;
+  if (!rid) return;
+  toast("取代中...", 15000);
+  api({ action: "approve", staging_id: id, force: true, replace_id: rid }).then(function(r) {
+    if (r.status === 200) { toast("✅ 已取代"); load(); }
+    else { toast("❌ 失敗"); }
+  });
+}
+
+function reject(id, perm) {
+  var ne = document.getElementById("n" + id);
+  var note = ne ? ne.value : "";
+  api({ action: "reject", staging_id: id, review_note: note, permanent: perm }).then(function(r) {
+    if (r.status === 200) { toast(perm ? "❌ 已退回" : "✏️ 待修改"); load(); }
+    else { toast("❌ 失敗"); }
+  });
+}
+
+function retry(id) {
+  toast("重試...", 15000);
+  api({ action: "approve", staging_id: id, force: false }).then(function(r) {
+    if (r.status === 200) { toast("✅ 成功"); load(); }
+    else if (r.status === 409) { toast("⚠️ 碰撞"); load(); }
+    else { toast("❌ 失敗"); }
+  });
+}
+
+function checkSim(id) {
+  var el = document.getElementById("cr" + id);
+  el.innerHTML = '<span style="color:#999">向量化比對中...</span>';
+  api({ action: "check", staging_id: id }).then(function(r) {
+    if (r.status !== 200 || !r.data.results) {
+      el.innerHTML = '<span style="color:#c62828">❌ 檢查失敗: ' + esc(r.data.error || "?") + '</span>';
+      return;
+    }
+    var res = r.data.results;
+    if (res.length === 0) {
+      el.innerHTML = '<div class="check-safe">✅ 同類型中無相似題目（閾值 75%），可安心通過</div>';
+      return;
+    }
+    // 分類：warn 以上才展開，safe 只計數
+    var warnItems = [];
+    var safeCount = 0;
+    res.forEach(function(h) {
+      var sv = h.similarity;
+      var kv = h.keyword_overlap;
+      if (sv > 0.82 || (sv > 0.75 && kv >= 0.5)) { warnItems.push(h); }
+      else { safeCount++; }
+    });
+    if (warnItems.length === 0) {
+      el.innerHTML = '<div class="check-safe">✅ 安全（' + res.length + ' 筆相似但都在安全範圍內）</div>';
+      return;
+    }
+    var html = '<div style="font-weight:500;margin-bottom:8px;font-size:0.95em;">📊 需留意的相似題目（' + warnItems.length + ' 筆警告' + (safeCount > 0 ? '，另 ' + safeCount + ' 筆安全' : '') + '）</div>';
+    warnItems.forEach(function(h, idx) {
+      var simPct = (h.similarity * 100).toFixed(1);
+      var kwPct = (h.keyword_overlap * 100).toFixed(0);
+      var sv = h.similarity;
+      var kv = h.keyword_overlap;
+      var cls, label, advice;
+      if (sv > 0.88 && kv >= 0.5) {
+        cls = "danger"; label = "🔴 真碰撞";
+        advice = "向量極近＋關鍵字高度重疊，n8n 雙軌搜尋都會互相干擾。建議：若新題更好→「取代舊的」；若差不多→「不要」退回。";
+      } else if (sv > 0.88 && kv > 0) {
+        cls = "warn"; label = "🟡 結構近似（關鍵字部分重疊）";
+        advice = "向量極近但關鍵字有差異，n8n 關鍵字路徑能分辨，但向量路徑可能搜錯。建議：確認語意範圍是否真的不同角度，是→可通過；否→考慮取代或調整 semantic_scope 拉開距離。";
+      } else if (sv > 0.88 && kv === 0) {
+        cls = "warn"; label = "🟡 結構近似（關鍵字無重疊）";
+        advice = "向量極近但關鍵字完全不同，n8n 關鍵字路徑可救。建議：通常可安心通過，但留意向量路徑仍有機率搜錯。";
+      } else if (sv > 0.82 && kv >= 0.5) {
+        cls = "warn"; label = "🟡 留意（關鍵字高度重疊）";
+        advice = "向量中等近＋關鍵字重疊多，有一定機率互相干擾。建議：比對語意範圍，若切入角度明顯不同→可通過；若幾乎一樣→考慮取代舊的。";
+      } else if (sv > 0.82) {
+        cls = "warn"; label = "🟡 留意";
+        advice = "向量中等近但關鍵字不同，風險低。建議：通常可通過，n8n 關鍵字路徑能正確區分。";
+      } else {
+        cls = "safe"; label = "🟢 安全";
+        advice = "向量距離足夠遠，不會互相干擾，可安心通過。";
+      }
+      var barW = Math.round(simPct * 1.5);
+      var barColor = cls === "danger" ? "#f44336" : cls === "warn" ? "#ff9800" : "#4caf50";
+      html += '<div class="check-item ' + cls + '">' +
+        '<div style="font-weight:bold;margin-bottom:6px;">#' + h.id + ' ' + esc(h.title) + '</div>' +
+        '<div class="vb-row"><span class="vb-label">標題：</span>' + esc(h.title) + '</div>' +
+        '<div class="vb-row"><span class="vb-label">關鍵字：</span>' + esc(h.keywords) + '</div>' +
+        '<div class="vb-row"><span class="vb-label">語意範圍：</span>' + esc(h.semantic_scope || "(空)") + '</div>' +
+        '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ccc;">' +
+        '<strong>' + label + '</strong><br>' +
+        '向量相似：' + simPct + '% <span class="sim-bar" style="width:' + barW + 'px;background:' + barColor + '"></span>' +
+        ' ｜ 關鍵字重疊：' + kwPct + '%' +
+        '<div style="margin-top:6px;padding:8px;background:rgba(0,0,0,0.04);border-radius:6px;font-size:0.9em;">💡 ' + advice + '</div>' +
+        '</div></div>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+var batchRunning = false;
+function batchApprove() {
+  if (batchRunning) return;
+  var items = SD.filter(function(s) {
+    return s.status === "pending";
+  });
+  if (!items.length) { toast("沒有待審項目"); return; }
+  if (!confirm("確定要全部通過 " + items.length + " 筆？每筆都會跑 Gemini 向量化 + 碰撞檢查。")) return;
+  batchRunning = true;
+  var btn = $("batchBtn");
+  btn.disabled = true;
+  var pw = $("batchProgress");
+  pw.style.display = "block";
+  var fill = $("batchFill");
+  var txt = $("batchText");
+  var total = items.length;
+  var done = 0, ok = 0, fail = 0, collision = 0;
+  var concurrent = 3;
+  var queue = items.map(function(it) { return it.id; });
+
+  function updateUI() {
+    var pct = Math.round(done / total * 100);
+    fill.style.width = pct + "%";
+    txt.textContent = done + " / " + total + "（✅ " + ok + " 碰撞 " + collision + " 失敗 " + fail + "）";
+  }
+
+  function processNext() {
+    if (queue.length === 0) {
+      if (done >= total) {
+        batchRunning = false;
+        btn.disabled = false;
+        toast("✅ 批次完成！通過 " + ok + " / 碰撞 " + collision + " / 失敗 " + fail, 5000);
+        load();
+      }
+      return;
+    }
+    var id = queue.shift();
+    api({ action: "approve", staging_id: id, force: false }).then(function(r) {
+      done++;
+      if (r.status === 200) { ok++; }
+      else if (r.status === 409) { collision++; }
+      else { fail++; }
+      updateUI();
+      processNext();
+    }).catch(function() {
+      done++; fail++;
+      updateUI();
+      processNext();
+    });
+  }
+
+  updateUI();
+  for (var i = 0; i < concurrent; i++) { processNext(); }
+}
+
+var tabs = document.querySelectorAll(".tab");
+for (var i = 0; i < tabs.length; i++) {
+  tabs[i].addEventListener("click", function() {
+    for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove("active");
+    this.classList.add("active");
+    tab = this.dataset.tab;
+    render();
+  });
+}
+
+load();
+</script>
+</body>
+</html>

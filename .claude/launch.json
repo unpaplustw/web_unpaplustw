@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "hub-preview",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "/Users/randophmac/pCloud Drive/GitHub/web_unpaplustw", "-l", "3456", "--no-clipboard"],
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3456", "--directory", "/tmp/npcombat-preview"],
       "port": 3456
     }
   ]
