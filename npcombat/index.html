@@ -4,14 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>26期實戰班 ── 決戰威斯汀</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
-// LIFF 登入後跳轉修正：如果帶 liff.state 就轉到正確頁面
-(function(){
+// LIFF 登入後跳轉修正：先完成登入，再跳到正確頁面
+(async function(){
   var p = new URLSearchParams(location.search);
   var s = p.get('liff.state');
   if (s && s !== '/') {
     var page = s.replace(/^\//, '');
-    if (page && page !== 'index.html') { location.replace(page); }
+    if (page && page !== 'index.html') {
+      await liff.init({ liffId: '2010082073-87iRs2A9' });
+      location.replace(page);
+      return;
+    }
   }
 })();
 </script>
