@@ -434,7 +434,7 @@ async function loadWeek(idx) {
             + s.ghosted * 1 + s.rejected * 1 + s.close_pts;
   });
 
-  if (arr.every(s => s.total === 0)) { showEmpty('本週尚無行動紀錄，開始衝吧！💪'); return; }
+  // 即使無資料也顯示獎項標題，讓大家知道有哪些可以玩
 
   // 排名
   const rank = (key) => [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0).slice(0, 3);
