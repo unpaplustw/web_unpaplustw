@@ -50,6 +50,19 @@ select:disabled{opacity:.4}
 .active-session-title{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:6px}
 .active-session-info{font-size:13px;color:var(--text);line-height:1.6}
 .btn-clear{padding:8px 16px;border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px}
+
+/* 快速入口 */
+.sys-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin:16px 0 8px}
+.sys-label:first-child{margin-top:0}
+.links-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px}
+.link-card{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 10px;background:var(--bg);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);transition:.2s;cursor:pointer}
+.link-card:hover,.link-card:active{border-color:var(--gold);background:var(--gold-lt)}
+.link-card .lk-icon{font-size:22px}
+.link-card .lk-name{font-size:13px;font-weight:600;text-align:center}
+.link-card .lk-desc{font-size:11px;color:var(--muted);text-align:center}
+.link-card.wide{grid-column:1/-1;flex-direction:row;justify-content:center;gap:12px;padding:16px}
+.link-card.wide .lk-name{font-size:14px}
+.divider{height:1px;background:var(--border);margin:16px 0}
 </style>
 </head>
 <body>
@@ -67,8 +80,46 @@ select:disabled{opacity:.4}
   </div>
 
   <div id="mainContent" style="display:none">
+
+    <!-- 快速入口 -->
     <div class="section">
-      <div class="section-title">📡 傳送設定</div>
+      <div class="section-title">⚡ 快速入口</div>
+
+      <div class="sys-label">LINEAI</div>
+      <div class="links-grid">
+        <a class="link-card wide" href="https://unpaplus.com.tw/members/hub.html" target="_blank">
+          <div class="lk-icon">🏛️</div>
+          <div>
+            <div class="lk-name">會員中心 SA</div>
+            <div class="lk-desc">10 個 OA 團隊 + 全部會員</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="sys-label">實戰班</div>
+      <div class="links-grid">
+        <a class="link-card" href="https://unpaplus.com.tw/npcombat/admin.html" target="_blank">
+          <div class="lk-icon">⚙️</div>
+          <div class="lk-name">管理後台</div>
+        </a>
+        <a class="link-card" href="https://unpaplus.com.tw/npcombat/coach-review.html" target="_blank">
+          <div class="lk-icon">📋</div>
+          <div class="lk-name">教練審查</div>
+        </a>
+        <a class="link-card" href="https://unpaplus.com.tw/npcombat/leaderboard.html" target="_blank">
+          <div class="lk-icon">🏆</div>
+          <div class="lk-name">排行榜</div>
+        </a>
+        <a class="link-card" href="https://unpaplus.com.tw/npcombat/register.html" target="_blank">
+          <div class="lk-icon">📝</div>
+          <div class="lk-name">報名頁</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 天神模擬 -->
+    <div class="section">
+      <div class="section-title">📡 角色模擬傳送</div>
 
       <div class="field-label">選擇專案</div>
       <select id="selProject" onchange="onProjectChange()">
