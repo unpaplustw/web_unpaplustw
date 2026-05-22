@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>26期實戰班 ── 決戰威斯汀</title>
+<script>
+// LIFF 登入後跳轉修正：如果帶 liff.state 就轉到正確頁面
+(function(){
+  var p = new URLSearchParams(location.search);
+  var s = p.get('liff.state');
+  if (s && s !== '/') {
+    var page = s.replace(/^\//, '');
+    if (page && page !== 'index.html') { location.replace(page); }
+  }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
