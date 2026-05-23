@@ -4,6 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>APLUS 系統 — 事業啟動平台</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+// LIFF 登入後跳轉：endpoint 頁消化登入參數，再跳到目標頁
+(function(){
+  var p = new URLSearchParams(location.search);
+  var s = p.get('liff.state');
+  if (s && s !== '/') {
+    var page = s.replace(/^\//, '');
+    if (page) {
+      liff.init({ liffId: '2009692859-Rn5nXjab' }).then(function(){
+        location.replace(page);
+      }).catch(function(){
+        location.replace(page);
+      });
+      return;
+    }
+  }
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   :root {
