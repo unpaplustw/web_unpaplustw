@@ -650,7 +650,7 @@
 </div>
 
 <script>
-const LIFF_ID      = '2009692859-IGJ1xPLd';
+const LIFF_ID      = '2009692859-1LNWRlIq';
 const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
 const BATCH_ID     = 1;
@@ -841,7 +841,7 @@ async function handleCoachSubmit() {
 async function init() {
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isInClient() && !liff.isLoggedIn()) { liff.login(); return; }
+    if (!liff.isLoggedIn()) { liff.login(); return; }
 
     lineProfile = await liff.getProfile();
     lineUserId  = lineProfile.userId;
