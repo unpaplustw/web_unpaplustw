@@ -194,12 +194,12 @@ async function init() {
 
     const { data: member } = await sbNpc.from('members_master').select('id, name')
       .eq('line_user_id', profile.userId).single();
-    if (!member) { showBlock('非會員，無法使用'); return; }
+    if (!member) { showBlock(`非會員｜LINE ID: ${profile.userId}`); return; }
     myMemberId = member.id;
 
     const { data: god } = await sbGod.from('admins').select('id')
       .eq('member_id', myMemberId).single();
-    if (!god) { showBlock('無天神權限'); return; }
+    if (!god) { showBlock(`無天神權限｜${member.name}（${myMemberId}）`); return; }
 
     document.getElementById('adminName').textContent = member.name + ' 👑';
     document.getElementById('mainContent').style.display = 'block';
