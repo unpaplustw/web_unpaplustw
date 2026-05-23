@@ -293,6 +293,9 @@ async function init() {
       document.getElementById('p-' + firstTab.dataset.t).classList.add('on');
     }
   } catch (e) {
+    if (e.message && e.message.includes('revoked')) {
+      liff.logout(); liff.login({ redirectUri: window.location.href }); return;
+    }
     document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">登入失敗：' + e.message + '</div></div>';
     return;
   }
