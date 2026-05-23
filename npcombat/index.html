@@ -13,11 +13,17 @@
   if (s && s !== '/') {
     var page = s.replace(/^\//, '');
     if (page && page !== 'index.html') {
-      liff.init({ liffId: '2009692859-IGJ1xPLd' }).then(function(){
+      if (p.has('code')) {
+        // 外部瀏覽器（PC）：有 OAuth code，需先 liff.init() 消化後再跳
+        liff.init({ liffId: '2009692859-IGJ1xPLd' }).then(function(){
+          location.replace(page);
+        }).catch(function(){
+          location.replace(page);
+        });
+      } else {
+        // LIFF Browser（手機 LINE）：不走 OAuth，直接跳，讓目標頁自己 init
         location.replace(page);
-      }).catch(function(){
-        location.replace(page);
-      });
+      }
       return;
     }
   }
