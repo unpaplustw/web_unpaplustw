@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>天神管理系統</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-:root{--bg:#0f0f13;--card:#1a1a23;--border:rgba(255,255,255,.08);--gold:#d4a017;--gold-lt:rgba(212,160,23,.15);--text:#e8e6e1;--muted:#8a8fa8;--blue:#4a9eff;--blue-bg:rgba(74,158,255,.12);--green:#34d399;--green-bg:rgba(52,211,153,.12);--red:#f87171;--shadow:0 2px 12px rgba(0,0,0,.3)}
+:root{--bg:#0f0f13;--card:#1a1a23;--border:rgba(255,255,255,.08);--gold:#d4a017;--gold-lt:rgba(212,160,23,.15);--text:#e8e6e1;--muted:#8a8fa8;--shadow:0 2px 12px rgba(0,0,0,.3)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 .wrap{max-width:480px;margin:0 auto;padding:20px 16px 80px}
@@ -16,53 +15,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .hd-title{font-size:22px;font-weight:700;color:var(--gold)}
 .hd-sub{font-size:13px;color:var(--muted);margin-top:4px}
 .section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
-.section-title{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.field-label{font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:14px}
-.field-label:first-child{margin-top:0}
-select{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8fa8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
-select:focus{outline:none;border-color:var(--gold)}
-select:disabled{opacity:.4}
-.role-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.role-chip{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:2px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:.2s}
-.role-chip:hover{border-color:var(--gold);color:var(--gold)}
-.role-chip.on{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
-.btn-go{width:100%;padding:16px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;margin-top:20px;background:var(--gold);color:#0f0f13}
-.btn-go:hover{opacity:.9;transform:scale(.99)}
-.btn-go:disabled{opacity:.3;cursor:not-allowed;transform:none}
-.preview{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:16px;font-size:13px;line-height:1.8;display:none}
-.preview .label{color:var(--muted)}
-.preview .value{color:var(--text);font-weight:600}
-.history{margin-top:12px}
-.history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
-.history-item:last-child{border:none}
-.history-role{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
-.history-role.student{background:var(--blue-bg);color:var(--blue)}
-.history-role.coach{background:var(--green-bg);color:var(--green)}
-.history-role.non_member{background:rgba(248,113,113,.12);color:var(--red)}
-.history-role.admin{background:var(--gold-lt);color:var(--gold)}
-.history-time{color:var(--muted);font-size:11px}
-.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(60px);background:#333;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;opacity:0;transition:.3s;z-index:99;pointer-events:none}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.empty{text-align:center;padding:60px 20px}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.empty-text{color:var(--muted);font-size:15px}
-.active-session{background:var(--gold-lt);border:2px solid var(--gold);border-radius:12px;padding:14px;margin-bottom:16px;display:none}
-.active-session-title{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:6px}
-.active-session-info{font-size:13px;color:var(--text);line-height:1.6}
-.btn-clear{padding:8px 16px;border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px}
-
-/* 快速入口 */
+.section-title{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:14px}
 .sys-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin:16px 0 8px}
 .sys-label:first-child{margin-top:0}
 .links-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px}
-.link-card{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 10px;background:var(--bg);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);transition:.2s;cursor:pointer}
+.link-card{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 10px;background:var(--bg);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);transition:.2s}
 .link-card:hover,.link-card:active{border-color:var(--gold);background:var(--gold-lt)}
 .link-card .lk-icon{font-size:22px}
 .link-card .lk-name{font-size:13px;font-weight:600;text-align:center}
 .link-card .lk-desc{font-size:11px;color:var(--muted);text-align:center}
 .link-card.wide{grid-column:1/-1;flex-direction:row;justify-content:center;gap:12px;padding:16px}
 .link-card.wide .lk-name{font-size:14px}
-.divider{height:1px;background:var(--border);margin:16px 0}
+.empty{text-align:center;padding:80px 20px}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-text{color:var(--muted);font-size:15px}
 </style>
 </head>
 <body>
@@ -73,15 +39,7 @@ select:disabled{opacity:.4}
     <div class="hd-sub" id="adminName">驗證中…</div>
   </div>
 
-  <div class="active-session" id="activeSession">
-    <div class="active-session-title">🔴 目前有效令牌</div>
-    <div class="active-session-info" id="activeInfo"></div>
-    <button class="btn-clear" onclick="clearSession()">清除令牌</button>
-  </div>
-
   <div id="mainContent" style="display:none">
-
-    <!-- 快速入口 -->
     <div class="section">
       <div class="section-title">⚡ 快速入口</div>
 
@@ -116,75 +74,12 @@ select:disabled{opacity:.4}
         </a>
       </div>
     </div>
-
-    <!-- 天神模擬 -->
-    <div class="section">
-      <div class="section-title">📡 角色模擬傳送</div>
-
-      <div class="field-label">選擇專案</div>
-      <select id="selProject" onchange="onProjectChange()">
-        <option value="">— 請選擇 —</option>
-      </select>
-
-      <div class="field-label">扮演角色</div>
-      <div class="role-chips" id="roleChips"></div>
-
-      <div class="field-label">扮演對象</div>
-      <select id="selTarget" disabled>
-        <option value="">— 先選角色 —</option>
-      </select>
-
-      <div class="field-label">前往頁面</div>
-      <select id="selPage" disabled>
-        <option value="">— 先選專案 —</option>
-      </select>
-
-      <div class="preview" id="preview">
-        <div><span class="label">專案：</span><span class="value" id="pvProject">-</span></div>
-        <div><span class="label">角色：</span><span class="value" id="pvRole">-</span></div>
-        <div><span class="label">對象：</span><span class="value" id="pvTarget">-</span></div>
-        <div><span class="label">頁面：</span><span class="value" id="pvPage">-</span></div>
-        <div><span class="label">有效：</span><span class="value">10 分鐘</span></div>
-      </div>
-
-      <button class="btn-go" id="btnGo" disabled onclick="doTransmit()">⚡ 傳送</button>
-    </div>
-
-    <div class="section">
-      <div class="section-title">📜 最近傳送紀錄</div>
-      <div class="history" id="historyList">
-        <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">尚無紀錄</div>
-      </div>
-    </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
 <script>
 const LIFF_ID = '2009692859-Rn5nXjab';
-const SB_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-
-const sbGod = window.supabase.createClient(SB_URL, SB_KEY, { db: { schema: 'god' } });
-const sbNpc = window.supabase.createClient(SB_URL, SB_KEY, { db: { schema: 'npcombat' } });
-
-let myMemberId = null;
-let projects = [];
-let selectedRole = null;
-
-const ROLE_LABELS = {
-  non_member: '非會員',
-  student: '學員',
-  coach: '教練',
-  admin: '管理員'
-};
-
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2200);
-}
+const ALLOWED_LINE_IDS = ['U81ead586b1fb0adb1d2d5b1bc08c3494'];
 
 async function init() {
   try {
@@ -192,252 +87,18 @@ async function init() {
     if (!liff.isLoggedIn()) { liff.login({ redirectUri: window.location.href }); return; }
     const profile = await liff.getProfile();
 
-    const { data: member } = await sbNpc.from('members_master').select('id, name')
-      .eq('line_user_id', profile.userId).single();
-    if (!member) { showBlock(`非會員｜LINE ID: ${profile.userId}`); return; }
-    myMemberId = member.id;
-
-    const { data: god, error: godErr } = await sbGod.from('admins').select('id')
-      .eq('member_id', myMemberId).single();
-    if (!god) { showBlock(`無天神權限｜${member.name}｜${godErr?.message || '無 error'}`); return; }
-
-    document.getElementById('adminName').textContent = member.name + ' 👑';
-    document.getElementById('mainContent').style.display = 'block';
-
-    await loadProjects();
-    await checkActiveSession();
-    await loadHistory();
-  } catch (e) {
-    showBlock('登入失敗：' + e.message);
-  }
-}
-
-function showBlock(msg) {
-  document.querySelector('.wrap').innerHTML =
-    `<div class="empty"><div class="empty-icon">🚫</div><div class="empty-text">${msg}</div></div>`;
-}
-
-async function loadProjects() {
-  const { data } = await sbGod.from('projects').select('*').order('name');
-  projects = data || [];
-  const sel = document.getElementById('selProject');
-  projects.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.code;
-    opt.textContent = p.name;
-    sel.appendChild(opt);
-  });
-}
-
-function getProject() {
-  return projects.find(p => p.code === document.getElementById('selProject').value);
-}
-
-function onProjectChange() {
-  const proj = getProject();
-  selectedRole = null;
-  document.getElementById('selTarget').disabled = true;
-  document.getElementById('selTarget').innerHTML = '<option value="">— 先選角色 —</option>';
-
-  const chipBox = document.getElementById('roleChips');
-  const pageSel = document.getElementById('selPage');
-
-  if (!proj) {
-    chipBox.innerHTML = '';
-    pageSel.disabled = true;
-    pageSel.innerHTML = '<option value="">— 先選專案 —</option>';
-    updatePreview();
-    return;
-  }
-
-  const roles = proj.roles || [];
-  chipBox.innerHTML = roles.map(r =>
-    `<div class="role-chip" data-role="${r}" onclick="selectRole('${r}')">${ROLE_LABELS[r] || r}</div>`
-  ).join('');
-
-  const pages = proj.pages || [];
-  pageSel.disabled = false;
-  pageSel.innerHTML = '<option value="">— 請選擇 —</option>' +
-    pages.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
-
-  updatePreview();
-}
-
-async function selectRole(role) {
-  selectedRole = role;
-  document.querySelectorAll('.role-chip').forEach(c => c.classList.toggle('on', c.dataset.role === role));
-
-  const targetSel = document.getElementById('selTarget');
-
-  if (role === 'non_member') {
-    targetSel.disabled = true;
-    targetSel.innerHTML = '<option value="__none__">（模擬非會員）</option>';
-    filterPages(role);
-    updatePreview();
-    return;
-  }
-
-  targetSel.disabled = false;
-  targetSel.innerHTML = '<option value="">載入中…</option>';
-
-  const proj = getProject();
-  if (!proj) return;
-
-  let people = [];
-  if (role === 'student') {
-    const { data } = await sbNpc.from('batch_students')
-      .select('id, member_id, status, members_master(name, member_code)')
-      .eq('batch_id', 1).order('created_at');
-    people = (data || []).map(s => ({
-      member_id: s.member_id,
-      label: `${s.members_master?.name || '?'}（${s.members_master?.member_code || ''}）[${s.status}]`
-    }));
-  } else if (role === 'coach') {
-    const { data } = await sbNpc.from('batch_coaches')
-      .select('id, member_id, status, members_master(name, member_code)')
-      .eq('batch_id', 1).order('created_at');
-    people = (data || []).map(c => ({
-      member_id: c.member_id,
-      label: `${c.members_master?.name || '?'}（${c.members_master?.member_code || ''}）[${c.status}]`
-    }));
-  } else if (role === 'admin') {
-    const { data } = await sbNpc.from('admin_users')
-      .select('member_id, allowed_tabs, members_master(name, member_code)');
-    people = (data || []).map(a => ({
-      member_id: a.member_id,
-      label: `${a.members_master?.name || '?'}（${a.members_master?.member_code || ''}）[${(a.allowed_tabs||[]).length} tabs]`
-    }));
-  }
-
-  targetSel.innerHTML = '<option value="">— 請選擇 —</option>' +
-    people.map(p => `<option value="${p.member_id}">${p.label}</option>`).join('');
-
-  filterPages(role);
-  updatePreview();
-}
-
-function filterPages(role) {
-  const proj = getProject();
-  if (!proj) return;
-  const pageSel = document.getElementById('selPage');
-  const pages = (proj.pages || []).filter(p => p.roles.includes(role));
-  pageSel.innerHTML = '<option value="">— 請選擇 —</option>' +
-    pages.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
-}
-
-function updatePreview() {
-  const proj = getProject();
-  const role = selectedRole;
-  const target = document.getElementById('selTarget').value;
-  const targetText = document.getElementById('selTarget').selectedOptions[0]?.textContent || '-';
-  const page = document.getElementById('selPage').value;
-  const pageText = document.getElementById('selPage').selectedOptions[0]?.textContent || '-';
-
-  const pv = document.getElementById('preview');
-  document.getElementById('pvProject').textContent = proj?.name || '-';
-  document.getElementById('pvRole').textContent = ROLE_LABELS[role] || '-';
-  document.getElementById('pvTarget').textContent = target ? targetText : '-';
-  document.getElementById('pvPage').textContent = page ? pageText : '-';
-
-  const ready = proj && role && (target || role === 'non_member') && page;
-  pv.style.display = ready ? 'block' : 'none';
-  document.getElementById('btnGo').disabled = !ready;
-}
-
-document.getElementById('selTarget').addEventListener('change', updatePreview);
-document.getElementById('selPage').addEventListener('change', updatePreview);
-
-async function doTransmit() {
-  const proj = getProject();
-  const target = document.getElementById('selTarget').value;
-  const page = document.getElementById('selPage').value;
-
-  if (!proj || !selectedRole || !page) return;
-
-  const btn = document.getElementById('btnGo');
-  btn.disabled = true;
-  btn.textContent = '傳送中…';
-
-  try {
-    await sbGod.from('sessions').delete().eq('admin_member_id', myMemberId);
-
-    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const row = {
-      admin_member_id: myMemberId,
-      project_code: proj.code,
-      target_role: selectedRole,
-      target_member_id: selectedRole === 'non_member' ? null : target,
-      expires_at: expires
-    };
-
-    const { error } = await sbGod.from('sessions').insert(row);
-    if (error) throw error;
-
-    toast('令牌已建立，開啟頁面中…');
-    await checkActiveSession();
-    await loadHistory();
-
-    setTimeout(() => {
-      window.open(proj.base_url + page, '_blank');
-    }, 500);
-  } catch (e) {
-    toast('失敗：' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '⚡ 傳送';
-  }
-}
-
-async function checkActiveSession() {
-  const { data } = await sbGod.from('sessions').select('*, projects(name)')
-    .eq('admin_member_id', myMemberId)
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  const box = document.getElementById('activeSession');
-  if (data && data.length) {
-    const s = data[0];
-    const remaining = Math.ceil((new Date(s.expires_at) - Date.now()) / 60000);
-    let targetName = '無（非會員模式）';
-    if (s.target_member_id) {
-      const { data: m } = await sbNpc.from('members_master').select('name').eq('id', s.target_member_id).single();
-      targetName = m?.name || s.target_member_id;
+    if (!ALLOWED_LINE_IDS.includes(profile.userId)) {
+      document.querySelector('.wrap').innerHTML =
+        `<div class="empty"><div class="empty-icon">🚫</div><div class="empty-text">無天神權限</div></div>`;
+      return;
     }
-    document.getElementById('activeInfo').innerHTML =
-      `專案：${s.projects?.name || s.project_code}<br>角色：${ROLE_LABELS[s.target_role] || s.target_role}<br>對象：${targetName}<br>剩餘：約 ${remaining} 分鐘`;
-    box.style.display = 'block';
-  } else {
-    box.style.display = 'none';
+
+    document.getElementById('adminName').textContent = profile.displayName + ' 👑';
+    document.getElementById('mainContent').style.display = 'block';
+  } catch (e) {
+    document.querySelector('.wrap').innerHTML =
+      `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">登入失敗：${e.message}</div></div>`;
   }
-}
-
-async function clearSession() {
-  await sbGod.from('sessions').delete().eq('admin_member_id', myMemberId);
-  toast('令牌已清除');
-  document.getElementById('activeSession').style.display = 'none';
-}
-
-async function loadHistory() {
-  const { data } = await sbGod.from('sessions').select('target_role, project_code, created_at, projects(name)')
-    .eq('admin_member_id', myMemberId)
-    .order('created_at', { ascending: false })
-    .limit(10);
-
-  const box = document.getElementById('historyList');
-  if (!data || !data.length) {
-    box.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">尚無紀錄</div>';
-    return;
-  }
-  box.innerHTML = data.map(s => {
-    const t = new Date(s.created_at);
-    const ts = `${t.getMonth()+1}/${t.getDate()} ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
-    return `<div class="history-item">
-      <div><span style="color:var(--text)">${s.projects?.name || s.project_code}</span></div>
-      <div><span class="history-role ${s.target_role}">${ROLE_LABELS[s.target_role] || s.target_role}</span></div>
-      <div class="history-time">${ts}</div>
-    </div>`;
-  }).join('');
 }
 
 init();
