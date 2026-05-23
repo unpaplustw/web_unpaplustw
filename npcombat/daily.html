@@ -519,7 +519,7 @@ async function init() {
     document.getElementById('dayCount').textContent = `第 ${dayNum} 天`;
 
   } catch (e) {
-    if (e.message && e.message.includes('revoked')) { liff.logout(); liff.login({ redirectUri: window.location.href }); return; }
+    if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
     document.getElementById('userName').textContent = '載入失敗';
     toast('錯誤：' + e.message);
   }
