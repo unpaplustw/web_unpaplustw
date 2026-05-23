@@ -197,9 +197,9 @@ async function init() {
     if (!member) { showBlock(`非會員｜LINE ID: ${profile.userId}`); return; }
     myMemberId = member.id;
 
-    const { data: god } = await sbGod.from('admins').select('id')
+    const { data: god, error: godErr } = await sbGod.from('admins').select('id')
       .eq('member_id', myMemberId).single();
-    if (!god) { showBlock(`無天神權限｜${member.name}（${myMemberId}）`); return; }
+    if (!god) { showBlock(`無天神權限｜${member.name}｜${godErr?.message || '無 error'}`); return; }
 
     document.getElementById('adminName').textContent = member.name + ' 👑';
     document.getElementById('mainContent').style.display = 'block';
