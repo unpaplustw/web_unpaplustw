@@ -4,39 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>APLUS 系統 — 事業啟動平台</title>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script>
-// LIFF 登入中繼站：在 endpoint 頁完成登入，再跳回原本要去的頁面
-(function(){
-  var p = new URLSearchParams(location.search);
-  var s = p.get('liff.state');
-  var ret = localStorage.getItem('liff_return');
-
-  // Case 1: 有 liff.state（從 LIFF URL 帶路徑進來）
-  if (s && s !== '/') {
-    var page = s.replace(/^\//, '');
-    if (page) {
-      liff.init({ liffId: '2009692859-Rn5nXjab' }).then(function(){
-        location.replace(page);
-      }).catch(function(){
-        location.replace(page);
-      });
-      return;
-    }
-  }
-
-  // Case 2: 從 liff.login() 回來（localStorage 有記錄要回哪）
-  if (ret) {
-    localStorage.removeItem('liff_return');
-    liff.init({ liffId: '2009692859-Rn5nXjab' }).then(function(){
-      location.replace(ret);
-    }).catch(function(){
-      location.replace(ret);
-    });
-    return;
-  }
-})();
-</script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   :root {

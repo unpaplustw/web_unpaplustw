@@ -249,7 +249,7 @@ const sb = window.supabase.createClient(
   { db: { schema: 'npcombat' } }
 );
 
-const LIFF_ID = '2009692859-Rn5nXjab';
+const LIFF_ID = '2009692859-IGJ1xPLd';
 let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], selS = null, selC = null, searchReview = '';
 let myAllowedTabs = [];
 
@@ -263,7 +263,7 @@ async function init() {
   // ── LIFF 門禁 ──
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { localStorage.setItem('liff_return', location.href); liff.login(); return; }
+    if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
 
     const { data: member } = await sb.from('members_master').select('id, name')

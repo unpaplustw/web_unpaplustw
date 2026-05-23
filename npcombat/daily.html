@@ -292,7 +292,7 @@
 
 <script>
 const DEMO_MODE = false;
-const LIFF_ID = '2009692859-Rn5nXjab';
+const LIFF_ID = '2009692859-IGJ1xPLd';
 const BATCH_ID = 1;
 
 const sb = window.supabase.createClient(
@@ -450,7 +450,7 @@ async function init() {
   try {
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { localStorage.setItem('liff_return', location.href); liff.login(); return; }
+    if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
 
     // 查會員
