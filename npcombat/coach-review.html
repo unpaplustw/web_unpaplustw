@@ -289,10 +289,10 @@ function formatDate(d) {
 function getStuData(stu) { return currentDay === 'today' ? stu.today : stu.yesterday; }
 function getCoachData(stu) { return currentDay === 'today' ? stu.coach_today : stu.coach_yesterday; }
 
-function calcActionPts(d) {
-  if (!d) return 0;
+function calcActionPts(d, c) {
   let pts = 0;
-  STU_FIELDS.forEach(f => { if (!f.special) pts += (d[f.key]||0) * (f.pts||0); });
+  if (d) STU_FIELDS.forEach(f => { if (!f.special) pts += (d[f.key]||0) * (f.pts||0); });
+  if (c) pts += (c.name_list||0)*1 + (c.schedule||0)*1 + (c.follow_up||0)*1;
   return pts;
 }
 function calcClosePts(d) {
@@ -458,9 +458,9 @@ function renderMyReport() {
   // 初始化 myVals
   const MY_FIELDS = STU_FIELDS.filter(f => !f.special);
   const MY_COACH_FIELDS = [
-    { key:'name_list', emoji:'📋', label:'羅列名單' },
-    { key:'schedule',  emoji:'📅', label:'安排行程' },
-    { key:'follow_up', emoji:'🔄', label:'跟進狀況' }
+    { key:'name_list', emoji:'📋', label:'羅列名單', pts:1 },
+    { key:'schedule',  emoji:'📅', label:'安排行程', pts:1 },
+    { key:'follow_up', emoji:'🔄', label:'跟進狀況', pts:1 }
   ];
   if (d) {
     MY_FIELDS.forEach(f => { myVals[f.key] = d[f.key] || 0; });
@@ -579,7 +579,7 @@ function renderSummary() {
   studentList.forEach((stu, i) => {
     const d = getStuData(stu);
     const c = getCoachData(stu);
-    const actionPts = calcActionPts(d);
+    const actionPts = calcActionPts(d, c);
     const closePts = calcClosePts(d);
     totalAction += actionPts;
     totalClose += closePts;
