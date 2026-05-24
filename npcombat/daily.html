@@ -728,51 +728,31 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
     monthPts[m] = (monthPts[m] || 0) + c.points;
   });
 
-  // 計算名額
-  let slots = [];
+  // 固定四欄：4月 / 5月 / 6月 / 跨月
+  const apr = monthPts[4] || 0;
+  const may = monthPts[5] || 0;
+  const jun = monthPts[6] || 0;
+
+  const aprDone = apr >= eb;
+  const mayDone = may >= sm;
+  const junDone = jun >= sm;
+
   let crossPool = 0;
+  crossPool += aprDone ? apr - eb : apr;
+  crossPool += mayDone ? may - sm : may;
+  crossPool += junDone ? jun - sm : jun;
 
-  // 早鳥（earlybird_month，通常4月）
-  const aprilPts = monthPts[ebMonth] || 0;
-  if (aprilPts >= eb) {
-    slots.push({ type:'早鳥', target:eb, earned:eb, done:true, totalPts:aprilPts });
-    crossPool += aprilPts - eb;
-  } else {
-    slots.push({ type:'早鳥', target:eb, earned:aprilPts, done:false, totalPts:aprilPts });
-    crossPool += aprilPts;
-  }
+  let crossSlots = 0;
+  let crossRemain = crossPool;
+  while (crossRemain >= cm) { crossSlots++; crossRemain -= cm; }
 
-  // 單月（逐月檢查，排除早鳥月）
-  const months = Object.keys(monthPts).map(Number).filter(m => m !== ebMonth).sort();
-  months.forEach(m => {
-    const pts = monthPts[m];
-    if (pts >= sm) {
-      slots.push({ type:`${m}月單月`, target:sm, earned:sm, done:true, totalPts:pts });
-      crossPool += pts - sm;
-    } else {
-      slots.push({ type:`${m}月單月`, target:sm, earned:pts, done:false, totalPts:pts });
-      crossPool += pts;
-    }
-  });
+  const completedCount = (aprDone?1:0) + (mayDone?1:0) + (junDone?1:0) + crossSlots;
 
-  // 跨月（用剩餘池）
-  let crossDone = 0;
-  while (crossPool >= cm) {
-    crossDone++;
-    crossPool -= cm;
-  }
-  if (crossDone > 0) {
-    for (let i = 0; i < crossDone; i++) slots.push({ type:'跨月', target:cm, earned:cm, done:true });
-  }
-  // 進行中的跨月
-  slots.push({ type:'跨月', target:cm, earned:crossPool, done:false });
-
-  const completedCount = slots.filter(s => s.done).length;
-
-  // 找出下一個未完成的目標計算進度環
-  const nextSlot = slots.find(s => !s.done);
-  const ringPct = nextSlot ? Math.min(100, Math.round(nextSlot.earned / nextSlot.target * 100)) : 100;
-  const ringLabel = nextSlot ? `${nextSlot.type} ${nextSlot.earned}/${nextSlot.target}` : '全部達成！';
+  // 圓環：顯示總完成名額
+  const totalSlotsPossible = 3 + Math.floor((apr+may+jun) / cm); // 理論最大
+  const ringPct = completedCount > 0 ? Math.min(100, Math.round(completedCount / 4 * 100)) :
+    Math.min(100, Math.round(Math.max(apr/eb, may/sm, jun/sm, crossPool/cm) * 100));
+  const ringLabel = completedCount > 0 ? `已完成 ${completedCount} 個名額` : '挑戰進行中';
 
   // 行動分數統計
   const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
@@ -801,29 +781,44 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
     document.getElementById('wrRingLabel').textContent = ringLabel;
   }, 100);
 
-  // 名額圖示
-  const slotIcons = slots.map(s => {
-    const icon = s.done ? '✅' : '⬜';
-    const cls = s.done ? 'done' : (s.earned > 0 ? 'prog' : 'wait');
-    const ptsDisplay = s.totalPts != null ? s.totalPts : s.earned;
-    const statusText = s.done ? `${ptsDisplay}分 達成` : `${ptsDisplay}/${s.target}`;
+  // 名額圖示：固定四欄
+  const fixedSlots = [
+    { name:'4月', pts:apr, target:eb, done:aprDone },
+    { name:'5月', pts:may, target:sm, done:mayDone },
+    { name:'6月', pts:jun, target:sm, done:junDone },
+    { name:'跨月', pts:crossPool, target:cm, done:crossSlots > 0, count:crossSlots, remain:crossRemain },
+  ];
+  const slotIcons = fixedSlots.map(s => {
+    const icon = s.done ? '✅' : (s.pts > 0 ? '🔶' : '⬜');
+    const cls = s.done ? 'done' : (s.pts > 0 ? 'prog' : 'wait');
+    let statusText;
+    if (s.name === '跨月') {
+      statusText = s.done ? `${s.count}名額 餘${s.remain}分` : `${s.pts}/${s.target}`;
+    } else {
+      const pct = Math.round(s.pts / s.target * 100);
+      statusText = s.done ? `${s.pts}分 達成` : `${pct}%`;
+    }
     return `<div class="wr-slot">
       <div class="wr-slot-icon">${icon}</div>
-      <div class="wr-slot-name">${s.type}</div>
+      <div class="wr-slot-name">${s.name}</div>
       <div class="wr-slot-status ${cls}">${statusText}</div>
     </div>`;
   }).join('');
   document.getElementById('wrSlots').innerHTML = slotIcons;
 
-  // 進度條（只顯示未完成的，最多3條）
-  const barSlots = slots.filter(s => !s.done).slice(0, 3);
-  const barColors = ['gold', 'blue', 'green'];
-  const barsHtml = barSlots.map((s, i) => {
-    const pct = Math.min(100, Math.round(s.earned / s.target * 100));
+  // 進度條：固定四條
+  const bars = [
+    { label:'4月', pts:apr, target:eb, color:'gold' },
+    { label:'5月', pts:may, target:sm, color:'blue' },
+    { label:'6月', pts:jun, target:sm, color:'green' },
+    { label:'跨月', pts:crossPool, target:cm, color:'gold' },
+  ];
+  const barsHtml = bars.map(b => {
+    const pct = Math.min(100, Math.round(b.pts / b.target * 100));
     return `<div class="wr-bar-row">
-      <div class="wr-bar-label">${s.type}</div>
-      <div class="wr-bar-track"><div class="wr-bar-fill ${barColors[i % 3]}" style="width:0%" data-target="${pct}"></div></div>
-      <div class="wr-bar-pct">${s.earned}/${s.target}</div>
+      <div class="wr-bar-label">${b.label}</div>
+      <div class="wr-bar-track"><div class="wr-bar-fill ${b.color}" style="width:0%" data-target="${pct}"></div></div>
+      <div class="wr-bar-pct">${b.pts}/${b.target}</div>
     </div>`;
   }).join('');
   document.getElementById('wrBars').innerHTML = barsHtml;
