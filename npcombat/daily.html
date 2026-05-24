@@ -145,13 +145,13 @@
 
   /* Ring */
   .wr-ring-wrap{display:flex;justify-content:center;margin-bottom:16px}
-  .wr-ring{position:relative;width:140px;height:140px}
+  .wr-ring{position:relative;width:180px;height:180px}
   .wr-ring svg{transform:rotate(-90deg)}
   .wr-ring-bg{fill:none;stroke:var(--border);stroke-width:10}
   .wr-ring-fg{fill:none;stroke:var(--gold);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease-out}
   .wr-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .wr-ring-pct{font-size:32px;font-weight:700;color:var(--gold)}
-  .wr-ring-label{font-size:12px;color:var(--muted);margin-top:2px}
+  .wr-ring-pct{font-size:38px;font-weight:700;color:var(--gold)}
+  .wr-ring-label{font-size:13px;color:var(--muted);margin-top:4px}
 
   /* Slots */
   .wr-slots{display:flex;justify-content:center;gap:12px;margin-bottom:16px}
@@ -265,9 +265,9 @@
 
     <div class="wr-ring-wrap">
       <div class="wr-ring">
-        <svg viewBox="0 0 140 140" width="140" height="140">
-          <circle class="wr-ring-bg" cx="70" cy="70" r="58"/>
-          <circle class="wr-ring-fg" id="wrRingFg" cx="70" cy="70" r="58" stroke-dasharray="364.42" stroke-dashoffset="364.42"/>
+        <svg viewBox="0 0 180 180" width="180" height="180">
+          <circle class="wr-ring-bg" cx="90" cy="90" r="76"/>
+          <circle class="wr-ring-fg" id="wrRingFg" cx="90" cy="90" r="76" stroke-dasharray="477.52" stroke-dashoffset="477.52"/>
         </svg>
         <div class="wr-ring-center">
           <div class="wr-ring-pct" id="wrRingPct">0%</div>
@@ -793,7 +793,7 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   document.getElementById('warReport').style.display = '';
 
   // 進度環動畫
-  const circumference = 2 * Math.PI * 58; // 364.42
+  const circumference = 2 * Math.PI * 76; // 477.52
   const offset = circumference * (1 - ringPct / 100);
   setTimeout(() => {
     document.getElementById('wrRingFg').style.strokeDashoffset = offset;
