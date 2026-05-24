@@ -196,6 +196,8 @@
   .decl-title{font-size:20px;font-weight:700;color:var(--gold);margin-bottom:20px}
   .decl-text{font-size:18px;line-height:2.2;color:var(--text);text-align:left;white-space:pre-line}
   .decl-text b{color:var(--gold);font-weight:700}
+  .decl-hero{font-size:26px;font-weight:700;color:var(--gold);text-align:center;display:block;margin-bottom:4px}
+  .decl-yic{font-size:28px;font-weight:700;color:var(--gold);text-align:center;display:block;margin-top:8px;letter-spacing:3px}
   .btn-decl{width:100%;padding:16px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:24px;box-shadow:0 4px 16px rgba(184,150,12,.3);transition:.2s;-webkit-tap-highlight-color:transparent}
   .btn-decl:active{transform:scale(.97)}
   .btn-decl-skip{width:100%;padding:14px;background:transparent;color:var(--muted);border:2px solid var(--border);border-radius:14px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:10px;transition:.2s;-webkit-tap-highlight-color:transparent}
@@ -231,7 +233,7 @@
 <div class="decl-overlay" id="declOverlay">
   <div class="decl-card">
     <div class="decl-title">📖 每日宣言</div>
-    <div class="decl-text"><b>我是所有的起源</b>
+    <div class="decl-text"><span class="decl-hero">我是所有的起源</span>
 
 如果我一定要過精彩幸福的人生，我就是所有的起源。
 
@@ -245,7 +247,7 @@
 
 我要親做表率，我要為我的人生百分百負責任！
 
-<b>Yes I Can ! ! !</b></div>
+<span class="decl-yic">Yes I Can ! ! !</span></div>
     <button class="btn-decl" onclick="closeDecl(true)">✅ 我認真朗讀了</button>
     <button class="btn-decl-skip" onclick="closeDecl(false)">😴 今天就是不想唸</button>
   </div>
