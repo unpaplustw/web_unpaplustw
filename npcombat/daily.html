@@ -60,8 +60,8 @@
 
   .close-entry{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;position:relative}
   .close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
-  .close-entry-row{display:flex;gap:8px;flex-wrap:wrap}
-  .close-pill{padding:10px 14px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0}
+  .close-entry-row{display:flex;gap:8px;flex-wrap:nowrap}
+  .close-pill{padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0;word-break:break-all}
   .close-pill.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
   .close-pill-sub{font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
   .close-pill.sel .close-pill-sub{color:var(--gold)}
@@ -133,6 +133,26 @@
   .accum-days{text-align:center;margin-top:10px;font-size:13px;color:var(--muted)}
   .accum-streak{color:var(--green);font-weight:600}
 
+  /* ── Deadline bar ── */
+  .deadline-bar{background:var(--gold-lt);text-align:center;padding:8px 16px;font-size:13px;font-weight:600;color:var(--gold);border-bottom:1px solid var(--border)}
+
+  /* ── Declaration overlay ── */
+  .decl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+  .decl-card{background:var(--card);border-radius:20px;max-width:420px;width:100%;padding:32px 24px;text-align:center;max-height:90vh;overflow-y:auto}
+  .decl-title{font-size:20px;font-weight:700;color:var(--gold);margin-bottom:20px}
+  .decl-text{font-size:18px;line-height:2.2;color:var(--text);text-align:left;white-space:pre-line}
+  .decl-text b{color:var(--gold);font-weight:700}
+  .btn-decl{width:100%;padding:16px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:24px;box-shadow:0 4px 16px rgba(184,150,12,.3);transition:.2s;-webkit-tap-highlight-color:transparent}
+  .btn-decl:active{transform:scale(.97)}
+
+  /* ── Group report checkbox ── */
+  .group-report{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--card);border:2px solid var(--border);border-radius:14px;margin-bottom:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .2s}
+  .group-report.checked{border-color:var(--green)}
+  .group-check{width:28px;height:28px;border-radius:8px;border:2px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:16px;transition:.15s;flex-shrink:0}
+  .group-check.on{background:var(--green);border-color:var(--green);color:#fff}
+  .group-label{font-size:15px;font-weight:600;color:var(--text)}
+  .group-note{font-size:12px;color:var(--muted);margin-top:2px}
+
   /* ── Footer ── */
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
 
@@ -151,11 +171,35 @@
 </head>
 <body>
 
+<!-- ── 宣言彈窗 ── -->
+<div class="decl-overlay" id="declOverlay">
+  <div class="decl-card">
+    <div class="decl-title">📖 每日宣言</div>
+    <div class="decl-text"><b>我是所有的起源</b>
+
+如果我一定要過精彩幸福的人生，我就是所有的起源。
+
+我的理解度、我的認真度、我的行動力，直接影響我現在想要推薦的人。
+
+他們對於綠佳利事業全都是藉由我來觀察、思考、行動。
+
+<b>我就是代表一切</b>，只要我認真行動，環繞著我的夥伴也會認真行動。
+<b>我就是代表一切</b>，只要我心存感恩，環繞著我的夥伴也會心存感恩。
+<b>我就是代表一切</b>，只要我意志堅定，環繞著我的夥伴也會意志堅定。
+
+我要親做表率，我要為我的人生百分百負責任！
+
+<b>Yes I Can ! ! !</b></div>
+    <button class="btn-decl" onclick="closeDecl()">✅ 我認真朗讀了</button>
+  </div>
+</div>
+
 <div class="hd">
   <div class="hd-name" id="userName">載入中…</div>
   <div class="hd-date" id="dateText"></div>
   <div class="hd-day" id="dayCount"></div>
 </div>
+<div class="deadline-bar">⏰ 每日最晚 23:00 填寫回報</div>
 
 <div id="formArea">
 
@@ -264,6 +308,13 @@
   </div>
 
   <div class="submit-wrap">
+    <div class="group-report" id="groupReport" onclick="toggleGroupReport()">
+      <div class="group-check" id="groupCheck"></div>
+      <div>
+        <div class="group-label">🎙️ 我已經小組回報 3 分鐘行動心得</div>
+        <div class="group-note">自願勾選，為自己的分享紀錄留下印記</div>
+      </div>
+    </div>
     <button class="btn-submit" id="btnSubmit" onclick="submit()">送出今日回報</button>
   </div>
 </div>
@@ -327,6 +378,22 @@ const BADGES = [
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
 let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
 let subOn = false, subCount = 0;
+let groupReported = false;
+let declRead = false;
+
+// ── Declaration ──
+function closeDecl() {
+  declRead = true;
+  document.getElementById('declOverlay').style.display = 'none';
+}
+
+// ── Group report toggle ──
+function toggleGroupReport() {
+  groupReported = !groupReported;
+  document.getElementById('groupCheck').classList.toggle('on', groupReported);
+  document.getElementById('groupCheck').textContent = groupReported ? '✓' : '';
+  document.getElementById('groupReport').classList.toggle('checked', groupReported);
+}
 let bid = 1, studentId = null, existingId = null;
 let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
 
@@ -546,7 +613,8 @@ async function submit() {
       const logRow = {
         batch_id: BATCH_ID, student_id: studentId, log_date: today(),
         meet: vals.meet, invite: vals.invite, present: vals.present,
-        seminar: vals.seminar, ghosted: vals.ghosted, rejected: vals.rejected
+        seminar: vals.seminar, ghosted: vals.ghosted, rejected: vals.rejected,
+        decl_read: declRead, group_reported: groupReported
       };
       if (existingId) {
         await sb.from('action_logs').update(logRow).eq('id', existingId);
@@ -581,6 +649,22 @@ function showResult() {
 
   let totalPts = 0;
   let html = '';
+
+  // decl_read & group_reported bonus
+  if (declRead) {
+    totalPts += 2;
+    html += `<div class="result-row">
+      <span class="result-row-label">📖 認真朗讀宣言</span>
+      <span class="result-row-val">✓ → 2 分</span>
+    </div>`;
+  }
+  if (groupReported) {
+    totalPts += 5;
+    html += `<div class="result-row">
+      <span class="result-row-label">🎙️ 小組回報心得</span>
+      <span class="result-row-val">✓ → 5 分</span>
+    </div>`;
+  }
 
   // counter fields
   COUNT_FIELDS.forEach(f => {
