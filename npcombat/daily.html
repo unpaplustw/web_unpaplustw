@@ -735,10 +735,10 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   // 早鳥（earlybird_month，通常4月）
   const aprilPts = monthPts[ebMonth] || 0;
   if (aprilPts >= eb) {
-    slots.push({ type:'早鳥', target:eb, earned:eb, done:true });
+    slots.push({ type:'早鳥', target:eb, earned:eb, done:true, totalPts:aprilPts });
     crossPool += aprilPts - eb;
   } else {
-    slots.push({ type:'早鳥', target:eb, earned:aprilPts, done:false });
+    slots.push({ type:'早鳥', target:eb, earned:aprilPts, done:false, totalPts:aprilPts });
     crossPool += aprilPts;
   }
 
@@ -747,10 +747,10 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   months.forEach(m => {
     const pts = monthPts[m];
     if (pts >= sm) {
-      slots.push({ type:`${m}月單月`, target:sm, earned:sm, done:true });
+      slots.push({ type:`${m}月單月`, target:sm, earned:sm, done:true, totalPts:pts });
       crossPool += pts - sm;
     } else {
-      slots.push({ type:`${m}月單月`, target:sm, earned:pts, done:false });
+      slots.push({ type:`${m}月單月`, target:sm, earned:pts, done:false, totalPts:pts });
       crossPool += pts;
     }
   });
@@ -805,7 +805,8 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   const slotIcons = slots.map(s => {
     const icon = s.done ? '✅' : '⬜';
     const cls = s.done ? 'done' : (s.earned > 0 ? 'prog' : 'wait');
-    const statusText = s.done ? '達成' : `${Math.round(s.earned/s.target*100)}%`;
+    const ptsDisplay = s.totalPts != null ? s.totalPts : s.earned;
+    const statusText = s.done ? `${ptsDisplay}分 達成` : `${ptsDisplay}/${s.target}`;
     return `<div class="wr-slot">
       <div class="wr-slot-icon">${icon}</div>
       <div class="wr-slot-name">${s.type}</div>
