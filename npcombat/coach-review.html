@@ -218,7 +218,7 @@
     <div class="grid3">
       <div class="coach-card" data-key="name_list">
         <div class="coach-emoji">📋</div>
-        <div class="coach-label">羅列名單</div>
+        <div class="coach-label">狂列名單</div>
         <div class="coach-ctrl">
           <button class="coach-btn" onclick="adjCoach('name_list',-1)">−</button>
           <div class="coach-num zero" id="c-name_list">0</div>
@@ -501,7 +501,7 @@ function renderMyReport() {
   // 初始化 myVals
   const MY_FIELDS = STU_FIELDS.filter(f => !f.special);
   const MY_COACH_FIELDS = [
-    { key:'name_list', emoji:'📋', label:'羅列名單', pts:1 },
+    { key:'name_list', emoji:'📋', label:'狂列名單', pts:1 },
     { key:'schedule',  emoji:'📅', label:'安排行程', pts:1 },
     { key:'follow_up', emoji:'🔄', label:'跟進狀況', pts:1 }
   ];
@@ -673,23 +673,24 @@ async function submitMyReport() {
     }
 
     // 寫締結紀錄（先刪當天舊紀錄再重建）
-    const newCloses = myCloseEntries.filter(e => !e.saved && e.plan && e.size);
-    if (newCloses.length > 0 || myCloseEntries.some(e => e.saved)) {
-      // 刪掉當天 source=daily 的舊紀錄
-      await sb.from('closing_records').delete()
-        .eq('member_id', coachMemberId).eq('close_date', dateStr).eq('source', 'daily');
-      // 重建全部（saved 的用原始 pts，新的用計算 pts）
+    const hasCloseEntries = myCloseEntries.length > 0;
+    // 先刪掉當天 source=daily 的舊紀錄
+    const { error: delErr } = await sb.from('closing_records').delete()
+      .eq('member_id', coachMemberId).eq('close_date', dateStr).eq('source', 'daily');
+    if (delErr) throw delErr;
+    // 插入全部（saved 的用原始 pts，新的用計算 pts）
+    if (hasCloseEntries) {
       const allRows = myCloseEntries.map(e => ({
         member_id: coachMemberId, close_date: dateStr,
         points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
       }));
-      if (allRows.length) await sb.from('closing_records').insert(allRows);
-      // 更新本地快取
-      const dayKey = currentDay === 'today' ? 'today' : 'yesterday';
-      const { data: refreshed } = await sb.from('closing_records').select('*')
-        .eq('member_id', coachMemberId).eq('close_date', dateStr);
-      myCloseData[dayKey] = refreshed || [];
+      const { error: insErr } = await sb.from('closing_records').insert(allRows);
+      if (insErr) throw insErr;
     }
+    // 更新本地快取
+    const { data: refreshed } = await sb.from('closing_records').select('*')
+      .eq('member_id', coachMemberId).eq('close_date', dateStr);
+    myCloseData[currentDay === 'today' ? 'today' : 'yesterday'] = refreshed || [];
 
     // 更新本地
     const dayKey = currentDay === 'today' ? 'today' : 'yesterday';

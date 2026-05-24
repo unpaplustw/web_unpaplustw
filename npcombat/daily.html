@@ -868,10 +868,6 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
 
 // ── Submit ──
 async function submit() {
-  const counterTotal = COUNT_FIELDS.reduce((s,f) => s + vals[f.key], 0);
-  const hasClose = closeEntries.some(e => e.plan && e.size);
-  if (counterTotal === 0 && !hasClose && subCount === 0) { toast('至少填一格再送出'); return; }
-
   // validate close entries
   for (let i = 0; i < closeEntries.length; i++) {
     const e = closeEntries[i];
@@ -898,14 +894,18 @@ async function submit() {
       }
 
       // 寫 closing_records（先刪今天的舊紀錄再重建，避免重複送時疊加）
-      await sb.from('closing_records').delete()
+      const { error: delCloseErr } = await sb.from('closing_records').delete()
         .eq('member_id', memberId).eq('close_date', today()).eq('source', 'daily');
+      if (delCloseErr) throw delCloseErr;
       if (closeEntries.length > 0) {
         const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => ({
           member_id: memberId, close_date: today(),
           points: getEntryPts(e), source: 'daily'
         }));
-        if (closeRows.length) await sb.from('closing_records').insert(closeRows);
+        if (closeRows.length) {
+          const { error: insCloseErr } = await sb.from('closing_records').insert(closeRows);
+          if (insCloseErr) throw insCloseErr;
+        }
       }
     } catch (e) {
       btn.disabled = false; btn.textContent = '送出今日回報';
