@@ -16,6 +16,7 @@
     --shadow:0 2px 12px rgba(0,0,0,.06);
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overflow-x:hidden;width:100%}
   body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 100px}
 
   /* ── Header ── */
@@ -28,18 +29,19 @@
   .sec{padding:0 16px;max-width:500px;margin:0 auto}
   .sec-hd{font-size:13px;font-weight:600;color:var(--muted);margin:20px 0 10px;padding-left:4px;letter-spacing:1px}
 
-  /* ── Grid ── */
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-  /* ── Action Card ── */
-  .act{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);transition:border-color .2s}
+  /* ── Action Row (horizontal) ── */
+  .act-list{display:flex;flex-direction:column;gap:10px}
+  .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
-  .act-emoji{font-size:32px;line-height:1}
-  .act-label{font-size:15px;font-weight:600;color:var(--text);margin-top:6px}
-  .act-ctrl{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px}
-  .act-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:24px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
+  .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+  .act-emoji{font-size:26px;line-height:1;flex-shrink:0}
+  .act-info{min-width:0}
+  .act-label{font-size:15px;font-weight:600;color:var(--text)}
+  .act-desc{font-size:12px;color:var(--muted);margin-top:2px}
+  .act-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .act-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:20px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
   .act-btn:active{background:var(--gold-lt);border-color:var(--gold)}
-  .act-num{font-size:36px;font-weight:700;color:var(--gold);min-width:48px;text-align:center}
+  .act-num{font-size:24px;font-weight:700;color:var(--gold);min-width:32px;text-align:center}
   .act-num.zero{color:var(--muted)}
 
   /* ── Negative cards ── */
@@ -161,11 +163,10 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   @media(min-width:500px){
-    .grid{gap:16px}
-    .act{padding:20px 16px}
-    .act-emoji{font-size:36px}
-    .act-btn{width:56px;height:56px;font-size:28px}
-    .act-num{font-size:40px}
+    .act{padding:14px 18px}
+    .act-emoji{font-size:30px}
+    .act-btn{width:42px;height:42px;font-size:22px}
+    .act-num{font-size:28px}
   }
 </style>
 </head>
@@ -206,10 +207,15 @@
   <!-- ── 規劃區 ── -->
   <div class="sec">
     <div class="sec-hd">📋 規劃</div>
-    <div class="grid">
+    <div class="act-list">
       <div class="act" data-key="meet">
-        <div class="act-emoji">🤝</div>
-        <div class="act-label">認識新友</div>
+        <div class="act-left">
+          <div class="act-emoji">🤝</div>
+          <div class="act-info">
+            <div class="act-label">認識新友</div>
+            <div class="act-desc">聯絡方式截圖 + 群組分享</div>
+          </div>
+        </div>
         <div class="act-ctrl">
           <button class="act-btn" onclick="adj('meet',-1)">−</button>
           <div class="act-num zero" id="n-meet">0</div>
@@ -217,8 +223,13 @@
         </div>
       </div>
       <div class="act" data-key="invite">
-        <div class="act-emoji">📞</div>
-        <div class="act-label">邀約見面</div>
+        <div class="act-left">
+          <div class="act-emoji">📞</div>
+          <div class="act-info">
+            <div class="act-label">邀約見面</div>
+            <div class="act-desc">合照 + 群組分享</div>
+          </div>
+        </div>
         <div class="act-ctrl">
           <button class="act-btn" onclick="adj('invite',-1)">−</button>
           <div class="act-num zero" id="n-invite">0</div>
@@ -231,10 +242,15 @@
   <!-- ── 行動區 ── -->
   <div class="sec">
     <div class="sec-hd">🎯 行動</div>
-    <div class="grid">
+    <div class="act-list">
       <div class="act" data-key="present">
-        <div class="act-emoji">🗣️</div>
-        <div class="act-label">溝通本說明</div>
+        <div class="act-left">
+          <div class="act-emoji">🗣️</div>
+          <div class="act-info">
+            <div class="act-label">溝通本溝通</div>
+            <div class="act-desc">合照 + 群組分享</div>
+          </div>
+        </div>
         <div class="act-ctrl">
           <button class="act-btn" onclick="adj('present',-1)">−</button>
           <div class="act-num zero" id="n-present">0</div>
@@ -242,8 +258,13 @@
         </div>
       </div>
       <div class="act" data-key="seminar">
-        <div class="act-emoji">🏛️</div>
-        <div class="act-label">邀請說明會</div>
+        <div class="act-left">
+          <div class="act-emoji">🏛️</div>
+          <div class="act-info">
+            <div class="act-label">邀請說明會</div>
+            <div class="act-desc">會場合照</div>
+          </div>
+        </div>
         <div class="act-ctrl">
           <button class="act-btn" onclick="adj('seminar',-1)">−</button>
           <div class="act-num zero" id="n-seminar">0</div>
@@ -256,10 +277,15 @@
   <!-- ── 挫折區 ── -->
   <div class="sec">
     <div class="sec-hd">🛡️ 挫折也是養分</div>
-    <div class="grid">
+    <div class="act-list">
       <div class="act neg" data-key="ghosted">
-        <div class="act-emoji">🕊️</div>
-        <div class="act-label">被放鴿子</div>
+        <div class="act-left">
+          <div class="act-emoji">🕊️</div>
+          <div class="act-info">
+            <div class="act-label">被放鴿子</div>
+            <div class="act-desc">附上趣味照</div>
+          </div>
+        </div>
         <div class="act-ctrl">
           <button class="act-btn" onclick="adj('ghosted',-1)">−</button>
           <div class="act-num zero" id="n-ghosted">0</div>
@@ -267,8 +293,13 @@
         </div>
       </div>
       <div class="act neg" data-key="rejected">
-        <div class="act-emoji">💪</div>
-        <div class="act-label">締結未果</div>
+        <div class="act-left">
+          <div class="act-emoji">💪</div>
+          <div class="act-info">
+            <div class="act-label">締結未果</div>
+            <div class="act-desc">附上合照</div>
+          </div>
+        </div>
         <div class="act-ctrl">
           <button class="act-btn" onclick="adj('rejected',-1)">−</button>
           <div class="act-num zero" id="n-rejected">0</div>
