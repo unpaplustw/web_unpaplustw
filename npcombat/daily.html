@@ -146,6 +146,8 @@
   .decl-text b{color:var(--gold);font-weight:700}
   .btn-decl{width:100%;padding:16px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:24px;box-shadow:0 4px 16px rgba(184,150,12,.3);transition:.2s;-webkit-tap-highlight-color:transparent}
   .btn-decl:active{transform:scale(.97)}
+  .btn-decl-skip{width:100%;padding:14px;background:transparent;color:var(--muted);border:2px solid var(--border);border-radius:14px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:10px;transition:.2s;-webkit-tap-highlight-color:transparent}
+  .btn-decl-skip:active{background:var(--bg)}
 
   /* ── Group report checkbox ── */
   .group-report{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--card);border:2px solid var(--border);border-radius:14px;margin-bottom:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .2s}
@@ -192,7 +194,8 @@
 我要親做表率，我要為我的人生百分百負責任！
 
 <b>Yes I Can ! ! !</b></div>
-    <button class="btn-decl" onclick="closeDecl()">✅ 我認真朗讀了</button>
+    <button class="btn-decl" onclick="closeDecl(true)">✅ 我認真朗讀了</button>
+    <button class="btn-decl-skip" onclick="closeDecl(false)">😴 今天就是不想唸</button>
   </div>
 </div>
 
@@ -414,8 +417,8 @@ let groupReported = false;
 let declRead = false;
 
 // ── Declaration ──
-function closeDecl() {
-  declRead = true;
+function closeDecl(didRead) {
+  declRead = didRead;
   document.getElementById('declOverlay').style.display = 'none';
 }
 
