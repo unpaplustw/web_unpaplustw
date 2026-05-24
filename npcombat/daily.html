@@ -781,23 +781,17 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
     document.getElementById('wrRingLabel').textContent = ringLabel;
   }, 100);
 
-  // 名額圖示：固定四欄
+  // 名額圖示：固定四欄，只顯示名額數或百分比
   const fixedSlots = [
-    { name:'4月', pts:apr, target:eb, done:aprDone },
-    { name:'5月', pts:may, target:sm, done:mayDone },
-    { name:'6月', pts:jun, target:sm, done:junDone },
-    { name:'跨月', pts:crossPool, target:cm, done:crossSlots > 0, count:crossSlots, remain:crossRemain },
+    { name:'4月', pts:apr, target:eb, done:aprDone, count:aprDone?1:0 },
+    { name:'5月', pts:may, target:sm, done:mayDone, count:mayDone?1:0 },
+    { name:'6月', pts:jun, target:sm, done:junDone, count:junDone?1:0 },
+    { name:'跨月', pts:crossPool, target:cm, done:crossSlots>0, count:crossSlots },
   ];
   const slotIcons = fixedSlots.map(s => {
     const icon = s.done ? '✅' : (s.pts > 0 ? '🔶' : '⬜');
     const cls = s.done ? 'done' : (s.pts > 0 ? 'prog' : 'wait');
-    let statusText;
-    if (s.name === '跨月') {
-      statusText = s.done ? `${s.count}名額 餘${s.remain}分` : `${s.pts}/${s.target}`;
-    } else {
-      const pct = Math.round(s.pts / s.target * 100);
-      statusText = s.done ? `${s.pts}分 達成` : `${pct}%`;
-    }
+    const statusText = s.done ? `達成${s.count}位` : `${Math.round(s.pts/s.target*100)}%`;
     return `<div class="wr-slot">
       <div class="wr-slot-icon">${icon}</div>
       <div class="wr-slot-name">${s.name}</div>
