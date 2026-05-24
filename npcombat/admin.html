@@ -317,11 +317,11 @@ async function init() {
 
 async function load() {
   const { data: s } = await sb.from('batch_students')
-    .select('id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
     .eq('batch_id', bid);
   students = s || [];
   const { data: c } = await sb.from('batch_coaches')
-    .select('id, member_id, phone, rank, cfc, status, created_at, members_master(name, member_code)')
+    .select('id, member_id, phone, rank, cfc, group_name, status, created_at, members_master(name, member_code)')
     .eq('batch_id', bid);
   coaches = c || [];
   const { data: br } = await sb.from('bonus_rules')
@@ -339,6 +339,7 @@ async function load() {
 }
 
 const ACTION_LABELS = { meet:'認識新友', invite:'邀約見面', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果', name_list:'狂列名單', schedule:'安排行程', follow_up:'跟進狀況' };
+const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組'];
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
 const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 
@@ -795,11 +796,32 @@ function filterOrg(t) {
 // ════════════════════════════════════════════
 function renderPairing() {
   const ac = approvedCoaches();
-  const unpaired = students.filter(s => s.status === 'approved' && !s.coach_id);
-  const paired   = students.filter(s => s.status === 'approved' && s.coach_id);
+  // 教練 member_id 集合，用於過濾身兼學員的教練
+  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
+  const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
+  const unpaired = realStudents.filter(s => !s.coach_id);
+  const paired   = realStudents.filter(s => s.coach_id);
   selS = null; selC = null;
 
-  let h = '';
+  // ── 教練組別管理 ──
+  const groupOpts = GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
+  let h = `<div class="sec-title"><span>教練組別</span><span class="sec-count">${ac.length} 位教練</span></div>`;
+  h += ac.map(c => `
+    <div class="card">
+      <div class="card-left">
+        <div class="card-name">${nm(c)}${mc(c)}</div>
+        <div class="card-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名學員</div>
+      </div>
+      <div class="acts">
+        <select class="reassign-sel" id="grp-${c.id}" onchange="setCoachGroup('${c.id}',this.value)">
+          <option value="">未分組</option>
+          ${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}
+        </select>
+      </div>
+    </div>`).join('');
+
+  // ── 待配對 ──
+  h += `<div class="sec-title" style="margin-top:24px"><span>配對操作</span></div>`;
   if (unpaired.length) {
     h += `<div class="pair-grid">
       <div class="pair-col">
@@ -814,34 +836,44 @@ function renderPairing() {
         <h3>教練（${ac.length}）</h3>
         ${ac.map(c => `
           <div class="pick" data-cid="${c.id}" onclick="pickC('${c.id}')">
-            <div class="pick-name">${nm(c)}</div>
+            <div class="pick-name">${nm(c)}${c.group_name?' <span style="color:var(--muted);font-size:11px">'+c.group_name+'</span>':''}</div>
             <div class="pick-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名</div>
           </div>`).join('')}
         <button class="btn-pair" id="btnPair" disabled onclick="doPair()">請選擇學員和教練</button>
       </div>
     </div>`;
   } else {
-    h += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${students.some(s=>s.status==='approved')?'所有已批准學員皆已配對':'無已批准學員'}</div></div>`;
+    h += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${realStudents.length?'所有學員皆已配對':'無待配對學員'}</div></div>`;
   }
 
+  // ── 已配對（按組別排序）──
   if (paired.length) {
-    const groups = {};
+    const pairGroups = {};
     paired.forEach(s => {
       const cid = s.coach_id;
-      if (!groups[cid]) groups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
-      groups[cid].students.push(s);
+      if (!pairGroups[cid]) pairGroups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
+      pairGroups[cid].students.push(s);
+    });
+    // 按教練組別排序
+    const sortedGroups = Object.values(pairGroups).sort((a, b) => {
+      const ga = a.coach?.group_name || '';
+      const gb = b.coach?.group_name || '';
+      const ia = GROUPS.indexOf(ga);
+      const ib = GROUPS.indexOf(gb);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
     h += `<div class="paired-section"><h3>
         <span>已配對（${paired.length}）</span>
         <input class="paired-search" placeholder="搜尋學員或教練…" oninput="filterPaired(this.value)">
       </h3><div id="pairedGroups">
-      ${Object.values(groups).map(g => {
+      ${sortedGroups.map(g => {
         const cN = g.coach ? nm(g.coach) : '（未知）';
         const cC = g.coach ? mc(g.coach) : '';
+        const grp = g.coach?.group_name || '未分組';
         return `
         <div class="coach-card paired-card" data-pnames="${cN} ${g.students.map(s=>nm(s)).join(' ')}">
           <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
-            <div><span class="card-name">${cN}${cC}</span><span style="color:var(--muted);font-size:12px;margin-left:6px">教練</span></div>
+            <div><span class="card-name">${cN}${cC}</span><span style="color:var(--gold);font-size:12px;margin-left:6px">${grp}</span></div>
             <div style="display:flex;align-items:center;gap:6px">
               <span class="coach-count">${g.students.length} 名</span>
               <span class="coach-arrow">▼</span>
@@ -899,6 +931,11 @@ async function unpair(id,name) {
   const{error}=await sb.from('batch_students').update({coach_id:null}).eq('id',id);
   if(error)return alert('解除失敗：'+error.message);
   toast('已解除配對'); await load();
+}
+async function setCoachGroup(cid, groupName) {
+  const { error } = await sb.from('batch_coaches').update({ group_name: groupName || null }).eq('id', cid);
+  if (error) return alert('組別更新失敗：' + error.message);
+  toast('組別已更新'); await load();
 }
 
 // ════════════════════════════════════════════
