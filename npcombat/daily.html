@@ -518,6 +518,22 @@ function toggleGroupReport() {
 let bid = 1, studentId = null, existingId = null;
 let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
 
+// ── Block screen ──
+function showBlock(msg) {
+  document.getElementById('declOverlay').style.display = 'none';
+  document.getElementById('formArea').style.display = 'none';
+  document.getElementById('warReport').style.display = 'none';
+  document.getElementById('userName').textContent = '⚠️ 無法使用';
+  document.getElementById('dayCount').style.display = 'none';
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-card" style="margin-top:20px;text-align:center">
+      <div class="result-emoji">🚫</div>
+      <div class="result-msg">${msg}</div>
+      <div class="result-sub" style="margin-top:12px">如有疑問請聯繫實戰班委員會</div>
+    </div>`;
+  document.getElementById('resultArea').classList.add('show');
+}
+
 // ── Helpers ──
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -644,13 +660,13 @@ async function init() {
     // 查會員
     const { data: member } = await sb.from('members_master').select('id, name')
       .eq('line_user_id', profile.userId).single();
-    if (!member) { document.getElementById('userName').textContent = '非會員'; toast('查無會員資料'); return; }
+    if (!member) { showBlock('查無會員資料，請先完成報名。'); return; }
     memberId = member.id;
 
     // 查本期學員身份
     const { data: stu } = await sb.from('batch_students').select('id, status')
       .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
-    if (!stu || stu.status !== 'approved') { document.getElementById('userName').textContent = member.name; toast('非本期已批准學員'); return; }
+    if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
     document.getElementById('userName').textContent = member.name;
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
