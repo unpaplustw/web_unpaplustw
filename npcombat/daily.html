@@ -235,19 +235,20 @@
     <div class="decl-title">📖 每日宣言</div>
     <div class="decl-text"><span class="decl-hero">我是所有的起源</span>
 
-如果我一定要過精彩幸福的人生，我就是所有的起源。
+如果我 <b id="declName1">　</b> 一定要過精彩幸福的人生，我就是所有的起源。
 
-我的理解度、我的認真度、我的行動力，直接影響我現在想要推薦的人。
+我的理解度、我的認真度、我的行動力，
+我現在想要介紹，想要邀請的人，
+對環貫綠佳利事業，全都是藉由我來，觀察，思考，行動！
 
-他們對於綠佳利事業全都是藉由我來觀察、思考、行動。
+<b>我就是代表一切</b>
+只要我意志堅定，環繞著我的夥伴也會意志堅定
+<b>我就是代表一切</b>
+只要我認真活動，環繞著我的夥伴也會認真活動
+<b>我就是代表一切</b>
+只要我心存感恩，環繞著我的夥伴也會心存感恩
 
-<b>我就是代表一切</b>，只要我認真行動，環繞著我的夥伴也會認真行動。
-<b>我就是代表一切</b>，只要我心存感恩，環繞著我的夥伴也會心存感恩。
-<b>我就是代表一切</b>，只要我意志堅定，環繞著我的夥伴也會意志堅定。
-
-我要親做表率，我要為我的人生百分百負責任！
-
-<span class="decl-yic">Yes I Can ! ! !</span></div>
+我要親作表率，我 <b id="declName2">　</b> 一定做得到！我一定做得到！我一定做得到！！</div>
     <button class="btn-decl" onclick="closeDecl(true)">✅ 我認真朗讀了</button>
     <button class="btn-decl-skip" onclick="closeDecl(false)">😴 今天就是不想唸</button>
   </div>
@@ -652,6 +653,8 @@ async function init() {
     if (!stu || stu.status !== 'approved') { document.getElementById('userName').textContent = member.name; toast('非本期已批准學員'); return; }
     studentId = stu.id;
     document.getElementById('userName').textContent = member.name;
+    document.getElementById('declName1').textContent = ' ' + member.name + ' ';
+    document.getElementById('declName2').textContent = ' ' + member.name + ' ';
 
     // 檢查今天是否已填
     const { data: existing } = await sb.from('action_logs').select('id')
