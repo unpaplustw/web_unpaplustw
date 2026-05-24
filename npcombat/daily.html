@@ -34,10 +34,10 @@
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
-  .act-emoji{font-size:26px;line-height:1;flex-shrink:0}
+  .act-emoji{font-size:32px;line-height:1;flex-shrink:0}
   .act-info{min-width:0}
-  .act-label{font-size:15px;font-weight:600;color:var(--text)}
-  .act-desc{font-size:12px;color:var(--muted);margin-top:2px}
+  .act-label{font-size:17px;font-weight:700;color:var(--text)}
+  .act-desc{font-size:12px;color:var(--muted);margin-top:3px}
   .act-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
   .act-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:20px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
   .act-btn:active{background:var(--gold-lt);border-color:var(--gold)}
@@ -164,7 +164,8 @@
 
   @media(min-width:500px){
     .act{padding:14px 18px}
-    .act-emoji{font-size:30px}
+    .act-emoji{font-size:36px}
+    .act-label{font-size:18px}
     .act-btn{width:42px;height:42px;font-size:22px}
     .act-num{font-size:28px}
   }
