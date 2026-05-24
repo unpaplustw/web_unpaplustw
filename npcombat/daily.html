@@ -733,20 +733,23 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   const may = monthPts[5] || 0;
   const jun = monthPts[6] || 0;
 
-  const aprDone = apr >= eb;
-  const mayDone = may >= sm;
-  const junDone = jun >= sm;
+  const aprCount = Math.floor(apr / eb);
+  const mayCount = Math.floor(may / sm);
+  const junCount = Math.floor(jun / sm);
+  const aprDone = aprCount > 0;
+  const mayDone = mayCount > 0;
+  const junDone = junCount > 0;
 
   let crossPool = 0;
-  crossPool += aprDone ? apr - eb : apr;
-  crossPool += mayDone ? may - sm : may;
-  crossPool += junDone ? jun - sm : jun;
+  crossPool += apr - aprCount * eb;
+  crossPool += may - mayCount * sm;
+  crossPool += jun - junCount * sm;
 
   let crossSlots = 0;
   let crossRemain = crossPool;
   while (crossRemain >= cm) { crossSlots++; crossRemain -= cm; }
 
-  const completedCount = (aprDone?1:0) + (mayDone?1:0) + (junDone?1:0) + crossSlots;
+  const completedCount = aprCount + mayCount + junCount + crossSlots;
 
   // 圓環：顯示總完成名額
   const totalSlotsPossible = 3 + Math.floor((apr+may+jun) / cm); // 理論最大
@@ -783,9 +786,9 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
 
   // 名額圖示：固定四欄，只顯示名額數或百分比
   const fixedSlots = [
-    { name:'4月', pts:apr, target:eb, done:aprDone, count:aprDone?1:0 },
-    { name:'5月', pts:may, target:sm, done:mayDone, count:mayDone?1:0 },
-    { name:'6月', pts:jun, target:sm, done:junDone, count:junDone?1:0 },
+    { name:'4月', pts:apr, target:eb, done:aprDone, count:aprCount },
+    { name:'5月', pts:may, target:sm, done:mayDone, count:mayCount },
+    { name:'6月', pts:jun, target:sm, done:junDone, count:junCount },
     { name:'跨月', pts:crossPool, target:cm, done:crossSlots>0, count:crossSlots },
   ];
   const slotIcons = fixedSlots.map(s => {
