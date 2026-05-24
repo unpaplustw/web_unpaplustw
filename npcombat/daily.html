@@ -138,6 +138,58 @@
   /* ── Deadline bar ── */
   .deadline-bar{background:var(--gold-lt);text-align:center;padding:8px 16px;font-size:13px;font-weight:600;color:var(--gold);border-bottom:1px solid var(--border)}
 
+  /* ── War Report Dashboard ── */
+  .war-report{padding:16px;max-width:500px;margin:0 auto}
+  .wr-card{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow);overflow:hidden}
+  .wr-title{font-size:15px;font-weight:700;color:var(--gold);text-align:center;margin-bottom:16px;letter-spacing:2px}
+
+  /* Ring */
+  .wr-ring-wrap{display:flex;justify-content:center;margin-bottom:16px}
+  .wr-ring{position:relative;width:140px;height:140px}
+  .wr-ring svg{transform:rotate(-90deg)}
+  .wr-ring-bg{fill:none;stroke:var(--border);stroke-width:10}
+  .wr-ring-fg{fill:none;stroke:var(--gold);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease-out}
+  .wr-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .wr-ring-pct{font-size:32px;font-weight:700;color:var(--gold)}
+  .wr-ring-label{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* Slots */
+  .wr-slots{display:flex;justify-content:center;gap:12px;margin-bottom:16px}
+  .wr-slot{text-align:center;flex:1}
+  .wr-slot-icon{font-size:28px}
+  .wr-slot-name{font-size:12px;color:var(--muted);margin-top:2px}
+  .wr-slot-status{font-size:13px;font-weight:700;margin-top:4px}
+  .wr-slot-status.done{color:var(--green)}
+  .wr-slot-status.prog{color:var(--gold)}
+  .wr-slot-status.wait{color:var(--muted)}
+
+  /* Progress bars */
+  .wr-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+  .wr-bar-row{display:flex;align-items:center;gap:10px}
+  .wr-bar-label{font-size:13px;font-weight:600;color:var(--text);width:56px;flex-shrink:0}
+  .wr-bar-track{flex:1;height:16px;background:var(--bg);border-radius:8px;overflow:hidden;position:relative}
+  .wr-bar-fill{height:100%;border-radius:8px;transition:width 1s ease-out;min-width:0}
+  .wr-bar-fill.gold{background:linear-gradient(90deg,#d4a017,#b8960c)}
+  .wr-bar-fill.green{background:linear-gradient(90deg,#5cb87a,#4a9e6f)}
+  .wr-bar-fill.blue{background:linear-gradient(90deg,#5b9bd5,#3a7cc1)}
+  .wr-bar-pct{font-size:12px;font-weight:700;color:var(--muted);width:42px;text-align:right;flex-shrink:0}
+
+  /* Stats row */
+  .wr-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+  .wr-stat{text-align:center;background:var(--bg);border-radius:10px;padding:10px 6px}
+  .wr-stat-val{font-size:20px;font-weight:700;color:var(--gold)}
+  .wr-stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* Encouragement */
+  .wr-msg{text-align:center;font-size:14px;font-weight:600;color:var(--green);padding:10px;background:var(--green-bg);border-radius:10px}
+
+  @keyframes wr-fade-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .wr-card.animate .wr-ring-wrap{animation:wr-fade-in .5s ease-out}
+  .wr-card.animate .wr-slots{animation:wr-fade-in .5s ease-out .15s both}
+  .wr-card.animate .wr-bars{animation:wr-fade-in .5s ease-out .3s both}
+  .wr-card.animate .wr-stats{animation:wr-fade-in .5s ease-out .45s both}
+  .wr-card.animate .wr-msg{animation:wr-fade-in .5s ease-out .6s both}
+
   /* ── Declaration overlay ── */
   .decl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
   .decl-card{background:var(--card);border-radius:20px;max-width:420px;width:100%;padding:32px 24px;text-align:center;max-height:90vh;overflow-y:auto}
@@ -205,6 +257,37 @@
   <div class="hd-day" id="dayCount"></div>
 </div>
 <div class="deadline-bar">⏰ 每日最晚 23:00 填寫回報</div>
+
+<!-- ── 戰報儀表板 ── -->
+<div class="war-report" id="warReport" style="display:none">
+  <div class="wr-card" id="wrCard">
+    <div class="wr-title">⚔️ 威斯汀挑戰戰報</div>
+
+    <div class="wr-ring-wrap">
+      <div class="wr-ring">
+        <svg viewBox="0 0 140 140" width="140" height="140">
+          <circle class="wr-ring-bg" cx="70" cy="70" r="58"/>
+          <circle class="wr-ring-fg" id="wrRingFg" cx="70" cy="70" r="58" stroke-dasharray="364.42" stroke-dashoffset="364.42"/>
+        </svg>
+        <div class="wr-ring-center">
+          <div class="wr-ring-pct" id="wrRingPct">0%</div>
+          <div class="wr-ring-label" id="wrRingLabel">下個目標</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wr-slots" id="wrSlots"></div>
+    <div class="wr-bars" id="wrBars"></div>
+
+    <div class="wr-stats" id="wrStats">
+      <div class="wr-stat"><div class="wr-stat-val" id="wrTotalPts">0</div><div class="wr-stat-label">總行動分數</div></div>
+      <div class="wr-stat"><div class="wr-stat-val" id="wrAvgPts">0</div><div class="wr-stat-label">平均/天</div></div>
+      <div class="wr-stat"><div class="wr-stat-val" id="wrWeekPts">0</div><div class="wr-stat-label">本週行動</div></div>
+    </div>
+
+    <div class="wr-msg" id="wrMsg"></div>
+  </div>
+</div>
 
 <div id="formArea">
 
@@ -579,11 +662,11 @@ async function init() {
     // 載入累積資料
     const { data: logs } = await sb.from('action_logs').select('meet, invite, present, seminar, ghosted, rejected, log_date, confirmed')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('confirmed', true);
-    const { data: closes } = await sb.from('closing_records').select('points')
+    const { data: closes } = await sb.from('closing_records').select('points, close_date')
       .eq('member_id', memberId);
 
-    // 查活動起迄算天數
-    const { data: batch } = await sb.from('batches').select('start_date, challenge_start').eq('id', BATCH_ID).single();
+    // 查活動起迄算天數 + 門檻
+    const { data: batch } = await sb.from('batches').select('start_date, challenge_start, earlybird_score, earlybird_month, single_month_score, cross_month_score, end_date').eq('id', BATCH_ID).single();
     const startDate = batch?.challenge_start || batch?.start_date || d;
 
     const allLogs = logs || [];
@@ -620,11 +703,153 @@ async function init() {
     const dayNum = allLogs.length + 1;
     document.getElementById('dayCount').textContent = `第 ${dayNum} 天`;
 
+    // ── 戰報計算 ──
+    renderWarReport(allLogs, allCloses, batch, d);
+
   } catch (e) {
     if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
     document.getElementById('userName').textContent = '載入失敗';
     toast('錯誤：' + e.message);
   }
+}
+
+// ── War Report ──
+function renderWarReport(allLogs, allCloses, batch, todayStr) {
+  if (!batch) return;
+  const eb = batch.earlybird_score || 700;
+  const ebMonth = batch.earlybird_month || 4;
+  const sm = batch.single_month_score || 800;
+  const cm = batch.cross_month_score || 900;
+
+  // 按月份分組締結分數
+  const monthPts = {};
+  (allCloses || []).forEach(c => {
+    const m = parseInt(c.close_date.split('-')[1]);
+    monthPts[m] = (monthPts[m] || 0) + c.points;
+  });
+
+  // 計算名額
+  let slots = [];
+  let crossPool = 0;
+
+  // 早鳥（earlybird_month，通常4月）
+  const aprilPts = monthPts[ebMonth] || 0;
+  if (aprilPts >= eb) {
+    slots.push({ type:'早鳥', target:eb, earned:eb, done:true });
+    crossPool += aprilPts - eb;
+  } else {
+    slots.push({ type:'早鳥', target:eb, earned:aprilPts, done:false });
+    crossPool += aprilPts;
+  }
+
+  // 單月（逐月檢查，排除早鳥月）
+  const months = Object.keys(monthPts).map(Number).filter(m => m !== ebMonth).sort();
+  months.forEach(m => {
+    const pts = monthPts[m];
+    if (pts >= sm) {
+      slots.push({ type:`${m}月單月`, target:sm, earned:sm, done:true });
+      crossPool += pts - sm;
+    } else {
+      slots.push({ type:`${m}月單月`, target:sm, earned:pts, done:false });
+      crossPool += pts;
+    }
+  });
+
+  // 跨月（用剩餘池）
+  let crossDone = 0;
+  while (crossPool >= cm) {
+    crossDone++;
+    crossPool -= cm;
+  }
+  if (crossDone > 0) {
+    for (let i = 0; i < crossDone; i++) slots.push({ type:'跨月', target:cm, earned:cm, done:true });
+  }
+  // 進行中的跨月
+  slots.push({ type:'跨月', target:cm, earned:crossPool, done:false });
+
+  const completedCount = slots.filter(s => s.done).length;
+
+  // 找出下一個未完成的目標計算進度環
+  const nextSlot = slots.find(s => !s.done);
+  const ringPct = nextSlot ? Math.min(100, Math.round(nextSlot.earned / nextSlot.target * 100)) : 100;
+  const ringLabel = nextSlot ? `${nextSlot.type} ${nextSlot.earned}/${nextSlot.target}` : '全部達成！';
+
+  // 行動分數統計
+  const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
+  const reportDays = allLogs.length || 1;
+  const avgPts = Math.round(totalActionPts / reportDays);
+
+  // 本週行動（週日~週六）
+  const todayDate = new Date(todayStr);
+  const dayOfWeek = todayDate.getDay(); // 0=Sun
+  const weekStart = new Date(todayDate);
+  weekStart.setDate(weekStart.getDate() - dayOfWeek);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekPts = allLogs
+    .filter(l => l.log_date >= weekStartStr && l.log_date <= todayStr)
+    .reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
+
+  // ── 渲染 ──
+  document.getElementById('warReport').style.display = '';
+
+  // 進度環動畫
+  const circumference = 2 * Math.PI * 58; // 364.42
+  const offset = circumference * (1 - ringPct / 100);
+  setTimeout(() => {
+    document.getElementById('wrRingFg').style.strokeDashoffset = offset;
+    document.getElementById('wrRingPct').textContent = ringPct + '%';
+    document.getElementById('wrRingLabel').textContent = ringLabel;
+  }, 100);
+
+  // 名額圖示
+  const slotIcons = slots.map(s => {
+    const icon = s.done ? '✅' : '⬜';
+    const cls = s.done ? 'done' : (s.earned > 0 ? 'prog' : 'wait');
+    const statusText = s.done ? '達成' : `${Math.round(s.earned/s.target*100)}%`;
+    return `<div class="wr-slot">
+      <div class="wr-slot-icon">${icon}</div>
+      <div class="wr-slot-name">${s.type}</div>
+      <div class="wr-slot-status ${cls}">${statusText}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('wrSlots').innerHTML = slotIcons;
+
+  // 進度條（只顯示未完成的，最多3條）
+  const barSlots = slots.filter(s => !s.done).slice(0, 3);
+  const barColors = ['gold', 'blue', 'green'];
+  const barsHtml = barSlots.map((s, i) => {
+    const pct = Math.min(100, Math.round(s.earned / s.target * 100));
+    return `<div class="wr-bar-row">
+      <div class="wr-bar-label">${s.type}</div>
+      <div class="wr-bar-track"><div class="wr-bar-fill ${barColors[i % 3]}" style="width:0%" data-target="${pct}"></div></div>
+      <div class="wr-bar-pct">${s.earned}/${s.target}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('wrBars').innerHTML = barsHtml;
+
+  // 進度條動畫
+  setTimeout(() => {
+    document.querySelectorAll('.wr-bar-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 200);
+
+  // 行動統計
+  document.getElementById('wrTotalPts').textContent = totalActionPts;
+  document.getElementById('wrAvgPts').textContent = avgPts;
+  document.getElementById('wrWeekPts').textContent = weekPts;
+
+  // 鼓勵語
+  let msg = '';
+  if (completedCount >= 3) msg = '🎉 超強！已拿下 ' + completedCount + ' 個名額，繼續衝！';
+  else if (completedCount >= 1) msg = '🔥 已完成 ' + completedCount + ' 個名額！離下一個越來越近了';
+  else if (ringPct >= 60) msg = '💪 衝刺中！再努力一點就達標了';
+  else if (ringPct >= 30) msg = '🌱 穩定累積中，保持節奏就對了';
+  else msg = '🚀 挑戰已開始，每一步都算數！';
+  document.getElementById('wrMsg').textContent = msg;
+
+  // 啟動入場動畫
+  setTimeout(() => document.getElementById('wrCard').classList.add('animate'), 50);
 }
 
 // ── Submit ──
