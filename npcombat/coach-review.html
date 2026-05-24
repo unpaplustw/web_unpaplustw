@@ -124,6 +124,30 @@
   .my-status.saved{color:var(--green)}
   .my-status.unsaved{color:var(--muted)}
 
+  /* ── My Close Section ── */
+  .my-close-sec{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px;transition:border-color .2s}
+  .my-close-sec.has-value{border-color:var(--green)}
+  .my-close-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .my-close-hd-emoji{font-size:28px}
+  .my-close-hd-title{font-size:17px;font-weight:700;color:var(--text)}
+  .my-close-hd-count{font-size:13px;color:var(--muted);margin-left:auto}
+  .my-close-entry{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;position:relative}
+  .my-close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
+  .my-close-row{display:flex;gap:8px;flex-wrap:nowrap}
+  .my-close-pill{padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0;word-break:break-all}
+  .my-close-pill.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
+  .my-close-half-row{display:flex;gap:8px;margin-top:8px}
+  .my-close-half{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .my-close-half.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
+  .my-close-badge-row{display:flex;gap:8px;margin-top:8px}
+  .my-close-badge{flex:1;padding:8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent;color:var(--muted)}
+  .my-close-badge.sel{border-color:#d4a017;background:#fef9e7;color:#b8960c;font-weight:700}
+  .my-close-pts{text-align:right;margin-top:8px;font-size:14px;font-weight:700;color:var(--green)}
+  .btn-del-my-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;-webkit-tap-highlight-color:transparent}
+  .btn-del-my-close:active{color:var(--red)}
+  .btn-add-my-close{width:100%;padding:14px;border:2px dashed var(--border);border-radius:12px;background:transparent;font-size:15px;font-weight:600;color:var(--gold);cursor:pointer;font-family:inherit;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .btn-add-my-close:active{background:var(--gold-lt);border-color:var(--gold)}
+
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -260,10 +284,22 @@ const STU_FIELDS = [
 ];
 const COACH_FIELDS = ['name_list','schedule','follow_up'];
 
+const PLANS = [
+  { key:'20k', label:'2萬PV', full:260, half:130 },
+  { key:'15k', label:'1.5萬PV', full:200, half:100 },
+  { key:'10k', label:'1萬PV', full:120, half:60 },
+];
+const BADGES = [
+  { key:'small_gold', label:'🏅 小金（3單位）' },
+  { key:'big_gold',   label:'🏆 大金（7單位）' },
+];
+
 let coachId = null;
 let myStudentId = null;
 let myData = { today: null, yesterday: null, _logId_today: null, _logId_yesterday: null };
 let myVals = { meet:0, invite:0, present:0, seminar:0, ghosted:0, rejected:0, name_list:0, schedule:0, follow_up:0 };
+let myCloseEntries = []; // [{plan,size,badge}]
+let myCloseData = { today: [], yesterday: [] };
 let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
@@ -342,6 +378,13 @@ async function init() {
       myData._logId_yesterday = myYesterdayLog?.id || null;
       myData.today = myTodayLog ? { meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0, name_list:myTodayLog.name_list||0, schedule:myTodayLog.schedule||0, follow_up:myTodayLog.follow_up||0 } : null;
       myData.yesterday = myYesterdayLog ? { meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0, name_list:myYesterdayLog.name_list||0, schedule:myYesterdayLog.schedule||0, follow_up:myYesterdayLog.follow_up||0 } : null;
+
+      // 載入教練自己的締結紀錄
+      const { data: myCloses } = await sb.from('closing_records').select('*')
+        .eq('member_id', coachMemberId)
+        .in('close_date', [todayStr, yesterdayStr]);
+      myCloseData.today = (myCloses||[]).filter(c => c.close_date === todayStr);
+      myCloseData.yesterday = (myCloses||[]).filter(c => c.close_date === yesterdayStr);
     }
 
     // 查配對學員（只撈已批准）
@@ -498,6 +541,11 @@ function renderMyReport() {
   });
   h += '</div>';
 
+  // 締結區
+  const dayCloses = currentDay === 'today' ? myCloseData.today : myCloseData.yesterday;
+  myCloseEntries = dayCloses.map(c => ({ plan: null, size: null, badge: null, pts: c.points, saved: true }));
+  h += renderMyCloseSection();
+
   document.getElementById('myDataArea').innerHTML = h;
 
   const btn = document.getElementById('btnMySubmit');
@@ -513,8 +561,93 @@ function adjMy(key, delta) {
   el.className = 'stu-val' + (myVals[key] === 0 ? ' zero' : (f?.neg ? ' neg' : ''));
 }
 
+// ── My Close Entries ──
+function getMyEntryPts(e) {
+  if (!e.plan || !e.size) return 0;
+  const p = PLANS.find(p => p.key === e.plan);
+  return e.size === 'full' ? p.full : p.half;
+}
+
+function renderMyCloseSection() {
+  const count = myCloseEntries.length;
+  let h = `<div class="my-close-sec ${count > 0 ? 'has-value' : ''}" id="myCloseSec">
+    <div class="my-close-hd">
+      <div class="my-close-hd-emoji">🎉</div>
+      <div class="my-close-hd-title">今日締結</div>
+      <div class="my-close-hd-count">${count} 筆</div>
+    </div>
+    <div id="myCloseEntries">`;
+  myCloseEntries.forEach((e, i) => {
+    if (e.saved) {
+      h += `<div class="my-close-entry">
+        <button class="btn-del-my-close" onclick="delMyClose(${i})">✕</button>
+        <div class="my-close-entry-num">第 ${i+1} 筆（已儲存）</div>
+        <div class="my-close-pts">＋${e.pts} 分</div>
+      </div>`;
+    } else {
+      const pts = getMyEntryPts(e);
+      h += `<div class="my-close-entry">
+        <button class="btn-del-my-close" onclick="delMyClose(${i})">✕</button>
+        <div class="my-close-entry-num">第 ${i+1} 筆</div>
+        <div class="my-close-row">
+          ${PLANS.map(p => `<div class="my-close-pill ${e.plan===p.key?'sel':''}" onclick="setMyPlan(${i},'${p.key}')">${p.label}</div>`).join('')}
+        </div>
+        ${e.plan ? `<div class="my-close-half-row">
+          <div class="my-close-half ${e.size==='full'?'sel':''}" onclick="setMySize(${i},'full')">一套</div>
+          <div class="my-close-half ${e.size==='half'?'sel':''}" onclick="setMySize(${i},'half')">半套</div>
+        </div>` : ''}
+        ${e.plan && e.size ? `<div class="my-close-badge-row">
+          ${BADGES.map(b => `<div class="my-close-badge ${e.badge===b.key?'sel':''}" onclick="toggleMyBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
+        </div>` : ''}
+        ${pts > 0 ? `<div class="my-close-pts">＋${pts} 分${e.badge ? ' 🎖️' : ''}</div>` : ''}
+      </div>`;
+    }
+  });
+  h += `</div>
+    <button class="btn-add-my-close" onclick="addMyClose()">＋ 新增一筆締結</button>
+  </div>`;
+  return h;
+}
+
+function refreshMyClose() {
+  const wrap = document.getElementById('myCloseSec');
+  if (wrap) wrap.outerHTML = renderMyCloseSection();
+}
+
+function addMyClose() {
+  myCloseEntries.push({ plan:null, size:null, badge:null, saved:false });
+  refreshMyClose();
+}
+function delMyClose(i) {
+  myCloseEntries.splice(i, 1);
+  refreshMyClose();
+}
+function setMyPlan(i, plan) {
+  myCloseEntries[i].plan = plan;
+  myCloseEntries[i].saved = false;
+  refreshMyClose();
+}
+function setMySize(i, size) {
+  myCloseEntries[i].size = size;
+  myCloseEntries[i].saved = false;
+  refreshMyClose();
+}
+function toggleMyBadge(i, badge) {
+  const e = myCloseEntries[i];
+  e.badge = e.badge === badge ? null : badge;
+  e.saved = false;
+  refreshMyClose();
+}
+
 async function submitMyReport() {
   if (!myStudentId) { toast('找不到學員記錄'); return; }
+
+  // 驗證未完成的締結
+  for (let i = 0; i < myCloseEntries.length; i++) {
+    const e = myCloseEntries[i];
+    if (!e.saved && (!e.plan || !e.size)) { toast(`第 ${i+1} 筆締結尚未選完方案`); return; }
+  }
+
   const btn = document.getElementById('btnMySubmit');
   btn.disabled = true; btn.textContent = '送出中…';
 
@@ -537,6 +670,25 @@ async function submitMyReport() {
       const { data, error } = await sb.from('action_logs').insert(insertData).select('id').single();
       if (error) throw error;
       myData[logIdKey] = data.id;
+    }
+
+    // 寫締結紀錄（先刪當天舊紀錄再重建）
+    const newCloses = myCloseEntries.filter(e => !e.saved && e.plan && e.size);
+    if (newCloses.length > 0 || myCloseEntries.some(e => e.saved)) {
+      // 刪掉當天 source=daily 的舊紀錄
+      await sb.from('closing_records').delete()
+        .eq('member_id', coachMemberId).eq('close_date', dateStr).eq('source', 'daily');
+      // 重建全部（saved 的用原始 pts，新的用計算 pts）
+      const allRows = myCloseEntries.map(e => ({
+        member_id: coachMemberId, close_date: dateStr,
+        points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
+      }));
+      if (allRows.length) await sb.from('closing_records').insert(allRows);
+      // 更新本地快取
+      const dayKey = currentDay === 'today' ? 'today' : 'yesterday';
+      const { data: refreshed } = await sb.from('closing_records').select('*')
+        .eq('member_id', coachMemberId).eq('close_date', dateStr);
+      myCloseData[dayKey] = refreshed || [];
     }
 
     // 更新本地
