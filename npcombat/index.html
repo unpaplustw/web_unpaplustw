@@ -98,7 +98,7 @@ body::before{
     <div class="ring-detail"><span id="achievedNum">0</span> / <span id="totalNum">0</span> 人達標威斯汀</div>
   </div>
 
-  <div style="text-align:center;margin-top:24px;margin-bottom:6px;font-size:12px;font-weight:700;letter-spacing:3px;color:var(--gold);text-transform:uppercase">倒數開班</div>
+  <div style="text-align:center;margin-top:24px;margin-bottom:6px;font-size:12px;font-weight:700;letter-spacing:3px;color:var(--gold);text-transform:uppercase" id="cdTitle">倒數開班</div>
   <div class="countdown-bar fade-up">
     <div class="cd-item"><span class="cd-num" id="cdDays">--</span><span class="cd-unit">天</span></div>
     <div class="cd-item"><span class="cd-num" id="cdHrs">--</span><span class="cd-unit">時</span></div>
@@ -169,9 +169,15 @@ const sb = typeof supabase !== 'undefined'
 let batchStart = null, batchEnd = null, target = 800;
 
 function startCountdown() {
+  const now0 = new Date();
+  const started = batchStart && now0 >= batchStart;
+  // 已開班 → 倒數結束日；未開班 → 倒數開班日
+  const countTarget = started ? batchEnd : batchStart;
+  document.getElementById('cdTitle').textContent = started ? '決戰倒數' : '倒數開班';
+
   function tick() {
     const now = new Date();
-    const diff = (batchStart || now) - now;
+    const diff = (countTarget || now) - now;
     if (diff <= 0) {
       document.getElementById('cdDays').textContent = '0';
       document.getElementById('cdHrs').textContent = '00';
@@ -218,15 +224,20 @@ async function init() {
   if (batch) {
     batchStart = new Date(batch.start_date);
     batchEnd = new Date(batch.end_date);
+    batchEnd.setHours(23, 59, 59, 999);
     target = batch.single_month_score || 800;
   }
 
   startCountdown();
 
-  // 一次查學員（含 member_id）
+  // 一次查學員＋教練（含 member_id）
   const { data: stuData } = await sb.from('batch_students')
     .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
-  const total = stuData ? stuData.length : 0;
+  const { data: coachData } = await sb.from('batch_coaches')
+    .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
+  const stuCount = stuData ? stuData.length : 0;
+  const coachCount = coachData ? coachData.length : 0;
+  const total = stuCount + coachCount;
 
   document.getElementById('totalNum').textContent = total;
   document.getElementById('statWeek').textContent = '第' + getCurrentWeek() + '週';
@@ -239,10 +250,14 @@ async function init() {
     return;
   }
 
-  // 建立對應表
+  // 建立對應表（學員＋教練）
   const sidToMid = {}, midToSid = {};
-  stuData.forEach(s => { sidToMid[s.id] = s.member_id; midToSid[s.member_id] = s.id; });
-  const memberIds = stuData.map(s => s.member_id);
+  (stuData || []).forEach(s => { sidToMid[s.id] = s.member_id; midToSid[s.member_id] = s.id; });
+  (coachData || []).forEach(c => { sidToMid[c.id] = c.member_id; midToSid[c.member_id] = c.id; });
+  const memberIds = [
+    ...(stuData || []).map(s => s.member_id),
+    ...(coachData || []).map(c => c.member_id)
+  ];
 
   // 查行動紀錄 + 締結紀錄
   const { data: logs } = await sb.from('action_logs')
