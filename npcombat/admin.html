@@ -547,7 +547,7 @@ function renderRosterSection() {
             <div>
               <div class="card-name">${nm(c)}${mc(c)}</div>
               <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
-              <div class="roster-info" style="margin-top:4px">組別：<select class="reassign-sel" style="font-size:12px;padding:3px 8px" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select> ｜ 學員 ${pairedStudents(c.id).length} 名</div>
+              <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>組別：</span><select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select><span>｜ 學員 ${pairedStudents(c.id).length} 名</span></div>
             </div>
             <div style="display:flex;gap:6px">
               <button class="btn-edit" onclick="showEditCoach('${c.id}')">編輯</button>
