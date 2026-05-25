@@ -46,31 +46,24 @@ body::before{
 
 /* Week Selector */
 .week-selector{
-  display:flex;gap:8px;align-items:center;padding:16px 0;
+  display:flex;gap:8px;flex-wrap:wrap;padding:16px 0;
 }
-.week-dropdown{
-  flex:1;padding:10px 14px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:12px;color:var(--txt);font-size:14px;
-  font-family:'Noto Sans TC',sans-serif;font-weight:700;
-  box-shadow:var(--shadow);cursor:pointer;
-  appearance:none;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;
-  padding-right:36px;
-}
-.week-dropdown:focus{outline:none;border-color:var(--gold2)}
-.week-allbtn{
-  padding:10px 20px;border:1px solid var(--border);
-  border-radius:12px;background:var(--card);color:var(--txt2);
-  font-size:14px;font-weight:700;cursor:pointer;
+.week-btn{
+  flex:1;min-width:0;padding:10px 6px;
+  border:1px solid var(--border);border-radius:12px;
+  background:var(--card);color:var(--txt2);
+  font-size:13px;font-weight:700;cursor:pointer;
   font-family:'Noto Sans TC',sans-serif;
-  box-shadow:var(--shadow);transition:all .2s;white-space:nowrap;
+  box-shadow:var(--shadow);transition:all .2s;
+  white-space:nowrap;text-align:center;
 }
-.week-allbtn:hover{border-color:var(--gold2);color:var(--gold3)}
-.week-allbtn.active{
+.week-btn:hover:not(:disabled){border-color:var(--gold2);color:var(--gold3)}
+.week-btn.active{
   background:linear-gradient(135deg,var(--gold3),var(--gold2));
   color:#fff;border-color:var(--gold2);
+}
+.week-btn:disabled{
+  opacity:.4;cursor:not-allowed;background:var(--bg);
 }
 
 /* Section */
@@ -128,6 +121,7 @@ body::before{
 .rank-1 .rank-badge{background:var(--gold2);color:#fff}
 .rank-2 .rank-badge{background:#a0a0a0;color:#fff}
 .rank-3 .rank-badge{background:#cd7f32;color:#fff}
+.podium-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg)}
 .podium-name{flex:1;font-size:14px;font-weight:700}
 .podium-score{
   font-size:14px;font-weight:900;
@@ -210,10 +204,7 @@ body::before{
     <div class="batch-name" id="batchName">載入中...</div>
   </div>
 
-  <div class="week-selector" id="weekSelector">
-    <select class="week-dropdown" id="weekDropdown" onchange="onWeekChange()"></select>
-    <button class="week-allbtn" id="allBtn" onclick="loadWeek(-1)">整期</button>
-  </div>
+  <div class="week-selector" id="weekSelector"></div>
 
   <div id="content">
     <div class="loading">
@@ -234,12 +225,13 @@ const sb = supabase.createClient(
 
 // ── 獎項定義（對齊新 DB 欄位）──
 const AWARDS = [
-  { key:'total',     emoji:'🏅', name:'得分王',    desc:'行動分＋締結分加總',       unit:'分', fun:false },
+  { key:'action_pts', emoji:'🏅', name:'行動王',    desc:'純行動積分（不含締結）',    unit:'分', fun:false },
   { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'締結積分最高',             unit:'分', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
   { key:'present',   emoji:'💬', name:'談笑風聲',  desc:'溝通本說明次數最多',       unit:'次', fun:false },
   { key:'seminar',   emoji:'🎯', name:'邀約達人',  desc:'邀請說明會次數最多',       unit:'次', fun:false },
   { key:'name_list', emoji:'📋', name:'滿門抄斬',  desc:'狂列名單筆數最多',         unit:'筆', fun:false },
+  { key:'invite',    emoji:'💼', name:'邀約王',    desc:'邀約次數最多',             unit:'次', fun:false },
   { key:'schedule',  emoji:'📅', name:'燃燒生命',  desc:'安排行程次數最多',         unit:'次', fun:false },
   { key:'ghosted',   emoji:'🕊️', name:'和平鴿王', desc:'被放鴿子最多，但不放棄',   unit:'次', fun:true },
   { key:'rejected',  emoji:'🍋', name:'檸檬勇士', desc:'締結未果最多，越挫越勇',   unit:'次', fun:true },
@@ -248,7 +240,8 @@ const AWARDS = [
 let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
-let batchStudents = []; // 預載學員清單（含 member_id 對應）
+let batchStudents = [];
+let coachGroups = {}; // coach_id → group_name
 
 // ── 蓋牌：週六 23:59 → 週日 22:00 ──
 function isBlackout() {
@@ -305,16 +298,34 @@ async function init() {
 
   if (!currentBatch.start_date || !currentBatch.end_date) { showEmpty('班次日期尚未設定'); return; }
 
+  // 預載教練組別（含姓名、頭像）
+  const { data: coachData } = await sb.from('batch_coaches')
+    .select('id, group_name, members_master(name, picture_url)')
+    .eq('batch_id', currentBatch.id).eq('status', 'approved');
+  coachGroups = {};
+  const coachInfo = {};
+  (coachData || []).forEach(c => {
+    if (c.group_name) {
+      coachGroups[c.id] = c.group_name;
+      coachInfo[c.group_name] = {
+        name: c.members_master?.name || '',
+        pic: c.members_master?.picture_url || ''
+      };
+    }
+  });
+
   // 預載本期已批准學員（建立 member_id ↔ student_id 對應）
   const { data: stuData } = await sb.from('batch_students')
-    .select('id, member_id, group_name, members_master(name, member_code)')
+    .select('id, member_id, coach_id, members_master(name, member_code, picture_url)')
     .eq('batch_id', currentBatch.id).eq('status', 'approved');
   batchStudents = (stuData || []).map(s => ({
     id: s.id,
     member_id: s.member_id,
-    group: s.group_name || '未分組',
+    coach_id: s.coach_id,
+    group: coachGroups[s.coach_id] || '未分組',
     name: s.members_master?.name || '未知',
-    code: s.members_master?.member_code || ''
+    code: s.members_master?.member_code || '',
+    pic: s.members_master?.picture_url || ''
   }));
 
   // 建立週次
@@ -349,14 +360,16 @@ async function init() {
 }
 
 function renderWeekBar() {
-  const dd = document.getElementById('weekDropdown');
-  dd.innerHTML = weeks.map((w, i) => {
-    const s = fmtDate(w.start), e = fmtDate(w.end);
-    return `<option value="${i}" ${i === currentWeek ? 'selected' : ''}>第${w.num}週（${s} - ${e}）</option>`;
-  }).join('');
+  const today = new Date();
+  const bar = document.getElementById('weekSelector');
+  let html = `<button class="week-btn" onclick="loadWeek(-1)">全期</button>`;
+  weeks.forEach((w, i) => {
+    const started = today >= w.start;
+    const label = `W${w.num}`;
+    html += `<button class="week-btn" onclick="loadWeek(${i})" ${started ? '' : 'disabled'}>${label}</button>`;
+  });
+  bar.innerHTML = html;
 }
-
-function onWeekChange() { loadWeek(parseInt(document.getElementById('weekDropdown').value)); }
 function fmtDate(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
 function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 
@@ -365,10 +378,10 @@ async function loadWeek(idx) {
   if (isBlackout()) { showBlackout(); return; }
   currentWeek = idx;
 
-  const dd = document.getElementById('weekDropdown');
-  const allBtn = document.getElementById('allBtn');
-  if (idx === -1) { dd.value = ''; allBtn.classList.add('active'); }
-  else { dd.value = idx; allBtn.classList.remove('active'); }
+  const btns = document.querySelectorAll('.week-btn');
+  btns.forEach((b, i) => {
+    b.classList.toggle('active', i === idx + 1);
+  });
 
   document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div>正在統計戰績...</div></div>';
 
@@ -400,7 +413,7 @@ async function loadWeek(idx) {
   const students = {};
   batchStudents.forEach(s => {
     students[s.id] = {
-      name: s.name, code: s.code, group: s.group,
+      name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
       ghosted:0, rejected:0,
       name_list:0, schedule:0, follow_up:0,
@@ -427,13 +440,12 @@ async function loadWeek(idx) {
     if (sid && students[sid]) students[sid].close_pts += c.points || 0;
   });
 
-  // 計算總分：meet×1 + invite×2 + present×5 + seminar×5 + ghosted×1 + rejected×1 + name_list×1 + schedule×1 + follow_up×1 + 締結分
   const arr = Object.values(students);
   arr.forEach(s => {
-    s.total = s.meet * 1 + s.invite * 2 + s.present * 5 + s.seminar * 5
-            + s.ghosted * 1 + s.rejected * 1
-            + s.name_list * 1 + s.schedule * 1 + s.follow_up * 1
-            + s.close_pts;
+    s.action_pts = s.meet * 1 + s.invite * 2 + s.present * 5 + s.seminar * 5
+                 + s.ghosted * 1 + s.rejected * 1
+                 + s.name_list * 1 + s.schedule * 1 + s.follow_up * 1;
+    s.total = s.action_pts + s.close_pts;
   });
 
   // 即使無資料也顯示獎項標題，讓大家知道有哪些可以玩
@@ -441,17 +453,25 @@ async function loadWeek(idx) {
   // 排名
   const rank = (key) => [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0).slice(0, 3);
 
-  // 團隊排名
+  // 軍團榮耀：按教練組別統計
   const groups = {};
   arr.forEach(s => {
-    if (!groups[s.group]) groups[s.group] = { total: 0, count: 0 };
-    groups[s.group].total += s.total;
+    if (s.group === '未分組') return;
+    if (!groups[s.group]) groups[s.group] = { action: 0, close: 0, hasClose: 0, count: 0 };
+    groups[s.group].action += s.action_pts;
+    groups[s.group].close += s.close_pts;
+    if (s.close_pts > 0) groups[s.group].hasClose += 1;
     groups[s.group].count += 1;
   });
-  const teamRank = Object.entries(groups)
-    .map(([name, g]) => ({ name, avg: Math.round(g.total / g.count), count: g.count }))
-    .sort((a, b) => b.avg - a.avg)
-    .slice(0, 3);
+  const groupArr = Object.entries(groups).map(([name, g]) => ({
+    name,
+    coachName: coachInfo[name]?.name || '',
+    coachPic: coachInfo[name]?.pic || '',
+    count: g.count,
+    actionAvg: Math.round(g.action / g.count),
+    closeAvg: Math.round(g.close / g.count),
+    closePct: Math.round(g.hasClose / g.count * 100),
+  }));
 
   // 渲染
   const periodLabel = idx === -1 ? '整期' : '本週';
@@ -467,9 +487,11 @@ async function loadWeek(idx) {
   AWARDS.filter(a => a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
   html += '</div>';
 
-  html += `<div class="section-title">👥 ${periodLabel}小隊對決</div>`;
+  html += `<div class="section-title">🏰 ${periodLabel}軍團榮耀</div>`;
   html += '<div class="awards-grid">';
-  html += renderTeamCard(teamRank);
+  html += renderTeamMetric('⚔️', '行動平均', '組別平均行動積分', groupArr, 'actionAvg', '分');
+  html += renderTeamMetric('💰', '締結總分平均', '組別平均締結積分', groupArr, 'closeAvg', '分');
+  html += renderTeamMetric('🎯', '完成獎勵活動', '組內有締結紀錄的比例', groupArr, 'closePct', '%');
   html += '</div>';
 
   document.getElementById('content').innerHTML = html;
@@ -484,6 +506,7 @@ function renderAwardCard(award, top3) {
     podium = '<div class="podium">' + top3.map((s, i) => `
       <div class="podium-row rank-${i+1}">
         <div class="rank-badge">${i+1}</div>
+        ${s.pic ? `<img class="podium-avatar" src="${s.pic}" alt="">` : ''}
         <div class="podium-name">${s.name}</div>
         <div class="podium-score">${s[award.key]}<span class="podium-unit">${award.unit}</span></div>
       </div>`).join('') + '</div>';
@@ -501,25 +524,27 @@ function renderAwardCard(award, top3) {
     </div>`;
 }
 
-function renderTeamCard(teams) {
+function renderTeamMetric(emoji, name, desc, groups, key, unit) {
+  const top3 = [...groups].sort((a, b) => b[key] - a[key]).filter(g => g[key] > 0).slice(0, 3);
   let podium = '';
-  if (teams.length === 0) {
-    podium = '<div class="empty-state">尚無小隊資料</div>';
+  if (top3.length === 0) {
+    podium = '<div class="empty-state">虛位以待，等你來搶！</div>';
   } else {
-    podium = '<div class="podium">' + teams.map((t, i) => `
+    podium = '<div class="podium">' + top3.map((t, i) => `
       <div class="podium-row rank-${i+1}">
         <div class="rank-badge">${i+1}</div>
-        <div class="podium-name">${t.name}<span style="color:var(--txt2);font-size:12px;font-weight:400;margin-left:6px">${t.count}人</span></div>
-        <div class="podium-score">${t.avg}<span class="podium-unit">均分</span></div>
+        ${t.coachPic ? `<img class="podium-avatar" src="${t.coachPic}" alt="">` : ''}
+        <div class="podium-name">${t.coachName || t.name}<span style="color:var(--txt2);font-size:12px;font-weight:400;margin-left:6px">${t.count}人</span></div>
+        <div class="podium-score">${t[key]}<span class="podium-unit">${unit}</span></div>
       </div>`).join('') + '</div>';
   }
   return `
     <div class="award-card">
       <div class="award-header">
-        <div class="award-emoji">🏆</div>
+        <div class="award-emoji">${emoji}</div>
         <div class="award-info">
-          <div class="award-name">最強小隊<span class="team-tag">團隊獎</span></div>
-          <div class="award-desc">整組加權總分 ÷ 組員人數，平均最高</div>
+          <div class="award-name">${name}<span class="team-tag">團隊獎</span></div>
+          <div class="award-desc">${desc}</div>
         </div>
       </div>
       ${podium}
