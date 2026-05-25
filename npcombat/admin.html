@@ -534,6 +534,12 @@ function renderRosterSection() {
   if (rosterFilter !== 'no-coach') {
     h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
     if (cList.length) {
+      cList.sort((a,b) => {
+        const ga = a.group_name || '', gb = b.group_name || '';
+        const ia = GROUPS.indexOf(ga), ib = GROUPS.indexOf(gb);
+        const gi = (ia===-1?99:ia) - (ib===-1?99:ib);
+        return gi !== 0 ? gi : nm(a).localeCompare(nm(b),'zh-TW');
+      });
       cList.forEach(c => {
         h += `
         <div class="roster-card" id="rc-c-${c.id}">
