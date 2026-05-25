@@ -246,6 +246,7 @@ let coachGroups = {};
 let coachInfo = {};
 let allLogs = [];
 let allCloses = [];
+let allBonusRules = [];
 let memberToStu = {};
 
 // ── 蓋牌：週日 00:00 → 週日 22:00 ──
@@ -386,6 +387,10 @@ async function init() {
     .select('member_id, points, close_date').in('member_id', memberIds);
   allCloses = closeData || [];
 
+  const { data: bonusData } = await sb.from('bonus_rules')
+    .select('*').eq('batch_id', currentBatch.id);
+  allBonusRules = bonusData || [];
+
   renderWeekBar();
   if (isBlackout()) { showBlackout(); return; }
   loadWeek(currentWeek);
@@ -408,6 +413,7 @@ function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 // 根據日期範圍過濾並彙總
 function calcStats(startDate, endDate) {
   const fields = ['meet','invite','present','seminar','ghosted','rejected','name_list','schedule','follow_up'];
+  const BASE_PTS = { meet:1, invite:2, present:5, seminar:5, ghosted:1, rejected:1, name_list:1, schedule:1, follow_up:1 };
   const students = {};
   batchStudents.forEach(s => {
     students[s.id] = {
@@ -417,25 +423,34 @@ function calcStats(startDate, endDate) {
       close_pts:0, action_pts:0, total:0, slots:0
     };
   });
-  const logs = startDate
-    ? allLogs.filter(l => l.log_date >= startDate && l.log_date <= endDate)
-    : allLogs;
+  const logs = allLogs.filter(l => {
+    if (startDate && l.log_date < startDate) return false;
+    if (endDate && l.log_date > endDate) return false;
+    return true;
+  });
   logs.forEach(log => {
     const s = students[log.student_id];
     if (!s) return;
-    fields.forEach(f => s[f] += log[f] || 0);
+    fields.forEach(f => {
+      const val = log[f] || 0;
+      s[f] += val;
+      // 查詢該日該欄位是否有加權規則
+      const matching = allBonusRules.filter(r => r.action_field === f && log.log_date >= r.start_date && log.log_date <= r.end_date);
+      const mult = matching.length ? Math.max(...matching.map(r => r.multiplier)) : 1;
+      s.action_pts += val * BASE_PTS[f] * mult;
+    });
   });
-  const closes = startDate
-    ? allCloses.filter(c => c.close_date >= startDate && c.close_date <= endDate)
-    : allCloses;
+  const closes = allCloses.filter(c => {
+    if (startDate && c.close_date < startDate) return false;
+    if (endDate && c.close_date > endDate) return false;
+    return true;
+  });
   closes.forEach(c => {
     const sid = memberToStu[c.member_id];
     if (sid && students[sid]) students[sid].close_pts += c.points || 0;
   });
   const arr = Object.values(students);
   arr.forEach(s => {
-    s.action_pts = s.meet*1 + s.invite*2 + s.present*5 + s.seminar*5
-                 + s.ghosted*1 + s.rejected*1 + s.name_list*1 + s.schedule*1 + s.follow_up*1;
     s.total = s.action_pts + s.close_pts;
   });
   return { students, arr };
@@ -554,7 +569,7 @@ function loadWeek(idx) {
 
   html += `<div class="section-title">🏰 ${periodLabel}組隊榮耀</div>`;
   html += '<div class="awards-grid">';
-  html += renderTeamMetric('⚔️', '行動平均', '組別平均行動積分', groupArr, 'actionAvg', '分');
+  html += renderTeamMetric('⚔️', '行動總分平均', '組別平均行動積分', groupArr, 'actionAvg', '分');
   html += renderTeamMetric('💰', '締結總分平均', '組別平均締結積分', groupArr, 'closeAvg', '分');
   html += renderTeamMetric('🎯', '完成獎勵活動', '組內有締結紀錄的比例', groupArr, 'closePct', '%');
   html += '</div>';

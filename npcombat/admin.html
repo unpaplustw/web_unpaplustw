@@ -605,7 +605,7 @@ function showEditCoach(cid) {
     <div class="edit-field"><label>資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>
     <div class="edit-field"><label>CFC</label><select id="ec-cfc-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${cfcOpts}</select></div>
     <button class="btn-save" onclick="saveEditCoach('${cid}')">儲存</button>
-    <button class="btn-cancel" onclick="renderRoster()">取消</button>
+    <button class="btn-cancel" onclick="renderReview()">取消</button>
   </div>`;
 }
 
@@ -641,7 +641,7 @@ function showEdit(sid) {
     <div class="edit-field"><label>電話</label><input id="ef-phone-${sid}" value="${s.phone||''}"></div>
     <div class="edit-field"><label>組別</label><input id="ef-group-${sid}" value="${s.group_name||''}"></div>
     <button class="btn-save" onclick="saveEdit('${sid}')">儲存</button>
-    <button class="btn-cancel" onclick="renderRoster()">取消</button>
+    <button class="btn-cancel" onclick="renderReview()">取消</button>
   </div>`;
 }
 
