@@ -803,52 +803,9 @@ function renderPairing() {
   const paired   = realStudents.filter(s => s.coach_id);
   selS = null; selC = null;
 
-  // ── 教練組別管理 ──
-  const groupOpts = GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
-  let h = `<div class="sec-title" style="cursor:pointer" onclick="document.getElementById('grpBody').style.display=document.getElementById('grpBody').style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')"><span>教練組別 <span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span><span class="sec-count">${ac.length} 位教練</span></div>`;
-  h += `<div id="grpBody" style="display:none">`;
-  h += ac.map(c => `
-    <div class="card">
-      <div class="card-left">
-        <div class="card-name">${nm(c)}${mc(c)}</div>
-        <div class="card-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名學員</div>
-      </div>
-      <div class="acts">
-        <select class="reassign-sel" id="grp-${c.id}" onchange="setCoachGroup('${c.id}',this.value)">
-          <option value="">未分組</option>
-          ${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}
-        </select>
-      </div>
-    </div>`).join('');
-  h += `</div>`;
+  let h = '';
 
-  // ── 待配對 ──
-  h += `<div class="sec-title" style="margin-top:24px"><span>配對操作</span></div>`;
-  if (unpaired.length) {
-    h += `<div class="pair-grid">
-      <div class="pair-col">
-        <h3>待配對學員（${unpaired.length}）</h3>
-        ${unpaired.map(s => `
-          <div class="pick" data-sid="${s.id}" onclick="pickS('${s.id}')">
-            <div class="pick-name">${nm(s)}</div>
-            <div class="pick-meta">${s.group_name||'—'} ｜ ${s.phone||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
-          </div>`).join('')}
-      </div>
-      <div class="pair-col">
-        <h3>教練（${ac.length}）</h3>
-        ${ac.map(c => `
-          <div class="pick" data-cid="${c.id}" onclick="pickC('${c.id}')">
-            <div class="pick-name">${nm(c)}${c.group_name?' <span style="color:var(--muted);font-size:11px">'+c.group_name+'</span>':''}</div>
-            <div class="pick-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名</div>
-          </div>`).join('')}
-        <button class="btn-pair" id="btnPair" disabled onclick="doPair()">請選擇學員和教練</button>
-      </div>
-    </div>`;
-  } else {
-    h += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${realStudents.length?'所有學員皆已配對':'無待配對學員'}</div></div>`;
-  }
-
-  // ── 已配對（按組別排序）──
+  // ── 已配對（按組別排序）── 放最上面
   if (paired.length) {
     const pairGroups = {};
     paired.forEach(s => {
@@ -856,7 +813,6 @@ function renderPairing() {
       if (!pairGroups[cid]) pairGroups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
       pairGroups[cid].students.push(s);
     });
-    // 按教練組別排序
     const sortedGroups = Object.values(pairGroups).sort((a, b) => {
       const ga = a.coach?.group_name || '';
       const gb = b.coach?.group_name || '';
@@ -893,6 +849,51 @@ function renderPairing() {
       }).join('')}
       </div></div>`;
   }
+
+  // ── 待配對 ──
+  h += `<div class="sec-title" style="margin-top:24px"><span>配對操作</span></div>`;
+  if (unpaired.length) {
+    h += `<div class="pair-grid">
+      <div class="pair-col">
+        <h3>待配對學員（${unpaired.length}）</h3>
+        ${unpaired.map(s => `
+          <div class="pick" data-sid="${s.id}" onclick="pickS('${s.id}')">
+            <div class="pick-name">${nm(s)}</div>
+            <div class="pick-meta">${s.group_name||'—'} ｜ ${s.phone||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
+          </div>`).join('')}
+      </div>
+      <div class="pair-col">
+        <h3>教練（${ac.length}）</h3>
+        ${ac.map(c => `
+          <div class="pick" data-cid="${c.id}" onclick="pickC('${c.id}')">
+            <div class="pick-name">${nm(c)}${c.group_name?' <span style="color:var(--muted);font-size:11px">'+c.group_name+'</span>':''}</div>
+            <div class="pick-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名</div>
+          </div>`).join('')}
+        <button class="btn-pair" id="btnPair" disabled onclick="doPair()">請選擇學員和教練</button>
+      </div>
+    </div>`;
+  } else {
+    h += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${realStudents.length?'所有學員皆已配對':'無待配對學員'}</div></div>`;
+  }
+
+  // ── 教練組別管理 ── 放最下面
+  const groupOpts = GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
+  h += `<div class="sec-title" style="cursor:pointer;margin-top:24px" onclick="document.getElementById('grpBody').style.display=document.getElementById('grpBody').style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')"><span>教練組別 <span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span><span class="sec-count">${ac.length} 位教練</span></div>`;
+  h += `<div id="grpBody" style="display:none">`;
+  h += ac.map(c => `
+    <div class="card">
+      <div class="card-left">
+        <div class="card-name">${nm(c)}${mc(c)}</div>
+        <div class="card-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名學員</div>
+      </div>
+      <div class="acts">
+        <select class="reassign-sel" id="grp-${c.id}" onchange="setCoachGroup('${c.id}',this.value)">
+          <option value="">未分組</option>
+          ${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}
+        </select>
+      </div>
+    </div>`).join('');
+  h += `</div>`;
   document.getElementById('pairArea').innerHTML = h;
 }
 
