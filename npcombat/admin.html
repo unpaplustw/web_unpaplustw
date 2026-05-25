@@ -541,6 +541,7 @@ function renderRosterSection() {
             <div>
               <div class="card-name">${nm(c)}${mc(c)}</div>
               <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+              <div class="roster-info" style="margin-top:4px">組別：<select class="reassign-sel" style="font-size:12px;padding:3px 8px" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select> ｜ 學員 ${pairedStudents(c.id).length} 名</div>
             </div>
             <div style="display:flex;gap:6px">
               <button class="btn-edit" onclick="showEditCoach('${c.id}')">編輯</button>
@@ -876,24 +877,7 @@ function renderPairing() {
     h += `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">${realStudents.length?'所有學員皆已配對':'無待配對學員'}</div></div>`;
   }
 
-  // ── 教練組別管理 ── 放最下面
-  const groupOpts = GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
-  h += `<div class="sec-title" style="cursor:pointer;margin-top:24px" onclick="document.getElementById('grpBody').style.display=document.getElementById('grpBody').style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')"><span>教練組別 <span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span><span class="sec-count">${ac.length} 位教練</span></div>`;
-  h += `<div id="grpBody" style="display:none">`;
-  h += ac.map(c => `
-    <div class="card">
-      <div class="card-left">
-        <div class="card-name">${nm(c)}${mc(c)}</div>
-        <div class="card-meta">${c.rank||'—'} ｜ 目前 ${pairedStudents(c.id).length} 名學員</div>
-      </div>
-      <div class="acts">
-        <select class="reassign-sel" id="grp-${c.id}" onchange="setCoachGroup('${c.id}',this.value)">
-          <option value="">未分組</option>
-          ${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}
-        </select>
-      </div>
-    </div>`).join('');
-  h += `</div>`;
+  // 教練組別已移至審核名冊的教練卡片
   document.getElementById('pairArea').innerHTML = h;
 }
 
