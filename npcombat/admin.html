@@ -805,7 +805,8 @@ function renderPairing() {
 
   // ── 教練組別管理 ──
   const groupOpts = GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
-  let h = `<div class="sec-title"><span>教練組別</span><span class="sec-count">${ac.length} 位教練</span></div>`;
+  let h = `<div class="sec-title" style="cursor:pointer" onclick="document.getElementById('grpBody').style.display=document.getElementById('grpBody').style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')"><span>教練組別 <span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span><span class="sec-count">${ac.length} 位教練</span></div>`;
+  h += `<div id="grpBody" style="display:none">`;
   h += ac.map(c => `
     <div class="card">
       <div class="card-left">
@@ -819,6 +820,7 @@ function renderPairing() {
         </select>
       </div>
     </div>`).join('');
+  h += `</div>`;
 
   // ── 待配對 ──
   h += `<div class="sec-title" style="margin-top:24px"><span>配對操作</span></div>`;
@@ -862,10 +864,10 @@ function renderPairing() {
       const ib = GROUPS.indexOf(gb);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
-    h += `<div class="paired-section"><h3>
-        <span>已配對（${paired.length}）</span>
-        <input class="paired-search" placeholder="搜尋學員或教練…" oninput="filterPaired(this.value)">
-      </h3><div id="pairedGroups">
+    h += `<div class="paired-section"><h3 style="cursor:pointer" onclick="var b=document.getElementById('pairedGroups');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')">
+        <span>已配對（${paired.length}）<span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span>
+        <input class="paired-search" placeholder="搜尋學員或教練…" oninput="event.stopPropagation();filterPaired(this.value)">
+      </h3><div id="pairedGroups" style="display:none">
       ${sortedGroups.map(g => {
         const cN = g.coach ? nm(g.coach) : '（未知）';
         const cC = g.coach ? mc(g.coach) : '';
