@@ -241,7 +241,8 @@ let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
 let batchStudents = [];
-let coachGroups = {}; // coach_id → group_name
+let coachGroups = {};
+let coachInfo = {};
 
 // ── 蓋牌：週六 23:59 → 週日 22:00 ──
 function isBlackout() {
@@ -303,7 +304,7 @@ async function init() {
     .select('id, group_name, members_master(name, picture_url)')
     .eq('batch_id', currentBatch.id).eq('status', 'approved');
   coachGroups = {};
-  const coachInfo = {};
+  coachInfo = {};
   (coachData || []).forEach(c => {
     if (c.group_name) {
       coachGroups[c.id] = c.group_name;
