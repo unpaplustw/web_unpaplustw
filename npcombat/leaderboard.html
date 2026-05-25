@@ -227,6 +227,7 @@ const sb = supabase.createClient(
 const AWARDS = [
   { key:'action_pts', emoji:'🏅', name:'行動王',    desc:'純行動積分（不含締結）',    unit:'分', fun:false },
   { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'締結積分最高',             unit:'分', fun:false },
+  { key:'slots',     emoji:'🎫', name:'名額達人',  desc:'完成獎勵活動名額最多',     unit:'位', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
   { key:'present',   emoji:'💬', name:'談笑風聲',  desc:'溝通本說明次數最多',       unit:'次', fun:false },
   { key:'seminar',   emoji:'🎯', name:'邀約達人',  desc:'邀請說明會次數最多',       unit:'次', fun:false },
@@ -301,7 +302,7 @@ async function init() {
 
   // 預載教練組別（含姓名、頭像）
   const { data: coachData } = await sb.from('batch_coaches')
-    .select('id, group_name, members_master(name, picture_url)')
+    .select('id, member_id, group_name, members_master(name, picture_url)')
     .eq('batch_id', currentBatch.id).eq('status', 'approved');
   coachGroups = {};
   coachInfo = {};
@@ -315,7 +316,7 @@ async function init() {
     }
   });
 
-  // 預載本期已批准學員（建立 member_id ↔ student_id 對應）
+  // 預載學員＋教練（都算參與者）
   const { data: stuData } = await sb.from('batch_students')
     .select('id, member_id, coach_id, members_master(name, member_code, picture_url)')
     .eq('batch_id', currentBatch.id).eq('status', 'approved');
@@ -326,8 +327,22 @@ async function init() {
     group: coachGroups[s.coach_id] || '未分組',
     name: s.members_master?.name || '未知',
     code: s.members_master?.member_code || '',
-    pic: s.members_master?.picture_url || ''
+    pic: s.members_master?.picture_url || '',
+    role: 'student'
   }));
+  // 教練也加入排名
+  (coachData || []).forEach(c => {
+    batchStudents.push({
+      id: c.id,
+      member_id: c.member_id,
+      coach_id: null,
+      group: c.group_name || '未分組',
+      name: c.members_master?.name || '未知',
+      code: '',
+      pic: c.members_master?.picture_url || '',
+      role: 'coach'
+    });
+  });
 
   // 建立週次
   const start = new Date(currentBatch.start_date);
@@ -400,11 +415,15 @@ async function loadWeek(idx) {
   const { data: logs, error: logErr } = await logQ;
   if (logErr) { showEmpty('資料載入失敗：' + logErr.message); return; }
 
-  // 查 closing_records
+  // 查 closing_records（週次篩選用）
   const memberIds = batchStudents.map(s => s.member_id);
   let closeQ = sb.from('closing_records').select('member_id, points').in('member_id', memberIds);
   if (startDate) closeQ = closeQ.gte('close_date', startDate).lte('close_date', endDate);
   const { data: closes } = await closeQ;
+
+  // 查全期 closing_records（名額計算用，不受週次篩選）
+  const { data: allCloses } = await sb.from('closing_records')
+    .select('member_id, points, close_date').in('member_id', memberIds);
 
   // member_id → student_id 對應
   const memberToStu = {};
@@ -441,18 +460,51 @@ async function loadWeek(idx) {
     if (sid && students[sid]) students[sid].close_pts += c.points || 0;
   });
 
+  // 名額計算（全期，不受週次篩選）
+  const eb = currentBatch.earlybird_score || 700;
+  const sm = currentBatch.single_month_score || 800;
+  const cm = currentBatch.cross_month_score || 900;
+  const slotsByMember = {};
+  (allCloses || []).forEach(c => {
+    if (!slotsByMember[c.member_id]) slotsByMember[c.member_id] = {};
+    const m = parseInt(c.close_date.split('-')[1]);
+    slotsByMember[c.member_id][m] = (slotsByMember[c.member_id][m] || 0) + (c.points || 0);
+  });
+  Object.entries(slotsByMember).forEach(([mid, months]) => {
+    const sid = memberToStu[mid];
+    if (!sid || !students[sid]) return;
+    const apr = months[4] || 0, may = months[5] || 0, jun = months[6] || 0;
+    const aprSlots = Math.floor(apr / eb);
+    const maySlots = Math.floor(may / sm);
+    const junSlots = Math.floor(jun / sm);
+    const crossPool = (apr - aprSlots * eb) + (may - maySlots * sm) + (jun - junSlots * sm);
+    const crossSlots = Math.floor(crossPool / cm);
+    students[sid].slots = aprSlots + maySlots + junSlots + crossSlots;
+  });
+
   const arr = Object.values(students);
   arr.forEach(s => {
     s.action_pts = s.meet * 1 + s.invite * 2 + s.present * 5 + s.seminar * 5
                  + s.ghosted * 1 + s.rejected * 1
                  + s.name_list * 1 + s.schedule * 1 + s.follow_up * 1;
     s.total = s.action_pts + s.close_pts;
+    if (!s.slots) s.slots = 0;
   });
 
   // 即使無資料也顯示獎項標題，讓大家知道有哪些可以玩
 
-  // 排名
-  const rank = (key) => [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0).slice(0, 3);
+  // 排名（同分並列，最多顯示前 3 名次）
+  const rank = (key) => {
+    const sorted = [...arr].sort((a, b) => b[key] - a[key]).filter(s => s[key] > 0);
+    const result = [];
+    let currentRank = 0, lastVal = null;
+    for (const s of sorted) {
+      if (s[key] !== lastVal) { currentRank++; lastVal = s[key]; }
+      if (currentRank > 3) break;
+      result.push({ ...s, rank: currentRank });
+    }
+    return result;
+  };
 
   // 軍團榮耀：按教練組別統計
   const groups = {};
@@ -464,10 +516,18 @@ async function loadWeek(idx) {
     if (s.close_pts > 0) groups[s.group].hasClose += 1;
     groups[s.group].count += 1;
   });
+  // 收集每組組員名稱（排除教練本人，避免重複）
+  const groupMembers = {};
+  arr.forEach(s => {
+    if (s.group === '未分組') return;
+    if (!groupMembers[s.group]) groupMembers[s.group] = [];
+    if (s.name !== coachInfo[s.group]?.name) groupMembers[s.group].push(s.name);
+  });
   const groupArr = Object.entries(groups).map(([name, g]) => ({
     name,
     coachName: coachInfo[name]?.name || '',
     coachPic: coachInfo[name]?.pic || '',
+    members: (groupMembers[name] || []).join('、'),
     count: g.count,
     actionAvg: Math.round(g.action / g.count),
     closeAvg: Math.round(g.close / g.count),
@@ -488,7 +548,7 @@ async function loadWeek(idx) {
   AWARDS.filter(a => a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
   html += '</div>';
 
-  html += `<div class="section-title">🏰 ${periodLabel}軍團榮耀</div>`;
+  html += `<div class="section-title">🏰 ${periodLabel}組隊榮耀</div>`;
   html += '<div class="awards-grid">';
   html += renderTeamMetric('⚔️', '行動平均', '組別平均行動積分', groupArr, 'actionAvg', '分');
   html += renderTeamMetric('💰', '締結總分平均', '組別平均締結積分', groupArr, 'closeAvg', '分');
@@ -504,9 +564,9 @@ function renderAwardCard(award, top3) {
   if (top3.length === 0) {
     podium = '<div class="empty-state">虛位以待，等你來搶！</div>';
   } else {
-    podium = '<div class="podium">' + top3.map((s, i) => `
-      <div class="podium-row rank-${i+1}">
-        <div class="rank-badge">${i+1}</div>
+    podium = '<div class="podium">' + top3.map(s => `
+      <div class="podium-row rank-${s.rank}">
+        <div class="rank-badge">${s.rank}</div>
         ${s.pic ? `<img class="podium-avatar" src="${s.pic}" alt="">` : ''}
         <div class="podium-name">${s.name}</div>
         <div class="podium-score">${s[award.key]}<span class="podium-unit">${award.unit}</span></div>
@@ -535,7 +595,7 @@ function renderTeamMetric(emoji, name, desc, groups, key, unit) {
       <div class="podium-row rank-${i+1}">
         <div class="rank-badge">${i+1}</div>
         ${t.coachPic ? `<img class="podium-avatar" src="${t.coachPic}" alt="">` : ''}
-        <div class="podium-name">${t.coachName || t.name}<span style="color:var(--txt2);font-size:12px;font-weight:400;margin-left:6px">${t.count}人</span></div>
+        <div class="podium-name">${t.coachName} 教練 ${t.name}<div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:2px">${t.members}</div></div>
         <div class="podium-score">${t[key]}<span class="podium-unit">${unit}</span></div>
       </div>`).join('') + '</div>';
   }
