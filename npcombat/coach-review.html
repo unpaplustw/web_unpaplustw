@@ -168,7 +168,7 @@
 
 <!-- Mode Tabs -->
 <div class="mode-tabs">
-  <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">我的回報</button>
+  <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">自己回報</button>
   <button class="mode-tab" id="tabReview" onclick="setMode('review')">學員審查</button>
 </div>
 
@@ -478,9 +478,16 @@ function setMode(mode) {
   document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
   document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
   document.getElementById('detailView').style.display = 'none';
-  document.querySelector('.day-toggle').style.display = '';
-  if (mode === 'my') renderMyReport();
-  if (mode === 'review') renderSummary();
+  if (mode === 'my') {
+    currentDay = 'today';
+    document.getElementById('btnToday').classList.add('on');
+    document.getElementById('btnYesterday').classList.remove('on');
+    document.querySelector('.day-toggle').style.display = 'none';
+    renderMyReport();
+  } else {
+    document.querySelector('.day-toggle').style.display = '';
+    renderSummary();
+  }
 }
 
 // ── My Report ──
