@@ -452,11 +452,11 @@ function renderDashboard() {
   const yFilledAll = yStuFill + yCoachFill;
   const tFilledAll = tStuFill + tCoachFill;
 
-  // ── 電池能量條 ──
-  const batteryPct = pct(yStuFill, totalReal);
+  // ── 電池能量條（今日 LIVE）──
+  const batteryPct = pct(tStuFill, totalReal);
   h += `<div class="battery">
     <div class="battery-fill" style="width:${batteryPct}%"></div>
-    <div class="battery-text">學員填報率 ${batteryPct}%（${yStuFill}/${totalReal}）</div>
+    <div class="battery-text">今日填報 LIVE ${batteryPct}%（${tStuFill}/${totalReal}）</div>
   </div>`;
 
   // ── 昨日進度 ──
