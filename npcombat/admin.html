@@ -370,20 +370,6 @@ function render() {
 // Tab 0: 資訊版
 // ════════════════════════════════════════════
 function renderDashboard() {
-  const pendingC = coaches.filter(c => c.status === 'pending').length;
-  const pendingS = students.filter(s => s.status === 'pending').length;
-  const approvedS = students.filter(s => s.status === 'approved').length;
-  const totalC = approvedCoaches().length;
-
-  // Stats cards
-  let h = `<div class="stats">
-    <div class="st"><div class="st-n">${pendingC}</div><div class="st-l">教練待審</div></div>
-    <div class="st"><div class="st-n">${pendingS}</div><div class="st-l">學員待審</div></div>
-    <div class="st"><div class="st-n">${approvedS}</div><div class="st-l">已批准學員</div></div>
-    <div class="st"><div class="st-n">${totalC}</div><div class="st-l">教練</div></div>
-  </div>`;
-
-  // Interaction matrix
   const today = new Date().toISOString().slice(0,10);
   const approvedStudents = students.filter(s => s.status === 'approved');
   const logMap = {};
@@ -395,7 +381,7 @@ function renderDashboard() {
   const fillPct = totalStu ? Math.round(filledCount / totalStu * 100) : 0;
   const confirmPct = totalStu ? Math.round(confirmedCount / totalStu * 100) : 0;
 
-  h += `<div class="sec-title"><span>📊 今日回報進度</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
+  let h = `<div class="sec-title"><span>📊 今日回報進度</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
   h += `<div class="dash-progress">
     <div class="dash-prog-card">
       <div class="dash-prog-n">${filledCount} / ${totalStu}</div>
@@ -464,12 +450,22 @@ function renderDashboard() {
 // Tab 1: 審核名冊
 // ════════════════════════════════════════════
 function renderReview() {
+  const pendingC = coaches.filter(c => c.status === 'pending').length;
+  const pendingS = students.filter(s => s.status === 'pending').length;
+  const approvedS = students.filter(s => s.status === 'approved').length;
+  const totalC = approvedCoaches().length;
+
   const pCoaches  = coaches.filter(c => c.status === 'pending' && matchSearch(c));
   const apCoaches = coaches.filter(c => c.status === 'pending');
   const pStudents = students.filter(s => s.status === 'pending' && matchSearch(s));
   const apStudents= students.filter(s => s.status === 'pending');
 
-  let h = '';
+  let h = `<div class="stats">
+    <div class="st"><div class="st-n">${pendingC}</div><div class="st-l">教練待審</div></div>
+    <div class="st"><div class="st-n">${pendingS}</div><div class="st-l">學員待審</div></div>
+    <div class="st"><div class="st-n">${approvedS}</div><div class="st-l">已批准學員</div></div>
+    <div class="st"><div class="st-n">${totalC}</div><div class="st-l">教練</div></div>
+  </div>`;
 
   // 教練審核
   h += `<div class="sec-title"><span>教練審核</span><span class="sec-count">${apCoaches.length} 待審</span></div>`;
