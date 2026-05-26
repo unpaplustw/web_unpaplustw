@@ -215,12 +215,15 @@
   .dash-legend{display:flex;gap:14px;align-items:center;margin-bottom:14px;font-size:11px;color:var(--muted)}
   .dash-legend .dot{margin-right:3px}
   .dash-self{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:2px}
-  .dash-day-block{font-size:13px;color:var(--muted);background:var(--navy3);padding:3px 10px;border-radius:4px;white-space:nowrap}
-  .dash-day-block.dash-perfect{background:rgba(91,141,239,.15);color:var(--blue)}
-  .dash-day-block.dash-pass{background:var(--green-bg);color:var(--green)}
-  .dash-day-block.dash-warn{background:var(--yellow-bg);color:var(--yellow)}
-  .dash-day-block.dash-danger{background:var(--red-bg);color:var(--red)}
-  .dash-day-block.dash-zero{background:rgba(224,92,92,.25);color:var(--red);font-weight:700}
+  .dash-coach-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+  .dash-coach-stats{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  .dash-day-block{font-size:13px;color:var(--muted);background:var(--navy3);padding:3px 10px;border-radius:4px;white-space:nowrap;min-width:130px;text-align:center}
+  .dash-pct{display:inline-block;min-width:32px;text-align:right}
+  .dash-day-block.dash-perfect{background:rgba(91,141,239,.15)}
+  .dash-day-block.dash-pass{background:var(--green-bg)}
+  .dash-day-block.dash-warn{background:var(--yellow-bg)}
+  .dash-day-block.dash-danger{background:var(--red-bg)}
+  .dash-day-block.dash-zero{background:rgba(224,92,92,.25)}
   .dash-perfect .dash-pct{color:var(--blue)}
   .dash-pass .dash-pct{color:var(--green)}
   .dash-warn .dash-pct{color:var(--yellow)}
@@ -538,10 +541,12 @@ function renderDashboard() {
 
       h += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
-          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="dash-coach-left">
             <span class="card-name">${cName}</span>
             ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
             <span class="dash-self">教練${selfDot(yCoachSelf)}</span>
+          </div>
+          <div class="dash-coach-stats">
             <span class="dash-day-block ${lvl(yFillPctC)}">學員填寫 <span class="dash-pct">${yFillPctC}%</span></span>
             <span class="dash-day-block ${lvl(yConfPctC)}">教練審核 <span class="dash-pct">${yConfPctC}%</span></span>
           </div>
