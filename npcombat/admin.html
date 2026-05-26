@@ -191,6 +191,7 @@
   .dash-prog-bar{height:6px;background:var(--navy3);border-radius:3px;margin-top:8px;overflow:hidden}
   .dash-prog-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
   .dash-coach-row{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:8px;overflow:hidden}
+  .dash-coach-row.dash-complete{border:2px solid var(--gold);box-shadow:0 0 8px rgba(212,175,55,.25)}
   .dash-coach-row .coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
   .dash-coach-row.open .coach-body{max-height:800px}
   .dash-coach-row.open .coach-arrow{transform:rotate(180deg)}
@@ -539,7 +540,8 @@ function renderDashboard() {
       const tFillPctC = pct(tF, total), tConfPctC = pct(tC, tF);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
-      h += `<div class="dash-coach-row">
+      const allDone = yFillPctC === 100 && yConfPctC === 100 && yCoachSelf;
+      h += `<div class="dash-coach-row${allDone ? ' dash-complete' : ''}"
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
           <div class="dash-coach-left">
             <span class="card-name">${cName}</span>
