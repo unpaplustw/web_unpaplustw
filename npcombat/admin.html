@@ -353,6 +353,11 @@ async function init() {
     });
   });
   await load();
+  // 資訊版自動刷新：每 60 秒，僅在資訊版 Tab 顯示時才重拉
+  setInterval(() => {
+    const dp = document.getElementById('p-dashboard');
+    if (dp && dp.classList.contains('on')) load();
+  }, 60000);
 }
 
 async function load() {
