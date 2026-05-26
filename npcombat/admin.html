@@ -452,10 +452,6 @@ function renderDashboard() {
   h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
   h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, yFilledAll);
 
-  // ── 今日進度 ──
-  h += `<div class="sec-title"><span>📊 今日回報</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
-  h += progCards(tStuFill, totalReal, tCoachFill, totalCoach, tConfirmed, tFilledAll);
-
   // ── 教練回報總覽 ──
   if (!totalAll) {
     h += `<div class="dash-empty">尚無已批准學員</div>`;
