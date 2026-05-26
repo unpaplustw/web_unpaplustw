@@ -200,6 +200,16 @@
   .dash-chip-empty{background:rgba(138,143,168,.12);color:var(--muted)}
   .dash-chip-pending{background:var(--yellow-bg);color:var(--yellow)}
   .dash-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 2px;vertical-align:middle}
+  .dot-none{background:rgba(138,143,168,.25)}
+  .dot-filled{background:var(--gold)}
+  .dot-done{background:var(--green)}
+  .dash-dots-row{display:flex;align-items:center;gap:4px;margin-top:4px;font-size:11px}
+  .dash-dots-label{color:var(--muted);font-size:11px;font-weight:500;min-width:16px}
+  .dash-dots-count{color:var(--muted);font-size:11px;margin-left:6px;white-space:nowrap}
+  .dash-day-label{font-size:10px;color:var(--muted);font-weight:500}
+  .dash-legend{display:flex;gap:14px;align-items:center;margin-bottom:14px;font-size:11px;color:var(--muted)}
+  .dash-legend .dot{margin-right:3px}
 
   @media(max-width:600px){
     .stats{grid-template-columns:repeat(2,1fr)}
@@ -250,7 +260,7 @@ const sb = window.supabase.createClient(
 );
 
 const LIFF_ID = '2009692859-DepTDosN';
-let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], selS = null, selC = null, searchReview = '';
+let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], selS = null, selC = null, searchReview = '';
 let myAllowedTabs = [];
 let isReadonly = false;
 
@@ -339,11 +349,13 @@ async function load() {
   const { data: au } = await sb.from('admin_users')
     .select('*, members_master(name, member_code)');
   adminUsers = au || [];
-  // 今日回報（action_logs）
+  // 昨日＋今日回報（action_logs）
   const today = new Date().toISOString().slice(0,10);
-  const { data: logs } = await sb.from('action_logs')
-    .select('*').eq('batch_id', bid).eq('log_date', today);
-  todayLogs = logs || [];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  const { data: recentLogs } = await sb.from('action_logs')
+    .select('*').eq('batch_id', bid).gte('log_date', yesterday).lte('log_date', today);
+  todayLogs = (recentLogs || []).filter(l => l.log_date === today);
+  yesterdayLogs = (recentLogs || []).filter(l => l.log_date === yesterday);
   render();
 }
 
@@ -380,34 +392,64 @@ function render() {
 // ════════════════════════════════════════════
 function renderDashboard() {
   const today = new Date().toISOString().slice(0,10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
   const approvedStudents = students.filter(s => s.status === 'approved');
-  const logMap = {};
-  todayLogs.forEach(l => { logMap[l.student_id] = l; });
 
-  const filledCount = approvedStudents.filter(s => logMap[s.id]).length;
-  const confirmedCount = approvedStudents.filter(s => logMap[s.id]?.confirmed).length;
+  const todayMap = {};
+  todayLogs.forEach(l => { todayMap[l.student_id] = l; });
+  const yesterdayMap = {};
+  yesterdayLogs.forEach(l => { yesterdayMap[l.student_id] = l; });
+
   const totalStu = approvedStudents.length;
-  const fillPct = totalStu ? Math.round(filledCount / totalStu * 100) : 0;
-  const confirmPct = totalStu ? Math.round(confirmedCount / totalStu * 100) : 0;
 
-  let h = `<div class="sec-title"><span>📊 今日回報進度</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
+  // 昨日統計
+  const yFilled = approvedStudents.filter(s => yesterdayMap[s.id]).length;
+  const yConfirmed = approvedStudents.filter(s => yesterdayMap[s.id]?.confirmed).length;
+  const yFillPct = totalStu ? Math.round(yFilled / totalStu * 100) : 0;
+  const yConfPct = totalStu ? Math.round(yConfirmed / totalStu * 100) : 0;
+
+  // 今日統計
+  const tFilled = approvedStudents.filter(s => todayMap[s.id]).length;
+  const tConfirmed = approvedStudents.filter(s => todayMap[s.id]?.confirmed).length;
+  const tFillPct = totalStu ? Math.round(tFilled / totalStu * 100) : 0;
+  const tConfPct = totalStu ? Math.round(tConfirmed / totalStu * 100) : 0;
+
+  let h = '';
+
+  // ── 昨日進度 ──
+  h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
   h += `<div class="dash-progress">
     <div class="dash-prog-card">
-      <div class="dash-prog-n">${filledCount} / ${totalStu}</div>
-      <div class="dash-prog-l">學員填報率 ${fillPct}%</div>
-      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${fillPct}%"></div></div>
+      <div class="dash-prog-n">${yFilled} / ${totalStu}</div>
+      <div class="dash-prog-l">學員填報率 ${yFillPct}%</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${yFillPct}%"></div></div>
     </div>
     <div class="dash-prog-card">
-      <div class="dash-prog-n">${confirmedCount} / ${totalStu}</div>
-      <div class="dash-prog-l">教練確認率 ${confirmPct}%</div>
-      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${confirmPct}%"></div></div>
+      <div class="dash-prog-n">${yConfirmed} / ${totalStu}</div>
+      <div class="dash-prog-l">教練確認率 ${yConfPct}%</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${yConfPct}%"></div></div>
     </div>
   </div>`;
 
+  // ── 今日進度 ──
+  h += `<div class="sec-title"><span>📊 今日回報</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
+  h += `<div class="dash-progress">
+    <div class="dash-prog-card">
+      <div class="dash-prog-n">${tFilled} / ${totalStu}</div>
+      <div class="dash-prog-l">學員填報率 ${tFillPct}%</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${tFillPct}%"></div></div>
+    </div>
+    <div class="dash-prog-card">
+      <div class="dash-prog-n">${tConfirmed} / ${totalStu}</div>
+      <div class="dash-prog-l">教練確認率 ${tConfPct}%</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${tConfPct}%"></div></div>
+    </div>
+  </div>`;
+
+  // ── 教練回報總覽 ──
   if (!totalStu) {
     h += `<div class="dash-empty">尚無已批准學員</div>`;
   } else {
-    // Group by coach
     const ac = approvedCoaches();
     const groups = {};
     ac.forEach(c => { groups[c.id] = { coach: c, students: [] }; });
@@ -417,35 +459,77 @@ function renderDashboard() {
       groups[gid].students.push(s);
     });
 
-    Object.values(groups).forEach(g => {
-      if (!g.students.length) return;
+    // 依組別排序，未配對教練放最後
+    const sorted = Object.values(groups).filter(g => g.students.length).sort((a, b) => {
+      if (!a.coach) return 1;
+      if (!b.coach) return -1;
+      const ga = a.coach.group_name || '';
+      const gb = b.coach.group_name || '';
+      const ia = GROUPS.indexOf(ga);
+      const ib = GROUPS.indexOf(gb);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    h += `<div class="sec-title"><span>教練回報總覽</span></div>`;
+    h += `<div class="dash-legend">
+      <span><span class="dot dot-done"></span>已確認</span>
+      <span><span class="dot dot-filled"></span>已填寫</span>
+      <span><span class="dot dot-none"></span>未填寫</span>
+    </div>`;
+
+    sorted.forEach(g => {
       const cName = g.coach ? nm(g.coach) : '未配對教練';
-      const filled = g.students.filter(s => logMap[s.id]).length;
-      const confirmed = g.students.filter(s => logMap[s.id]?.confirmed).length;
+      const grpName = g.coach?.group_name || '';
       const total = g.students.length;
+
+      function makeDots(logMap, stuList) {
+        return stuList.map(s => {
+          const log = logMap[s.id];
+          if (!log) return `<span class="dot dot-none" title="${nm(s)}：未填寫"></span>`;
+          if (log.confirmed) return `<span class="dot dot-done" title="${nm(s)}：已確認"></span>`;
+          return `<span class="dot dot-filled" title="${nm(s)}：已填寫待確認"></span>`;
+        }).join('');
+      }
+
+      const yDots = makeDots(yesterdayMap, g.students);
+      const tDots = makeDots(todayMap, g.students);
+
+      const yF = g.students.filter(s => yesterdayMap[s.id]).length;
+      const yC = g.students.filter(s => yesterdayMap[s.id]?.confirmed).length;
+      const tF = g.students.filter(s => todayMap[s.id]).length;
+      const tC = g.students.filter(s => todayMap[s.id]?.confirmed).length;
 
       h += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
-          <div>
-            <span class="card-name">${cName}</span>
-            <span style="color:var(--muted);font-size:12px;margin-left:8px">填 ${filled}/${total}${confirmed ? ' ｜ 確認 ' + confirmed : ''}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="card-name">${cName}</span>
+              ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
+            </div>
+            <div class="dash-dots-row">
+              <span class="dash-dots-label">昨</span>${yDots}<span class="dash-dots-count">${yF}/${total} ✓${yC}</span>
+            </div>
+            <div class="dash-dots-row">
+              <span class="dash-dots-label">今</span>${tDots}<span class="dash-dots-count">${tF}/${total} ✓${tC}</span>
+            </div>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
         <div class="coach-body">
           ${g.students.map(s => {
-            const log = logMap[s.id];
-            let statusHtml = '';
-            if (!log) {
-              statusHtml = '<span class="dash-chip dash-chip-empty">⬜ 未填寫</span>';
-            } else if (log.confirmed) {
-              statusHtml = '<span class="dash-chip dash-chip-confirmed">✅ 已確認</span>';
-            } else {
-              statusHtml = '<span class="dash-chip dash-chip-filled">📝 已填寫</span><span class="dash-chip dash-chip-pending">⏳ 待確認</span>';
+            const yLog = yesterdayMap[s.id];
+            const tLog = todayMap[s.id];
+            function chipFor(log) {
+              if (!log) return '<span class="dash-chip dash-chip-empty">未填</span>';
+              if (log.confirmed) return '<span class="dash-chip dash-chip-confirmed">已確認</span>';
+              return '<span class="dash-chip dash-chip-filled">已填寫</span>';
             }
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
-              <div class="dash-stu-status">${statusHtml}</div>
+              <div class="dash-stu-status">
+                <span class="dash-day-label">昨</span>${chipFor(yLog)}
+                <span class="dash-day-label" style="margin-left:6px">今</span>${chipFor(tLog)}
+              </div>
             </div>`;
           }).join('')}
         </div>
