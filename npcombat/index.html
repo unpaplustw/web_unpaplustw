@@ -219,7 +219,7 @@ function getCurrentWeek() {
 
 async function init() {
   // 從資料庫讀班次資訊
-  const { data: batch } = await sb.from('batches').select('start_date, end_date, single_month_score')
+  const { data: batch } = await sb.from('batches').select('start_date, end_date, earlybird_score, single_month_score, cross_month_score')
     .eq('id', 1).single();
   if (batch) {
     batchStart = new Date(batch.start_date);
@@ -227,6 +227,9 @@ async function init() {
     batchEnd.setHours(23, 59, 59, 999);
     target = batch.single_month_score || 800;
   }
+  const EB = batch?.earlybird_score || 700;
+  const SM = batch?.single_month_score || 800;
+  const CM = batch?.cross_month_score || 900;
 
   startCountdown();
 
@@ -264,7 +267,7 @@ async function init() {
     .select('student_id, meet, invite, present, seminar, ghosted, rejected, name_list, schedule, follow_up')
     .eq('batch_id', 1);
   const { data: closes } = await sb.from('closing_records')
-    .select('member_id, points').in('member_id', memberIds);
+    .select('member_id, points, close_date').in('member_id', memberIds);
 
   // 彙總每位學員積分
   const sums = {};
@@ -281,7 +284,23 @@ async function init() {
     if (sid) { if (!sums[sid]) sums[sid] = 0; sums[sid] += c.points || 0; }
   });
 
-  const achieved = Object.values(sums).filter(v => v >= target).length;
+  // 名額計算（與排行榜同邏輯：按月拆分，早鳥700/同月800/跨月900）
+  const slotsByMember = {};
+  (closes || []).forEach(c => {
+    if (!slotsByMember[c.member_id]) slotsByMember[c.member_id] = {};
+    const m = parseInt(c.close_date.split('-')[1]);
+    slotsByMember[c.member_id][m] = (slotsByMember[c.member_id][m] || 0) + (c.points || 0);
+  });
+  let achieved = 0;
+  Object.values(slotsByMember).forEach(months => {
+    const apr = months[4] || 0, may = months[5] || 0, jun = months[6] || 0;
+    const aprSlots = Math.floor(apr / EB);
+    const maySlots = Math.floor(may / SM);
+    const junSlots = Math.floor(jun / SM);
+    const crossPool = (apr - aprSlots * EB) + (may - maySlots * SM) + (jun - junSlots * SM);
+    const crossSlots = Math.floor(crossPool / CM);
+    if (aprSlots + maySlots + junSlots + crossSlots >= 1) achieved++;
+  });
   const totalScore = Object.values(sums).reduce((a,b) => a+b, 0);
   const avgScore = total > 0 ? Math.round(totalScore / total) : 0;
   const pct = total > 0 ? Math.round((achieved / total) * 100) : 0;
