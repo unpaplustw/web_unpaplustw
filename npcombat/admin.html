@@ -394,57 +394,61 @@ function renderDashboard() {
   const today = new Date().toISOString().slice(0,10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
   const approvedStudents = students.filter(s => s.status === 'approved');
+  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
+  const realStudents = approvedStudents.filter(s => !coachMemberIds.has(s.member_id));
+  const coachStudents = approvedStudents.filter(s => coachMemberIds.has(s.member_id));
 
   const todayMap = {};
   todayLogs.forEach(l => { todayMap[l.student_id] = l; });
   const yesterdayMap = {};
   yesterdayLogs.forEach(l => { yesterdayMap[l.student_id] = l; });
 
-  const totalStu = approvedStudents.length;
+  const totalReal = realStudents.length;
+  const totalCoach = coachStudents.length;
+  const totalAll = approvedStudents.length;
+
+  function pct(n, d) { return d ? Math.round(n / d * 100) : 0; }
 
   // 昨日統計
-  const yFilled = approvedStudents.filter(s => yesterdayMap[s.id]).length;
+  const yStuFill = realStudents.filter(s => yesterdayMap[s.id]).length;
+  const yCoachFill = coachStudents.filter(s => yesterdayMap[s.id]).length;
   const yConfirmed = approvedStudents.filter(s => yesterdayMap[s.id]?.confirmed).length;
-  const yFillPct = totalStu ? Math.round(yFilled / totalStu * 100) : 0;
-  const yConfPct = totalStu ? Math.round(yConfirmed / totalStu * 100) : 0;
 
   // 今日統計
-  const tFilled = approvedStudents.filter(s => todayMap[s.id]).length;
+  const tStuFill = realStudents.filter(s => todayMap[s.id]).length;
+  const tCoachFill = coachStudents.filter(s => todayMap[s.id]).length;
   const tConfirmed = approvedStudents.filter(s => todayMap[s.id]?.confirmed).length;
-  const tFillPct = totalStu ? Math.round(tFilled / totalStu * 100) : 0;
-  const tConfPct = totalStu ? Math.round(tConfirmed / totalStu * 100) : 0;
 
   let h = '';
 
+  function progCards(stuFill, stuTotal, coachFill, coachTotal, confirmed, allTotal) {
+    const sp = pct(stuFill, stuTotal), cp = pct(coachFill, coachTotal), ap = pct(confirmed, allTotal);
+    return `<div class="dash-progress">
+      <div class="dash-prog-card">
+        <div class="dash-prog-n">${stuFill} / ${stuTotal}</div>
+        <div class="dash-prog-l">學員填報率 ${sp}%</div>
+        <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${sp}%"></div></div>
+      </div>
+      <div class="dash-prog-card">
+        <div class="dash-prog-n">${coachFill} / ${coachTotal}</div>
+        <div class="dash-prog-l">教練填報率 ${cp}%</div>
+        <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${cp}%"></div></div>
+      </div>
+      <div class="dash-prog-card">
+        <div class="dash-prog-n">${confirmed} / ${allTotal}</div>
+        <div class="dash-prog-l">教練確認率 ${ap}%</div>
+        <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${ap}%"></div></div>
+      </div>
+    </div>`;
+  }
+
   // ── 昨日進度 ──
   h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
-  h += `<div class="dash-progress">
-    <div class="dash-prog-card">
-      <div class="dash-prog-n">${yFilled} / ${totalStu}</div>
-      <div class="dash-prog-l">學員填報率 ${yFillPct}%</div>
-      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${yFillPct}%"></div></div>
-    </div>
-    <div class="dash-prog-card">
-      <div class="dash-prog-n">${yConfirmed} / ${totalStu}</div>
-      <div class="dash-prog-l">教練確認率 ${yConfPct}%</div>
-      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${yConfPct}%"></div></div>
-    </div>
-  </div>`;
+  h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, totalAll);
 
   // ── 今日進度 ──
   h += `<div class="sec-title"><span>📊 今日回報</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
-  h += `<div class="dash-progress">
-    <div class="dash-prog-card">
-      <div class="dash-prog-n">${tFilled} / ${totalStu}</div>
-      <div class="dash-prog-l">學員填報率 ${tFillPct}%</div>
-      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${tFillPct}%"></div></div>
-    </div>
-    <div class="dash-prog-card">
-      <div class="dash-prog-n">${tConfirmed} / ${totalStu}</div>
-      <div class="dash-prog-l">教練確認率 ${tConfPct}%</div>
-      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${tConfPct}%"></div></div>
-    </div>
-  </div>`;
+  h += progCards(tStuFill, totalReal, tCoachFill, totalCoach, tConfirmed, totalAll);
 
   // ── 教練回報總覽 ──
   if (!totalStu) {
