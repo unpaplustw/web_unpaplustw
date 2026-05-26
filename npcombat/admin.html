@@ -180,6 +180,10 @@
   .perm-add-row select{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
 
   /* ── Dashboard interaction matrix ── */
+  .battery{position:relative;width:100%;height:40px;background:var(--navy3);border:2px solid var(--gold-bd);border-radius:8px;margin-bottom:16px;overflow:hidden}
+  .battery-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,rgba(212,175,55,.3),var(--gold));border-radius:6px;transition:width .6s ease}
+  .battery-text{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--white);text-shadow:0 1px 3px rgba(0,0,0,.5);letter-spacing:.5px}
+
   .dash-progress{display:flex;gap:12px;margin-bottom:16px}
   .dash-prog-card{flex:1;background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;padding:14px;text-align:center}
   .dash-prog-n{font-size:24px;font-weight:700;color:var(--gold)}
@@ -448,6 +452,13 @@ function renderDashboard() {
   const yFilledAll = yStuFill + yCoachFill;
   const tFilledAll = tStuFill + tCoachFill;
 
+  // ── 電池能量條 ──
+  const batteryPct = pct(yStuFill, totalReal);
+  h += `<div class="battery">
+    <div class="battery-fill" style="width:${batteryPct}%"></div>
+    <div class="battery-text">學員填報率 ${batteryPct}%（${yStuFill}/${totalReal}）</div>
+  </div>`;
+
   // ── 昨日進度 ──
   h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
   h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, yFilledAll);
@@ -519,9 +530,8 @@ function renderDashboard() {
           <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="card-name">${cName}</span>
             ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
-            <span class="dash-self">本人${selfDot(yCoachSelf)}${selfDot(tCoachSelf)}</span>
-            <span class="dash-day-block">昨 <span class="dash-pct">${yFillPctC}%</span> ✓<span class="dash-pct">${yConfPctC}%</span></span>
-            <span class="dash-day-block">今 <span class="dash-pct">${tFillPctC}%</span> ✓<span class="dash-pct">${tConfPctC}%</span></span>
+            <span class="dash-self">本人${selfDot(yCoachSelf)}</span>
+            <span class="dash-day-block">填 <span class="dash-pct">${yFillPctC}%</span> ✓<span class="dash-pct">${yConfPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
@@ -537,8 +547,7 @@ function renderDashboard() {
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
               <div class="dash-stu-status">
-                <span class="dash-day-label">昨</span>${chipFor(yLog)}
-                <span class="dash-day-label" style="margin-left:6px">今</span>${chipFor(tLog)}
+                ${chipFor(yLog)}
               </div>
             </div>`;
           }).join('')}
