@@ -451,7 +451,7 @@ function renderDashboard() {
   h += progCards(tStuFill, totalReal, tCoachFill, totalCoach, tConfirmed, totalAll);
 
   // ── 教練回報總覽 ──
-  if (!totalStu) {
+  if (!totalAll) {
     h += `<div class="dash-empty">尚無已批准學員</div>`;
   } else {
     const ac = approvedCoaches();
