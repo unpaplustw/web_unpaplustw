@@ -460,9 +460,7 @@ function renderDashboard() {
     });
 
     // 依組別排序，未配對教練放最後
-    const sorted = Object.values(groups).filter(g => g.students.length).sort((a, b) => {
-      if (!a.coach) return 1;
-      if (!b.coach) return -1;
+    const sorted = Object.values(groups).filter(g => g.students.length && g.coach).sort((a, b) => {
       const ga = a.coach.group_name || '';
       const gb = b.coach.group_name || '';
       const ia = GROUPS.indexOf(ga);
