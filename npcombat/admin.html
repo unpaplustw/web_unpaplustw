@@ -375,9 +375,9 @@ async function load() {
   const { data: au } = await sb.from('admin_users')
     .select('*, members_master(name, member_code)');
   adminUsers = au || [];
-  // 昨日＋今日回報（action_logs）
-  const today = new Date().toISOString().slice(0,10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  // 昨日＋今日回報（action_logs），用本地時區
+  const today = localDateStr(new Date());
+  const yesterday = localDateStr(new Date(Date.now() - 86400000));
   const { data: recentLogs } = await sb.from('action_logs')
     .select('*').eq('batch_id', bid).gte('log_date', yesterday).lte('log_date', today);
   todayLogs = (recentLogs || []).filter(l => l.log_date === today);
@@ -385,6 +385,7 @@ async function load() {
   render();
 }
 
+function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 const ACTION_LABELS = { meet:'認識新友', invite:'邀約見面', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果', name_list:'狂列名單', schedule:'安排行程', follow_up:'跟進狀況' };
 const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組'];
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
@@ -417,8 +418,8 @@ function render() {
 // Tab 0: 資訊版
 // ════════════════════════════════════════════
 function renderDashboard() {
-  const today = new Date().toISOString().slice(0,10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  const today = localDateStr(new Date());
+  const yesterday = localDateStr(new Date(Date.now() - 86400000));
   const approvedStudents = students.filter(s => s.status === 'approved');
   const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
   const realStudents = approvedStudents.filter(s => !coachMemberIds.has(s.member_id));
@@ -1072,7 +1073,7 @@ async function setCoachGroup(cid, groupName) {
 // Tab 4: 加權設定
 // ════════════════════════════════════════════
 function renderBonus() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = localDateStr(new Date());
   const actionOpts = Object.entries(ACTION_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 
   let h = '';
@@ -1175,7 +1176,7 @@ function renderFinance() {
         </td>
         <td>${confirmed
           ? `<span class="fin-confirmed">✓ ${s.payment_date||''}</span> <button class="btn-unconfirm" onclick="unconfirmPayment('${s.id}')">撤銷</button>`
-          : `<div style="display:flex;align-items:center;gap:6px"><input type="date" id="fin-date-${s.id}" value="${new Date().toISOString().slice(0,10)}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 8px;color:var(--white);font-size:12px;font-family:inherit"><button class="btn-confirm" onclick="confirmPayment('${s.id}')">確認</button></div>`
+          : `<div style="display:flex;align-items:center;gap:6px"><input type="date" id="fin-date-${s.id}" value="${localDateStr(new Date())}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 8px;color:var(--white);font-size:12px;font-family:inherit"><button class="btn-confirm" onclick="confirmPayment('${s.id}')">確認</button></div>`
         }</td>
       </tr>`;
     });
@@ -1186,7 +1187,7 @@ function renderFinance() {
 
 async function confirmPayment(sid) {
   const dateEl = document.getElementById('fin-date-' + sid);
-  const payment_date = dateEl ? dateEl.value : new Date().toISOString().slice(0,10);
+  const payment_date = dateEl ? dateEl.value : localDateStr(new Date());
   if (!payment_date) return alert('請選擇日期');
   const { error } = await sb.from('batch_students').update({ payment_confirmed: true, payment_date }).eq('id', sid);
   if (error) return alert('確認失敗：' + error.message);

@@ -373,7 +373,15 @@ async function init() {
     if (today > weeks[w].end) currentWeek = w;
   }
 
-  // 一次抓全期資料
+  await reloadData();
+  renderWeekBar();
+  if (isBlackout()) { showBlackout(); return; }
+  loadWeek(currentWeek);
+  // 排行榜每小時自動刷新
+  setInterval(async () => { await reloadData(); loadWeek(currentWeek); }, 3600000);
+}
+
+async function reloadData() {
   const memberIds = batchStudents.map(s => s.member_id);
   memberToStu = {};
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
@@ -390,10 +398,6 @@ async function init() {
   const { data: bonusData } = await sb.from('bonus_rules')
     .select('*').eq('batch_id', currentBatch.id);
   allBonusRules = bonusData || [];
-
-  renderWeekBar();
-  if (isBlackout()) { showBlackout(); return; }
-  loadWeek(currentWeek);
 }
 
 function renderWeekBar() {
