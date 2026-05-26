@@ -492,9 +492,7 @@ function renderDashboard() {
       const yCoachSelf = coachStuRec ? yesterdayMap[coachStuRec.id] : null;
       const tCoachSelf = coachStuRec ? todayMap[coachStuRec.id] : null;
       function selfDot(log) {
-        if (!log) return '<span class="dot dot-none"></span>';
-        if (log.confirmed) return '<span class="dot dot-done"></span>';
-        return '<span class="dot dot-filled"></span>';
+        return log ? '<span class="dot dot-done"></span>' : '<span class="dot dot-none"></span>';
       }
 
       function makeDots(logMap, stuList) {
