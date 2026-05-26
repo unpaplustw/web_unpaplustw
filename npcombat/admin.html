@@ -210,6 +210,9 @@
   .dash-day-label{font-size:10px;color:var(--muted);font-weight:500}
   .dash-legend{display:flex;gap:14px;align-items:center;margin-bottom:14px;font-size:11px;color:var(--muted)}
   .dash-legend .dot{margin-right:3px}
+  .dash-self{font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:2px}
+  .dash-day-block{font-size:11px;color:var(--muted);background:var(--navy3);padding:2px 8px;border-radius:4px;white-space:nowrap}
+  .dash-pct{color:var(--gold);font-weight:600}
 
   @media(max-width:600px){
     .stats{grid-template-columns:repeat(2,1fr)}
@@ -512,22 +515,17 @@ function renderDashboard() {
       const tF = g.students.filter(s => todayMap[s.id]).length;
       const tC = g.students.filter(s => todayMap[s.id]?.confirmed).length;
 
+      const yFillPctC = pct(yF, total), yConfPctC = pct(yC, yF);
+      const tFillPctC = pct(tF, total), tConfPctC = pct(tC, tF);
+
       h += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span class="card-name">${cName}</span>
-              ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
-              <span style="font-size:11px;color:var(--muted);margin-left:2px">本人</span>
-              <span title="昨日">${selfDot(yCoachSelf)}</span>
-              <span title="今日">${selfDot(tCoachSelf)}</span>
-            </div>
-            <div class="dash-dots-row">
-              <span class="dash-dots-label">昨</span>${yDots}<span class="dash-dots-count">填${yF}/${total} ✓${yC}/${yF}</span>
-            </div>
-            <div class="dash-dots-row">
-              <span class="dash-dots-label">今</span>${tDots}<span class="dash-dots-count">填${tF}/${total} ✓${tC}/${tF}</span>
-            </div>
+          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="card-name">${cName}</span>
+            ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
+            <span class="dash-self">本人${selfDot(yCoachSelf)}${selfDot(tCoachSelf)}</span>
+            <span class="dash-day-block">昨 <span class="dash-pct">${yFillPctC}%</span> ✓<span class="dash-pct">${yConfPctC}%</span></span>
+            <span class="dash-day-block">今 <span class="dash-pct">${tFillPctC}%</span> ✓<span class="dash-pct">${tConfPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
