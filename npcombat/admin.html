@@ -541,7 +541,7 @@ function renderDashboard() {
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
       const allDone = yFillPctC === 100 && yConfPctC === 100 && yCoachSelf;
-      h += `<div class="dash-coach-row${allDone ? ' dash-complete' : ''}"
+      h += `<div class="dash-coach-row${allDone ? ' dash-complete' : ''}">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
           <div class="dash-coach-left">
             <span class="card-name">${cName}</span>
