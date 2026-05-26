@@ -216,6 +216,16 @@
   .dash-legend .dot{margin-right:3px}
   .dash-self{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:2px}
   .dash-day-block{font-size:13px;color:var(--muted);background:var(--navy3);padding:3px 10px;border-radius:4px;white-space:nowrap}
+  .dash-day-block.dash-perfect{background:rgba(91,141,239,.15);color:var(--blue)}
+  .dash-day-block.dash-pass{background:var(--green-bg);color:var(--green)}
+  .dash-day-block.dash-warn{background:var(--yellow-bg);color:var(--yellow)}
+  .dash-day-block.dash-danger{background:var(--red-bg);color:var(--red)}
+  .dash-day-block.dash-zero{background:rgba(224,92,92,.25);color:var(--red);font-weight:700}
+  .dash-perfect .dash-pct{color:var(--blue)}
+  .dash-pass .dash-pct{color:var(--green)}
+  .dash-warn .dash-pct{color:var(--yellow)}
+  .dash-danger .dash-pct{color:var(--red)}
+  .dash-zero .dash-pct{color:var(--red);font-weight:700}
   .dash-pct{color:var(--gold);font-weight:600}
 
   @media(max-width:600px){
@@ -524,6 +534,7 @@ function renderDashboard() {
 
       const yFillPctC = pct(yF, total), yConfPctC = pct(yC, yF);
       const tFillPctC = pct(tF, total), tConfPctC = pct(tC, tF);
+      function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
       h += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
@@ -531,8 +542,8 @@ function renderDashboard() {
             <span class="card-name">${cName}</span>
             ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
             <span class="dash-self">教練${selfDot(yCoachSelf)}</span>
-            <span class="dash-day-block">學員填寫 <span class="dash-pct">${yFillPctC}%</span></span>
-            <span class="dash-day-block">教練審核 <span class="dash-pct">${yConfPctC}%</span></span>
+            <span class="dash-day-block ${lvl(yFillPctC)}">學員填寫 <span class="dash-pct">${yFillPctC}%</span></span>
+            <span class="dash-day-block ${lvl(yConfPctC)}">教練審核 <span class="dash-pct">${yConfPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
