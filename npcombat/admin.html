@@ -421,8 +421,8 @@ function renderDashboard() {
 
   let h = '';
 
-  function progCards(stuFill, stuTotal, coachFill, coachTotal, confirmed, allTotal) {
-    const sp = pct(stuFill, stuTotal), cp = pct(coachFill, coachTotal), ap = pct(confirmed, allTotal);
+  function progCards(stuFill, stuTotal, coachFill, coachTotal, confirmed, filledTotal) {
+    const sp = pct(stuFill, stuTotal), cp = pct(coachFill, coachTotal), ap = pct(confirmed, filledTotal);
     return `<div class="dash-progress">
       <div class="dash-prog-card">
         <div class="dash-prog-n">${stuFill} / ${stuTotal}</div>
@@ -435,20 +435,23 @@ function renderDashboard() {
         <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${cp}%"></div></div>
       </div>
       <div class="dash-prog-card">
-        <div class="dash-prog-n">${confirmed} / ${allTotal}</div>
+        <div class="dash-prog-n">${confirmed} / ${filledTotal}</div>
         <div class="dash-prog-l">教練確認率 ${ap}%</div>
         <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${ap}%"></div></div>
       </div>
     </div>`;
   }
 
+  const yFilledAll = yStuFill + yCoachFill;
+  const tFilledAll = tStuFill + tCoachFill;
+
   // ── 昨日進度 ──
   h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
-  h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, totalAll);
+  h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, yFilledAll);
 
   // ── 今日進度 ──
   h += `<div class="sec-title"><span>📊 今日回報</span><span class="sec-count">${today.replace(/-/g,' / ')}</span></div>`;
-  h += progCards(tStuFill, totalReal, tCoachFill, totalCoach, tConfirmed, totalAll);
+  h += progCards(tStuFill, totalReal, tCoachFill, totalCoach, tConfirmed, tFilledAll);
 
   // ── 教練回報總覽 ──
   if (!totalAll) {
@@ -484,6 +487,16 @@ function renderDashboard() {
       const grpName = g.coach?.group_name || '';
       const total = g.students.length;
 
+      // 教練本人填報狀態
+      const coachStuRec = g.coach ? coachStudents.find(s => s.member_id === g.coach.member_id) : null;
+      const yCoachSelf = coachStuRec ? yesterdayMap[coachStuRec.id] : null;
+      const tCoachSelf = coachStuRec ? todayMap[coachStuRec.id] : null;
+      function selfDot(log) {
+        if (!log) return '<span class="dot dot-none"></span>';
+        if (log.confirmed) return '<span class="dot dot-done"></span>';
+        return '<span class="dot dot-filled"></span>';
+      }
+
       function makeDots(logMap, stuList) {
         return stuList.map(s => {
           const log = logMap[s.id];
@@ -507,12 +520,15 @@ function renderDashboard() {
             <div style="display:flex;align-items:center;gap:6px">
               <span class="card-name">${cName}</span>
               ${grpName ? `<span style="color:var(--gold);font-size:11px">${grpName}</span>` : ''}
+              <span style="font-size:11px;color:var(--muted);margin-left:2px">本人</span>
+              <span title="昨日">${selfDot(yCoachSelf)}</span>
+              <span title="今日">${selfDot(tCoachSelf)}</span>
             </div>
             <div class="dash-dots-row">
-              <span class="dash-dots-label">昨</span>${yDots}<span class="dash-dots-count">${yF}/${total} ✓${yC}</span>
+              <span class="dash-dots-label">昨</span>${yDots}<span class="dash-dots-count">填${yF}/${total} ✓${yC}/${yF}</span>
             </div>
             <div class="dash-dots-row">
-              <span class="dash-dots-label">今</span>${tDots}<span class="dash-dots-count">${tF}/${total} ✓${tC}</span>
+              <span class="dash-dots-label">今</span>${tDots}<span class="dash-dots-count">填${tF}/${total} ✓${tC}/${tF}</span>
             </div>
           </div>
           <span class="coach-arrow">▼</span>
