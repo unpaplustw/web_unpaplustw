@@ -609,14 +609,21 @@ function renderAwardCard(award, top3) {
 }
 
 function renderTeamMetric(emoji, name, desc, groups, key, unit) {
-  const top3 = [...groups].sort((a, b) => b[key] - a[key]).filter(g => g[key] > 0).slice(0, 3);
+  const sorted = [...groups].sort((a, b) => b[key] - a[key]).filter(g => g[key] > 0);
+  const top3 = [];
+  let currentRank = 0, lastVal = null;
+  for (const t of sorted) {
+    if (t[key] !== lastVal) { currentRank++; lastVal = t[key]; }
+    if (currentRank > 3) break;
+    top3.push({ ...t, rank: currentRank });
+  }
   let podium = '';
   if (top3.length === 0) {
     podium = '<div class="empty-state">虛位以待，等你來搶！</div>';
   } else {
-    podium = '<div class="podium">' + top3.map((t, i) => `
-      <div class="podium-row rank-${i+1}">
-        <div class="rank-badge">${i+1}</div>
+    podium = '<div class="podium">' + top3.map(t => `
+      <div class="podium-row rank-${t.rank}">
+        <div class="rank-badge">${t.rank}</div>
         ${t.coachPic ? `<img class="podium-avatar" src="${t.coachPic}" alt="">` : ''}
         <div class="podium-name">${t.coachName} 教練 ${t.name}<div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:2px">${t.members}</div></div>
         <div class="podium-score">${t[key]}<span class="podium-unit">${unit}</span></div>
