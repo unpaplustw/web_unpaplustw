@@ -195,7 +195,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="blade" id="blade1">
       <div class="blade-header" onclick="toggleBlade('blade1')">
         <span class="blade-icon">&#128298;</span>
-        <span class="blade-title">含量攻擊</span>
+        <span class="blade-title">含量分析</span>
         <span class="blade-arrow" id="blade1Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade1Body"></div>
@@ -205,7 +205,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="blade" id="blade2">
       <div class="blade-header" onclick="toggleBlade('blade2')">
         <span class="blade-icon">&#128298;</span>
-        <span class="blade-title">品質攻擊</span>
+        <span class="blade-title">品質分析</span>
         <span class="blade-arrow" id="blade2Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade2Body"></div>
@@ -215,7 +215,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="blade" id="blade3">
       <div class="blade-header" onclick="toggleBlade('blade3')">
         <span class="blade-icon">&#128298;</span>
-        <span class="blade-title">安全攻擊</span>
+        <span class="blade-title">安全分析</span>
         <span class="blade-arrow" id="blade3Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade3Body"></div>
@@ -225,7 +225,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="blade" id="blade4">
       <div class="blade-header" onclick="toggleBlade('blade4')">
         <span class="blade-icon">&#128298;</span>
-        <span class="blade-title">信任攻擊</span>
+        <span class="blade-title">信任分析</span>
         <span class="blade-arrow" id="blade4Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade4Body"></div>
@@ -597,9 +597,9 @@ function handleStreamEvent(evt) {
   if (evt.type === 'badge') {
     const badgeBox = document.getElementById('resultBadge');
     if (evt.reviewed) {
-      badgeBox.innerHTML = '<span class="result-badge badge-reviewed">&#9989; 已審核</span>';
+      badgeBox.innerHTML = '<span class="result-badge badge-reviewed">&#128203; 資料已核實</span>';
     } else {
-      badgeBox.innerHTML = '<span class="result-badge badge-unreviewed">&#9888;&#65039; AI 分析，僅供參考</span>';
+      badgeBox.innerHTML = '<span class="result-badge badge-unreviewed">&#128300; AI 分析，僅供參考</span>';
     }
   }
   if (evt.type === 'category') {
@@ -609,8 +609,12 @@ function handleStreamEvent(evt) {
 
 function formatAttack(content) {
   return content
+    .replace(/\\n/g, '\n')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>');
+    .replace(/\n{2,}/g, '</p><p style="margin-top:10px">')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>');
 }
 
 // ── 成分標籤 ──
@@ -710,12 +714,12 @@ async function showIngredient(name) {
     const riskLabels = { red: '高風險', yellow: '注意', gray: '一般' };
     document.getElementById('modalRisk').innerHTML =
       '<span class="modal-risk" style="background:' + riskColors[ing.risk_level] + ';color:' + riskTextColors[ing.risk_level] + '">' + (riskLabels[ing.risk_level] || '一般') + '</span>' +
-      (ing.reviewed ? ' <span style="font-size:12px;color:var(--pri)">&#9989; 已審核</span>' : ' <span style="font-size:12px;color:var(--yellow)">&#9888;&#65039; 未審核</span>');
+      (ing.reviewed ? ' <span style="font-size:12px;color:var(--pri)">&#128203; 資料已核實</span>' : ' <span style="font-size:12px;color:var(--yellow)">&#128300; AI 判斷</span>');
 
     var html = '';
     var sections = [
-      { title: '排序攻擊', content: ing.position_note },
-      { title: '灌水攻擊', content: ing.compound_note },
+      { title: '排序分析', content: ing.position_note },
+      { title: '複方拆解', content: ing.compound_note },
       { title: '原料形式', content: ing.form_note },
       { title: '劑型矛盾', content: ing.dosage_mismatch },
       { title: '認證問題', content: ing.certification_note },
