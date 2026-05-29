@@ -8,37 +8,38 @@
 :root{--primary:#8a2be2;--accent:#00d2ff;--bg:#0b1220;--card:rgba(255,255,255,0.05);--border:rgba(255,255,255,0.14);--muted:#9fb0c8;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;}
 body{background:var(--bg);color:#fff;min-height:100vh;}
-.inp{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:#fff;font-size:1rem;outline:none;}
+.inp{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:#fff;font-size:1rem;outline:none;width:100%;}
 .inp:focus{border-color:var(--accent);}
+select.inp{cursor:pointer;}
 .btn{background:linear-gradient(135deg,var(--primary),var(--accent));border:none;border-radius:10px;padding:11px 18px;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem;}
 .btn:active{transform:translateY(1px);}
 .btn.sm{padding:6px 12px;font-size:.85rem;}
 .btn.ghost{background:rgba(255,255,255,0.12);}
-/* 登入 */
 #login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;}
 #login h1{font-size:1.7rem;}
-/* 主區 */
+#login .inp{width:260px;}
 #app{display:none;padding:18px;max-width:1180px;margin:0 auto;}
 .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
 .topbar h1{font-size:1.3rem;margin-right:auto;}
+.topbar .inp{width:auto;}
 .count{color:var(--muted);font-size:.9rem;}
 .tablewrap{overflow:auto;max-height:74vh;border-radius:12px;border:1px solid var(--border);}
 table{width:100%;border-collapse:collapse;background:var(--card);}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:.92rem;white-space:nowrap;}
-th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:0;backdrop-filter:blur(8px);}
+th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:0;}
 tr:hover td{background:rgba(255,255,255,0.03);}
 .tag{padding:2px 8px;border-radius:6px;font-size:.8rem;}
 .tag.active{background:rgba(0,200,100,.2);color:#7dffb0;}
 .tag.terminated{background:rgba(255,80,80,.2);color:#ffb0b0;}
 .miss{color:#ff9b9b;}
-/* modal */
 #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;z-index:50;}
-.modal-card{background:#121a2b;border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:580px;}
+.modal-card{background:#121a2b;border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:600px;}
 .modal-card h2{margin-bottom:16px;font-size:1.15rem;}
+.sec{font-size:.82rem;color:var(--accent);font-weight:700;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
 .fg{margin-bottom:12px;}
 .fg label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:5px;}
-.fg .inp{width:100%;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.tierbadge{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:8px;background:rgba(0,210,255,.18);border:1px solid var(--accent);color:#eaffff;font-weight:700;font-size:.9rem;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
 .msg{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:.9rem;display:none;}
 .msg.err{background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);color:#ffb0b0;}
@@ -48,7 +49,7 @@ tr:hover td{background:rgba(255,255,255,0.03);}
 <body>
 <div id="login">
   <h1>🔐 NDS 會員管理</h1>
-  <input type="password" id="pw" class="inp" placeholder="請輸入管理密碼" style="width:260px;" onkeydown="if(event.key==='Enter')login()">
+  <input type="password" id="pw" class="inp" placeholder="請輸入管理密碼" onkeydown="if(event.key==='Enter')login()">
   <button class="btn" onclick="login()">登入</button>
   <div class="msg err" id="loginErr"></div>
 </div>
@@ -70,7 +71,7 @@ tr:hover td{background:rgba(255,255,255,0.03);}
   </div>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>編號</th><th>姓名</th><th>電話</th><th>推薦人</th><th>狀態</th><th></th></tr></thead>
+      <thead><tr><th>編號</th><th>姓名</th><th>電話</th><th>商品</th><th>推薦人</th><th>狀態</th><th></th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -81,98 +82,170 @@ tr:hover td{background:rgba(255,255,255,0.03);}
     <h2 id="mTitle">編輯會員</h2>
     <div class="msg" id="mMsg"></div>
     <input type="hidden" id="m_member_id">
+
+    <div class="sec">基本個資</div>
     <div class="grid2">
       <div class="fg"><label>姓名</label><input class="inp" id="m_name"></div>
-      <div class="fg"><label>性別</label><input class="inp" id="m_gender" placeholder="男/女"></div>
+      <div class="fg"><label>性別</label><select class="inp" id="m_gender"><option value="">－</option><option>男</option><option>女</option></select></div>
       <div class="fg"><label>電話</label><input class="inp" id="m_phone"></div>
       <div class="fg"><label>生日</label><input class="inp" type="date" id="m_birth_date"></div>
       <div class="fg"><label>LINE 顯示名</label><input class="inp" id="m_line_display_name"></div>
-      <div class="fg"><label>狀態</label><select class="inp" id="m_status"><option value="active">active</option><option value="terminated">terminated</option></select></div>
+      <div class="fg"><label>狀態</label><select class="inp" id="m_status"><option value="active">有效</option><option value="terminated">已解約</option></select></div>
+    </div>
+
+    <div class="sec">方案（公司端可變更）</div>
+    <div class="grid2">
+      <div class="fg"><label>購買商品</label><select class="inp" id="m_product"><option value="">－ 不變更 －</option></select>
+        <div class="tierbadge" id="m_tier_badge" style="display:none;"></div></div>
+      <div class="fg"><label>方案長度</label><select class="inp" id="m_plan_length"><option value="">－</option><option>1+11</option><option>1+5</option><option>新12M</option></select></div>
+      <div class="fg"><label>給點方式</label><select class="inp" id="m_plan_variant"><option value="">－</option><option value="A">A 標準</option><option value="B">B 預購</option></select></div>
+      <div class="fg"><label>配送</label><select class="inp" id="m_delivery_mode"><option value="">－</option><option>月配</option><option>一次拿</option></select></div>
+      <div class="fg"><label>續購付款</label><select class="inp" id="m_payment_method"><option value="">－</option><option value="4">信用卡自動</option><option value="1">銀行自動</option><option value="2">貨到付款</option><option value="3">臨櫃</option><option value="0">終止</option></select></div>
+      <div class="fg"><label>扣款日</label><input class="inp" id="m_billing_day"></div>
+    </div>
+
+    <div class="sec">推薦與位置</div>
+    <div class="grid2">
       <div class="fg"><label>推薦人編號</label><input class="inp" id="m_sponsor_member_id" placeholder="2675630-001"></div>
       <div class="fg"><label>指定位置編號</label><input class="inp" id="m_placement_parent_id" placeholder="2675630-001"></div>
       <div class="fg"><label>左右線</label><select class="inp" id="m_placement_position"><option value="">－</option><option value="L">左線</option><option value="R">右線</option></select></div>
-      <div class="fg"><label>方案長度</label><input class="inp" id="m_plan_length" placeholder="1+11 / 1+5 / 新12M"></div>
-      <div class="fg"><label>給點 A/B</label><input class="inp" id="m_plan_variant" placeholder="A / B"></div>
-      <div class="fg"><label>付款方式 (0-4)</label><input class="inp" id="m_payment_method" placeholder="4=信用卡"></div>
-      <div class="fg"><label>扣款日</label><input class="inp" id="m_billing_day"></div>
+      <div class="fg"><label>備註</label><input class="inp" id="m_notes"></div>
     </div>
-    <div class="fg"><label>備註</label><input class="inp" id="m_notes"></div>
+
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal()">取消</button>
-      <button class="btn" onclick="save()">儲存</button>
+      <button class="btn" onclick="save()">儲存變更</button>
     </div>
   </div>
 </div>
 
 <script>
-const CORP_URL = "https://aplustw.zeabur.app/webhook/nds-corp";
+/* 直連 Supabase（不走 n8n）。anon key 公開，但 nds_admin 函式內驗密碼才動資料 */
+const SUPABASE_URL = "https://nsgqsopqlkhayuefdout.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
+const RPC_URL = SUPABASE_URL + "/rest/v1/rpc/nds_admin";
+
+const CATALOG = [
+  { code:"SR", label:"喚活",            spec:"120顆/包", tier:15000 },
+  { code:"MP", label:"識霸明力多",      spec:"120顆/罐", tier:15000 },
+  { code:"IM", label:"活美水素水（48包）", spec:"48包/盒", tier:15000 },
+  { code:"PF", label:"普力活 FIRE（48包）", spec:"48包/盒", tier:15000 },
+  { code:"BB", label:"普力活 BB（48包）", spec:"48包/盒", tier:15000 },
+  { code:"AD", label:"妍漾飲（10罐）",  spec:"10罐/盒", tier:15000 },
+  { code:"AD", label:"妍漾飲（14罐）",  spec:"14罐/盒", tier:20000 },
+  { code:"SL", label:"識霸",            spec:"1罐",     tier:10000 },
+  { code:"IM", label:"活美水素水（30包）", spec:"30包/盒", tier:10000 },
+  { code:"PF", label:"普力活 FIRE（30包）", spec:"30包/盒", tier:10000 },
+  { code:"BB", label:"普力活 BB（30包）", spec:"30包/盒", tier:10000 },
+  { code:"MV", label:"識霸明力多（素食）", spec:"120顆/罐", tier:15000 },
+  { code:"DS", label:"晨星系列",        spec:"一盒",    tier:10000 }
+];
+
 let PW = "";
 let ROWS = [];
 
 async function api(payload){
-  const r = await fetch(CORP_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...payload, password: PW }) });
-  if(!r.ok) throw new Error('伺服器 ' + r.status);
+  const r = await fetch(RPC_URL, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON },
+    body: JSON.stringify({ p: { ...payload, password: PW } })
+  });
+  if(!r.ok) throw new Error('Supabase ' + r.status);
   return await r.json();
 }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 async function login(){
   PW = document.getElementById('pw').value;
-  const err = document.getElementById('loginErr');
-  err.style.display = 'none';
+  const err = document.getElementById('loginErr'); err.style.display='none';
   try{
     const d = await api({ action:'list', filter:'all', limit:1 });
     if(d.success === false){ err.textContent = d.message || '密碼錯誤'; err.style.display='block'; return; }
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    buildProductOptions();
     reload();
-  }catch(e){ err.textContent = '連線失敗：' + e.message; err.style.display='block'; }
+  }catch(e){ err.textContent='連線失敗：'+e.message; err.style.display='block'; }
 }
-function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function buildProductOptions(){
+  const sel = document.getElementById('m_product');
+  CATALOG.forEach(it=>{
+    const o=document.createElement('option');
+    o.value = it.code+'|'+it.spec; o.textContent = it.label;
+    o.dataset.code=it.code; o.dataset.spec=it.spec; o.dataset.tier=it.tier;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', ()=>{
+    const o=sel.selectedOptions[0]; const b=document.getElementById('m_tier_badge');
+    if(o && o.dataset.tier){ b.textContent='✓ '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; }
+    else { b.style.display='none'; }
+  });
+}
+
 async function reload(){
-  const search = document.getElementById('search').value.trim();
-  const filter = document.getElementById('filter').value;
-  const d = await api({ action:'list', search, filter });
+  const search=document.getElementById('search').value.trim();
+  const filter=document.getElementById('filter').value;
+  const d=await api({ action:'list', search, filter });
   ROWS = d.rows || [];
-  const tb = document.getElementById('tbody'); tb.innerHTML = '';
+  const tb=document.getElementById('tbody'); tb.innerHTML='';
   ROWS.forEach(m=>{
-    const tr = document.createElement('tr');
-    const phone = m.phone ? esc(m.phone) : '<span class="miss">缺</span>';
-    const sp = m.sponsor_member_id ? esc(m.sponsor_member_id + (m.sponsor_name ? ' ' + m.sponsor_name : '')) : '<span class="miss">缺</span>';
-    tr.innerHTML = `<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td><td>${phone}</td><td>${sp}</td>`
-      + `<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td>`
-      + `<td><button class="btn sm">編輯</button></td>`;
-    tr.querySelector('button').addEventListener('click', ()=>openEdit(m.member_id));
+    const tr=document.createElement('tr');
+    const phone=m.phone?esc(m.phone):'<span class="miss">缺</span>';
+    const prod=m.product?esc(m.product):(m.product_code?esc(m.product_code):'<span class="miss">－</span>');
+    const sp=m.sponsor_member_id?esc(m.sponsor_member_id+(m.sponsor_name?' '+m.sponsor_name:'')):'<span class="miss">缺</span>';
+    tr.innerHTML=`<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td><td>${phone}</td><td>${prod}</td><td>${sp}</td>`
+      +`<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td><td><button class="btn sm">編輯</button></td>`;
+    tr.querySelector('button').addEventListener('click',()=>openEdit(m.member_id));
     tb.appendChild(tr);
   });
-  document.getElementById('count').textContent = '共 ' + ROWS.length + ' 筆';
+  document.getElementById('count').textContent='共 '+ROWS.length+' 筆';
 }
+
 function openEdit(id){
-  const m = ROWS.find(x=>x.member_id===id); if(!m) return;
-  document.getElementById('mTitle').textContent = '編輯 ' + m.member_id;
-  const set=(k,v)=>{ document.getElementById('m_'+k).value = (v==null?'':v); };
-  set('member_id', m.member_id); set('name', m.name); set('gender', m.gender); set('phone', m.phone);
-  set('birth_date', m.birth_date); set('line_display_name', m.line_display_name);
-  document.getElementById('m_status').value = m.status || 'active';
-  set('sponsor_member_id', m.sponsor_member_id); set('placement_parent_id', m.placement_parent_id);
-  document.getElementById('m_placement_position').value = m.placement_position || '';
-  set('plan_length', m.plan_length); set('plan_variant', m.plan_variant);
-  set('payment_method', m.payment_method); set('billing_day', m.billing_day); set('notes', m.notes);
-  document.getElementById('mMsg').style.display = 'none';
-  document.getElementById('modal').style.display = 'flex';
+  const m=ROWS.find(x=>x.member_id===id); if(!m)return;
+  document.getElementById('mTitle').textContent='編輯 '+m.member_id;
+  const set=(k,v)=>{document.getElementById('m_'+k).value=(v==null?'':v);};
+  set('member_id',m.member_id);set('name',m.name);set('phone',m.phone);set('birth_date',m.birth_date);
+  set('line_display_name',m.line_display_name);set('billing_day',m.billing_day);
+  set('sponsor_member_id',m.sponsor_member_id);set('placement_parent_id',m.placement_parent_id);set('notes',m.notes);
+  document.getElementById('m_gender').value=m.gender||'';
+  document.getElementById('m_status').value=m.status||'active';
+  document.getElementById('m_plan_length').value=m.plan_length||'';
+  document.getElementById('m_plan_variant').value=m.plan_variant||'';
+  document.getElementById('m_delivery_mode').value=m.delivery_mode||'';
+  document.getElementById('m_payment_method').value=(m.payment_method==null?'':String(m.payment_method));
+  document.getElementById('m_placement_position').value=m.placement_position||'';
+  // 商品：嘗試 match code+spec
+  const ps=document.getElementById('m_product');
+  let matched='';
+  for(const o of ps.options){ if(o.dataset.code===m.product_code && o.dataset.spec===(m.product_code?o.dataset.spec:'')){} }
+  ps.value=''; document.getElementById('m_tier_badge').style.display='none';
+  if(m.product_code){
+    for(const o of ps.options){ if(o.dataset.code===m.product_code){ ps.value=o.value; const b=document.getElementById('m_tier_badge'); b.textContent='目前 '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; break; } }
+  }
+  document.getElementById('mMsg').style.display='none';
+  document.getElementById('modal').style.display='flex';
 }
-function closeModal(){ document.getElementById('modal').style.display = 'none'; }
+function closeModal(){document.getElementById('modal').style.display='none';}
+
 async function save(){
-  const g = k => document.getElementById('m_'+k).value;
-  const payload = { action:'update', member_id:g('member_id'),
+  const g=k=>document.getElementById('m_'+k).value;
+  const payload={ action:'update', member_id:g('member_id'),
     name:g('name'), gender:g('gender'), phone:g('phone'), birth_date:g('birth_date'),
     line_display_name:g('line_display_name'), status:g('status'),
+    plan_length:g('plan_length'), plan_variant:g('plan_variant'), delivery_mode:g('delivery_mode'),
+    payment_method:g('payment_method'), billing_day:g('billing_day'),
     sponsor_member_id:g('sponsor_member_id'), placement_parent_id:g('placement_parent_id'),
-    placement_position:g('placement_position'), plan_length:g('plan_length'), plan_variant:g('plan_variant'),
-    payment_method:g('payment_method'), billing_day:g('billing_day'), notes:g('notes') };
-  const mMsg = document.getElementById('mMsg');
+    placement_position:g('placement_position'), notes:g('notes') };
+  // 商品有選才送（避免清空原值）
+  const ps=document.getElementById('m_product');
+  if(ps.value){ const o=ps.selectedOptions[0]; payload.product_code=o.dataset.code; payload.product_spec=o.dataset.spec; payload.point_tier=o.dataset.tier; }
+  const mMsg=document.getElementById('mMsg');
   try{
-    const d = await api(payload);
-    if(d.success){ mMsg.className='msg ok'; mMsg.textContent='已儲存 ✓'; mMsg.style.display='block'; setTimeout(()=>{ closeModal(); reload(); }, 600); }
-    else { mMsg.className='msg err'; mMsg.textContent = d.message || '儲存失敗'; mMsg.style.display='block'; }
+    const d=await api(payload);
+    if(d.success){ mMsg.className='msg ok'; mMsg.textContent='已儲存 ✓'; mMsg.style.display='block'; setTimeout(()=>{closeModal();reload();},600); }
+    else { mMsg.className='msg err'; mMsg.textContent=d.message||'儲存失敗'; mMsg.style.display='block'; }
   }catch(e){ mMsg.className='msg err'; mMsg.textContent='失敗：'+e.message; mMsg.style.display='block'; }
 }
 </script>
