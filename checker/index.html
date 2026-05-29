@@ -89,6 +89,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .ing-tag.yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(217,119,6,.2)}
 .ing-tag.gray{background:var(--gray-bg);color:var(--gray);border:1px solid rgba(107,114,128,.15)}
 
+/* ── 特別注意警告 ── */
+.combo-warning{display:none;margin-top:12px;background:rgba(220,38,38,.06);border:2px solid rgba(220,38,38,.2);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.combo-warning-title{font-size:14px;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.combo-warning-body{font-size:14px;line-height:1.8;color:#333}
+
 /* ── 綠佳利建議按鈕 ── */
 .np-suggest-box{margin-top:12px;text-align:center}
 .btn-np-suggest{width:100%;padding:16px;border:none;border-radius:14px;background:linear-gradient(135deg,#1a6b4a,#22885e);color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(26,107,74,.3);transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
@@ -249,6 +254,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
     <!-- 成分標籤 -->
     <div class="ingredient-tags" id="ingTags"></div>
+
+    <!-- 特別注意警告（有 combination_warning 才顯示）-->
+    <div class="combo-warning" id="comboWarningBox">
+      <div class="combo-warning-title">&#9888;&#65039; 特別注意</div>
+      <div class="combo-warning-body" id="comboWarningBody"></div>
+    </div>
 
     <!-- 綠佳利建議按鈕（第二段） -->
     <div class="np-suggest-box" id="npSuggestBox" style="display:none">
@@ -488,8 +499,14 @@ async function analyzeById(productId) {
     certification_note: pi.ingredients ? pi.ingredients.certification_note : null,
     safety_risk: pi.ingredients ? pi.ingredients.safety_risk : null,
     interaction_note: pi.ingredients ? pi.ingredients.interaction_note : null,
-    talk_track: pi.ingredients ? pi.ingredients.talk_track : null
+    talk_track: pi.ingredients ? pi.ingredients.talk_track : null,
+    combination_warning: pi.ingredients ? pi.ingredients.combination_warning : null
   }));
+
+  // 收集有 combination_warning 的成分（直接在前端處理，不用 Claude）
+  const comboWarnings = ingredientsList
+    .filter(i => i.combination_warning)
+    .map(i => i.combination_warning);
 
   showAnalyzing('AI 正在拆解成分...');
   lastProductCategory = product.category || '';
@@ -505,7 +522,8 @@ async function analyzeById(productId) {
     nutrition_facts: product.nutrition_facts,
     manufacturer: product.manufacturers,
     certifications: product.certifications,
-    agent_company: product.agent_company
+    agent_company: product.agent_company,
+    combo_warnings: comboWarnings
   }, product);
 
   logQuery('text', product.name, productId);
@@ -547,6 +565,11 @@ function blobToBase64(blob) {
 async function callAnalyze(payload, productInfo) {
   lastAnalysisResult = '';
 
+  // combination_warning 不經過 Claude，直接在前端顯示（省 token）
+  if (payload.combo_warnings && payload.combo_warnings.length > 0) {
+    handleStreamEvent({ type: 'combo_warning', warnings: payload.combo_warnings });
+  }
+
   const resultBox = document.getElementById('resultBox');
   document.getElementById('resultName').textContent = productInfo.name || '';
   document.getElementById('resultBrand').textContent = productInfo.brand || '';
@@ -562,6 +585,8 @@ async function callAnalyze(payload, productInfo) {
   document.getElementById('ingTags').innerHTML = '';
   document.getElementById('npSuggestBox').style.display = 'none';
   document.getElementById('npResultBox').style.display = 'none';
+  document.getElementById('comboWarningBox').style.display = 'none';
+  document.getElementById('comboWarningBody').innerHTML = '';
 
   hideAnalyzing();
 
@@ -632,6 +657,14 @@ function handleStreamEvent(evt) {
   }
   if (evt.type === 'category') {
     lastProductCategory = evt.category;
+  }
+  if (evt.type === 'combo_warning' && evt.warnings && evt.warnings.length > 0) {
+    var box = document.getElementById('comboWarningBox');
+    var body = document.getElementById('comboWarningBody');
+    box.style.display = '';
+    body.innerHTML = evt.warnings.map(function(w) {
+      return '<p style="margin-bottom:6px">&#9679; ' + w + '</p>';
+    }).join('');
   }
 }
 
