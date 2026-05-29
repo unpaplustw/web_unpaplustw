@@ -105,12 +105,12 @@ tr:hover td{background:rgba(255,255,255,0.03);}
 </div>
 
 <script>
-const ADMIN_URL = "https://aplustw.zeabur.app/webhook/nds-admin";
+const CORP_URL = "https://aplustw.zeabur.app/webhook/nds-corp";
 let PW = "";
 let ROWS = [];
 
 async function api(payload){
-  const r = await fetch(ADMIN_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...payload, password: PW }) });
+  const r = await fetch(CORP_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...payload, password: PW }) });
   if(!r.ok) throw new Error('伺服器 ' + r.status);
   return await r.json();
 }
@@ -139,7 +139,7 @@ async function reload(){
     const sp = m.sponsor_member_id ? esc(m.sponsor_member_id + (m.sponsor_name ? ' ' + m.sponsor_name : '')) : '<span class="miss">缺</span>';
     tr.innerHTML = `<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td><td>${phone}</td><td>${sp}</td>`
       + `<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td>`
-      + `<td><button class="btn sm" data-id="${esc(m.member_id)}">編輯</button></td>`;
+      + `<td><button class="btn sm">編輯</button></td>`;
     tr.querySelector('button').addEventListener('click', ()=>openEdit(m.member_id));
     tb.appendChild(tr);
   });
