@@ -166,6 +166,18 @@ async function api(payload){
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function prefixOf(id){ return String(id||'').split('-')[0]; }
 
+/* 入會資歷：一年半(18月)內顯示天數，以上顯示幾年幾個月 */
+function tenure(reg){
+  if(!reg) return '';
+  const r=new Date(reg), now=new Date();
+  const days=Math.floor((now-r)/86400000);
+  let months=(now.getFullYear()-r.getFullYear())*12+(now.getMonth()-r.getMonth());
+  if(now.getDate()<r.getDate()) months--;
+  if(months<18) return days+' 天';
+  const y=Math.floor(months/12), m=months%12;
+  return y+' 年'+(m?(' '+m+' 個月'):'');
+}
+
 /* 方案倒數：入會日 + 效期月 - 今天 */
 function countdown(reg, len){
   if(!reg || !len || !EFFECT_MONTHS[len]) return null;
@@ -241,7 +253,7 @@ async function reload(){
       const prod=m.product?esc(m.product):(m.product_code?esc(m.product_code):'<span class="miss">－</span>');
       tr.innerHTML=`<td>${esc(m.member_id)}</td>`
         +`<td><span class="stage ${scls}">${esc(stg)}</span></td><td>${prod}</td>`
-        +`<td>${m.registered_at?esc(m.registered_at):'<span class="miss">－</span>'}</td>`
+        +`<td>${m.registered_at?(esc(m.registered_at)+'<div style="color:#9fb0c8;font-size:.8rem;margin-top:2px;">入會 '+tenure(m.registered_at)+'</div>'):'<span class="miss">－</span>'}</td>`
         +`<td>${cdHtml(m.registered_at, m.plan_length)}</td>`
         +`<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td>`
         +`<td><button class="btn sm">編輯</button></td>`;
