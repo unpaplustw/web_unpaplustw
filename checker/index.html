@@ -32,14 +32,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .hd-title{font-size:20px;font-weight:700;color:var(--pri);margin-top:4px}
 .hd-sub{font-size:12px;color:var(--muted);margin-top:4px}
 
-/* ── 類別選擇 ── */
-.cat-tabs-wrap{position:relative;margin-bottom:12px}
-.cat-tabs-wrap::after{content:'';position:absolute;top:0;right:0;width:28px;height:100%;background:linear-gradient(to right,rgba(245,245,240,0),var(--bg));pointer-events:none}
-.cat-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.cat-tabs::-webkit-scrollbar{display:none}
-.cat-tab{flex:0 0 auto;padding:8px 14px;border:2px solid var(--border);border-radius:20px;background:var(--card);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.2s;white-space:nowrap}
-.cat-tab.active{background:var(--pri);border-color:var(--pri);color:#fff}
-.cat-tab:active{transform:scale(.96)}
+/* ── 類別選擇（大格子，無橫滑）── */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.cat-box{padding:14px 6px;border:2px solid var(--border);border-radius:14px;background:var(--card);font-size:15px;font-weight:700;color:var(--txt);cursor:pointer;text-align:center;box-shadow:var(--shadow);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.cat-box .cat-emoji{font-size:26px;line-height:1}
+.cat-box.active{background:var(--pri);border-color:var(--pri);color:#fff}
+.cat-box:active{transform:scale(.96)}
 
 /* ── 搜尋區 ── */
 .search-box{position:relative;margin-bottom:12px}
@@ -175,15 +173,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
 
   <!-- 類別選擇 -->
-  <div class="cat-tabs-wrap">
-    <div class="cat-tabs" id="catTabs">
-      <div class="cat-tab active" data-type="" onclick="selectCat(this)">全部</div>
-      <div class="cat-tab" data-type="food" onclick="selectCat(this)">&#127869;&#65039; 保健食品</div>
-      <div class="cat-tab" data-type="drug" onclick="selectCat(this)">&#128138; 藥品</div>
-      <div class="cat-tab" data-type="device" onclick="selectCat(this)">&#129658; 醫療器材</div>
-      <div class="cat-tab" data-type="cosmetic" onclick="selectCat(this)">&#128132; 美妝保養</div>
-      <div class="cat-tab" data-type="general" onclick="selectCat(this)">&#128722; 一般商品</div>
-    </div>
+  <div class="cat-grid" id="catGrid">
+    <div class="cat-box active" data-type="food" onclick="selectCat(this)"><span class="cat-emoji">&#127869;&#65039;</span>保健食品</div>
+    <div class="cat-box" data-type="drug" onclick="selectCat(this)"><span class="cat-emoji">&#128138;</span>藥品</div>
+    <div class="cat-box" data-type="device" onclick="selectCat(this)"><span class="cat-emoji">&#129658;</span>醫療器材</div>
+    <div class="cat-box" data-type="cosmetic" onclick="selectCat(this)"><span class="cat-emoji">&#128132;</span>美妝保養</div>
+    <div class="cat-box" data-type="general" onclick="selectCat(this)"><span class="cat-emoji">&#128722;</span>一般商品</div>
   </div>
 
   <!-- 搜尋 -->
@@ -320,11 +315,11 @@ let currentUser = null;
 let searchTimer = null;
 let lastAnalysisResult = '';  // 第一段結果，給第二段用
 let lastProductCategory = ''; // 產品類別，給第二段用
-let currentFilterType = '';   // 目前選的法規類別篩選（空=全部）
+let currentFilterType = 'food';   // 預設保健食品（主戰場，有資料）
 
 // ── 類別選擇 ──
 function selectCat(el) {
-  document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.cat-box').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   currentFilterType = el.getAttribute('data-type');
   // 切類別時清空目前的搜尋建議
