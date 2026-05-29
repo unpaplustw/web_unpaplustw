@@ -53,6 +53,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .btn-photo:active{border-color:var(--pri);color:var(--pri)}
 .photo-input{display:none}
 
+/* ── 搜尋候選清單 ── */
+.search-results{display:none;margin-bottom:12px}
+.sr-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:6px;cursor:pointer;box-shadow:var(--shadow);transition:.15s}
+.sr-item:active{background:var(--pri-lt)}
+.sr-name{font-size:15px;font-weight:600;color:var(--txt)}
+.sr-tag{font-size:11px;color:var(--pri);font-weight:600;margin-left:6px}
+.sr-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.sr-empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:14px;line-height:1.8}
+
 /* ── autocomplete ── */
 .ac-list{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:10;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12)}
 .ac-item{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);cursor:pointer}
@@ -198,6 +207,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
     </label>
   </div>
+
+  <!-- 搜尋候選清單（點選才分析）-->
+  <div class="search-results" id="searchResults"></div>
 
   <!-- 分析中 -->
   <div id="analyzingBox" style="display:none">
@@ -421,43 +433,51 @@ function esc(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
 function selectProduct(id, name) {
   acList.style.display = 'none';
+  document.getElementById('searchResults').style.display = 'none';
   searchInput.value = name;
   analyzeById(id);
 }
 
-// ── 搜尋按鈕（支援品名 + 條碼） ──
+// ── 搜尋按鈕：列候選清單，點選才分析（不自動跑分析）──
 async function doSearch() {
   const q = searchInput.value.trim();
   if (!q) return;
   acList.style.display = 'none';
-  showAnalyzing('搜尋商品中...');
+  document.getElementById('resultBox').style.display = 'none';
+  const srBox = document.getElementById('searchResults');
 
-  // 先嘗試條碼精確比對
+  // 條碼精確比對 → 唯一值，直接分析
   const isBarcode = /^\d{8,14}$/.test(q);
   if (isBarcode) {
-    const { data: barcodeMatch } = await sbRag.from('products')
-      .select('id, name')
-      .eq('barcode', q)
-      .eq('status', 'active')
-      .single();
-    if (barcodeMatch) {
-      searchInput.value = barcodeMatch.name;
-      analyzeById(barcodeMatch.id);
-      return;
-    }
+    const { data: bc } = await sbRag.from('products').select('id, name').eq('barcode', q).eq('status', 'active').single();
+    if (bc) { srBox.style.display = 'none'; selectProduct(bc.id, bc.name); return; }
   }
 
-  // 品名模糊搜尋：先選定類別，找不到自動跨類別
-  let { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1, filter_type: currentFilterType || null });
+  // 品名搜尋：先選定類別，找不到跨類別。列出候選清單
+  let { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 10, filter_type: currentFilterType || null });
   if (!data || !data.length) {
-    const r = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1, filter_type: null });
+    const r = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 10, filter_type: null });
     data = r.data;
   }
-  if (data && data.length) {
-    analyzeById(data[0].id);
-  } else {
-    analyzeByText(q);
+  renderSearchResults(data, q);
+}
+
+// ── 渲染候選清單 ──
+function renderSearchResults(list, q) {
+  const srBox = document.getElementById('searchResults');
+  const typeLabel = { food:'保健食品', drug:'藥品', device:'醫療器材', cosmetic:'化粧品' };
+  if (!list || !list.length) {
+    srBox.innerHTML = '<div class="sr-empty">&#128269; 資料庫查無「' + esc(q) + '」<br>這個商品可能還沒建檔<br><br>&#128247; 請改用上方「拍成分表」辨識</div>';
+    srBox.style.display = 'block';
+    return;
   }
+  srBox.innerHTML = list.map(p =>
+    '<div class="sr-item" onclick="selectProduct(\'' + p.id + '\',\'' + esc(p.name) + '\')">' +
+      '<div class="sr-name">' + p.name + '<span class="sr-tag">' + (typeLabel[p.regulatory_type] || '') + '</span></div>' +
+      '<div class="sr-meta">' + (p.brand || '') + (p.dosage_form ? ' · ' + p.dosage_form : '') + '</div>' +
+    '</div>'
+  ).join('');
+  srBox.style.display = 'block';
 }
 
 // ── 拍照 ──
