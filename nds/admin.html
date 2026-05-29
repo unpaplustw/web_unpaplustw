@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDS 會員管理</title>
+<style>
+:root{--primary:#8a2be2;--accent:#00d2ff;--bg:#0b1220;--card:rgba(255,255,255,0.05);--border:rgba(255,255,255,0.14);--muted:#9fb0c8;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;}
+body{background:var(--bg);color:#fff;min-height:100vh;}
+.inp{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:#fff;font-size:1rem;outline:none;}
+.inp:focus{border-color:var(--accent);}
+.btn{background:linear-gradient(135deg,var(--primary),var(--accent));border:none;border-radius:10px;padding:11px 18px;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem;}
+.btn:active{transform:translateY(1px);}
+.btn.sm{padding:6px 12px;font-size:.85rem;}
+.btn.ghost{background:rgba(255,255,255,0.12);}
+/* 登入 */
+#login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;}
+#login h1{font-size:1.7rem;}
+/* 主區 */
+#app{display:none;padding:18px;max-width:1180px;margin:0 auto;}
+.topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.topbar h1{font-size:1.3rem;margin-right:auto;}
+.count{color:var(--muted);font-size:.9rem;}
+.tablewrap{overflow:auto;max-height:74vh;border-radius:12px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;background:var(--card);}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:.92rem;white-space:nowrap;}
+th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:0;backdrop-filter:blur(8px);}
+tr:hover td{background:rgba(255,255,255,0.03);}
+.tag{padding:2px 8px;border-radius:6px;font-size:.8rem;}
+.tag.active{background:rgba(0,200,100,.2);color:#7dffb0;}
+.tag.terminated{background:rgba(255,80,80,.2);color:#ffb0b0;}
+.miss{color:#ff9b9b;}
+/* modal */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;z-index:50;}
+.modal-card{background:#121a2b;border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:580px;}
+.modal-card h2{margin-bottom:16px;font-size:1.15rem;}
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:5px;}
+.fg .inp{width:100%;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.msg{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:.9rem;display:none;}
+.msg.err{background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);color:#ffb0b0;}
+.msg.ok{background:rgba(0,200,100,.15);border:1px solid rgba(0,200,100,.4);color:#7dffb0;}
+</style>
+</head>
+<body>
+<div id="login">
+  <h1>🔐 NDS 會員管理</h1>
+  <input type="password" id="pw" class="inp" placeholder="請輸入管理密碼" style="width:260px;" onkeydown="if(event.key==='Enter')login()">
+  <button class="btn" onclick="login()">登入</button>
+  <div class="msg err" id="loginErr"></div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <h1>會員管理</h1>
+    <input type="text" id="search" class="inp" placeholder="搜尋 編號 / 姓名" onkeydown="if(event.key==='Enter')reload()">
+    <select id="filter" class="inp" onchange="reload()">
+      <option value="all">全部</option>
+      <option value="active">有效</option>
+      <option value="terminated">已解約</option>
+      <option value="no_phone">缺電話</option>
+      <option value="no_sponsor">缺推薦人</option>
+      <option value="no_birth">缺生日</option>
+    </select>
+    <button class="btn sm" onclick="reload()">查詢</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>編號</th><th>姓名</th><th>電話</th><th>推薦人</th><th>狀態</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="modal">
+  <div class="modal-card">
+    <h2 id="mTitle">編輯會員</h2>
+    <div class="msg" id="mMsg"></div>
+    <input type="hidden" id="m_member_id">
+    <div class="grid2">
+      <div class="fg"><label>姓名</label><input class="inp" id="m_name"></div>
+      <div class="fg"><label>性別</label><input class="inp" id="m_gender" placeholder="男/女"></div>
+      <div class="fg"><label>電話</label><input class="inp" id="m_phone"></div>
+      <div class="fg"><label>生日</label><input class="inp" type="date" id="m_birth_date"></div>
+      <div class="fg"><label>LINE 顯示名</label><input class="inp" id="m_line_display_name"></div>
+      <div class="fg"><label>狀態</label><select class="inp" id="m_status"><option value="active">active</option><option value="terminated">terminated</option></select></div>
+      <div class="fg"><label>推薦人編號</label><input class="inp" id="m_sponsor_member_id" placeholder="2675630-001"></div>
+      <div class="fg"><label>指定位置編號</label><input class="inp" id="m_placement_parent_id" placeholder="2675630-001"></div>
+      <div class="fg"><label>左右線</label><select class="inp" id="m_placement_position"><option value="">－</option><option value="L">左線</option><option value="R">右線</option></select></div>
+      <div class="fg"><label>方案長度</label><input class="inp" id="m_plan_length" placeholder="1+11 / 1+5 / 新12M"></div>
+      <div class="fg"><label>給點 A/B</label><input class="inp" id="m_plan_variant" placeholder="A / B"></div>
+      <div class="fg"><label>付款方式 (0-4)</label><input class="inp" id="m_payment_method" placeholder="4=信用卡"></div>
+      <div class="fg"><label>扣款日</label><input class="inp" id="m_billing_day"></div>
+    </div>
+    <div class="fg"><label>備註</label><input class="inp" id="m_notes"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">取消</button>
+      <button class="btn" onclick="save()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_URL = "https://aplustw.zeabur.app/webhook/nds-admin";
+let PW = "";
+let ROWS = [];
+
+async function api(payload){
+  const r = await fetch(ADMIN_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...payload, password: PW }) });
+  if(!r.ok) throw new Error('伺服器 ' + r.status);
+  return await r.json();
+}
+async function login(){
+  PW = document.getElementById('pw').value;
+  const err = document.getElementById('loginErr');
+  err.style.display = 'none';
+  try{
+    const d = await api({ action:'list', filter:'all', limit:1 });
+    if(d.success === false){ err.textContent = d.message || '密碼錯誤'; err.style.display='block'; return; }
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    reload();
+  }catch(e){ err.textContent = '連線失敗：' + e.message; err.style.display='block'; }
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function reload(){
+  const search = document.getElementById('search').value.trim();
+  const filter = document.getElementById('filter').value;
+  const d = await api({ action:'list', search, filter });
+  ROWS = d.rows || [];
+  const tb = document.getElementById('tbody'); tb.innerHTML = '';
+  ROWS.forEach(m=>{
+    const tr = document.createElement('tr');
+    const phone = m.phone ? esc(m.phone) : '<span class="miss">缺</span>';
+    const sp = m.sponsor_member_id ? esc(m.sponsor_member_id + (m.sponsor_name ? ' ' + m.sponsor_name : '')) : '<span class="miss">缺</span>';
+    tr.innerHTML = `<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td><td>${phone}</td><td>${sp}</td>`
+      + `<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td>`
+      + `<td><button class="btn sm" data-id="${esc(m.member_id)}">編輯</button></td>`;
+    tr.querySelector('button').addEventListener('click', ()=>openEdit(m.member_id));
+    tb.appendChild(tr);
+  });
+  document.getElementById('count').textContent = '共 ' + ROWS.length + ' 筆';
+}
+function openEdit(id){
+  const m = ROWS.find(x=>x.member_id===id); if(!m) return;
+  document.getElementById('mTitle').textContent = '編輯 ' + m.member_id;
+  const set=(k,v)=>{ document.getElementById('m_'+k).value = (v==null?'':v); };
+  set('member_id', m.member_id); set('name', m.name); set('gender', m.gender); set('phone', m.phone);
+  set('birth_date', m.birth_date); set('line_display_name', m.line_display_name);
+  document.getElementById('m_status').value = m.status || 'active';
+  set('sponsor_member_id', m.sponsor_member_id); set('placement_parent_id', m.placement_parent_id);
+  document.getElementById('m_placement_position').value = m.placement_position || '';
+  set('plan_length', m.plan_length); set('plan_variant', m.plan_variant);
+  set('payment_method', m.payment_method); set('billing_day', m.billing_day); set('notes', m.notes);
+  document.getElementById('mMsg').style.display = 'none';
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal(){ document.getElementById('modal').style.display = 'none'; }
+async function save(){
+  const g = k => document.getElementById('m_'+k).value;
+  const payload = { action:'update', member_id:g('member_id'),
+    name:g('name'), gender:g('gender'), phone:g('phone'), birth_date:g('birth_date'),
+    line_display_name:g('line_display_name'), status:g('status'),
+    sponsor_member_id:g('sponsor_member_id'), placement_parent_id:g('placement_parent_id'),
+    placement_position:g('placement_position'), plan_length:g('plan_length'), plan_variant:g('plan_variant'),
+    payment_method:g('payment_method'), billing_day:g('billing_day'), notes:g('notes') };
+  const mMsg = document.getElementById('mMsg');
+  try{
+    const d = await api(payload);
+    if(d.success){ mMsg.className='msg ok'; mMsg.textContent='已儲存 ✓'; mMsg.style.display='block'; setTimeout(()=>{ closeModal(); reload(); }, 600); }
+    else { mMsg.className='msg err'; mMsg.textContent = d.message || '儲存失敗'; mMsg.style.display='block'; }
+  }catch(e){ mMsg.className='msg err'; mMsg.textContent='失敗：'+e.message; mMsg.style.display='block'; }
+}
+</script>
+</body>
+</html>
