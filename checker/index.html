@@ -94,6 +94,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .combo-warning{display:none;margin-top:12px;background:rgba(220,38,38,.06);border:2px solid rgba(220,38,38,.2);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
 .combo-warning-title{font-size:14px;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .combo-warning-body{font-size:14px;line-height:1.8;color:#333}
+.vendor-risk{display:none;margin-top:12px;background:rgba(217,119,6,.06);border:2px solid rgba(217,119,6,.25);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.vendor-risk-title{font-size:14px;font-weight:700;color:var(--yellow);margin-bottom:8px}
+.vendor-risk-body{font-size:13px;line-height:1.7;color:#333}
+.vendor-risk-note{font-size:11px;color:var(--muted);margin-top:8px}
 
 /* ── 綠佳利建議按鈕 ── */
 .np-suggest-box{margin-top:12px;text-align:center}
@@ -255,6 +259,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="ingredient-tags" id="ingTags"></div>
 
     <!-- 特別注意警告（有 combination_warning 才顯示）-->
+    <!-- 廠商裁罰紀錄（信任刀硬證據，前端直接顯示）-->
+    <div class="vendor-risk" id="vendorRiskBox">
+      <div class="vendor-risk-title">&#127981; 廠商裁罰紀錄</div>
+      <div class="vendor-risk-body" id="vendorRiskBody"></div>
+      <div class="vendor-risk-note">依 FDA 公開資料比對廠商名稱，請核對是否為同一家公司。</div>
+    </div>
+
     <div class="combo-warning" id="comboWarningBox">
       <div class="combo-warning-title">&#9888;&#65039; 特別注意</div>
       <div class="combo-warning-body" id="comboWarningBody"></div>
@@ -537,7 +548,31 @@ async function analyzeById(productId) {
     combo_warnings: comboWarnings
   }, product);
 
+  // 廠商裁罰紀錄（前端直接查，不經 Claude）
+  loadVendorRisk(product.brand);
+
   logQuery('text', product.name, productId);
+}
+
+// ── 廠商裁罰紀錄查詢 + 顯示 ──
+async function loadVendorRisk(brand) {
+  if (!brand) return;
+  const { data } = await sbRag.rpc('match_vendor_risk', { vendor_name: brand });
+  if (!data || !data.length) return;
+  // 只取高相似度（避免誤判），按 risk_type 合併次數
+  const trust = data.filter(r => r.sim >= 0.5);
+  if (!trust.length) return;
+  const byType = {};
+  trust.forEach(r => {
+    const k = r.risk_type + (r.risk_category ? '（' + r.risk_category + '）' : '');
+    byType[k] = (byType[k] || 0) + r.violation_count;
+  });
+  const lines = Object.keys(byType).map(k =>
+    '<p style="margin-bottom:4px">&#128313; <strong>' + k + '</strong>：累計 <strong style="color:var(--red)">' + byType[k] + '</strong> 筆紀錄</p>'
+  );
+  document.getElementById('vendorRiskBody').innerHTML =
+    '<p style="margin-bottom:8px">此商品廠商「' + esc(brand) + '」在 FDA 公開資料中比對到：</p>' + lines.join('');
+  document.getElementById('vendorRiskBox').style.display = 'block';
 }
 
 // ── 分析：未建檔（純文字） ──
@@ -598,6 +633,8 @@ async function callAnalyze(payload, productInfo) {
   document.getElementById('npResultBox').style.display = 'none';
   document.getElementById('comboWarningBox').style.display = 'none';
   document.getElementById('comboWarningBody').innerHTML = '';
+  document.getElementById('vendorRiskBox').style.display = 'none';
+  document.getElementById('vendorRiskBody').innerHTML = '';
 
   hideAnalyzing();
 
