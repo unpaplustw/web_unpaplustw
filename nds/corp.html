@@ -31,6 +31,9 @@ tr:hover td{background:rgba(255,255,255,0.03);}
 .tag{padding:2px 8px;border-radius:6px;font-size:.8rem;}
 .tag.active{background:rgba(0,200,100,.2);color:#7dffb0;}
 .tag.terminated{background:rgba(255,80,80,.2);color:#ffb0b0;}
+.stage{padding:2px 8px;border-radius:6px;font-size:.8rem;background:rgba(138,43,226,.25);color:#d7b3ff;}
+.stage.s2{background:rgba(0,210,255,.2);color:#9fe9ff;}
+.stage.s0{background:rgba(255,255,255,.1);color:var(--muted);}
 .miss{color:#ff9b9b;}
 #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;z-index:50;}
 .modal-card{background:#121a2b;border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:600px;}
@@ -40,6 +43,7 @@ tr:hover td{background:rgba(255,255,255,0.03);}
 .fg label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:5px;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .tierbadge{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:8px;background:rgba(0,210,255,.18);border:1px solid var(--accent);color:#eaffff;font-weight:700;font-size:.9rem;}
+.hidden{display:none!important;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
 .msg{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:.9rem;display:none;}
 .msg.err{background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);color:#ffb0b0;}
@@ -62,16 +66,15 @@ tr:hover td{background:rgba(255,255,255,0.03);}
       <option value="all">全部</option>
       <option value="active">有效</option>
       <option value="terminated">已解約</option>
-      <option value="no_phone">缺電話</option>
+      <option value="no_plan">無方案</option>
       <option value="no_sponsor">缺推薦人</option>
-      <option value="no_birth">缺生日</option>
     </select>
     <button class="btn sm" onclick="reload()">查詢</button>
     <span class="count" id="count"></span>
   </div>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>編號</th><th>姓名</th><th>電話</th><th>商品</th><th>推薦人</th><th>狀態</th><th></th></tr></thead>
+      <thead><tr><th>編號</th><th>姓名</th><th>階段</th><th>商品</th><th>推薦人</th><th>狀態</th><th></th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -83,23 +86,22 @@ tr:hover td{background:rgba(255,255,255,0.03);}
     <div class="msg" id="mMsg"></div>
     <input type="hidden" id="m_member_id">
 
-    <div class="sec">基本個資</div>
+    <div class="sec">基本（公司登錄資料）</div>
     <div class="grid2">
       <div class="fg"><label>姓名</label><input class="inp" id="m_name"></div>
       <div class="fg"><label>性別</label><select class="inp" id="m_gender"><option value="">－</option><option>男</option><option>女</option></select></div>
-      <div class="fg"><label>電話</label><input class="inp" id="m_phone"></div>
       <div class="fg"><label>生日</label><input class="inp" type="date" id="m_birth_date"></div>
-      <div class="fg"><label>LINE 顯示名</label><input class="inp" id="m_line_display_name"></div>
       <div class="fg"><label>狀態</label><select class="inp" id="m_status"><option value="active">有效</option><option value="terminated">已解約</option></select></div>
     </div>
 
     <div class="sec">方案（公司端可變更）</div>
     <div class="grid2">
+      <div class="fg"><label>方案階段</label>
+        <select class="inp" id="m_plan_stage"><option value="">無方案</option><option value="新入會">新入會</option><option value="再購">再購</option></select></div>
       <div class="fg"><label>購買商品</label><select class="inp" id="m_product"><option value="">－ 不變更 －</option></select>
         <div class="tierbadge" id="m_tier_badge" style="display:none;"></div></div>
-      <div class="fg"><label>方案長度</label><select class="inp" id="m_plan_length"><option value="">－</option><option>1+11</option><option>1+5</option><option>新12M</option></select></div>
-      <div class="fg"><label>給點方式</label><select class="inp" id="m_plan_variant"><option value="">－</option><option value="A">A 標準</option><option value="B">B 預購</option></select></div>
-      <div class="fg"><label>配送</label><select class="inp" id="m_delivery_mode"><option value="">－</option><option>月配</option><option>一次拿</option></select></div>
+      <div class="fg" id="fg_length"><label>方案長度</label><select class="inp" id="m_plan_length"><option value="">－</option></select></div>
+      <div class="fg" id="fg_variant"><label>給點方式</label><select class="inp" id="m_plan_variant"><option value="">－</option><option value="A">A 標準</option><option value="B">B 預購</option></select></div>
       <div class="fg"><label>續購付款</label><select class="inp" id="m_payment_method"><option value="">－</option><option value="4">信用卡自動</option><option value="1">銀行自動</option><option value="2">貨到付款</option><option value="3">臨櫃</option><option value="0">終止</option></select></div>
       <div class="fg"><label>扣款日</label><input class="inp" id="m_billing_day"></div>
     </div>
@@ -120,7 +122,6 @@ tr:hover td{background:rgba(255,255,255,0.03);}
 </div>
 
 <script>
-/* 直連 Supabase（不走 n8n）。anon key 公開，但 nds_admin 函式內驗密碼才動資料 */
 const SUPABASE_URL = "https://nsgqsopqlkhayuefdout.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
 const RPC_URL = SUPABASE_URL + "/rest/v1/rpc/nds_admin";
@@ -140,17 +141,16 @@ const CATALOG = [
   { code:"MV", label:"識霸明力多（素食）", spec:"120顆/罐", tier:15000 },
   { code:"DS", label:"晨星系列",        spec:"一盒",    tier:10000 }
 ];
+const LEN_BY_STAGE = { "新入會":["1+11","1+5","新12M"], "再購":["12+2","6+1","24M"], "":[] };
+const NO_VARIANT = ["新12M","24M"];   // 這些長度沒有 A/B
 
-let PW = "";
-let ROWS = [];
+let PW = "", ROWS = [];
 
 async function api(payload){
-  const r = await fetch(RPC_URL, {
-    method:'POST',
+  const r = await fetch(RPC_URL, { method:'POST',
     headers:{ 'Content-Type':'application/json', 'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON },
-    body: JSON.stringify({ p: { ...payload, password: PW } })
-  });
-  if(!r.ok) throw new Error('Supabase ' + r.status);
+    body: JSON.stringify({ p: { ...payload, password: PW } }) });
+  if(!r.ok) throw new Error('Supabase '+r.status);
   return await r.json();
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -160,26 +160,37 @@ async function login(){
   const err = document.getElementById('loginErr'); err.style.display='none';
   try{
     const d = await api({ action:'list', filter:'all', limit:1 });
-    if(d.success === false){ err.textContent = d.message || '密碼錯誤'; err.style.display='block'; return; }
+    if(d.success===false){ err.textContent=d.message||'密碼錯誤'; err.style.display='block'; return; }
     document.getElementById('login').style.display='none';
     document.getElementById('app').style.display='block';
-    buildProductOptions();
-    reload();
+    buildProductOptions(); bindPlanEvents(); reload();
   }catch(e){ err.textContent='連線失敗：'+e.message; err.style.display='block'; }
 }
 
 function buildProductOptions(){
-  const sel = document.getElementById('m_product');
-  CATALOG.forEach(it=>{
-    const o=document.createElement('option');
-    o.value = it.code+'|'+it.spec; o.textContent = it.label;
-    o.dataset.code=it.code; o.dataset.spec=it.spec; o.dataset.tier=it.tier;
-    sel.appendChild(o);
-  });
-  sel.addEventListener('change', ()=>{
-    const o=sel.selectedOptions[0]; const b=document.getElementById('m_tier_badge');
-    if(o && o.dataset.tier){ b.textContent='✓ '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; }
-    else { b.style.display='none'; }
+  const sel=document.getElementById('m_product');
+  CATALOG.forEach(it=>{ const o=document.createElement('option');
+    o.value=it.code+'|'+it.spec; o.textContent=it.label;
+    o.dataset.code=it.code; o.dataset.spec=it.spec; o.dataset.tier=it.tier; sel.appendChild(o); });
+}
+function fillLengths(stage, current){
+  const sel=document.getElementById('m_plan_length');
+  sel.innerHTML='<option value="">－</option>';
+  (LEN_BY_STAGE[stage]||[]).forEach(L=>{ const o=document.createElement('option'); o.value=L; o.textContent=L; sel.appendChild(o); });
+  if(current && (LEN_BY_STAGE[stage]||[]).includes(current)) sel.value=current;
+  toggleVariant();
+}
+function toggleVariant(){
+  const L=document.getElementById('m_plan_length').value;
+  document.getElementById('fg_variant').classList.toggle('hidden', NO_VARIANT.includes(L));
+  if(NO_VARIANT.includes(L)) document.getElementById('m_plan_variant').value='';
+}
+function bindPlanEvents(){
+  document.getElementById('m_plan_stage').addEventListener('change', ()=>fillLengths(document.getElementById('m_plan_stage').value,''));
+  document.getElementById('m_plan_length').addEventListener('change', toggleVariant);
+  document.getElementById('m_product').addEventListener('change', ()=>{
+    const o=document.getElementById('m_product').selectedOptions[0], b=document.getElementById('m_tier_badge');
+    if(o&&o.dataset.tier){ b.textContent='✓ '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; } else b.style.display='none';
   });
 }
 
@@ -187,14 +198,16 @@ async function reload(){
   const search=document.getElementById('search').value.trim();
   const filter=document.getElementById('filter').value;
   const d=await api({ action:'list', search, filter });
-  ROWS = d.rows || [];
+  ROWS=d.rows||[];
   const tb=document.getElementById('tbody'); tb.innerHTML='';
   ROWS.forEach(m=>{
     const tr=document.createElement('tr');
-    const phone=m.phone?esc(m.phone):'<span class="miss">缺</span>';
+    const stg=m.plan_stage||'無方案';
+    const scls=stg==='再購'?'s2':(stg==='新入會'?'':'s0');
     const prod=m.product?esc(m.product):(m.product_code?esc(m.product_code):'<span class="miss">－</span>');
     const sp=m.sponsor_member_id?esc(m.sponsor_member_id+(m.sponsor_name?' '+m.sponsor_name:'')):'<span class="miss">缺</span>';
-    tr.innerHTML=`<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td><td>${phone}</td><td>${prod}</td><td>${sp}</td>`
+    tr.innerHTML=`<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td>`
+      +`<td><span class="stage ${scls}">${esc(stg)}</span></td><td>${prod}</td><td>${sp}</td>`
       +`<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td><td><button class="btn sm">編輯</button></td>`;
     tr.querySelector('button').addEventListener('click',()=>openEdit(m.member_id));
     tb.appendChild(tr);
@@ -206,46 +219,45 @@ function openEdit(id){
   const m=ROWS.find(x=>x.member_id===id); if(!m)return;
   document.getElementById('mTitle').textContent='編輯 '+m.member_id;
   const set=(k,v)=>{document.getElementById('m_'+k).value=(v==null?'':v);};
-  set('member_id',m.member_id);set('name',m.name);set('phone',m.phone);set('birth_date',m.birth_date);
-  set('line_display_name',m.line_display_name);set('billing_day',m.billing_day);
+  set('member_id',m.member_id);set('name',m.name);set('birth_date',m.birth_date);set('billing_day',m.billing_day);
   set('sponsor_member_id',m.sponsor_member_id);set('placement_parent_id',m.placement_parent_id);set('notes',m.notes);
   document.getElementById('m_gender').value=m.gender||'';
   document.getElementById('m_status').value=m.status||'active';
-  document.getElementById('m_plan_length').value=m.plan_length||'';
+  document.getElementById('m_plan_stage').value=m.plan_stage||'';
+  fillLengths(m.plan_stage||'', m.plan_length||'');
   document.getElementById('m_plan_variant').value=m.plan_variant||'';
-  document.getElementById('m_delivery_mode').value=m.delivery_mode||'';
   document.getElementById('m_payment_method').value=(m.payment_method==null?'':String(m.payment_method));
   document.getElementById('m_placement_position').value=m.placement_position||'';
-  // 商品：嘗試 match code+spec
-  const ps=document.getElementById('m_product');
-  let matched='';
-  for(const o of ps.options){ if(o.dataset.code===m.product_code && o.dataset.spec===(m.product_code?o.dataset.spec:'')){} }
-  ps.value=''; document.getElementById('m_tier_badge').style.display='none';
-  if(m.product_code){
-    for(const o of ps.options){ if(o.dataset.code===m.product_code){ ps.value=o.value; const b=document.getElementById('m_tier_badge'); b.textContent='目前 '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; break; } }
-  }
+  // 商品 match code
+  const ps=document.getElementById('m_product'); ps.value=''; document.getElementById('m_tier_badge').style.display='none';
+  if(m.product_code){ for(const o of ps.options){ if(o.dataset.code===m.product_code){ ps.value=o.value;
+    const b=document.getElementById('m_tier_badge'); b.textContent='目前 '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; break; } } }
   document.getElementById('mMsg').style.display='none';
   document.getElementById('modal').style.display='flex';
 }
 function closeModal(){document.getElementById('modal').style.display='none';}
 
+function computeDelivery(len,variant){
+  if(len==='新12M'||len==='24M')return'月配';
+  if(len==='12+2'||len==='6+1')return'一次拿';
+  if(variant==='A')return'月配'; if(variant==='B')return'一次拿'; return'';
+}
 async function save(){
   const g=k=>document.getElementById('m_'+k).value;
+  const len=g('plan_length'), variant=g('plan_variant');
   const payload={ action:'update', member_id:g('member_id'),
-    name:g('name'), gender:g('gender'), phone:g('phone'), birth_date:g('birth_date'),
-    line_display_name:g('line_display_name'), status:g('status'),
-    plan_length:g('plan_length'), plan_variant:g('plan_variant'), delivery_mode:g('delivery_mode'),
+    name:g('name'), gender:g('gender'), birth_date:g('birth_date'), status:g('status'),
+    plan_stage:g('plan_stage'), plan_length:len, plan_variant:variant, delivery_mode:computeDelivery(len,variant),
     payment_method:g('payment_method'), billing_day:g('billing_day'),
     sponsor_member_id:g('sponsor_member_id'), placement_parent_id:g('placement_parent_id'),
     placement_position:g('placement_position'), notes:g('notes') };
-  // 商品有選才送（避免清空原值）
   const ps=document.getElementById('m_product');
   if(ps.value){ const o=ps.selectedOptions[0]; payload.product_code=o.dataset.code; payload.product_spec=o.dataset.spec; payload.point_tier=o.dataset.tier; }
   const mMsg=document.getElementById('mMsg');
   try{
     const d=await api(payload);
     if(d.success){ mMsg.className='msg ok'; mMsg.textContent='已儲存 ✓'; mMsg.style.display='block'; setTimeout(()=>{closeModal();reload();},600); }
-    else { mMsg.className='msg err'; mMsg.textContent=d.message||'儲存失敗'; mMsg.style.display='block'; }
+    else{ mMsg.className='msg err'; mMsg.textContent=d.message||'儲存失敗'; mMsg.style.display='block'; }
   }catch(e){ mMsg.className='msg err'; mMsg.textContent='失敗：'+e.message; mMsg.style.display='block'; }
 }
 </script>
