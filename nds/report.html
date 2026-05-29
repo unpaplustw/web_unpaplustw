@@ -261,20 +261,21 @@ const N8N_SUBMIT_URL  = "PLACEHOLDER_N8N_SUBMIT_WEBHOOK_URL";
 const N8N_CATALOG_URL = "PLACEHOLDER_N8N_CATALOG_WEBHOOK_URL";
 
 /* 內建商品目錄 fallback（正式以 DB 為準）；ref_price 用於分組標題顯示 */
+/* 顯示順序：用戶指定前段(喚活→明力多→48包系列→妍漾) + 其餘接後；spec 與 DB 一致供反查 */
 const FALLBACK_CATALOG = [
-  { product_code:"SL", product_name:"識霸",            spec:"1罐",            point_tier:10000, ref_price:4200 },
-  { product_code:"IM", product_name:"活美水素水",      spec:"30包/盒（小水）", point_tier:10000, ref_price:4200 },
-  { product_code:"PF", product_name:"普力活 FIRE",     spec:"30包/盒",         point_tier:10000, ref_price:4200 },
-  { product_code:"BB", product_name:"普力活 BB",       spec:"30包/盒",         point_tier:10000, ref_price:4200 },
-  { product_code:"DS", product_name:"晨星系列",        spec:"一盒",            point_tier:10000, ref_price:4200 },
-  { product_code:"MP", product_name:"識霸明力多",      spec:"120顆/罐",        point_tier:15000, ref_price:6300 },
-  { product_code:"MV", product_name:"識霸明力多(素食)", spec:"120顆/罐",       point_tier:15000, ref_price:6400 },
-  { product_code:"IM", product_name:"活美水素水",      spec:"48包/盒（大水）", point_tier:15000, ref_price:6300 },
-  { product_code:"PF", product_name:"普力活 FIRE",     spec:"48包/盒",         point_tier:15000, ref_price:6300 },
-  { product_code:"BB", product_name:"普力活 BB",       spec:"48包/盒",         point_tier:15000, ref_price:6300 },
-  { product_code:"AD", product_name:"妍漾飲",          spec:"10罐/盒",         point_tier:15000, ref_price:6300 },
-  { product_code:"SR", product_name:"喚活",            spec:"120顆/包",        point_tier:15000, ref_price:6300 },
-  { product_code:"AD", product_name:"妍漾飲",          spec:"14罐/盒",         point_tier:20000, ref_price:8400 }
+  { product_code:"SR", product_name:"喚活",             spec:"120顆/包",  point_tier:15000, ref_price:6300, label:"喚活" },
+  { product_code:"MP", product_name:"識霸明力多",       spec:"120顆/罐",  point_tier:15000, ref_price:6300, label:"識霸明力多" },
+  { product_code:"IM", product_name:"活美水素水",       spec:"48包/盒",   point_tier:15000, ref_price:6300, label:"活美水素水（48包）" },
+  { product_code:"PF", product_name:"普力活 FIRE",      spec:"48包/盒",   point_tier:15000, ref_price:6300, label:"普力活 FIRE（48包）" },
+  { product_code:"BB", product_name:"普力活 BB",        spec:"48包/盒",   point_tier:15000, ref_price:6300, label:"普力活 BB（48包）" },
+  { product_code:"AD", product_name:"妍漾飲",           spec:"10罐/盒",   point_tier:15000, ref_price:6300, label:"妍漾飲（10罐）" },
+  { product_code:"AD", product_name:"妍漾飲",           spec:"14罐/盒",   point_tier:20000, ref_price:8400, label:"妍漾飲（14罐）" },
+  { product_code:"IM", product_name:"活美水素水",       spec:"30包/盒",   point_tier:10000, ref_price:4200, label:"活美水素水（30包）" },
+  { product_code:"SL", product_name:"識霸",             spec:"1罐",       point_tier:10000, ref_price:4200, label:"識霸" },
+  { product_code:"PF", product_name:"普力活 FIRE",      spec:"30包/盒",   point_tier:10000, ref_price:4200, label:"普力活 FIRE（30包）" },
+  { product_code:"BB", product_name:"普力活 BB",        spec:"30包/盒",   point_tier:10000, ref_price:4200, label:"普力活 BB（30包）" },
+  { product_code:"MV", product_name:"識霸明力多(素食)", spec:"120顆/罐",  point_tier:15000, ref_price:6400, label:"識霸明力多（素食）" },
+  { product_code:"DS", product_name:"晨星系列",         spec:"一盒",      point_tier:10000, ref_price:4200, label:"晨星系列" }
 ];
 
 const RE_MAIN = /^\d{7}$/, RE_BRANCH = /^\d{3}$/;
@@ -292,31 +293,24 @@ async function loadCatalog(){
     try { const r=await fetch(N8N_CATALOG_URL); if(r.ok){ const d=await r.json(); if(Array.isArray(d)&&d.length) list=d; } }
     catch(e){ console.warn('catalog fallback',e); }
   }
-  const groups = {};
-  list.forEach(it => { (groups[it.point_tier] = groups[it.point_tier] || []).push(it); });
   const area = document.getElementById('productArea');
   area.innerHTML = '';
-  Object.keys(groups).map(Number).sort((a,b)=>a-b).forEach(tier => {
-    const price = groups[tier][0].ref_price;
-    const g = document.createElement('div'); g.className = 'tier-group';
-    g.innerHTML = `<div class="tier-head">${tier.toLocaleString()} 點${price?`（月付約 ${price.toLocaleString()} 元）`:''}</div>`;
-    const wrap = document.createElement('div'); wrap.className = 'prod-list';
-    groups[tier].forEach(it => {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'prod-btn';
-      btn.textContent = `${it.product_name} ${it.spec}`;
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.prod-btn').forEach(x => x.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedProduct = { code: it.product_code, spec: it.spec, tier: it.point_tier, name: it.product_name, sku: it.sku_id || null };
-        const badge = document.getElementById('pointBadge');
-        badge.textContent = `✓ ${it.product_name} ${it.spec} · ${it.point_tier.toLocaleString()} 點`;
-        badge.style.display = 'block';
-      });
-      wrap.appendChild(btn);
+  const wrap = document.createElement('div'); wrap.className = 'prod-list';
+  list.forEach(it => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'prod-btn';
+    btn.textContent = it.label || `${it.product_name} ${it.spec}`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.prod-btn').forEach(x => x.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedProduct = { code: it.product_code, spec: it.spec, tier: it.point_tier, name: it.product_name, sku: it.sku_id || null };
+      const badge = document.getElementById('pointBadge');
+      badge.textContent = `✓ ${it.label || (it.product_name + ' ' + it.spec)} · ${it.point_tier.toLocaleString()} 點`;
+      badge.style.display = 'block';
     });
-    g.appendChild(wrap); area.appendChild(g);
+    wrap.appendChild(btn);
   });
+  area.appendChild(wrap);
 }
 
 /* ===== 連動 ===== */
