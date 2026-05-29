@@ -33,7 +33,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .hd-sub{font-size:12px;color:var(--muted);margin-top:4px}
 
 /* ── 類別選擇 ── */
-.cat-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-tabs-wrap{position:relative;margin-bottom:12px}
+.cat-tabs-wrap::after{content:'';position:absolute;top:0;right:0;width:28px;height:100%;background:linear-gradient(to right,rgba(245,245,240,0),var(--bg));pointer-events:none}
+.cat-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-tabs::-webkit-scrollbar{display:none}
 .cat-tab{flex:0 0 auto;padding:8px 14px;border:2px solid var(--border);border-radius:20px;background:var(--card);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.2s;white-space:nowrap}
 .cat-tab.active{background:var(--pri);border-color:var(--pri);color:#fff}
 .cat-tab:active{transform:scale(.96)}
@@ -172,13 +175,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
 
   <!-- 類別選擇 -->
-  <div class="cat-tabs" id="catTabs">
-    <div class="cat-tab active" data-type="" onclick="selectCat(this)">全部</div>
-    <div class="cat-tab" data-type="food" onclick="selectCat(this)">&#127869;&#65039; 保健食品</div>
-    <div class="cat-tab" data-type="drug" onclick="selectCat(this)">&#128138; 藥品</div>
-    <div class="cat-tab" data-type="device" onclick="selectCat(this)">&#129658; 醫療器材</div>
-    <div class="cat-tab" data-type="cosmetic" onclick="selectCat(this)">&#128132; 美妝保養</div>
-    <div class="cat-tab" data-type="general" onclick="selectCat(this)">&#128722; 一般商品</div>
+  <div class="cat-tabs-wrap">
+    <div class="cat-tabs" id="catTabs">
+      <div class="cat-tab active" data-type="" onclick="selectCat(this)">全部</div>
+      <div class="cat-tab" data-type="food" onclick="selectCat(this)">&#127869;&#65039; 保健食品</div>
+      <div class="cat-tab" data-type="drug" onclick="selectCat(this)">&#128138; 藥品</div>
+      <div class="cat-tab" data-type="device" onclick="selectCat(this)">&#129658; 醫療器材</div>
+      <div class="cat-tab" data-type="cosmetic" onclick="selectCat(this)">&#128132; 美妝保養</div>
+      <div class="cat-tab" data-type="general" onclick="selectCat(this)">&#128722; 一般商品</div>
+    </div>
   </div>
 
   <!-- 搜尋 -->
@@ -215,7 +220,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <!-- 含量刀 -->
     <div class="blade" id="blade1">
       <div class="blade-header" onclick="toggleBlade('blade1')">
-        <span class="blade-icon">&#128298;</span>
+        <span class="blade-icon">&#128202;</span>
         <span class="blade-title">含量分析</span>
         <span class="blade-arrow" id="blade1Arrow">&#9654;</span>
       </div>
@@ -225,7 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <!-- 品質刀 -->
     <div class="blade" id="blade2">
       <div class="blade-header" onclick="toggleBlade('blade2')">
-        <span class="blade-icon">&#128298;</span>
+        <span class="blade-icon">&#129514;</span>
         <span class="blade-title">品質分析</span>
         <span class="blade-arrow" id="blade2Arrow">&#9654;</span>
       </div>
@@ -235,7 +240,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <!-- 安全刀 -->
     <div class="blade" id="blade3">
       <div class="blade-header" onclick="toggleBlade('blade3')">
-        <span class="blade-icon">&#128298;</span>
+        <span class="blade-icon">&#9888;&#65039;</span>
         <span class="blade-title">安全分析</span>
         <span class="blade-arrow" id="blade3Arrow">&#9654;</span>
       </div>
@@ -245,7 +250,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <!-- 信任刀 -->
     <div class="blade" id="blade4">
       <div class="blade-header" onclick="toggleBlade('blade4')">
-        <span class="blade-icon">&#128298;</span>
+        <span class="blade-icon">&#127981;</span>
         <span class="blade-title">信任分析</span>
         <span class="blade-arrow" id="blade4Arrow">&#9654;</span>
       </div>
@@ -661,7 +666,7 @@ function handleStreamEvent(evt) {
   if (evt.type === 'combo_warning' && evt.warnings && evt.warnings.length > 0) {
     var box = document.getElementById('comboWarningBox');
     var body = document.getElementById('comboWarningBody');
-    box.style.display = '';
+    box.style.display = 'block';
     body.innerHTML = evt.warnings.map(function(w) {
       return '<p style="margin-bottom:6px">&#9679; ' + w + '</p>';
     }).join('');
