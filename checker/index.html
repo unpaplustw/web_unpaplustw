@@ -211,41 +211,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <div id="resultBadge"></div>
     </div>
 
-    <!-- 含量刀 -->
+    <!-- 第一刀 -->
     <div class="blade" id="blade1">
       <div class="blade-header" onclick="toggleBlade('blade1')">
-        <span class="blade-icon">&#128202;</span>
-        <span class="blade-title">含量分析</span>
+        <span class="blade-icon" id="blade1Icon">&#128202;</span>
+        <span class="blade-title" id="blade1Title">含量分析</span>
         <span class="blade-arrow" id="blade1Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade1Body"></div>
     </div>
 
-    <!-- 品質刀 -->
+    <!-- 第二刀 -->
     <div class="blade" id="blade2">
       <div class="blade-header" onclick="toggleBlade('blade2')">
-        <span class="blade-icon">&#129514;</span>
-        <span class="blade-title">品質分析</span>
+        <span class="blade-icon" id="blade2Icon">&#129514;</span>
+        <span class="blade-title" id="blade2Title">品質分析</span>
         <span class="blade-arrow" id="blade2Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade2Body"></div>
     </div>
 
-    <!-- 安全刀 -->
+    <!-- 第三刀 -->
     <div class="blade" id="blade3">
       <div class="blade-header" onclick="toggleBlade('blade3')">
-        <span class="blade-icon">&#9888;&#65039;</span>
-        <span class="blade-title">安全分析</span>
+        <span class="blade-icon" id="blade3Icon">&#9888;&#65039;</span>
+        <span class="blade-title" id="blade3Title">安全分析</span>
         <span class="blade-arrow" id="blade3Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade3Body"></div>
     </div>
 
-    <!-- 信任刀 -->
+    <!-- 第四刀 -->
     <div class="blade" id="blade4">
       <div class="blade-header" onclick="toggleBlade('blade4')">
-        <span class="blade-icon">&#127981;</span>
-        <span class="blade-title">信任分析</span>
+        <span class="blade-icon" id="blade4Icon">&#127981;</span>
+        <span class="blade-title" id="blade4Title">信任分析</span>
         <span class="blade-arrow" id="blade4Arrow">&#9654;</span>
       </div>
       <div class="blade-body" id="blade4Body"></div>
@@ -515,6 +515,7 @@ async function analyzeById(productId) {
     product_name: product.name,
     brand: product.brand,
     category: product.category,
+    regulatory_type: product.regulatory_type,
     dosage_form: product.dosage_form,
     ingredients_raw: product.ingredients_raw,
     ingredients_detail: ingredientsList,
@@ -522,6 +523,7 @@ async function analyzeById(productId) {
     manufacturer: product.manufacturers,
     certifications: product.certifications,
     agent_company: product.agent_company,
+    regulatory_detail: product.regulatory_detail,
     combo_warnings: comboWarnings
   }, product);
 
@@ -640,6 +642,9 @@ function handleStreamEvent(evt) {
   if (evt.type === 'blade') {
     const body = document.getElementById('blade' + evt.blade + 'Body');
     body.innerHTML = formatAttack(evt.content);
+    // 動態標題/圖示（藥品醫材跟保健食品不同刀）
+    if (evt.title) document.getElementById('blade' + evt.blade + 'Title').textContent = evt.title;
+    if (evt.icon) document.getElementById('blade' + evt.blade + 'Icon').innerHTML = evt.icon;
     // 收集分析結果給第二段用
     lastAnalysisResult += evt.content + '\n\n';
   }
