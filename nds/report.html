@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NDS 新入會回報</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root {
+  --primary: #8a2be2;
+  --secondary: #4b0082;
+  --accent: #00d2ff;
+  --text-main: #ffffff;
+  --text-muted: #a0aabf;
+  --glass-bg: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+body {
+  background-color: #0f172a;
+  background-image: radial-gradient(at 0% 0%, rgba(138,43,226,0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(0,210,255,0.2) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 20px;
+}
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 32px 24px;
+  width: 100%; max-width: 440px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  animation: floatIn 0.8s cubic-bezier(0.2,0.8,0.2,1) forwards;
+  opacity: 0; transform: translateY(20px); position: relative;
+}
+@keyframes floatIn { to { opacity: 1; transform: translateY(0); } }
+.profile-section { display: none; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--glass-border); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); object-fit: cover; }
+.greeting { font-size: 0.9rem; color: var(--text-muted); }
+.greeting span { color: var(--accent); font-weight: 600; }
+.header-title { text-align: center; margin-bottom: 24px; }
+.header-title h1 { font-size: 1.6rem; margin-bottom: 6px; background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header-title p { color: var(--text-muted); font-size: 0.85rem; }
+
+.section-label { font-size: 0.8rem; color: var(--accent); font-weight: 600; letter-spacing: 1px; margin: 22px 0 12px; text-transform: uppercase; }
+.section-label:first-of-type { margin-top: 0; }
+.form-group { margin-bottom: 18px; position: relative; }
+.form-group label { display: block; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-weight: 500; }
+.req::after { content: " *"; color: #ff6b6b; }
+.styled-input, .styled-select {
+  width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 14px; color: white; font-size: 1rem;
+  transition: all 0.3s ease; outline: none; -webkit-appearance: none; appearance: none;
+}
+.styled-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a0aabf' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+.styled-input:focus, .styled-select:focus { background-color: rgba(0,0,0,0.3); border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,210,255,0.1); }
+.styled-input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* radio 按鈕組 */
+.radio-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio-row input { display: none; }
+.radio-row label {
+  flex: 1; min-width: 80px; text-align: center; margin: 0;
+  padding: 12px 8px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+  background: rgba(0,0,0,0.2); color: var(--text-main); font-size: 0.92rem; cursor: pointer; transition: all 0.2s;
+}
+.radio-row input:checked + label {
+  background: linear-gradient(135deg, rgba(138,43,226,0.4), rgba(0,210,255,0.3));
+  border-color: var(--accent); font-weight: 600;
+}
+
+/* 點數提示 */
+.point-badge {
+  display: none; margin-top: 10px; padding: 10px 14px; border-radius: 10px;
+  background: rgba(0,210,255,0.12); border: 1px solid rgba(0,210,255,0.35);
+  color: var(--accent); font-weight: 600; font-size: 0.95rem; text-align: center;
+}
+.hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
+.sponsor-name-echo { font-size: 0.82rem; color: #6ee7b7; margin-top: 6px; min-height: 1em; }
+
+.submit-btn {
+  width: 100%; padding: 16px; margin-top: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border: none; border-radius: 12px; color: white;
+  font-size: 1.05rem; font-weight: 600; cursor: pointer;
+  transition: all 0.3s ease; box-shadow: 0 10px 20px -10px var(--accent);
+  display: flex; justify-content: center; align-items: center; gap: 10px;
+}
+.submit-btn:hover { transform: translateY(-2px); }
+.submit-btn:active { transform: translateY(1px); }
+.submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+.spinner { display: none; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--glass-bg); border-radius: 24px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10;
+}
+.loading-text { margin-top: 15px; color: var(--accent); font-weight: 500; font-size: 0.9rem; }
+.result-box { display: none; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; font-size: 0.95rem; font-weight: 500; line-height: 1.5; text-align: center; }
+.result-box.error { background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.4); color: #ff8080; }
+.result-box.warning { background: rgba(255,190,50,0.15); border: 1px solid rgba(255,190,50,0.4); color: #ffd070; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="glass-card">
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner" style="display:block;width:40px;height:40px;border-width:4px;"></div>
+    <div class="loading-text">載入身份中...</div>
+  </div>
+
+  <div class="header-title" id="headerTitle">
+    <h1>新入會回報</h1>
+    <p>幫新會員補齊資料與購買方案</p>
+  </div>
+
+  <div class="profile-section" id="profileSection">
+    <img src="https://via.placeholder.com/40" alt="" class="avatar" id="userAvatar">
+    <div class="greeting">回報人：<span id="userName">－</span></div>
+  </div>
+
+  <div class="result-box" id="resultBox"></div>
+
+  <form id="ndsForm">
+    <input type="hidden" id="lineId">
+    <input type="hidden" id="displayName">
+    <input type="hidden" id="oaId">
+
+    <!-- A. 基本個資 -->
+    <div class="section-label">A · 基本個資</div>
+    <div class="form-group">
+      <label for="memberId" class="req">會員編號（含分店）</label>
+      <input type="text" id="memberId" class="styled-input" placeholder="例：2675630-001" maxlength="11">
+      <div class="hint">7 碼編號 + 3 碼分店，如 2675630-001</div>
+    </div>
+    <div class="form-group">
+      <label for="name" class="req">姓名</label>
+      <input type="text" id="name" class="styled-input" placeholder="請輸入姓名">
+    </div>
+    <div class="form-group">
+      <label>性別</label>
+      <div class="radio-row">
+        <input type="radio" name="gender" id="gM" value="男"><label for="gM">男</label>
+        <input type="radio" name="gender" id="gF" value="女"><label for="gF">女</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="birth">出生年月日</label>
+      <input type="date" id="birth" class="styled-input">
+    </div>
+    <div class="form-group">
+      <label for="phone" class="req">行動電話</label>
+      <input type="tel" id="phone" class="styled-input" placeholder="0912345678" maxlength="10">
+    </div>
+
+    <!-- B. 購買方案 -->
+    <div class="section-label">B · 購買方案</div>
+    <div class="form-group">
+      <label for="product" class="req">購買商品</label>
+      <select id="product" class="styled-select"><option value="">載入中…</option></select>
+      <div class="point-badge" id="pointBadge"></div>
+    </div>
+    <div class="form-group">
+      <label class="req">方案長度</label>
+      <div class="radio-row">
+        <input type="radio" name="planLen" id="pl1" value="1+11"><label for="pl1">1+11<br>一年</label>
+        <input type="radio" name="planLen" id="pl2" value="1+5"><label for="pl2">1+5<br>半年</label>
+        <input type="radio" name="planLen" id="pl3" value="新12M"><label for="pl3">新12M</label>
+      </div>
+    </div>
+    <div class="form-group" id="variantGroup">
+      <label>給點方式</label>
+      <div class="radio-row">
+        <input type="radio" name="planVar" id="pvA" value="A"><label for="pvA">A 標準<br>月配給點</label>
+        <input type="radio" name="planVar" id="pvB" value="B"><label for="pvB">B 預購<br>一次給點</label>
+      </div>
+      <div class="hint" id="deliveryHint"></div>
+    </div>
+    <div class="form-group" id="billingDayGroup">
+      <label for="billingDay">扣款日（每月幾號）</label>
+      <input type="number" id="billingDay" class="styled-input" placeholder="1～31" min="1" max="31">
+    </div>
+    <div class="form-group">
+      <label class="req">續購付款方式</label>
+      <select id="payment" class="styled-select">
+        <option value="">請選擇</option>
+        <option value="4">信用卡自動扣款</option>
+        <option value="1">銀行自動扣款</option>
+        <option value="2">貨到付款</option>
+        <option value="3">臨櫃</option>
+      </select>
+      <div class="hint">12M 每月、或 1+11/1+5 方案結束後續購的扣款方式</div>
+    </div>
+
+    <!-- C. 推薦人與位置 -->
+    <div class="section-label">C · 推薦人與位置</div>
+    <div class="form-group">
+      <label for="sponsor" class="req">推薦人會員編號（含分店）</label>
+      <input type="text" id="sponsor" class="styled-input" placeholder="例：2675630-001" maxlength="11">
+      <div class="sponsor-name-echo" id="sponsorEcho"></div>
+    </div>
+    <div class="form-group">
+      <label for="placement">指定位置會員編號（選填）</label>
+      <input type="text" id="placement" class="styled-input" placeholder="掛在誰下面，例：2675630-001" maxlength="11">
+      <div class="sponsor-name-echo" id="placementEcho"></div>
+      <div class="hint">雙軌指定位置，不填則之後維護補</div>
+    </div>
+
+    <button type="submit" id="submitBtn" class="submit-btn" disabled>
+      <span id="btnText">送出回報</span>
+      <div class="spinner" id="btnSpinner"></div>
+    </button>
+  </form>
+</div>
+
+<script>
+/* ===== 待填設定（拿到後替換）===== */
+const MY_LIFF_ID       = "PLACEHOLDER_LIFF_ID";                 // ← 在會員中心 channel 新開 LIFF 後填入
+const N8N_SUBMIT_URL   = "PLACEHOLDER_N8N_SUBMIT_WEBHOOK_URL";  // ← n8n 寫入 webhook (POST)
+const N8N_CATALOG_URL  = "PLACEHOLDER_N8N_CATALOG_WEBHOOK_URL"; // ← n8n 取商品目錄 webhook (GET)，可留空用內建
+
+/* 內建商品目錄 fallback（n8n 未就緒 / 離線預覽用；正式以 DB 為準）
+   來源：randoph_nds.product_catalog 中 is_active=true */
+const FALLBACK_CATALOG = [
+  { product_code:"SL", product_name:"識霸",            spec:"1罐",          point_tier:10000 },
+  { product_code:"IM", product_name:"活美水素水",      spec:"30包/盒（小水）", point_tier:10000 },
+  { product_code:"PF", product_name:"普力活 FIRE",     spec:"30包/盒",       point_tier:10000 },
+  { product_code:"BB", product_name:"普力活 BB",       spec:"30包/盒",       point_tier:10000 },
+  { product_code:"DS", product_name:"晨星系列",        spec:"一盒",          point_tier:10000 },
+  { product_code:"MP", product_name:"識霸明力多",      spec:"120顆/罐",      point_tier:15000 },
+  { product_code:"MV", product_name:"識霸明力多(素食)", spec:"120顆/罐",      point_tier:15000 },
+  { product_code:"IM", product_name:"活美水素水",      spec:"48包/盒（大水）", point_tier:15000 },
+  { product_code:"PF", product_name:"普力活 FIRE",     spec:"48包/盒",       point_tier:15000 },
+  { product_code:"BB", product_name:"普力活 BB",       spec:"48包/盒",       point_tier:15000 },
+  { product_code:"AD", product_name:"妍漾飲",          spec:"10罐/盒",       point_tier:15000 },
+  { product_code:"SR", product_name:"喚活",            spec:"120顆/包",      point_tier:15000 },
+  { product_code:"AD", product_name:"妍漾飲",          spec:"14罐/盒",       point_tier:20000 }
+];
+
+const MEMBER_ID_RE = /^\d{7}-\d{3}$/;
+
+function getOaFromUrl() {
+  try { return new URLSearchParams(window.location.search).get('oa') || ''; }
+  catch(e) { return ''; }
+}
+function showResult(msg, type) {
+  const box = document.getElementById('resultBox');
+  box.className = 'result-box ' + type; box.textContent = msg; box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function hideResult(){ document.getElementById('resultBox').style.display = 'none'; }
+function resetBtn(){
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('btnText').textContent = '送出回報';
+  document.getElementById('btnSpinner').style.display = 'none';
+}
+
+/* ===== 商品目錄載入 → 生成下拉 ===== */
+async function loadCatalog() {
+  let list = FALLBACK_CATALOG;
+  if (N8N_CATALOG_URL && !N8N_CATALOG_URL.startsWith('PLACEHOLDER')) {
+    try {
+      const r = await fetch(N8N_CATALOG_URL);
+      if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length) list = d; }
+    } catch(e){ console.warn('catalog fallback', e); }
+  }
+  const sel = document.getElementById('product');
+  sel.innerHTML = '<option value="">請選擇商品</option>';
+  list.forEach(it => {
+    const opt = document.createElement('option');
+    opt.value = it.product_code + '|' + it.spec;       // 用 code+spec 當鍵，n8n 反查 sku_id
+    opt.textContent = `${it.product_name} ${it.spec}`;
+    opt.dataset.code = it.product_code;
+    opt.dataset.spec = it.spec;
+    opt.dataset.tier = it.point_tier;
+    if (it.sku_id) opt.dataset.sku = it.sku_id;
+    sel.appendChild(opt);
+  });
+}
+
+/* ===== 連動邏輯 ===== */
+function onProductChange() {
+  const opt = document.getElementById('product').selectedOptions[0];
+  const badge = document.getElementById('pointBadge');
+  if (opt && opt.dataset.tier) {
+    badge.textContent = `✓ 此商品 ${Number(opt.dataset.tier).toLocaleString()} 點`;
+    badge.style.display = 'block';
+  } else { badge.style.display = 'none'; }
+}
+function getPlanLen(){ const r = document.querySelector('input[name="planLen"]:checked'); return r ? r.value : ''; }
+function getPlanVar(){ const r = document.querySelector('input[name="planVar"]:checked'); return r ? r.value : ''; }
+
+function refreshPlanUI() {
+  const len = getPlanLen();
+  const variantGroup = document.getElementById('variantGroup');
+  const billingGroup = document.getElementById('billingDayGroup');
+  const deliveryHint = document.getElementById('deliveryHint');
+
+  if (len === '新12M') {
+    // 新12M：無 A/B，固定月配
+    variantGroup.classList.add('hidden');
+    document.querySelectorAll('input[name="planVar"]').forEach(x => x.checked = false);
+    billingGroup.classList.remove('hidden');
+    deliveryHint.textContent = '';
+  } else if (len === '1+11' || len === '1+5') {
+    variantGroup.classList.remove('hidden');
+    const v = getPlanVar();
+    if (v === 'A') { billingGroup.classList.remove('hidden'); deliveryHint.textContent = '配送：月配（每月給點）'; }
+    else if (v === 'B') { billingGroup.classList.add('hidden'); deliveryHint.textContent = '配送：一次拿（商品提早全拿，效期不變）'; }
+    else { billingGroup.classList.add('hidden'); deliveryHint.textContent = ''; }
+  } else {
+    variantGroup.classList.add('hidden');
+    billingGroup.classList.add('hidden');
+    deliveryHint.textContent = '';
+  }
+}
+function computeDelivery() {
+  const len = getPlanLen(), v = getPlanVar();
+  if (len === '新12M') return '月配';
+  if (v === 'A') return '月配';
+  if (v === 'B') return '一次拿';
+  return '';
+}
+
+/* ===== LIFF 啟動 ===== */
+document.addEventListener("DOMContentLoaded", function() {
+  loadCatalog();
+  document.getElementById('product').addEventListener('change', onProductChange);
+  document.querySelectorAll('input[name="planLen"]').forEach(x => x.addEventListener('change', refreshPlanUI));
+  document.querySelectorAll('input[name="planVar"]').forEach(x => x.addEventListener('change', refreshPlanUI));
+  initializeLiff(MY_LIFF_ID);
+});
+
+async function initializeLiff(liffId) {
+  try {
+    if (liffId.startsWith('PLACEHOLDER')) {        // 本機預覽模式：略過 LIFF
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('submitBtn').disabled = false;
+      return;
+    }
+    await liff.init({ liffId });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: window.location.href }); return; }
+    const p = await liff.getProfile();
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('headerTitle').style.display = 'none';
+    const ps = document.getElementById('profileSection'); ps.style.display = 'flex';
+    document.getElementById('userAvatar').src = p.pictureUrl || 'https://via.placeholder.com/40';
+    document.getElementById('userName').textContent = p.displayName;
+    document.getElementById('lineId').value = p.userId;
+    document.getElementById('displayName').value = p.displayName;
+    document.getElementById('oaId').value = getOaFromUrl();
+    document.getElementById('submitBtn').disabled = false;
+  } catch(err) {
+    console.error('LIFF init failed', err);
+    document.getElementById('loadingOverlay').innerHTML =
+      '<div class="loading-text" style="color:#ff6b6b;">載入失敗，請從 LINE 內開啟。</div>';
+  }
+}
+
+/* ===== 送出 ===== */
+document.getElementById('ndsForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  hideResult();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  document.getElementById('btnText').textContent = '送出中…';
+  document.getElementById('btnSpinner').style.display = 'block';
+
+  const memberId = document.getElementById('memberId').value.trim();
+  const name     = document.getElementById('name').value.trim();
+  const phone    = document.getElementById('phone').value.trim();
+  const gender   = (document.querySelector('input[name="gender"]:checked')||{}).value || '';
+  const birth    = document.getElementById('birth').value || '';
+  const prodOpt  = document.getElementById('product').selectedOptions[0];
+  const planLen  = getPlanLen();
+  const planVar  = getPlanVar();
+  const payment  = document.getElementById('payment').value;
+  const billing  = document.getElementById('billingDay').value;
+  const sponsor  = document.getElementById('sponsor').value.trim();
+  const placement= document.getElementById('placement').value.trim();
+
+  // 驗證
+  if (!MEMBER_ID_RE.test(memberId)) { showResult('會員編號格式錯誤，應為 2675630-001。', 'error'); resetBtn(); return; }
+  if (name.length < 2)              { showResult('請輸入正確姓名。', 'error'); resetBtn(); return; }
+  if (!/^09\d{8}$/.test(phone))     { showResult('請輸入正確的 10 碼手機（09 開頭）。', 'error'); resetBtn(); return; }
+  if (!prodOpt || !prodOpt.value)   { showResult('請選擇購買商品。', 'error'); resetBtn(); return; }
+  if (!planLen)                     { showResult('請選擇方案長度。', 'error'); resetBtn(); return; }
+  if ((planLen==='1+11'||planLen==='1+5') && !planVar) { showResult('請選擇給點方式（A／B）。', 'error'); resetBtn(); return; }
+  if (!payment)                     { showResult('請選擇續購付款方式。', 'error'); resetBtn(); return; }
+  if (!MEMBER_ID_RE.test(sponsor))  { showResult('推薦人編號格式錯誤，應為 2675630-001。', 'error'); resetBtn(); return; }
+  if (placement && !MEMBER_ID_RE.test(placement)) { showResult('指定位置編號格式錯誤。', 'error'); resetBtn(); return; }
+
+  const payload = {
+    oa_id:        document.getElementById('oaId').value,
+    line_id:      document.getElementById('lineId').value,
+    line_name:    document.getElementById('displayName').value,
+    member_id:    memberId,
+    name, gender,
+    birth_date:   birth || null,
+    phone,
+    product_code: prodOpt.dataset.code,
+    product_spec: prodOpt.dataset.spec,
+    point_tier:   Number(prodOpt.dataset.tier),
+    product_sku_id: prodOpt.dataset.sku ? Number(prodOpt.dataset.sku) : null,
+    plan_length:  planLen,
+    plan_variant: planLen === '新12M' ? null : planVar,
+    delivery_mode: computeDelivery(),
+    payment_method: Number(payment),
+    billing_day:  billing ? Number(billing) : null,
+    sponsor_member_id: sponsor,
+    placement_parent_id: placement || null
+  };
+
+  try {
+    const res = await fetch(N8N_SUBMIT_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      let result = {}; try { result = await res.json(); } catch(_) {}
+      if (result.success === false) { showResult(result.message || '送出失敗，請聯絡管理者。', 'warning'); resetBtn(); }
+      else {
+        document.getElementById('btnText').textContent = '回報成功！';
+        document.getElementById('btnSpinner').style.display = 'none';
+        btn.style.background = 'linear-gradient(135deg, #00b09b, #96c93d)';
+        setTimeout(() => { if (!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); }, 1800);
+      }
+    } else { throw new Error('伺服器回應 ' + res.status); }
+  } catch(err) {
+    console.error('submit error', err);
+    showResult('送出失敗：' + err.message, 'error');
+    resetBtn();
+  }
+});
+</script>
+</body>
+</html>
