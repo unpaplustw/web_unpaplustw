@@ -383,11 +383,17 @@ searchInput.addEventListener('keydown', (e) => {
 });
 
 async function autocomplete(q) {
-  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 8, filter_type: currentFilterType || null });
+  // 先在選定類別找，找不到自動跨類別（使用者不一定知道東西屬於哪類）
+  let { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 8, filter_type: currentFilterType || null });
+  if (!data || !data.length) {
+    const r = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 8, filter_type: null });
+    data = r.data;
+  }
   if (!data || !data.length) { acList.style.display = 'none'; return; }
+  var typeLabel = { food:'保健食品', drug:'藥品', device:'醫療器材', cosmetic:'化粧品' };
   acList.innerHTML = data.map(p =>
     '<div class="ac-item" onclick="selectProduct(\'' + p.id + '\',\'' + esc(p.name) + '\')">' +
-      '<div>' + highlight(p.name, q) + '</div>' +
+      '<div>' + highlight(p.name, q) + ' <span style="font-size:11px;color:var(--pri);font-weight:600">' + (typeLabel[p.regulatory_type] || '') + '</span></div>' +
       '<div class="ac-brand">' + (p.brand || '') + ' ' + (p.dosage_form || '') + '</div>' +
     '</div>'
   ).join('');
@@ -430,8 +436,12 @@ async function doSearch() {
     }
   }
 
-  // 品名模糊搜尋
-  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1, filter_type: currentFilterType || null });
+  // 品名模糊搜尋：先選定類別，找不到自動跨類別
+  let { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1, filter_type: currentFilterType || null });
+  if (!data || !data.length) {
+    const r = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1, filter_type: null });
+    data = r.data;
+  }
   if (data && data.length) {
     analyzeById(data[0].id);
   } else {
