@@ -32,6 +32,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .hd-title{font-size:20px;font-weight:700;color:var(--pri);margin-top:4px}
 .hd-sub{font-size:12px;color:var(--muted);margin-top:4px}
 
+/* ── 類別選擇 ── */
+.cat-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-tab{flex:0 0 auto;padding:8px 14px;border:2px solid var(--border);border-radius:20px;background:var(--card);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.2s;white-space:nowrap}
+.cat-tab.active{background:var(--pri);border-color:var(--pri);color:#fff}
+.cat-tab:active{transform:scale(.96)}
+
 /* ── 搜尋區 ── */
 .search-box{position:relative;margin-bottom:12px}
 .search-input{width:100%;padding:14px 48px 14px 16px;border:2px solid var(--border);border-radius:14px;font-size:16px;background:var(--card);transition:.2s;box-shadow:var(--shadow)}
@@ -158,6 +164,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="hd-icon">&#128300;</div>
     <div class="hd-title">產品成分查詢</div>
     <div class="hd-sub" id="userName"></div>
+  </div>
+
+  <!-- 類別選擇 -->
+  <div class="cat-tabs" id="catTabs">
+    <div class="cat-tab active" data-type="" onclick="selectCat(this)">全部</div>
+    <div class="cat-tab" data-type="food" onclick="selectCat(this)">&#127869;&#65039; 保健食品</div>
+    <div class="cat-tab" data-type="drug" onclick="selectCat(this)">&#128138; 藥品</div>
+    <div class="cat-tab" data-type="device" onclick="selectCat(this)">&#129658; 醫療器材</div>
+    <div class="cat-tab" data-type="cosmetic" onclick="selectCat(this)">&#128132; 美妝保養</div>
+    <div class="cat-tab" data-type="general" onclick="selectCat(this)">&#128722; 一般商品</div>
   </div>
 
   <!-- 搜尋 -->
@@ -288,6 +304,18 @@ let currentUser = null;
 let searchTimer = null;
 let lastAnalysisResult = '';  // 第一段結果，給第二段用
 let lastProductCategory = ''; // 產品類別，給第二段用
+let currentFilterType = '';   // 目前選的法規類別篩選（空=全部）
+
+// ── 類別選擇 ──
+function selectCat(el) {
+  document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  currentFilterType = el.getAttribute('data-type');
+  // 切類別時清空目前的搜尋建議
+  acList.style.display = 'none';
+  const q = searchInput.value.trim();
+  if (q.length >= 1) autocomplete(q);
+}
 
 // ── 初始化 ──
 async function init() {
@@ -345,7 +373,7 @@ searchInput.addEventListener('keydown', (e) => {
 });
 
 async function autocomplete(q) {
-  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 8 });
+  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 8, filter_type: currentFilterType || null });
   if (!data || !data.length) { acList.style.display = 'none'; return; }
   acList.innerHTML = data.map(p =>
     '<div class="ac-item" onclick="selectProduct(\'' + p.id + '\',\'' + esc(p.name) + '\')">' +
@@ -393,7 +421,7 @@ async function doSearch() {
   }
 
   // 品名模糊搜尋
-  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1 });
+  const { data } = await sbRag.rpc('keyword_search_products', { search_term: q, match_count: 1, filter_type: currentFilterType || null });
   if (data && data.length) {
     analyzeById(data[0].id);
   } else {
