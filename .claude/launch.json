@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "3456", "--directory", "/tmp/npcombat-preview"],
       "port": 3456
+    },
+    {
+      "name": "checker-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3457", "--directory", "/Users/randoph/pCloud Drive/GitHub/web_unpaplustw"],
+      "port": 3457
     }
   ]
 }
