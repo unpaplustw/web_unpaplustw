@@ -257,7 +257,13 @@ body {
 <script>
 /* ===== 待填設定 ===== */
 const MY_LIFF_ID      = "PLACEHOLDER_LIFF_ID";
-const N8N_SUBMIT_URL  = "PLACEHOLDER_N8N_SUBMIT_WEBHOOK_URL";
+/* 多 OA 共用同一份頁面：依網址 ?oa= 對應各 OA 的 webhook（各自獨立 workflow / DB）。
+   未來新增 OA 只要在這裡加一行，前端其餘完全不動。 */
+const OA_ENDPOINTS = {
+  randoph:    "https://aplustw.zeabur.app/webhook/nds-randoph"
+  // qianweida: "https://aplustw.zeabur.app/webhook/nds-qianweida",
+};
+const DEFAULT_OA = "randoph";
 const N8N_CATALOG_URL = "PLACEHOLDER_N8N_CATALOG_WEBHOOK_URL";
 
 /* 內建商品目錄 fallback（正式以 DB 為準）；ref_price 用於分組標題顯示 */
@@ -416,7 +422,9 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
   };
 
   try {
-    const res = await fetch(N8N_SUBMIT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const oaKey = getOaFromUrl() || DEFAULT_OA;
+    const submitUrl = OA_ENDPOINTS[oaKey] || OA_ENDPOINTS[DEFAULT_OA];
+    const res = await fetch(submitUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     if(res.ok){
       let result={}; try{ result=await res.json(); }catch(_){}
       if(result.success===false){ showResult(result.message||'送出失敗，請聯絡管理者。','warning'); resetBtn(); }
