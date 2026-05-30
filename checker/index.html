@@ -48,6 +48,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .tool-box:active{transform:scale(.96)}
 .tool-box.disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
 
+/* ── 字號認證面板 ── */
+.verify-panel{display:none;margin-bottom:16px;background:var(--card);border:2px solid var(--pri);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.vp-title{font-size:15px;font-weight:700;color:var(--pri);margin-bottom:4px}
+.vp-hint{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.vp-row{display:flex;gap:8px}
+.vp-input{flex:1;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:15px}
+.vp-input:focus{outline:none;border-color:var(--pri)}
+.vp-btn{padding:12px 18px;border:none;border-radius:10px;background:var(--pri);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+.vp-btn:active{opacity:.85}
+.vp-result{margin-top:12px}
+.vr-ok{background:var(--pri-lt);border:1px solid rgba(26,107,74,.3);border-radius:10px;padding:14px;font-size:14px;line-height:1.8;color:var(--txt)}
+.vr-fail{background:var(--red-bg);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:14px;font-size:14px;line-height:1.8;color:var(--txt)}
+.vr-fail span{font-size:12px;color:var(--muted)}
+
 /* ── 搜尋區 ── */
 .search-box{position:relative;margin-bottom:12px}
 .search-input{width:100%;padding:14px 48px 14px 16px;border:2px solid var(--border);border-radius:14px;font-size:16px;background:var(--card);transition:.2s;box-shadow:var(--shadow)}
@@ -214,8 +228,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
   <!-- 功能工具（非產品分類）-->
   <div class="tool-grid">
-    <div class="tool-box disabled"><span class="tool-emoji">&#129706;</span>字號認證<span class="cat-soon">即將推出</span></div>
+    <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
     <div class="tool-box disabled"><span class="tool-emoji">&#128214;</span>法規教育<span class="cat-soon">即將推出</span></div>
+  </div>
+
+  <!-- 字號認證面板 -->
+  <div class="verify-panel" id="verifyPanel">
+    <div class="vp-title">&#129706; 認證字號查核</div>
+    <div class="vp-hint">對方說有認證？請他出示字號，輸入查真偽（藥品/醫材）</div>
+    <div class="vp-row">
+      <input class="vp-input" id="verifyInput" type="text" placeholder="如 衛署醫器製字第001081號">
+      <button class="vp-btn" onclick="doVerify()">查證</button>
+    </div>
+    <div class="vp-result" id="verifyResult"></div>
   </div>
 
   <!-- 搜尋候選清單（點選才分析）-->
@@ -348,6 +373,34 @@ let searchTimer = null;
 let lastAnalysisResult = '';  // 第一段結果，給第二段用
 let lastProductCategory = ''; // 產品類別，給第二段用
 let currentFilterType = null;   // 通搜，不分類（分類是後台 regulatory_type 的事）
+
+// ── 字號認證 ──
+function toggleVerify() {
+  var p = document.getElementById('verifyPanel');
+  var show = p.style.display !== 'block';
+  p.style.display = show ? 'block' : 'none';
+  if (show) document.getElementById('verifyInput').focus();
+}
+async function doVerify() {
+  var q = document.getElementById('verifyInput').value.trim();
+  var box = document.getElementById('verifyResult');
+  if (!q) return;
+  box.innerHTML = '<span class="dot-loading">查證中</span>';
+  var r = await sbRag.rpc('verify_license', { p_license: q });
+  var data = r.data;
+  var typeLabel = { drug:'藥品', device:'醫療器材', food:'食品' };
+  if (!data || !data.length) {
+    box.innerHTML = '<div class="vr-fail">&#9888;&#65039; <strong>政府資料庫查無此字號登記</strong><br><span>此字號在 FDA 藥品/醫療器材登記資料中查不到。對方若以此宣稱「有認證」，請要求出示有效證明文件。</span></div>';
+    return;
+  }
+  box.innerHTML = data.map(function(d) {
+    return '<div class="vr-ok">&#9989; <strong>政府登記有案</strong><br>' +
+      '品名：' + d.name + '<br>' +
+      '類別：' + (typeLabel[d.regulatory_type] || d.regulatory_type) +
+      (d.risk_class ? ' · 第 ' + d.risk_class + ' 級' : '') + '<br>' +
+      '字號：' + d.license_no + '</div>';
+  }).join('');
+}
 
 // ── 初始化 ──
 async function init() {
