@@ -18,14 +18,15 @@ select.inp{cursor:pointer;}
 #login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;}
 #login h1{font-size:1.7rem;}
 #login .inp{width:260px;}
-#app{display:none;padding:18px;max-width:1180px;margin:0 auto;}
-.topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+#app{display:none;padding:18px;max-width:1240px;margin:0 auto;}
+.topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
 .topbar h1{font-size:1.3rem;margin-right:auto;}
 .topbar .inp{width:auto;}
+.lbl{font-size:.78rem;color:var(--muted);margin-left:4px;}
 .count{color:var(--muted);font-size:.9rem;}
 .tablewrap{overflow:auto;max-height:74vh;border-radius:12px;border:1px solid var(--border);}
 table{width:100%;border-collapse:collapse;background:var(--card);}
-th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:.9rem;white-space:nowrap;}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--border);font-size:.9rem;white-space:nowrap;}
 th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:0;}
 .grouprow td{background:rgba(138,43,226,.14);font-weight:700;cursor:pointer;font-size:.95rem;}
 .grouprow:hover td{background:rgba(138,43,226,.22);}
@@ -38,7 +39,7 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
 .stage.s2{background:rgba(0,210,255,.2);color:#9fe9ff;}
 .stage.s0{background:rgba(255,255,255,.1);color:var(--muted);}
 .miss{color:#ff9b9b;}
-.cd{font-weight:700;}
+.cd{font-weight:700;font-size:.85rem;}
 .cd.warn{color:#ffd070;}
 .cd.over{color:#ff8080;}
 .cd.ok{color:#7dffb0;}
@@ -69,20 +70,31 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
 <div id="app">
   <div class="topbar">
     <h1>會員管理</h1>
-    <input type="text" id="search" class="inp" placeholder="搜尋 編號 / 姓名" onkeydown="if(event.key==='Enter')reload()">
-    <select id="filter" class="inp" onchange="reload()">
+    <input type="text" id="search" class="inp" placeholder="搜尋 編號/姓名" onkeydown="if(event.key==='Enter')loadData()">
+    <select id="filter" class="inp" onchange="loadData()" title="資料篩選">
       <option value="all">全部</option>
       <option value="active">有效</option>
       <option value="terminated">已解約</option>
-      <option value="no_plan">無方案</option>
       <option value="no_sponsor">缺推薦人</option>
     </select>
-    <button class="btn sm" onclick="reload()">查詢</button>
+    <select id="stageFilter" class="inp" onchange="applyView()" title="階段">
+      <option value="">階段：全部</option>
+      <option value="新入會">新入會</option>
+      <option value="再購">再購</option>
+      <option value="無方案">無方案</option>
+    </select>
+    <select id="sortBy" class="inp" onchange="applyView()" title="排序">
+      <option value="person">👥 依人分組</option>
+      <option value="countdown">⏰ 方案倒數（快到期優先）</option>
+      <option value="updated">🔄 最近更新</option>
+      <option value="registered">📅 入會日（新→舊）</option>
+    </select>
+    <button class="btn sm" onclick="loadData()">查詢</button>
     <span class="count" id="count"></span>
   </div>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>編號 / 分店</th><th>階段</th><th>商品</th><th>入會日</th><th>方案倒數</th><th>狀態</th><th></th></tr></thead>
+      <thead><tr><th>編號</th><th>姓名</th><th>階段</th><th>商品</th><th>入會</th><th>方案倒數</th><th>更新</th><th>狀態</th><th></th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -94,7 +106,6 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
     <div class="msub" id="mSub"></div>
     <div class="msg" id="mMsg"></div>
     <input type="hidden" id="m_member_id">
-
     <div class="sec">基本（公司登錄資料）</div>
     <div class="grid2">
       <div class="fg"><label>姓名</label><input class="inp" id="m_name"></div>
@@ -102,27 +113,22 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
       <div class="fg"><label>生日</label><input class="inp" type="date" id="m_birth_date"></div>
       <div class="fg"><label>狀態（是否有效）</label><select class="inp" id="m_status"><option value="active">有效</option><option value="terminated">已解約</option></select></div>
     </div>
-
     <div class="sec">方案（公司端可變更）</div>
     <div class="grid2">
       <div class="fg"><label>入會日期</label><input class="inp" type="date" id="m_registered_at"></div>
-      <div class="fg"><label>方案階段</label>
-        <select class="inp" id="m_plan_stage"><option value="">無方案</option><option value="新入會">新入會</option><option value="再購">再購</option></select></div>
-      <div class="fg"><label>購買商品</label><select class="inp" id="m_product"><option value="">－ 不變更 －</option></select>
-        <div class="tierbadge" id="m_tier_badge" style="display:none;"></div></div>
+      <div class="fg"><label>方案階段</label><select class="inp" id="m_plan_stage"><option value="">無方案</option><option value="新入會">新入會</option><option value="再購">再購</option></select></div>
+      <div class="fg"><label>購買商品</label><select class="inp" id="m_product"><option value="">－ 不變更 －</option></select><div class="tierbadge" id="m_tier_badge" style="display:none;"></div></div>
       <div class="fg" id="fg_length"><label>方案長度</label><select class="inp" id="m_plan_length"><option value="">－</option></select></div>
       <div class="fg" id="fg_variant"><label>給點方式</label><select class="inp" id="m_plan_variant"><option value="">－</option><option value="A">A 標準</option><option value="B">B 預購</option></select></div>
       <div class="fg"><label>續購付款</label><select class="inp" id="m_payment_method"><option value="">－</option><option value="4">信用卡自動</option><option value="1">銀行自動</option><option value="2">貨到付款</option><option value="3">臨櫃</option><option value="0">終止</option></select></div>
       <div class="fg"><label>扣款日</label><input class="inp" id="m_billing_day"></div>
     </div>
-
     <div class="sec">推薦與位置</div>
     <div class="grid2">
       <div class="fg"><label>推薦人編號</label><input class="inp" id="m_sponsor_member_id" placeholder="2675630-001"></div>
       <div class="fg"><label>指定位置編號（掛在誰下面）</label><input class="inp" id="m_placement_parent_id" placeholder="2675630-001"></div>
     </div>
     <div class="fg"><label>備註</label><input class="inp" id="m_notes"></div>
-
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal()">取消</button>
       <button class="btn" onclick="save()">儲存變更</button>
@@ -134,7 +140,6 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
 const SUPABASE_URL = "https://nsgqsopqlkhayuefdout.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
 const RPC_URL = SUPABASE_URL + "/rest/v1/rpc/nds_admin";
-
 const CATALOG = [
   { code:"SR", label:"喚活",            spec:"120顆/包", tier:15000 },
   { code:"MP", label:"識霸明力多",      spec:"120顆/罐", tier:15000 },
@@ -165,8 +170,6 @@ async function api(payload){
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function prefixOf(id){ return String(id||'').split('-')[0]; }
-
-/* 入會資歷：一年半(18月)內顯示天數，以上顯示幾年幾個月 */
 function tenure(reg){
   if(!reg) return '';
   const r=new Date(reg), now=new Date();
@@ -177,43 +180,39 @@ function tenure(reg){
   const y=Math.floor(months/12), m=months%12;
   return y+' 年'+(m?(' '+m+' 個月'):'');
 }
-
-/* 方案倒數：入會日 + 效期月 - 今天 */
 function countdown(reg, len){
   if(!reg || !len || !EFFECT_MONTHS[len]) return null;
-  const exp = new Date(reg); exp.setMonth(exp.getMonth() + EFFECT_MONTHS[len]);
-  const days = Math.ceil((exp - new Date()) / 86400000);
-  return { exp: exp.toISOString().slice(0,10), days };
+  const exp=new Date(reg); exp.setMonth(exp.getMonth()+EFFECT_MONTHS[len]);
+  return { exp: exp.toISOString().slice(0,10), days: Math.ceil((exp-new Date())/86400000) };
 }
+function cdDays(m){ const c=countdown(m.registered_at,m.plan_length); return c?c.days:Infinity; }
 function cdHtml(reg, len){
-  const c = countdown(reg, len);
+  const c=countdown(reg,len);
   if(!c) return '<span class="miss">－</span>';
-  if(c.days < 0)  return `<span class="cd over">已到期 ${c.exp}</span>`;
-  if(c.days <= 30) return `<span class="cd warn">⚠ 剩 ${c.days} 天（該推再購）</span>`;
-  return `<span class="cd ok">剩 ${c.days} 天 · ${c.exp}</span>`;
+  if(c.days<0)  return `<span class="cd over">已到期</span>`;
+  if(c.days<=30) return `<span class="cd warn">⚠剩 ${c.days} 天</span>`;
+  return `<span class="cd ok">剩 ${c.days} 天</span>`;
 }
+function agoText(ts){ if(!ts) return '<span class="miss">－</span>'; const d=Math.floor((new Date()-new Date(ts))/86400000); return d<=0?'今天':(d+' 天前'); }
 
 async function login(){
-  PW = document.getElementById('pw').value;
-  const err = document.getElementById('loginErr'); err.style.display='none';
+  PW=document.getElementById('pw').value;
+  const err=document.getElementById('loginErr'); err.style.display='none';
   try{
-    const d = await api({ action:'list', filter:'all', limit:1 });
+    const d=await api({action:'list',filter:'all',limit:1});
     if(d.success===false){ err.textContent=d.message||'密碼錯誤'; err.style.display='block'; return; }
     document.getElementById('login').style.display='none';
     document.getElementById('app').style.display='block';
-    buildProductOptions(); bindPlanEvents(); reload();
+    buildProductOptions(); bindPlanEvents(); loadData();
   }catch(e){ err.textContent='連線失敗：'+e.message; err.style.display='block'; }
 }
-
 function buildProductOptions(){
   const sel=document.getElementById('m_product');
-  CATALOG.forEach(it=>{ const o=document.createElement('option');
-    o.value=it.code+'|'+it.spec; o.textContent=it.label;
+  CATALOG.forEach(it=>{ const o=document.createElement('option'); o.value=it.code+'|'+it.spec; o.textContent=it.label;
     o.dataset.code=it.code; o.dataset.spec=it.spec; o.dataset.tier=it.tier; sel.appendChild(o); });
 }
-function fillLengths(stage, current){
-  const sel=document.getElementById('m_plan_length');
-  sel.innerHTML='<option value="">－</option>';
+function fillLengths(stage,current){
+  const sel=document.getElementById('m_plan_length'); sel.innerHTML='<option value="">－</option>';
   (LEN_BY_STAGE[stage]||[]).forEach(L=>{ const o=document.createElement('option'); o.value=L; o.textContent=L; sel.appendChild(o); });
   if(current && (LEN_BY_STAGE[stage]||[]).includes(current)) sel.value=current;
   toggleVariant();
@@ -224,54 +223,76 @@ function toggleVariant(){
   if(NO_VARIANT.includes(L)) document.getElementById('m_plan_variant').value='';
 }
 function bindPlanEvents(){
-  document.getElementById('m_plan_stage').addEventListener('change', ()=>fillLengths(document.getElementById('m_plan_stage').value,''));
-  document.getElementById('m_plan_length').addEventListener('change', toggleVariant);
-  document.getElementById('m_product').addEventListener('change', ()=>{
+  document.getElementById('m_plan_stage').addEventListener('change',()=>fillLengths(document.getElementById('m_plan_stage').value,''));
+  document.getElementById('m_plan_length').addEventListener('change',toggleVariant);
+  document.getElementById('m_product').addEventListener('change',()=>{
     const o=document.getElementById('m_product').selectedOptions[0], b=document.getElementById('m_tier_badge');
     if(o&&o.dataset.tier){ b.textContent='✓ '+Number(o.dataset.tier).toLocaleString()+' 點'; b.style.display='inline-block'; } else b.style.display='none';
   });
 }
 
-async function reload(){
+/* 後端取資料（搜尋＋狀態篩） */
+async function loadData(){
   const search=document.getElementById('search').value.trim();
   const filter=document.getElementById('filter').value;
-  const d=await api({ action:'list', search, filter });
+  const d=await api({action:'list',search,filter});
   ROWS=d.rows||[];
-  // 依「人」(7碼前綴) 分組
-  const groups={}; const order=[];
-  ROWS.forEach(m=>{ const k=prefixOf(m.member_id); if(!groups[k]){groups[k]=[];order.push(k);} groups[k].push(m); });
+  applyView();
+}
+/* 前端：階段篩 + 排序 + 渲染 */
+function applyView(){
+  const stage=document.getElementById('stageFilter').value;
+  const sort=document.getElementById('sortBy').value;
+  let rows=ROWS.slice();
+  if(stage) rows=rows.filter(m=>(m.plan_stage||'無方案')===stage);
+  if(sort==='countdown') rows.sort((a,b)=>cdDays(a)-cdDays(b));
+  else if(sort==='updated') rows.sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
+  else if(sort==='registered') rows.sort((a,b)=>String(b.registered_at||'').localeCompare(String(a.registered_at||'')));
+  else rows.sort((a,b)=>String(a.member_id).localeCompare(String(b.member_id)));
+  renderRows(rows, sort==='person');
+}
+function rowCells(m){
+  const stg=m.plan_stage||'無方案'; const scls=stg==='再購'?'s2':(stg==='新入會'?'':'s0');
+  const prod=m.product?esc(m.product):(m.product_code?esc(m.product_code):'<span class="miss">－</span>');
+  return `<td><span class="stage ${scls}">${esc(stg)}</span></td><td>${prod}</td>`
+    +`<td>${m.registered_at?(esc(m.registered_at)+'<div style="color:#9fb0c8;font-size:.78rem;">入會 '+tenure(m.registered_at)+'</div>'):'<span class="miss">－</span>'}</td>`
+    +`<td>${cdHtml(m.registered_at,m.plan_length)}</td><td>${agoText(m.updated_at)}</td>`
+    +`<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td>`;
+}
+function editBtn(m){ const b=document.createElement('button'); b.className='btn sm'; b.textContent='編輯';
+  b.addEventListener('click',(e)=>{ e.stopPropagation(); openEdit(m.member_id); }); return b; }
+
+function renderRows(rows, grouped){
   const tb=document.getElementById('tbody'); tb.innerHTML='';
-  order.forEach(k=>{
-    const arr=groups[k]; const nm=arr[0].name||'';
-    const gtr=document.createElement('tr'); gtr.className='grouprow';
-    gtr.innerHTML=`<td colspan="7">▸ ${esc(nm)}（${esc(k)}）· ${arr.length} 個分店</td>`;
-    gtr.addEventListener('click',()=>{ document.querySelectorAll('.child.g-'+k).forEach(r=>r.classList.toggle('hidden')); });
-    tb.appendChild(gtr);
-    arr.forEach(m=>{
-      const tr=document.createElement('tr'); tr.className='child g-'+k+' hidden';
-      const stg=m.plan_stage||'無方案'; const scls=stg==='再購'?'s2':(stg==='新入會'?'':'s0');
-      const prod=m.product?esc(m.product):(m.product_code?esc(m.product_code):'<span class="miss">－</span>');
-      tr.innerHTML=`<td>${esc(m.member_id)}</td>`
-        +`<td><span class="stage ${scls}">${esc(stg)}</span></td><td>${prod}</td>`
-        +`<td>${m.registered_at?(esc(m.registered_at)+'<div style="color:#9fb0c8;font-size:.8rem;margin-top:2px;">入會 '+tenure(m.registered_at)+'</div>'):'<span class="miss">－</span>'}</td>`
-        +`<td>${cdHtml(m.registered_at, m.plan_length)}</td>`
-        +`<td><span class="tag ${esc(m.status)}">${esc(m.status)}</span></td>`
-        +`<td><button class="btn sm">編輯</button></td>`;
-      tr.querySelector('button').addEventListener('click',(e)=>{ e.stopPropagation(); openEdit(m.member_id); });
-      tb.appendChild(tr);
+  if(grouped){
+    const groups={}, order=[];
+    rows.forEach(m=>{ const k=prefixOf(m.member_id); if(!groups[k]){groups[k]=[];order.push(k);} groups[k].push(m); });
+    order.forEach(k=>{
+      const arr=groups[k]; const gtr=document.createElement('tr'); gtr.className='grouprow';
+      gtr.innerHTML=`<td colspan="9">▸ ${esc(arr[0].name||'')}（${esc(k)}）· ${arr.length} 個分店</td>`;
+      gtr.addEventListener('click',()=>document.querySelectorAll('.child.g-'+k).forEach(r=>r.classList.toggle('hidden')));
+      tb.appendChild(gtr);
+      arr.forEach(m=>{ const tr=document.createElement('tr'); tr.className='child g-'+k+' hidden';
+        tr.innerHTML=`<td>${esc(m.member_id)}</td><td></td>`+rowCells(m)+`<td></td>`;
+        tr.lastChild.appendChild(editBtn(m)); tb.appendChild(tr); });
     });
-  });
-  document.getElementById('count').textContent='共 '+ROWS.length+' 筆 / '+order.length+' 人';
+    document.getElementById('count').textContent='共 '+rows.length+' 筆 / '+order.length+' 人';
+  } else {
+    rows.forEach(m=>{ const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td>`+rowCells(m)+`<td></td>`;
+      tr.lastChild.appendChild(editBtn(m)); tb.appendChild(tr); });
+    document.getElementById('count').textContent='共 '+rows.length+' 筆';
+  }
 }
 
 function openEdit(id){
   const m=ROWS.find(x=>x.member_id===id); if(!m)return;
   document.getElementById('mTitle').textContent='編輯 '+m.member_id;
-  document.getElementById('mSub').textContent=(m.name||'')+'　'+cdText(m);
+  const c=countdown(m.registered_at,m.plan_length);
+  document.getElementById('mSub').textContent=(m.name||'')+(c?('　方案'+(c.days<0?'已到期':('剩 '+c.days+' 天'))):'');
   const set=(k,v)=>{document.getElementById('m_'+k).value=(v==null?'':v);};
   set('member_id',m.member_id);set('name',m.name);set('birth_date',m.birth_date);set('billing_day',m.billing_day);
-  set('registered_at',m.registered_at);
-  set('sponsor_member_id',m.sponsor_member_id);set('placement_parent_id',m.placement_parent_id);set('notes',m.notes);
+  set('registered_at',m.registered_at);set('sponsor_member_id',m.sponsor_member_id);set('placement_parent_id',m.placement_parent_id);set('notes',m.notes);
   document.getElementById('m_gender').value=m.gender||'';
   document.getElementById('m_status').value=m.status||'active';
   document.getElementById('m_plan_stage').value=m.plan_stage||'';
@@ -284,20 +305,16 @@ function openEdit(id){
   document.getElementById('mMsg').style.display='none';
   document.getElementById('modal').style.display='flex';
 }
-function cdText(m){ const c=countdown(m.registered_at,m.plan_length); if(!c)return''; return c.days<0?('方案已到期 '+c.exp):('方案剩 '+c.days+' 天（'+c.exp+'）'); }
 function closeModal(){document.getElementById('modal').style.display='none';}
-
 function computeDelivery(len,variant){
-  if(len==='新12M'||len==='24M')return'月配';
-  if(len==='12+2'||len==='6+1')return'一次拿';
+  if(len==='新12M'||len==='24M')return'月配'; if(len==='12+2'||len==='6+1')return'一次拿';
   if(variant==='A')return'月配'; if(variant==='B')return'一次拿'; return'';
 }
 async function save(){
   const g=k=>document.getElementById('m_'+k).value;
   const len=g('plan_length'), variant=g('plan_variant');
   const payload={ action:'update', member_id:g('member_id'),
-    name:g('name'), gender:g('gender'), birth_date:g('birth_date'), status:g('status'),
-    registered_at:g('registered_at'),
+    name:g('name'), gender:g('gender'), birth_date:g('birth_date'), status:g('status'), registered_at:g('registered_at'),
     plan_stage:g('plan_stage'), plan_length:len, plan_variant:variant, delivery_mode:computeDelivery(len,variant),
     payment_method:g('payment_method'), billing_day:g('billing_day'),
     sponsor_member_id:g('sponsor_member_id'), placement_parent_id:g('placement_parent_id'), notes:g('notes') };
@@ -306,7 +323,7 @@ async function save(){
   const mMsg=document.getElementById('mMsg');
   try{
     const d=await api(payload);
-    if(d.success){ mMsg.className='msg ok'; mMsg.textContent='已儲存 ✓'; mMsg.style.display='block'; setTimeout(()=>{closeModal();reload();},600); }
+    if(d.success){ mMsg.className='msg ok'; mMsg.textContent='已儲存 ✓'; mMsg.style.display='block'; setTimeout(()=>{closeModal();loadData();},600); }
     else{ mMsg.className='msg err'; mMsg.textContent=d.message||'儲存失敗'; mMsg.style.display='block'; }
   }catch(e){ mMsg.className='msg err'; mMsg.textContent='失敗：'+e.message; mMsg.style.display='block'; }
 }
