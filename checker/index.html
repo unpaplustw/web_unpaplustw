@@ -38,6 +38,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .cat-box .cat-emoji{font-size:26px;line-height:1}
 .cat-box.active{background:var(--pri);border-color:var(--pri);color:#fff}
 .cat-box:active{transform:scale(.96)}
+.cat-box.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+.cat-soon{font-size:10px;color:var(--muted);font-weight:600}
 
 /* ── 搜尋區 ── */
 .search-box{position:relative;margin-bottom:12px}
@@ -61,6 +63,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .sr-tag{font-size:11px;color:var(--pri);font-weight:600;margin-left:6px}
 .sr-meta{font-size:12px;color:var(--muted);margin-top:3px}
 .sr-empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:14px;line-height:1.8}
+.btn-report{padding:10px 18px;border:2px solid var(--pri);border-radius:10px;background:var(--card);color:var(--pri);font-size:14px;font-weight:700;cursor:pointer}
+.btn-report:active{background:var(--pri-lt)}
+.btn-report:disabled{opacity:.5;border-color:var(--border);color:var(--muted)}
 
 /* ── autocomplete ── */
 .ac-list{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:10;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12)}
@@ -189,7 +194,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   <div class="cat-grid" id="catGrid">
     <div class="cat-box active" data-type="food" onclick="selectCat(this)"><span class="cat-emoji">&#127869;&#65039;</span>保健食品</div>
     <div class="cat-box" data-type="drug" onclick="selectCat(this)"><span class="cat-emoji">&#128138;</span>藥品</div>
-    <div class="cat-box" data-type="device" onclick="selectCat(this)"><span class="cat-emoji">&#129658;</span>醫療器材</div>
+    <div class="cat-box disabled" data-type="device"><span class="cat-emoji">&#129658;</span>醫療器材<span class="cat-soon">建構中</span></div>
     <div class="cat-box" data-type="cosmetic" onclick="selectCat(this)"><span class="cat-emoji">&#128132;</span>化粧品</div>
   </div>
 
@@ -299,7 +304,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
   <!-- 歷史 -->
   <div class="history-section" id="historySection">
-    <div class="history-title">最近查詢</div>
+    <div class="history-title">大家最近查的</div>
     <div id="historyList"></div>
   </div>
 </div>
@@ -467,7 +472,12 @@ function renderSearchResults(list, q) {
   const srBox = document.getElementById('searchResults');
   const typeLabel = { food:'保健食品', drug:'藥品', device:'醫療器材', cosmetic:'化粧品' };
   if (!list || !list.length) {
-    srBox.innerHTML = '<div class="sr-empty">&#128269; 資料庫查無「' + esc(q) + '」<br>這個商品可能還沒建檔<br><br>&#128247; 請改用上方「拍成分表」辨識</div>';
+    // 自動記未建檔查詢（被動收集大家在找什麼）
+    logQuery('not_found', q, null);
+    srBox.innerHTML = '<div class="sr-empty">&#128269; 資料庫查無「' + esc(q) + '」<br>這個商品可能還沒建檔<br><br>' +
+      '&#128247; 請改用上方「拍成分表」辨識<br><br>' +
+      '<button class="btn-report" id="btnReport" onclick="reportMissing(\'' + esc(q) + '\')">&#128229; 回報這個商品給後台建檔</button>' +
+      '</div>';
     srBox.style.display = 'block';
     return;
   }
@@ -898,6 +908,20 @@ function hideAnalyzing() {
   document.getElementById('analyzingBox').style.display = 'none';
 }
 
+// ── 回報未建檔商品 ──
+async function reportMissing(name) {
+  const btn = document.getElementById('btnReport');
+  if (btn) { btn.disabled = true; btn.innerHTML = '&#10003; 已收到，會盡快建檔'; }
+  try {
+    await sbRag.from('query_logs').insert({
+      line_user_id: currentUser ? currentUser.lineUserId : 'unknown',
+      query_type: 'report_missing',
+      query_input: name,
+      product_id: null
+    });
+  } catch (e) { /* silent */ }
+}
+
 // ── 查詢紀錄 ──
 async function logQuery(type, input, productId) {
   try {
@@ -912,25 +936,30 @@ async function logQuery(type, input, productId) {
 }
 
 async function loadHistory() {
-  if (!currentUser) return;
+  // 全體共享：顯示大家最近查過的（去重商品名），不分個人
   const { data } = await sbRag.from('query_logs')
-    .select('query_input, query_type, product_id, created_at')
-    .eq('line_user_id', currentUser.lineUserId)
+    .select('query_input, query_type, created_at')
+    .neq('query_type', 'not_found')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(60);
 
   const box = document.getElementById('historyList');
   if (!data || !data.length) {
     box.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">尚無查詢紀錄</div>';
     return;
   }
-  box.innerHTML = data.map(function(q) {
+  // 去重，取最近 10 個不同商品
+  var seen = {}, uniq = [];
+  for (var i = 0; i < data.length && uniq.length < 10; i++) {
+    var nm = data[i].query_input;
+    if (!nm || nm === 'image_upload' || seen[nm]) continue;
+    seen[nm] = 1; uniq.push(data[i]);
+  }
+  box.innerHTML = uniq.map(function(q) {
     var t = new Date(q.created_at);
-    var ts = (t.getMonth()+1) + '/' + t.getDate() + ' ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2,'0');
-    var icon = q.query_type === 'image' ? '&#128247;' : '&#128269;';
-    var name = q.query_input === 'image_upload' ? '拍照查詢' : q.query_input;
-    return '<div class="history-item" onclick="searchInput.value=\'' + esc(name) + '\';doSearch()">' +
-      '<div class="history-name">' + icon + ' ' + name + '</div>' +
+    var ts = (t.getMonth()+1) + '/' + t.getDate();
+    return '<div class="history-item" onclick="searchInput.value=\'' + esc(q.query_input) + '\';doSearch()">' +
+      '<div class="history-name">&#128269; ' + q.query_input + '</div>' +
       '<div class="history-time">' + ts + '</div>' +
     '</div>';
   }).join('');
