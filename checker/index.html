@@ -61,6 +61,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .vr-ok{background:var(--pri-lt);border:1px solid rgba(26,107,74,.3);border-radius:10px;padding:14px;font-size:14px;line-height:1.8;color:var(--txt)}
 .vr-fail{background:var(--red-bg);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:14px;font-size:14px;line-height:1.8;color:var(--txt)}
 .vr-fail span{font-size:12px;color:var(--muted)}
+.claim-verdict{padding:14px;border-radius:10px;font-size:14px;line-height:1.7;margin-bottom:8px}
+.claim-verdict.red{background:var(--red-bg);border:1px solid rgba(220,38,38,.3)}
+.claim-verdict.yellow{background:var(--yellow-bg);border:1px solid rgba(217,119,6,.3)}
+.claim-verdict.green{background:var(--pri-lt);border:1px solid rgba(26,107,74,.3)}
+.claim-law{font-size:12px;color:var(--muted);margin-bottom:8px}
+.claim-counter{background:linear-gradient(135deg,rgba(26,107,74,.06),rgba(34,136,94,.1));border:2px solid rgba(26,107,74,.2);border-radius:10px;padding:14px;font-size:14px;line-height:1.8;color:var(--txt)}
+.claim-counter-label{font-size:12px;font-weight:700;color:var(--pri);margin-bottom:6px}
 
 /* ── 搜尋區 ── */
 .search-box{position:relative;margin-bottom:12px}
@@ -229,7 +236,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   <!-- 功能工具（非產品分類）-->
   <div class="tool-grid">
     <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
-    <div class="tool-box disabled"><span class="tool-emoji">&#128214;</span>法規教育<span class="cat-soon">即將推出</span></div>
+    <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
   </div>
 
   <!-- 字號認證面板 -->
@@ -241,6 +248,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <button class="vp-btn" onclick="doVerify()">查證</button>
     </div>
     <div class="vp-result" id="verifyResult"></div>
+  </div>
+
+  <!-- 法規教育面板（違法宣稱拆穿器）-->
+  <div class="verify-panel" id="claimPanel">
+    <div class="vp-title">&#128214; 違法宣稱拆穿</div>
+    <div class="vp-hint">對方（競品老師/上線）說了什麼？貼上來，查違不違法 + 給你反擊話術</div>
+    <div class="vp-row">
+      <input class="vp-input" id="claimInput" type="text" placeholder="如 這個能根治糖尿病">
+      <button class="vp-btn" onclick="doClaim()">查證</button>
+    </div>
+    <div class="vp-result" id="claimResult"></div>
   </div>
 
   <!-- 搜尋候選清單（點選才分析）-->
@@ -378,8 +396,53 @@ let currentFilterType = null;   // 通搜，不分類（分類是後台 regulato
 function toggleVerify() {
   var p = document.getElementById('verifyPanel');
   var show = p.style.display !== 'block';
+  document.getElementById('claimPanel').style.display = 'none';
   p.style.display = show ? 'block' : 'none';
   if (show) document.getElementById('verifyInput').focus();
+}
+
+// ── 法規教育：違法宣稱拆穿 ──
+function toggleClaim() {
+  var p = document.getElementById('claimPanel');
+  var show = p.style.display !== 'block';
+  document.getElementById('verifyPanel').style.display = 'none';
+  p.style.display = show ? 'block' : 'none';
+  if (show) document.getElementById('claimInput').focus();
+}
+async function doClaim() {
+  var q = document.getElementById('claimInput').value.trim();
+  var box = document.getElementById('claimResult');
+  if (!q) return;
+  box.innerHTML = '<span class="dot-loading">查證中</span>';
+  try {
+    const res = await fetch(ANALYZE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_RAG_KEY },
+      body: JSON.stringify({ type: 'claim_check', claim: q })
+    });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    var buffer = '', claim = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      var lines = buffer.split('\n'); buffer = lines.pop();
+      for (var i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('data: ')) {
+          try { var e = JSON.parse(lines[i].slice(6)); if (e.type === 'claim') claim = e; } catch (_) {}
+        }
+      }
+    }
+    if (!claim) { box.innerHTML = '查證失敗，請重試'; return; }
+    var icon = { red:'&#9888;&#65039;', yellow:'&#10071;', green:'&#9989;' }[claim.level] || '&#128269;';
+    box.innerHTML =
+      '<div class="claim-verdict ' + (claim.level||'yellow') + '">' + icon + ' <strong>' + claim.verdict + '</strong></div>' +
+      '<div class="claim-law">&#128220; 法規依據：' + claim.law + '</div>' +
+      '<div class="claim-counter"><div class="claim-counter-label">&#128172; 你可以這樣回</div>' + formatAttack(claim.counter) + '</div>';
+  } catch (e) {
+    box.innerHTML = '&#9888;&#65039; ' + e.message;
+  }
 }
 async function doVerify() {
   var q = document.getElementById('verifyInput').value.trim();
