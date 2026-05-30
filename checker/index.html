@@ -41,6 +41,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .cat-box.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .cat-soon{font-size:10px;color:var(--muted);font-weight:600}
 
+/* ── 功能工具（非產品分類）── */
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.tool-box{padding:14px 6px;border:2px solid var(--border);border-radius:14px;background:var(--card);font-size:14px;font-weight:700;color:var(--txt);cursor:pointer;text-align:center;box-shadow:var(--shadow);transition:.2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tool-emoji{font-size:24px;line-height:1}
+.tool-box:active{transform:scale(.96)}
+.tool-box.disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+
 /* ── 搜尋區 ── */
 .search-box{position:relative;margin-bottom:12px}
 .search-input{width:100%;padding:14px 48px 14px 16px;border:2px solid var(--border);border-radius:14px;font-size:16px;background:var(--card);transition:.2s;box-shadow:var(--shadow)}
@@ -190,16 +197,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="hd-sub" id="userName"></div>
   </div>
 
-  <!-- 類別選擇 -->
-  <div class="cat-grid" id="catGrid">
-    <div class="cat-box active" data-type="food" onclick="selectCat(this)"><span class="cat-emoji">&#127869;&#65039;</span>保健食品</div>
-    <div class="cat-box" data-type="drug" onclick="selectCat(this)"><span class="cat-emoji">&#128138;</span>藥品</div>
-    <div class="cat-box disabled" data-type="verify"><span class="cat-emoji">&#129706;</span>字號認證<span class="cat-soon">即將推出</span></div>
-  </div>
-
-  <!-- 搜尋 -->
+  <!-- 主功能：查商品（通搜，不分類）-->
   <div class="search-box">
-    <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱或條碼..." autocomplete="off">
+    <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱查詢..." autocomplete="off">
     <button class="btn-search" onclick="doSearch()">&#128269;</button>
     <div class="ac-list" id="acList"></div>
   </div>
@@ -207,9 +207,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   <!-- 拍照 -->
   <div class="photo-row">
     <label class="btn-photo" id="photoBtn">
-      &#128247; 拍成分表
+      &#128247; 拍成分表（查不到的商品用這個）
       <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
     </label>
+  </div>
+
+  <!-- 功能工具（非產品分類）-->
+  <div class="tool-grid">
+    <div class="tool-box disabled"><span class="tool-emoji">&#129706;</span>字號認證<span class="cat-soon">即將推出</span></div>
+    <div class="tool-box disabled"><span class="tool-emoji">&#128214;</span>法規教育<span class="cat-soon">即將推出</span></div>
   </div>
 
   <!-- 搜尋候選清單（點選才分析）-->
@@ -341,18 +347,7 @@ let currentUser = null;
 let searchTimer = null;
 let lastAnalysisResult = '';  // 第一段結果，給第二段用
 let lastProductCategory = ''; // 產品類別，給第二段用
-let currentFilterType = 'food';   // 預設保健食品（主戰場，有資料）
-
-// ── 類別選擇 ──
-function selectCat(el) {
-  document.querySelectorAll('.cat-box').forEach(function(t) { t.classList.remove('active'); });
-  el.classList.add('active');
-  currentFilterType = el.getAttribute('data-type');
-  // 切類別時清空目前的搜尋建議
-  acList.style.display = 'none';
-  const q = searchInput.value.trim();
-  if (q.length >= 1) autocomplete(q);
-}
+let currentFilterType = null;   // 通搜，不分類（分類是後台 regulatory_type 的事）
 
 // ── 初始化 ──
 async function init() {
