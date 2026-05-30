@@ -84,7 +84,7 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
       <option value="無方案">無方案</option>
     </select>
     <select id="sortBy" class="inp" onchange="applyView()" title="排序">
-      <option value="person">👥 依人分組</option>
+      <option value="number">🔢 依編號（同人相鄰）</option>
       <option value="countdown">⏰ 方案倒數（快到期優先）</option>
       <option value="updated">🔄 最近更新</option>
       <option value="registered">📅 入會日（新→舊）</option>
@@ -249,7 +249,7 @@ function applyView(){
   else if(sort==='updated') rows.sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
   else if(sort==='registered') rows.sort((a,b)=>String(b.registered_at||'').localeCompare(String(a.registered_at||'')));
   else rows.sort((a,b)=>String(a.member_id).localeCompare(String(b.member_id)));
-  renderRows(rows, sort==='person');
+  renderRows(rows);
 }
 function rowCells(m){
   const stg=m.plan_stage||'無方案'; const scls=stg==='再購'?'s2':(stg==='新入會'?'':'s0');
@@ -262,27 +262,12 @@ function rowCells(m){
 function editBtn(m){ const b=document.createElement('button'); b.className='btn sm'; b.textContent='編輯';
   b.addEventListener('click',(e)=>{ e.stopPropagation(); openEdit(m.member_id); }); return b; }
 
-function renderRows(rows, grouped){
+function renderRows(rows){
   const tb=document.getElementById('tbody'); tb.innerHTML='';
-  if(grouped){
-    const groups={}, order=[];
-    rows.forEach(m=>{ const k=prefixOf(m.member_id); if(!groups[k]){groups[k]=[];order.push(k);} groups[k].push(m); });
-    order.forEach(k=>{
-      const arr=groups[k]; const gtr=document.createElement('tr'); gtr.className='grouprow';
-      gtr.innerHTML=`<td colspan="9">▸ ${esc(arr[0].name||'')}（${esc(k)}）· ${arr.length} 個分店</td>`;
-      gtr.addEventListener('click',()=>document.querySelectorAll('.child.g-'+k).forEach(r=>r.classList.toggle('hidden')));
-      tb.appendChild(gtr);
-      arr.forEach(m=>{ const tr=document.createElement('tr'); tr.className='child g-'+k+' hidden';
-        tr.innerHTML=`<td>${esc(m.member_id)}</td><td></td>`+rowCells(m)+`<td></td>`;
-        tr.lastChild.appendChild(editBtn(m)); tb.appendChild(tr); });
-    });
-    document.getElementById('count').textContent='共 '+rows.length+' 筆 / '+order.length+' 人';
-  } else {
-    rows.forEach(m=>{ const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td>`+rowCells(m)+`<td></td>`;
-      tr.lastChild.appendChild(editBtn(m)); tb.appendChild(tr); });
-    document.getElementById('count').textContent='共 '+rows.length+' 筆';
-  }
+  rows.forEach(m=>{ const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc(m.member_id)}</td><td>${esc(m.name)}</td>`+rowCells(m)+`<td></td>`;
+    tr.lastChild.appendChild(editBtn(m)); tb.appendChild(tr); });
+  document.getElementById('count').textContent='共 '+rows.length+' 筆';
 }
 
 function openEdit(id){
