@@ -111,6 +111,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .badge-reviewed{background:var(--pri-lt);color:var(--pri)}
 .badge-unreviewed{background:var(--yellow-bg);color:var(--yellow)}
 
+/* ── 原始成分表 ── */
+.raw-ing{display:none;background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+.raw-ing-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;font-size:14px;font-weight:700;color:var(--pri)}
+.raw-ing-header:active{background:rgba(0,0,0,.02)}
+.raw-ing-arrow{color:var(--muted);font-size:13px;transition:.3s}
+.raw-ing-arrow.open{transform:rotate(90deg)}
+.raw-ing-body{display:none;padding:0 16px 16px;font-size:14px;line-height:1.9;color:#333}
+.raw-ing-body.open{display:block}
+
 /* ── 四刀卡片 ── */
 .blade{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
 .blade-header{display:flex;align-items:center;gap:10px;padding:16px;cursor:pointer;transition:.2s}
@@ -278,6 +287,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <div class="result-name" id="resultName"></div>
       <div class="result-brand" id="resultBrand"></div>
       <div id="resultBadge"></div>
+    </div>
+
+    <!-- 原始成分表（先攤開給使用者看，眼見為憑）-->
+    <div class="raw-ing" id="rawIngBox">
+      <div class="raw-ing-header" onclick="toggleRawIng()">
+        <span>&#128203; 原始成分表（政府登記）</span>
+        <span class="raw-ing-arrow" id="rawIngArrow">&#9654;</span>
+      </div>
+      <div class="raw-ing-body" id="rawIngBody"></div>
     </div>
 
     <!-- 第一刀 -->
@@ -759,6 +777,18 @@ async function callAnalyze(payload, productInfo) {
   const resultBox = document.getElementById('resultBox');
   document.getElementById('resultName').textContent = productInfo.name || '';
   document.getElementById('resultBrand').textContent = productInfo.brand || '';
+
+  // 原始成分表：先攤開給使用者看（眼見為憑、過程學習）
+  var rawBox = document.getElementById('rawIngBox');
+  var raw = payload.ingredients_raw || '';
+  if (raw && raw.trim()) {
+    document.getElementById('rawIngBody').textContent = raw;
+    rawBox.style.display = 'block';
+    document.getElementById('rawIngBody').classList.remove('open');
+    document.getElementById('rawIngArrow').classList.remove('open');
+  } else {
+    rawBox.style.display = 'none';
+  }
   document.getElementById('resultBadge').innerHTML = '';
   resultBox.style.display = 'block';
 
@@ -1006,6 +1036,11 @@ function closeModal(e) {
 function toggleBlade(id) {
   document.getElementById(id + 'Body').classList.toggle('open');
   document.getElementById(id + 'Arrow').classList.toggle('open');
+}
+
+function toggleRawIng() {
+  document.getElementById('rawIngBody').classList.toggle('open');
+  document.getElementById('rawIngArrow').classList.toggle('open');
 }
 
 // ── 分析中狀態 ──
