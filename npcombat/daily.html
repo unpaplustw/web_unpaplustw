@@ -294,10 +294,24 @@
 
 <div id="formArea">
 
-  <!-- ── 規劃區 ── -->
+  <!-- ── 準備區 ── -->
   <div class="sec">
-    <div class="sec-hd">📋 規劃</div>
+    <div class="sec-hd">📋 準備</div>
     <div class="act-list">
+      <div class="act" data-key="name_list">
+        <div class="act-left">
+          <div class="act-emoji">📋</div>
+          <div class="act-info">
+            <div class="act-label">狂列名單</div>
+            <div class="act-desc">今天新增幾個名字到名單上</div>
+          </div>
+        </div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('name_list',-1)">−</button>
+          <div class="act-num zero" id="n-name_list">0</div>
+          <button class="act-btn" onclick="adj('name_list',1)">＋</button>
+        </div>
+      </div>
       <div class="act" data-key="meet">
         <div class="act-left">
           <div class="act-emoji">🤝</div>
@@ -312,12 +326,19 @@
           <button class="act-btn" onclick="adj('meet',1)">＋</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── 經營區 ── -->
+  <div class="sec">
+    <div class="sec-hd">🎯 經營</div>
+    <div class="act-list">
       <div class="act" data-key="invite">
         <div class="act-left">
-          <div class="act-emoji">📞</div>
+          <div class="act-emoji">💬</div>
           <div class="act-info">
-            <div class="act-label">邀約見面</div>
-            <div class="act-desc">合照 + 群組分享</div>
+            <div class="act-label">拉近關係</div>
+            <div class="act-desc">吃飯、聊天、關心近況</div>
           </div>
         </div>
         <div class="act-ctrl">
@@ -326,18 +347,11 @@
           <button class="act-btn" onclick="adj('invite',1)">＋</button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ── 行動區 ── -->
-  <div class="sec">
-    <div class="sec-hd">🎯 行動</div>
-    <div class="act-list">
       <div class="act" data-key="present">
         <div class="act-left">
           <div class="act-emoji">🗣️</div>
           <div class="act-info">
-            <div class="act-label">溝通本溝通</div>
+            <div class="act-label">溝通本說明</div>
             <div class="act-desc">合照 + 群組分享</div>
           </div>
         </div>
@@ -359,6 +373,20 @@
           <button class="act-btn" onclick="adj('seminar',-1)">−</button>
           <div class="act-num zero" id="n-seminar">0</div>
           <button class="act-btn" onclick="adj('seminar',1)">＋</button>
+        </div>
+      </div>
+      <div class="act" data-key="follow_up">
+        <div class="act-left">
+          <div class="act-emoji">🔄</div>
+          <div class="act-info">
+            <div class="act-label">跟進追蹤</div>
+            <div class="act-desc">回訪之前接觸的人</div>
+          </div>
+        </div>
+        <div class="act-ctrl">
+          <button class="act-btn" onclick="adj('follow_up',-1)">−</button>
+          <div class="act-num zero" id="n-follow_up">0</div>
+          <button class="act-btn" onclick="adj('follow_up',1)">＋</button>
         </div>
       </div>
     </div>
