@@ -264,7 +264,7 @@ async function init() {
 
   // 查行動紀錄 + 締結紀錄
   const { data: logs } = await sb.from('action_logs')
-    .select('student_id, name_list, meet, invite, present, seminar, follow_up, ghosted, rejected')
+    .select('student_id, name_list, meet, invite, present, seminar, ghosted, rejected')
     .eq('batch_id', 1);
   const { data: closes } = await sb.from('closing_records')
     .select('member_id, points, close_date').in('member_id', memberIds);
@@ -275,7 +275,7 @@ async function init() {
   (logs || []).forEach(log => {
     const sid = log.student_id;
     if (!sums[sid]) sums[sid] = 0;
-    sums[sid] += (log.name_list||0)*1 + (log.meet||0)*1 + (log.invite||0)*2 + (log.present||0)*5 + (log.seminar||0)*5 + (log.follow_up||0)*1 + (log.ghosted||0)*1 + (log.rejected||0)*1;
+    sums[sid] += (log.name_list||0)*1 + (log.meet||0)*1 + (log.invite||0)*2 + (log.present||0)*5 + (log.seminar||0)*5 + (log.ghosted||0)*1 + (log.rejected||0)*1;
     allActions += (log.meet||0) + (log.invite||0) + (log.present||0) + (log.seminar||0) + (log.ghosted||0) + (log.rejected||0);
   });
 

@@ -65,6 +65,8 @@
   .stu-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
   .stu-row:last-child{border:none}
   .stu-row-label{font-size:15px;color:var(--text);flex:1}
+  .stu-row-left{display:flex;flex-direction:column;flex:1;min-width:0}
+  .stu-row-check{font-size:11px;color:var(--muted);margin-top:2px}
   .stu-row-ctrl{display:flex;align-items:center;gap:8px}
   .stu-adj{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:18px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;-webkit-tap-highlight-color:transparent}
   .stu-adj:active{background:var(--gold-lt);border-color:var(--gold)}
@@ -246,15 +248,14 @@ const sb = window.supabase.createClient(
 let coachMemberId = null;
 
 const STU_FIELDS = [
-  { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1 },
-  { key:'meet',      emoji:'🤝', label:'認識新友',     pts:1 },
-  { key:'invite',    emoji:'💬', label:'拉近關係',     pts:2 },
-  { key:'present',   emoji:'🗣️', label:'溝通本說明',   pts:5 },
-  { key:'seminar',   emoji:'🏛️', label:'邀請說明會',   pts:5 },
-  { key:'follow_up', emoji:'🔄', label:'跟進追蹤',     pts:1 },
+  { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1, check:'請檢查名單簿是否發群組' },
+  { key:'meet',      emoji:'🤝', label:'認識新友',     pts:1, check:'請檢查合照是否發群組' },
+  { key:'invite',    emoji:'💬', label:'拉近關係',     pts:2, check:'請檢查合照是否發群組' },
+  { key:'present',   emoji:'🗣️', label:'溝通本說明',   pts:5, check:'請檢查合照+溝通本畫面是否發群組' },
+  { key:'seminar',   emoji:'🏛️', label:'邀請說明會',   pts:5, check:'請檢查合照+會場畫面是否發群組' },
   { key:'close',     emoji:'✅', label:'締結成功', special:true },
-  { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
-  { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true },
+  { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
+  { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
 ];
 const COACH_FIELDS = [];
 
@@ -271,7 +272,7 @@ const BADGES = [
 let coachId = null;
 let myStudentId = null;
 let myData = { today: null, yesterday: null, _logId_today: null, _logId_yesterday: null };
-let myVals = { name_list:0, meet:0, invite:0, present:0, seminar:0, follow_up:0, ghosted:0, rejected:0 };
+let myVals = { name_list:0, meet:0, invite:0, present:0, seminar:0, ghosted:0, rejected:0 };
 let myCloseEntries = []; // [{plan,size,badge}]
 let myCloseData = { today: [], yesterday: [] };
 let currentMode = 'my';
@@ -348,8 +349,8 @@ async function init() {
       const myYesterdayLog = (myLogs||[]).find(l => l.log_date === yesterdayStr);
       myData._logId_today = myTodayLog?.id || null;
       myData._logId_yesterday = myYesterdayLog?.id || null;
-      myData.today = myTodayLog ? { name_list:myTodayLog.name_list||0, meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, follow_up:myTodayLog.follow_up||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 } : null;
-      myData.yesterday = myYesterdayLog ? { name_list:myYesterdayLog.name_list||0, meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, follow_up:myYesterdayLog.follow_up||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 } : null;
+      myData.today = myTodayLog ? { name_list:myTodayLog.name_list||0, meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 } : null;
+      myData.yesterday = myYesterdayLog ? { name_list:myYesterdayLog.name_list||0, meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 } : null;
 
       // 載入教練自己的締結紀錄
       const { data: myCloses } = await sb.from('closing_records').select('*')
@@ -615,7 +616,7 @@ async function submitMyReport() {
 
     const payload = {
       name_list: myVals.name_list, meet: myVals.meet, invite: myVals.invite,
-      present: myVals.present, seminar: myVals.seminar, follow_up: myVals.follow_up,
+      present: myVals.present, seminar: myVals.seminar,
       ghosted: myVals.ghosted, rejected: myVals.rejected
     };
 
@@ -780,7 +781,10 @@ function renderStudent() {
     const valCls = v === 0 ? 'zero' : (f.neg ? 'neg' : '');
     const btnCls = f.neg ? 'neg-btn' : '';
     dataHtml += `<div class="stu-row">
-      <span class="stu-row-label">${f.emoji} ${f.label}</span>
+      <div class="stu-row-left">
+        <span class="stu-row-label">${f.emoji} ${f.label}</span>
+        ${f.check ? `<span class="stu-row-check">${f.check}</span>` : ''}
+      </div>
       <div class="stu-row-ctrl">
         <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',-1)" ${dis}>−</button>
         <div class="stu-val ${valCls}" id="s-${f.key}">${v}</div>
@@ -864,7 +868,7 @@ async function submitCoach() {
     // 組裝更新資料：學員8欄（教練可修正）+ confirmed
     const updateData = {
       name_list: d.name_list||0, meet: d.meet, invite: d.invite,
-      present: d.present, seminar: d.seminar, follow_up: d.follow_up||0,
+      present: d.present, seminar: d.seminar,
       ghosted: d.ghosted, rejected: d.rejected, confirmed: true
     };
 

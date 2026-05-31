@@ -231,7 +231,6 @@ const AWARDS = [
   { key:'name_list', emoji:'📋', name:'滿門抄斬',  desc:'狂列名單筆數最多',         unit:'筆', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
   { key:'invite',    emoji:'💬', name:'人脈經營',  desc:'拉近關係次數最多',         unit:'次', fun:false },
-  { key:'follow_up', emoji:'🔄', name:'鍥而不捨',  desc:'跟進追蹤次數最多',         unit:'次', fun:false },
   { key:'present',   emoji:'💬', name:'談笑風聲',  desc:'溝通本說明次數最多',       unit:'次', fun:false },
   { key:'seminar',   emoji:'🎯', name:'邀約達人',  desc:'邀請說明會次數最多',       unit:'次', fun:false },
   { key:'ghosted',   emoji:'🕊️', name:'和平鴿王', desc:'被放鴿子最多，但不放棄',   unit:'次', fun:true },
@@ -387,7 +386,7 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, follow_up, ghosted, rejected')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
@@ -416,14 +415,14 @@ function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 
 // 根據日期範圍過濾並彙總
 function calcStats(startDate, endDate) {
-  const fields = ['name_list','meet','invite','present','seminar','follow_up','ghosted','rejected'];
-  const BASE_PTS = { name_list:1, meet:1, invite:2, present:5, seminar:5, follow_up:1, ghosted:1, rejected:1 };
+  const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected'];
+  const BASE_PTS = { name_list:1, meet:1, invite:2, present:5, seminar:5, ghosted:1, rejected:1 };
   const students = {};
   batchStudents.forEach(s => {
     students[s.id] = {
       sid: s.id, name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
-      ghosted:0, rejected:0, name_list:0, follow_up:0,
+      ghosted:0, rejected:0, name_list:0,
       close_pts:0, action_pts:0, total:0, slots:0
     };
   });
@@ -483,7 +482,7 @@ function loadWeek(idx) {
     const prevEnd = fmtDateISO(weeks[idx - 1].end);
     const { students: cumStudents } = calcStats(null, cumEnd);
     const { students: prevStudents } = calcStats(null, prevEnd);
-    const fields = ['name_list','meet','invite','present','seminar','follow_up','ghosted','rejected','close_pts','action_pts','total'];
+    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total'];
     arr.forEach(s => {
       const cum = cumStudents[s.sid];
       const prev = prevStudents[s.sid];
