@@ -216,38 +216,7 @@
     <div id="stuDataArea"></div>
   </div>
 
-  <div class="sec coach-sec">
-    <div class="sec-hd"><span>✏️ 教練補充</span></div>
-    <div class="grid3">
-      <div class="coach-card" data-key="name_list">
-        <div class="coach-emoji">📋</div>
-        <div class="coach-label">狂列名單</div>
-        <div class="coach-ctrl">
-          <button class="coach-btn" onclick="adjCoach('name_list',-1)">−</button>
-          <div class="coach-num zero" id="c-name_list">0</div>
-          <button class="coach-btn" onclick="adjCoach('name_list',1)">＋</button>
-        </div>
-      </div>
-      <div class="coach-card" data-key="schedule">
-        <div class="coach-emoji">📅</div>
-        <div class="coach-label">安排行程</div>
-        <div class="coach-ctrl">
-          <button class="coach-btn" onclick="adjCoach('schedule',-1)">−</button>
-          <div class="coach-num zero" id="c-schedule">0</div>
-          <button class="coach-btn" onclick="adjCoach('schedule',1)">＋</button>
-        </div>
-      </div>
-      <div class="coach-card grid3-full" data-key="follow_up">
-        <div class="coach-emoji">🔄</div>
-        <div class="coach-label">跟進狀況</div>
-        <div class="coach-ctrl">
-          <button class="coach-btn" onclick="adjCoach('follow_up',-1)">−</button>
-          <div class="coach-num zero" id="c-follow_up">0</div>
-          <button class="coach-btn" onclick="adjCoach('follow_up',1)">＋</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- 教練補充區已移除：所有欄位統一由學員填寫，教練在 stuDataArea 直接調整 -->
 
   <div class="submit-wrap">
     <button class="btn-submit" id="btnSubmit" onclick="submitCoach()">確認送出</button>
@@ -277,15 +246,17 @@ const sb = window.supabase.createClient(
 let coachMemberId = null;
 
 const STU_FIELDS = [
-  { key:'meet',     emoji:'🤝', label:'認識新友',     pts:1 },
-  { key:'invite',   emoji:'📞', label:'邀約見面',     pts:2 },
-  { key:'present',  emoji:'🗣️', label:'溝通本說明',   pts:5 },
-  { key:'seminar',  emoji:'🏛️', label:'邀請說明會',   pts:5 },
-  { key:'close',    emoji:'✅', label:'締結成功', special:true },
-  { key:'ghosted',  emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
-  { key:'rejected', emoji:'💪', label:'締結未果',     pts:1, neg:true },
+  { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1 },
+  { key:'meet',      emoji:'🤝', label:'認識新友',     pts:1 },
+  { key:'invite',    emoji:'💬', label:'拉近關係',     pts:2 },
+  { key:'present',   emoji:'🗣️', label:'溝通本說明',   pts:5 },
+  { key:'seminar',   emoji:'🏛️', label:'邀請說明會',   pts:5 },
+  { key:'follow_up', emoji:'🔄', label:'跟進追蹤',     pts:1 },
+  { key:'close',     emoji:'✅', label:'締結成功', special:true },
+  { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
+  { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true },
 ];
-const COACH_FIELDS = ['name_list','schedule','follow_up'];
+const COACH_FIELDS = [];
 
 const PLANS = [
   { key:'20k', label:'2萬PV', full:260, half:130 },
@@ -300,13 +271,12 @@ const BADGES = [
 let coachId = null;
 let myStudentId = null;
 let myData = { today: null, yesterday: null, _logId_today: null, _logId_yesterday: null };
-let myVals = { meet:0, invite:0, present:0, seminar:0, ghosted:0, rejected:0, name_list:0, schedule:0, follow_up:0 };
+let myVals = { name_list:0, meet:0, invite:0, present:0, seminar:0, follow_up:0, ghosted:0, rejected:0 };
 let myCloseEntries = []; // [{plan,size,badge}]
 let myCloseData = { today: [], yesterday: [] };
 let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
-let coachVals = { name_list:0, schedule:0, follow_up:0 };
 let currentDay = 'today';
 
 function toast(msg) {
@@ -328,10 +298,9 @@ function formatDate(d) {
 function getStuData(stu) { return currentDay === 'today' ? stu.today : stu.yesterday; }
 function getCoachData(stu) { return currentDay === 'today' ? stu.coach_today : stu.coach_yesterday; }
 
-function calcActionPts(d, c) {
+function calcActionPts(d) {
   let pts = 0;
   if (d) STU_FIELDS.forEach(f => { if (!f.special) pts += (d[f.key]||0) * (f.pts||0); });
-  if (c) pts += (c.name_list||0)*1 + (c.schedule||0)*1 + (c.follow_up||0)*1;
   return pts;
 }
 function calcClosePts(d) {
@@ -379,8 +348,8 @@ async function init() {
       const myYesterdayLog = (myLogs||[]).find(l => l.log_date === yesterdayStr);
       myData._logId_today = myTodayLog?.id || null;
       myData._logId_yesterday = myYesterdayLog?.id || null;
-      myData.today = myTodayLog ? { meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0, name_list:myTodayLog.name_list||0, schedule:myTodayLog.schedule||0, follow_up:myTodayLog.follow_up||0 } : null;
-      myData.yesterday = myYesterdayLog ? { meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0, name_list:myYesterdayLog.name_list||0, schedule:myYesterdayLog.schedule||0, follow_up:myYesterdayLog.follow_up||0 } : null;
+      myData.today = myTodayLog ? { name_list:myTodayLog.name_list||0, meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, follow_up:myTodayLog.follow_up||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 } : null;
+      myData.yesterday = myYesterdayLog ? { name_list:myYesterdayLog.name_list||0, meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, follow_up:myYesterdayLog.follow_up||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 } : null;
 
       // 載入教練自己的締結紀錄
       const { data: myCloses } = await sb.from('closing_records').select('*')
@@ -441,9 +410,6 @@ async function init() {
 
       function buildCoachData(log) {
         return {
-          name_list: log?.name_list || 0,
-          schedule: log?.schedule || 0,
-          follow_up: log?.follow_up || 0,
           confirmed: log?.confirmed || false
         };
       }
@@ -510,17 +476,10 @@ function renderMyReport() {
 
   // 初始化 myVals
   const MY_FIELDS = STU_FIELDS.filter(f => !f.special);
-  const MY_COACH_FIELDS = [
-    { key:'name_list', emoji:'📋', label:'狂列名單', pts:1 },
-    { key:'schedule',  emoji:'📅', label:'安排行程', pts:1 },
-    { key:'follow_up', emoji:'🔄', label:'跟進狀況', pts:1 }
-  ];
   if (d) {
     MY_FIELDS.forEach(f => { myVals[f.key] = d[f.key] || 0; });
-    MY_COACH_FIELDS.forEach(f => { myVals[f.key] = d[f.key] || 0; });
   } else {
     MY_FIELDS.forEach(f => { myVals[f.key] = 0; });
-    MY_COACH_FIELDS.forEach(f => { myVals[f.key] = 0; });
   }
 
   let h = '<div class="stu-data-card">';
@@ -534,18 +493,6 @@ function renderMyReport() {
         <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',-1)">−</button>
         <div class="stu-val ${valCls}" id="my-${f.key}">${v}</div>
         <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',1)">＋</button>
-      </div>
-    </div>`;
-  });
-  MY_COACH_FIELDS.forEach(f => {
-    const v = myVals[f.key];
-    const valCls = v === 0 ? 'zero' : '';
-    h += `<div class="stu-row">
-      <span class="stu-row-label">${f.emoji} ${f.label}</span>
-      <div class="stu-row-ctrl">
-        <button class="stu-adj" onclick="adjMy('${f.key}',-1)">−</button>
-        <div class="stu-val ${valCls}" id="my-${f.key}">${v}</div>
-        <button class="stu-adj" onclick="adjMy('${f.key}',1)">＋</button>
       </div>
     </div>`;
   });
@@ -667,9 +614,9 @@ async function submitMyReport() {
     const logId = myData[logIdKey];
 
     const payload = {
-      meet: myVals.meet, invite: myVals.invite, present: myVals.present,
-      seminar: myVals.seminar, ghosted: myVals.ghosted, rejected: myVals.rejected,
-      name_list: myVals.name_list, schedule: myVals.schedule, follow_up: myVals.follow_up
+      name_list: myVals.name_list, meet: myVals.meet, invite: myVals.invite,
+      present: myVals.present, seminar: myVals.seminar, follow_up: myVals.follow_up,
+      ghosted: myVals.ghosted, rejected: myVals.rejected
     };
 
     if (logId) {
@@ -742,7 +689,7 @@ function renderSummary() {
   studentList.forEach((stu, i) => {
     const d = getStuData(stu);
     const c = getCoachData(stu);
-    const actionPts = calcActionPts(d, c);
+    const actionPts = calcActionPts(d);
     const closePts = calcClosePts(d);
     totalAction += actionPts;
     totalClose += closePts;
@@ -818,12 +765,12 @@ function renderStudent() {
     dataHtml = '<div class="stu-empty">學員尚未填寫回報</div>';
     document.getElementById('stuDataArea').innerHTML = dataHtml;
     document.getElementById('stuDateLabel').textContent = '未填寫';
-    document.querySelectorAll('.coach-sec, .submit-wrap').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.submit-wrap').forEach(el => el.style.display = 'none');
     updateNav();
     return;
   }
 
-  document.querySelectorAll('.coach-sec, .submit-wrap').forEach(el => el.style.display = '');
+  document.querySelectorAll('.submit-wrap').forEach(el => el.style.display = '');
   const td = d;
   const dis = isLocked ? 'disabled' : '';
   dataHtml = '<div class="stu-data-card">';
@@ -864,14 +811,7 @@ function renderStudent() {
   document.getElementById('stuDataArea').innerHTML = dataHtml;
   document.getElementById('stuDateLabel').textContent = formatDate(getDateStr(currentDay));
 
-  // Coach vals
-  coachVals = { name_list: c?.name_list||0, schedule: c?.schedule||0, follow_up: c?.follow_up||0 };
-  COACH_FIELDS.forEach(k => {
-    const el = document.getElementById('c-' + k);
-    el.textContent = coachVals[k];
-    el.classList.toggle('zero', coachVals[k] === 0);
-    el.closest('.coach-card').classList.toggle('has-value', coachVals[k] > 0);
-  });
+  // Coach vals 已移除：所有欄位統一在 stuDataArea 顯示
   // Lock coach buttons
   document.querySelectorAll('.coach-btn').forEach(btn => btn.disabled = isLocked);
 
@@ -909,15 +849,6 @@ function adjStu(key, delta) {
   el.className = 'stu-val' + (d[key] === 0 ? ' zero' : (f?.neg ? ' neg' : ''));
 }
 
-function adjCoach(key, delta) {
-  if (getCoachData(studentList[currentIdx])?.confirmed) return;
-  coachVals[key] = Math.max(0, coachVals[key] + delta);
-  const el = document.getElementById('c-' + key);
-  el.textContent = coachVals[key];
-  el.classList.toggle('zero', coachVals[key] === 0);
-  el.closest('.coach-card').classList.toggle('has-value', coachVals[key] > 0);
-}
-
 // ── Submit（教練確認：寫入 action_logs）──
 async function submitCoach() {
   const stu = studentList[currentIdx];
@@ -930,12 +861,11 @@ async function submitCoach() {
     const logIdKey = currentDay === 'today' ? '_logId_today' : '_logId_yesterday';
     const logId = stu[logIdKey];
 
-    // 組裝更新資料：學員6欄（教練可能有修正）+ 教練3欄 + confirmed
+    // 組裝更新資料：學員8欄（教練可修正）+ confirmed
     const updateData = {
-      meet: d.meet, invite: d.invite, present: d.present,
-      seminar: d.seminar, ghosted: d.ghosted, rejected: d.rejected,
-      name_list: coachVals.name_list, schedule: coachVals.schedule,
-      follow_up: coachVals.follow_up, confirmed: true
+      name_list: d.name_list||0, meet: d.meet, invite: d.invite,
+      present: d.present, seminar: d.seminar, follow_up: d.follow_up||0,
+      ghosted: d.ghosted, rejected: d.rejected, confirmed: true
     };
 
     if (logId) {
@@ -952,7 +882,7 @@ async function submitCoach() {
 
     // 更新本地資料
     const cKey = currentDay === 'today' ? 'coach_today' : 'coach_yesterday';
-    stu[cKey] = { ...coachVals, confirmed: true };
+    stu[cKey] = { confirmed: true };
     toast(`${stu.name} 已確認 ✓`);
     renderStudent();
   } catch (e) {
