@@ -314,9 +314,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
     <!-- 政府禁用/限量清單命中（拍照 CAS 精確比對，鐵證）-->
     <div class="gov-hit" id="govHitBox" style="display:none">
-      <div class="gov-hit-title">&#128680; 政府清單命中（CAS 精確比對）</div>
+      <div class="gov-hit-title">&#128680; 禁用清單命中（台灣 × 歐盟，CAS 精確比對）</div>
       <div id="govHitBody"></div>
-      <div class="gov-hit-note">資料來源：衛福部食藥署化粧品成分清單。命中為成分 CAS 號精確比對，仍請核對實際包裝標示。</div>
+      <div class="gov-hit-note">資料來源：台灣食藥署化粧品禁用/限量清單 + 歐盟 CosIng Annex II 禁用清單。命中為成分 CAS 號精確比對，仍請核對實際包裝標示。</div>
     </div>
 
     <!-- 第一刀 -->
@@ -920,15 +920,30 @@ function handleStreamEvent(evt) {
     var gbox = document.getElementById('govHitBox');
     var gbody = document.getElementById('govHitBody');
     gbox.style.display = 'block';
-    gbody.innerHTML = evt.hits.map(function(h) {
-      var isBanned = h.kind === 'banned';
-      var label = isBanned ? '&#9940; 禁用成分' : '&#9888;&#65039; 限量管制';
-      var color = isBanned ? 'var(--red)' : '#e67e22';
-      var law = isBanned ? '化粧品衛生安全管理法 · 禁止使用成分表' : '化粧品成分使用限制表';
+    // 按成分 group，彙整台灣/歐盟禁用 + 限量狀態
+    var byName = {};
+    evt.hits.forEach(function(h) {
+      var k = (h.name || '') + '|' + (h.cas || '');
+      if (!byName[k]) byName[k] = { name: h.name, cas: h.cas, tw: false, eu: false, restricted: null };
+      if (h.kind === 'banned_tw') byName[k].tw = true;
+      else if (h.kind === 'banned_eu') byName[k].eu = true;
+      else if (h.kind && h.kind.indexOf('restricted') === 0) byName[k].restricted = h.detail || '有限量規定';
+    });
+    gbody.innerHTML = Object.keys(byName).map(function(k) {
+      var x = byName[k];
+      var tags = [], gap = false, color = '#e67e22';
+      if (x.tw) { tags.push('&#127481;&#127480; 台灣禁用'); color = 'var(--red)'; }
+      if (x.eu) { tags.push('&#127466;&#127482; 歐盟禁用'); if (!x.tw) gap = true; }
+      if (x.restricted) tags.push('&#9888;&#65039; 限量：' + esc(x.restricted));
+      if (gap) color = '#c026d3';
+      var head = gap
+        ? '<div style="color:#c026d3;font-weight:800;margin-bottom:2px">&#128680; 歐盟禁用、台灣未禁（標準落差）</div>'
+        : '';
       return '<div class="gov-hit-item" style="border-left:3px solid ' + color + '">'
-        + '<div><strong style="color:' + color + '">' + label + '：' + esc(h.name) + '</strong></div>'
-        + '<div class="gov-hit-meta">CAS ' + esc(h.cas) + (h.detail ? ' · ' + esc(h.detail) : '') + '</div>'
-        + '<div class="gov-hit-meta">依據：' + law + '</div>'
+        + head
+        + '<div><strong>' + esc(x.name) + '</strong></div>'
+        + '<div class="gov-hit-meta">' + tags.join('　') + '</div>'
+        + '<div class="gov-hit-meta">CAS ' + esc(x.cas) + '</div>'
         + '</div>';
     }).join('');
   }
