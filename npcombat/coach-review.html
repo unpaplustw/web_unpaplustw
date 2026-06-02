@@ -67,6 +67,9 @@
   .stu-row-label{font-size:15px;color:var(--text);flex:1}
   .stu-row-left{display:flex;flex-direction:column;flex:1;min-width:0}
   .stu-row-check{font-size:11px;color:var(--muted);margin-top:2px}
+  .grp-toggle{background:none;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.2s}
+  .grp-on{color:var(--green);border-color:var(--green)}
+  .grp-off{color:var(--muted);border-color:rgba(255,255,255,.1)}
   .stu-row-ctrl{display:flex;align-items:center;gap:8px}
   .stu-adj{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:18px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;-webkit-tap-highlight-color:transparent}
   .stu-adj:active{background:var(--gold-lt);border-color:var(--gold)}
@@ -401,9 +404,11 @@ async function init() {
       function buildDayData(log, dayCloses) {
         if (!log) return null;
         return {
-          meet: log.meet || 0, invite: log.invite || 0,
+          name_list: log.name_list || 0, meet: log.meet || 0, invite: log.invite || 0,
           present: log.present || 0, seminar: log.seminar || 0,
           ghosted: log.ghosted || 0, rejected: log.rejected || 0,
+          group_reported: log.group_reported || false,
+          coach_replied: log.coach_replied || false,
           close_entries: dayCloses.map(c => ({ pts: c.points })),
           sub_count: 0
         };
@@ -811,6 +816,23 @@ function renderStudent() {
   if (td.sub_count > 0) {
     dataHtml += `<div class="data-sub-row">📦 訂閱客戶 ${td.sub_count} 人</div>`;
   }
+
+  // 小組回報 + 教練回覆（教練可切換）
+  const grp = td.group_reported || false;
+  const replied = td.coach_replied || false;
+  dataHtml += `<div class="stu-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
+    <span class="stu-row-label">🎙️ 學員回報心得</span>
+    <button class="grp-toggle ${grp ? 'grp-on' : 'grp-off'}" id="grpBtn" onclick="toggleGroupReported()" ${dis}>
+      ${grp ? '✅ 已回報' : '⬜ 未回報'}
+    </button>
+  </div>
+  <div class="stu-row">
+    <span class="stu-row-label">💬 教練回覆心得</span>
+    <button class="grp-toggle ${replied ? 'grp-on' : 'grp-off'}" id="replyBtn" onclick="toggleCoachReplied()" ${dis}>
+      ${replied ? '✅ 已回覆' : '⬜ 未回覆'}
+    </button>
+  </div>`;
+
   dataHtml += '</div>';
   document.getElementById('stuDataArea').innerHTML = dataHtml;
   document.getElementById('stuDateLabel').textContent = formatDate(getDateStr(currentDay));
@@ -853,6 +875,26 @@ function adjStu(key, delta) {
   el.className = 'stu-val' + (d[key] === 0 ? ' zero' : (f?.neg ? ' neg' : ''));
 }
 
+function toggleGroupReported() {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  if (!d || getCoachData(stu)?.confirmed) return;
+  d.group_reported = !d.group_reported;
+  const btn = document.getElementById('grpBtn');
+  btn.className = 'grp-toggle ' + (d.group_reported ? 'grp-on' : 'grp-off');
+  btn.textContent = d.group_reported ? '✅ 已回報' : '⬜ 未回報';
+}
+
+function toggleCoachReplied() {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  if (!d || getCoachData(stu)?.confirmed) return;
+  d.coach_replied = !d.coach_replied;
+  const btn = document.getElementById('replyBtn');
+  btn.className = 'grp-toggle ' + (d.coach_replied ? 'grp-on' : 'grp-off');
+  btn.textContent = d.coach_replied ? '✅ 已回覆' : '⬜ 未回覆';
+}
+
 // ── Submit（教練確認：寫入 action_logs）──
 async function submitCoach() {
   const stu = studentList[currentIdx];
@@ -865,11 +907,13 @@ async function submitCoach() {
     const logIdKey = currentDay === 'today' ? '_logId_today' : '_logId_yesterday';
     const logId = stu[logIdKey];
 
-    // 組裝更新資料：學員8欄（教練可修正）+ confirmed
+    // 組裝更新資料：學員7欄（教練可修正）+ 小組回報 + confirmed
     const updateData = {
       name_list: d.name_list||0, meet: d.meet, invite: d.invite,
       present: d.present, seminar: d.seminar,
-      ghosted: d.ghosted, rejected: d.rejected, confirmed: true
+      ghosted: d.ghosted, rejected: d.rejected,
+      group_reported: d.group_reported || false,
+      coach_replied: d.coach_replied || false, confirmed: true
     };
 
     if (logId) {

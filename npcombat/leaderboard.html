@@ -350,8 +350,14 @@ async function init() {
   const start = new Date(currentBatch.start_date);
   const end = new Date(currentBatch.end_date);
   const today = new Date();
-  let ws = new Date(start);
-  let i = 1;
+  // 週次對齊週日～週六：第一週從 start_date 到下個週六，之後每週日～週六
+  let daysToSat = (6 - start.getDay() + 7) % 7;
+  if (daysToSat === 0) daysToSat = 7;
+  let firstSatEnd = new Date(start); firstSatEnd.setDate(firstSatEnd.getDate() + daysToSat);
+  if (firstSatEnd > end) firstSatEnd = new Date(end);
+  weeks.push({ num: 1, start: new Date(start), end: new Date(firstSatEnd) });
+  let ws = new Date(firstSatEnd); ws.setDate(ws.getDate() + 1);
+  let i = 2;
   while (ws <= end) {
     let we = new Date(ws); we.setDate(we.getDate() + 6);
     if (we > end) we = new Date(end);
