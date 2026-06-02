@@ -683,13 +683,15 @@ function renderSummary() {
   const dateStr = formatDate(getDateStr(currentDay));
   document.getElementById('summaryDate').textContent = dateStr;
 
-  let totalAction = 0, totalClose = 0;
+  let totalAction = 0, totalClose = 0, totalGrp = 0, totalReply = 0;
   let h = `<div style="display:flex;padding:8px 16px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)">
     <span style="flex:1">學員</span>
-    <span style="width:52px;text-align:center">行動</span>
-    <span style="width:52px;text-align:center">締結</span>
-    <span style="width:28px;text-align:center">📝</span>
-    <span style="width:28px;text-align:center">✅</span>
+    <span style="width:42px;text-align:center">行動</span>
+    <span style="width:36px;text-align:center">締結</span>
+    <span style="width:24px;text-align:center">📝</span>
+    <span style="width:24px;text-align:center">🎙️</span>
+    <span style="width:24px;text-align:center">💬</span>
+    <span style="width:24px;text-align:center">✅</span>
   </div>`;
 
   studentList.forEach((stu, i) => {
@@ -700,22 +702,31 @@ function renderSummary() {
     totalAction += actionPts;
     totalClose += closePts;
     const filled = d ? '📝' : '⬜';
+    const grp = d?.group_reported ? '✅' : '⬜';
+    const reply = d?.coach_replied ? '✅' : '⬜';
     const confirmed = c?.confirmed ? '✅' : '⬜';
+    if (d?.group_reported) totalGrp++;
+    if (d?.coach_replied) totalReply++;
 
     h += `<div class="summary-row" onclick="openStudent(${i})">
       <span class="summary-name">${stu.name}</span>
       <span class="summary-col pts">${actionPts}</span>
       <span class="summary-col close-pts">${closePts || '—'}</span>
       <span class="summary-icon">${filled}</span>
+      <span class="summary-icon">${grp}</span>
+      <span class="summary-icon">${reply}</span>
       <span class="summary-icon">${confirmed}</span>
     </div>`;
   });
 
+  const total = studentList.length;
   h += `<div class="summary-total">
     <span class="summary-name">合計</span>
     <span class="summary-col">${totalAction}</span>
     <span class="summary-col">${totalClose || '—'}</span>
     <span class="summary-icon"></span>
+    <span class="summary-icon" style="font-size:10px">${totalGrp}/${total}</span>
+    <span class="summary-icon" style="font-size:10px">${totalReply}/${total}</span>
     <span class="summary-icon"></span>
   </div>`;
 
