@@ -682,8 +682,8 @@ function loadWeek(idx) {
     html += '<div class="awards-grid">';
     html += renderTeamMetric('⚔️', '最強小隊', '組別平均行動積分', groupArr, 'actionAvg', '分');
     html += renderTeamMetric('💰', '成交軍團', '組別平均締結積分', groupArr, 'closeAvg', '分');
-    html += renderTeamMetric('📋', '全員到齊', '組內填報率（逼大家都填）', groupArr, 'fillRate', '%');
-    html += renderTeamMetric('✅', '嚴謹軍團', '組證明勾驗證率（逼教練審）', groupArr, 'proofRate', '%');
+    html += renderTeamMetric('📋', '全員到齊', '組內填報率最高', groupArr, 'fillRate', '%');
+    html += renderTeamMetric('✅', '嚴謹軍團', '組內證明照驗證率最高', groupArr, 'proofRate', '%');
     html += '</div>';
   } else if (currentCat === 'leader') {
     html += `<div class="section-title">🏅 ${periodLabel}領袖榜（上下線）</div>`;
@@ -691,7 +691,7 @@ function loadWeek(idx) {
     html += renderAwardCard({ key:'downlinePts', emoji:'👑', name:'帶線王', desc:'下線行動分加總最高', unit:'分' }, rank('downlinePts'));
     html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
     html += renderAwardCard({ key:'buddies', emoji:'🚌', name:'動員王', desc:'帶最多夥伴到公司（左+右）', unit:'人' }, rank('buddies'));
-    html += renderAwardCard({ key:'balance', emoji:'⚖️', name:'雙軌平衡王', desc:'左右區較弱邊最高（兩邊都要顧）', unit:'人' }, rank('balance'));
+    html += renderAwardCard({ key:'balance', emoji:'⚖️', name:'雙軌平衡王', desc:'左右區發展最均衡', unit:'人' }, rank('balance'));
     html += '</div>';
   }
 
