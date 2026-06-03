@@ -64,6 +64,16 @@
   .stu-data-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:8px 16px;overflow:hidden}
   .stu-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
   .stu-row:last-child{border:none}
+  /* 雙勾：證明 + 督導 */
+  .stu-act-row{padding:10px 0;border-bottom:1px solid var(--border)}
+  .stu-act-row:last-child{border:none}
+  .stu-act-top{display:flex;justify-content:space-between;align-items:center}
+  .stu-act-checks{display:flex;gap:8px;margin-top:8px}
+  .chk{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:7px 6px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:.15s;-webkit-tap-highlight-color:transparent}
+  .chk:active{transform:scale(.97)}
+  .chk:disabled{opacity:.5;cursor:not-allowed}
+  .chk-proof.on{color:var(--blue);border-color:var(--blue);background:rgba(91,141,239,.1)}
+  .chk-coach.on{color:var(--green);border-color:var(--green);background:rgba(76,175,130,.1)}
   .stu-row-label{font-size:15px;color:var(--text);flex:1}
   .stu-row-left{display:flex;flex-direction:column;flex:1;min-width:0}
   .stu-row-check{font-size:11px;color:var(--muted);margin-top:2px}
@@ -412,6 +422,8 @@ async function init() {
           checkin_at: log.checkin_at || null, checkout_at: log.checkout_at || null,
           buddy_left: log.buddy_left || 0, buddy_right: log.buddy_right || 0,
           checkin_confirmed: log.checkin_confirmed || false,
+          proof_checks: log.proof_checks || {},
+          coach_checks: log.coach_checks || {},
           close_entries: dayCloses.map(c => ({ pts: c.points })),
           sub_count: 0
         };
@@ -799,15 +811,20 @@ function renderStudent() {
     const v = td[f.key] || 0;
     const valCls = v === 0 ? 'zero' : (f.neg ? 'neg' : '');
     const btnCls = f.neg ? 'neg-btn' : '';
-    dataHtml += `<div class="stu-row">
-      <div class="stu-row-left">
+    const proofOn = td.proof_checks?.[f.key] ? 'on' : '';
+    const coachOn = td.coach_checks?.[f.key] ? 'on' : '';
+    dataHtml += `<div class="stu-act-row">
+      <div class="stu-act-top">
         <span class="stu-row-label">${f.emoji} ${f.label}</span>
-        ${f.check ? `<span class="stu-row-check">${f.check}</span>` : ''}
+        <div class="stu-row-ctrl">
+          <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',-1)" ${dis}>−</button>
+          <div class="stu-val ${valCls}" id="s-${f.key}">${v}</div>
+          <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',1)" ${dis}>＋</button>
+        </div>
       </div>
-      <div class="stu-row-ctrl">
-        <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',-1)" ${dis}>−</button>
-        <div class="stu-val ${valCls}" id="s-${f.key}">${v}</div>
-        <button class="stu-adj ${btnCls}" onclick="adjStu('${f.key}',1)" ${dis}>＋</button>
+      <div class="stu-act-checks">
+        <button class="chk chk-proof ${proofOn}" id="proof-${f.key}" onclick="toggleProof('${f.key}')" ${dis}>📷 證明照</button>
+        <button class="chk chk-coach ${coachOn}" id="coach-${f.key}" onclick="toggleCoachCheck('${f.key}')" ${dis}>✅ 已審核</button>
       </div>
     </div>`;
   });
@@ -889,6 +906,24 @@ function renderStudent() {
   updateNav();
 }
 
+function toggleProof(key) {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  if (!d || getCoachData(stu)?.confirmed) return;
+  if (!d.proof_checks) d.proof_checks = {};
+  d.proof_checks[key] = !d.proof_checks[key];
+  document.getElementById('proof-' + key).classList.toggle('on', d.proof_checks[key]);
+}
+
+function toggleCoachCheck(key) {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  if (!d || getCoachData(stu)?.confirmed) return;
+  if (!d.coach_checks) d.coach_checks = {};
+  d.coach_checks[key] = !d.coach_checks[key];
+  document.getElementById('coach-' + key).classList.toggle('on', d.coach_checks[key]);
+}
+
 function updateNav() {
   document.getElementById('btnPrev').disabled = currentIdx === 0;
   document.getElementById('btnNext').disabled = currentIdx === studentList.length - 1;
@@ -956,7 +991,10 @@ async function submitCoach() {
       ghosted: d.ghosted, rejected: d.rejected,
       group_reported: d.group_reported || false,
       coach_replied: d.coach_replied || false,
-      checkin_confirmed: d.checkin_confirmed || false, confirmed: true
+      checkin_confirmed: d.checkin_confirmed || false,
+      proof_checks: d.proof_checks || {},
+      coach_checks: d.coach_checks || {},
+      confirmed: true
     };
 
     if (logId) {
