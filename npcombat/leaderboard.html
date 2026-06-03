@@ -441,7 +441,8 @@ function calcStats(startDate, endDate) {
       sid: s.id, name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
       ghosted:0, rejected:0, name_list:0,
-      close_pts:0, action_pts:0, total:0, slots:0
+      close_pts:0, action_pts:0, total:0, slots:0,
+      buddies:0, supervise:0
     };
   });
   const logs = allLogs.filter(l => {
