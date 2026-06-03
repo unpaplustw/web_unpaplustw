@@ -233,6 +233,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="hd-icon">&#128300;</div>
     <div class="hd-title">產品成分查詢</div>
     <div class="hd-sub" id="userName"></div>
+    <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
   </div>
 
   <!-- 主功能：查商品（通搜，不分類）-->
@@ -249,6 +250,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
     </label>
   </div>
+
+  <!-- 扣點透明：動手前先讓使用者知道代價 -->
+  <div style="text-align:center;font-size:12px;color:var(--muted);margin:2px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 綠佳利建議免費</div>
 
   <!-- 功能工具（非產品分類）-->
   <div class="tool-grid">
@@ -512,7 +516,7 @@ async function init() {
     const profile = await liff.getProfile();
 
     const { data: member } = await sbMember.from('members')
-      .select('id, name, level')
+      .select('id, name, level, ai_credits')
       .eq('line_user_id', profile.userId)
       .single();
 
@@ -521,8 +525,9 @@ async function init() {
       return;
     }
 
-    currentUser = { lineUserId: profile.userId, name: member.name, level: member.level };
+    currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };
     document.getElementById('userName').textContent = member.name + '，找到對手的弱點';
+    updateCreditBadge(currentUser.credits);
     showScreen('main');
     loadHistory();
   } catch (e) {
@@ -729,8 +734,7 @@ async function analyzeById(productId) {
 
   // 廠商裁罰紀錄（前端直接查，不經 Claude）
   loadVendorRisk(product.brand);
-
-  logQuery('text', product.name, productId);
+  // query_logs 由 EF 寫入（含 token_used + request_id），前端不再重複寫
 }
 
 // ── 廠商裁罰紀錄查詢 + 顯示 ──
@@ -762,8 +766,7 @@ async function analyzeByText(query) {
     type: 'text_query',
     query: query
   }, { name: query, brand: '未建檔商品' });
-
-  logQuery('text', query, null);
+  // query_logs 由 EF 寫入
 }
 
 // ── 分析：拍照 ──
@@ -774,8 +777,7 @@ async function analyzeByImage(imageBlob) {
     type: 'image',
     image_base64: base64
   }, { name: '成分表辨識', brand: '拍照上傳' });
-
-  logQuery('image', 'image_upload', null);
+  // query_logs 由 EF 寫入
 }
 
 function blobToBase64(blob) {
@@ -833,6 +835,17 @@ async function callAnalyze(payload, productInfo) {
 
   hideAnalyzing();
 
+  // 扣點所需：身份(idToken)+ 冪等鍵(request_id)，隨 payload 一起送
+  let idToken = null;
+  try { idToken = liff.getIDToken(); } catch (_) {}
+  const reqId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(16).slice(2));
+  const body = Object.assign({}, payload, {
+    line_user_id: currentUser ? currentUser.lineUserId : null,
+    id_token: idToken,
+    request_id: reqId
+  });
+
+  let gotError = false;
   try {
     const res = await fetch(ANALYZE_URL, {
       method: 'POST',
@@ -840,7 +853,7 @@ async function callAnalyze(payload, productInfo) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + SB_RAG_KEY
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(body)
     });
 
     if (!res.ok) throw new Error('分析服務暫時無法使用');
@@ -863,14 +876,23 @@ async function callAnalyze(payload, productInfo) {
           if (data === '[DONE]') break;
           try {
             const evt = JSON.parse(data);
-            handleStreamEvent(evt);
+            if (evt.type === 'error') {
+              gotError = true;
+              for (let i = 1; i <= 4; i++) document.getElementById('blade' + i + 'Body').innerHTML = '&#9888;&#65039; ' + (evt.message || '發生錯誤');
+              if (evt.code === 'insufficient' && typeof evt.remaining === 'number') updateCreditBadge(evt.remaining);
+            } else {
+              handleStreamEvent(evt);
+            }
           } catch (e) { /* skip */ }
         }
       }
     }
 
-    // 分析完成，顯示「綠佳利建議」按鈕
-    document.getElementById('npSuggestBox').style.display = '';
+    // 分析成功才顯示「綠佳利建議」按鈕 + 刷新查詢紀錄
+    if (!gotError) {
+      document.getElementById('npSuggestBox').style.display = '';
+      loadHistory();
+    }
 
   } catch (e) {
     for (let i = 1; i <= 4; i++) {
@@ -881,6 +903,10 @@ async function callAnalyze(payload, productInfo) {
 
 // ── 串流事件處理 ──
 function handleStreamEvent(evt) {
+  if (evt.type === 'credit') {
+    updateCreditBadge(evt.remaining);
+    return;
+  }
   if (evt.type === 'blade') {
     const body = document.getElementById('blade' + evt.blade + 'Body');
     body.innerHTML = formatAttack(evt.content);
@@ -1125,6 +1151,14 @@ async function reportMissing(name) {
       product_id: null
     });
   } catch (e) { /* silent */ }
+}
+
+// ── 餘額顯示（init 設定、扣點後 credit 事件更新）──
+function updateCreditBadge(n) {
+  if (typeof n !== 'number') return;
+  if (currentUser) currentUser.credits = n;
+  var el = document.getElementById('creditNum');
+  if (el) el.textContent = n;
 }
 
 // ── 查詢紀錄 ──

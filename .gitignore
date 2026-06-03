@@ -1,1 +1,4 @@
 .DS_Store
+
+# pCloud 虛擬檔案系統產生的暫存檔（git 索引時會 I/O error，勿追蹤）
+*.tmp.*
