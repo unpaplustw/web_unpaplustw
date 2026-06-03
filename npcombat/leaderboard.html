@@ -67,6 +67,24 @@ body::before{
 .week-btn:disabled{
   opacity:.4;cursor:not-allowed;background:var(--bg);
 }
+/* 類型分類列 */
+.cat-selector{
+  display:flex;gap:8px;flex-wrap:wrap;padding:0 0 16px;
+}
+.cat-btn{
+  flex:1;min-width:0;padding:10px 6px;
+  border:1px solid var(--border);border-radius:12px;
+  background:var(--card);color:var(--txt2);
+  font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;
+  box-shadow:var(--shadow);transition:all .2s;
+  white-space:nowrap;text-align:center;
+}
+.cat-btn:hover{border-color:var(--gold2);color:var(--gold3)}
+.cat-btn.active{
+  background:linear-gradient(135deg,var(--gold3),var(--gold2));
+  color:#fff;border-color:var(--gold2);
+}
 
 /* Section */
 .section-title{
@@ -208,6 +226,7 @@ body::before{
   </div>
 
   <div class="week-selector" id="weekSelector"></div>
+  <div class="cat-selector" id="catSelector"></div>
 
   <div id="content">
     <div class="loading">
@@ -243,6 +262,7 @@ const AWARDS = [
 let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
+let currentCat = 'personal'; // personal / team / supervise / mobilize
 let batchStudents = [];
 let coachGroups = {};
 let coachInfo = {};
@@ -269,6 +289,7 @@ function getNextRevealTime() {
 
 function showBlackout() {
   document.getElementById('weekSelector').style.display = 'none';
+  document.getElementById('catSelector').style.display = 'none';
   const reveal = getNextRevealTime();
   function tick() {
     const diff = reveal - new Date();
@@ -323,12 +344,13 @@ async function init() {
 
   // 預載學員＋教練（都算參與者）
   const { data: stuData } = await sb.from('batch_students')
-    .select('id, member_id, coach_id, members_master(name, member_code, picture_url)')
+    .select('id, member_id, coach_id, sponsor_id, members_master(name, member_code, picture_url)')
     .eq('batch_id', currentBatch.id).eq('status', 'approved');
   batchStudents = (stuData || []).map(s => ({
     id: s.id,
     member_id: s.member_id,
     coach_id: s.coach_id,
+    sponsor_id: s.sponsor_id,
     group: coachGroups[s.coach_id] || '未分組',
     name: s.members_master?.name || '未知',
     code: s.members_master?.member_code || '',
@@ -341,6 +363,7 @@ async function init() {
       id: c.id,
       member_id: c.member_id,
       coach_id: null,
+      sponsor_id: null,
       group: c.group_name || '未分組',
       name: c.members_master?.name || '未知',
       code: '',
@@ -383,6 +406,7 @@ async function init() {
 
   await reloadData();
   renderWeekBar();
+  renderCatBar();
   if (isBlackout()) { showBlackout(); return; }
   loadWeek(currentWeek);
   // 排行榜每小時自動刷新
@@ -419,6 +443,23 @@ function renderWeekBar() {
   });
   bar.innerHTML = html;
 }
+
+const CATEGORIES = [
+  { key:'personal', label:'👤 個人' },
+  { key:'team',     label:'🏰 團隊' },
+  { key:'leader',   label:'🏅 領袖' },
+];
+function renderCatBar() {
+  const bar = document.getElementById('catSelector');
+  bar.innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-btn ${c.key === currentCat ? 'active' : ''}" onclick="setCat('${c.key}')">${c.label}</button>`
+  ).join('');
+}
+function setCat(key) {
+  currentCat = key;
+  renderCatBar();
+  loadWeek(currentWeek);
+}
 function fmtDate(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
 function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 
@@ -442,7 +483,8 @@ function calcStats(startDate, endDate) {
       meet:0, invite:0, present:0, seminar:0,
       ghosted:0, rejected:0, name_list:0,
       close_pts:0, action_pts:0, total:0, slots:0,
-      buddies:0, supervise:0
+      buddies:0, buddyLeft:0, buddyRight:0, balance:0, supervise:0,
+      filled:false, filledItems:0, verifiedItems:0, downlinePts:0
     };
   });
   const logs = allLogs.filter(l => {
@@ -472,8 +514,15 @@ function calcStats(startDate, endDate) {
     if (log.decl_read) s.action_pts += 2;
     // 🏢公司打卡 +10（GPS 自動，有 checkin_at 即給）
     if (log.checkin_at) s.action_pts += 10;
-    // 🌳 個人動員：帶夥伴左+右
-    s.buddies += (log.buddy_left || 0) + (log.buddy_right || 0);
+    // 🌳 個人動員：帶夥伴左/右（雙軌分開）
+    s.buddyLeft += (log.buddy_left || 0);
+    s.buddyRight += (log.buddy_right || 0);
+    // 📋 有填報（任一筆 log 即算填報）
+    s.filled = true;
+    // ✅ 驗證率素材：填了幾項(value>0) / 其中幾項有證明勾
+    fields.forEach(f => {
+      if ((log[f] || 0) > 0) { s.filledItems++; if (proof[f]) s.verifiedItems++; }
+    });
     // 🎯 督導分：教練勾了幾項，歸給該組教練
     const coachChecks = log.coach_checks || {};
     const checkCount = Object.values(coachChecks).filter(Boolean).length;
@@ -496,6 +545,15 @@ function calcStats(startDate, endDate) {
   arr.forEach(s => {
     s.action_pts = Math.round(s.action_pts); // 折扣可能產生 .5，四捨五入
     s.total = s.action_pts + s.close_pts;
+    s.buddies = s.buddyLeft + s.buddyRight;        // 🌳 動員總數
+    s.balance = Math.min(s.buddyLeft, s.buddyRight); // ⚖️ 雙軌平衡（取較弱那邊）
+  });
+  // 👑 帶線王：下線(sponsor)行動分加總，歸給該上線教練
+  const sidToSponsor = {};
+  batchStudents.forEach(p => { if (p.sponsor_id) sidToSponsor[p.id] = p.sponsor_id; });
+  arr.forEach(s => {
+    const sponsorId = sidToSponsor[s.sid];
+    if (sponsorId && students[sponsorId]) students[sponsorId].downlinePts += s.action_pts;
   });
   return { students, arr };
 }
@@ -574,10 +632,13 @@ function loadWeek(idx) {
   const groups = {};
   arr.forEach(s => {
     if (s.group === '未分組') return;
-    if (!groups[s.group]) groups[s.group] = { action: 0, close: 0, hasClose: 0, count: 0 };
+    if (!groups[s.group]) groups[s.group] = { action: 0, close: 0, hasClose: 0, count: 0, filledCount: 0, filledItems: 0, verifiedItems: 0 };
     groups[s.group].action += s.action_pts;
     groups[s.group].close += s.close_pts;
     if (s.close_pts > 0) groups[s.group].hasClose += 1;
+    if (s.filled) groups[s.group].filledCount += 1;
+    groups[s.group].filledItems += s.filledItems;
+    groups[s.group].verifiedItems += s.verifiedItems;
     groups[s.group].count += 1;
   });
   // 收集每組組員名稱（排除教練本人，避免重複）
@@ -596,38 +657,41 @@ function loadWeek(idx) {
     actionAvg: Math.round(g.action / g.count),
     closeAvg: Math.round(g.close / g.count),
     closePct: Math.round(g.hasClose / g.count * 100),
+    fillRate: Math.round(g.filledCount / g.count * 100),
+    proofRate: g.filledItems ? Math.round(g.verifiedItems / g.filledItems * 100) : 0,
   }));
 
-  // 渲染
+  // 渲染（依類型分類只顯示選中的榜）
   const periodLabel = idx === -1 ? '整期' : '本週';
   let html = '';
 
-  html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
-  html += '<div class="awards-grid">';
-  AWARDS.filter(a => !a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
-  html += '</div>';
+  if (currentCat === 'personal') {
+    html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
+    html += '<div class="awards-grid">';
+    AWARDS.filter(a => !a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
+    html += '</div>';
 
-  html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
-  html += '<div class="awards-grid">';
-  AWARDS.filter(a => a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
-  html += '</div>';
-
-  html += `<div class="section-title">🏰 ${periodLabel}組隊榮耀</div>`;
-  html += '<div class="awards-grid">';
-  html += renderTeamMetric('⚔️', '行動總分平均', '組別平均行動積分', groupArr, 'actionAvg', '分');
-  html += renderTeamMetric('💰', '締結總分平均', '組別平均締結積分', groupArr, 'closeAvg', '分');
-  html += renderTeamMetric('🎯', '完成獎勵活動', '組內有締結紀錄的比例', groupArr, 'closePct', '%');
-  html += '</div>';
-
-  html += `<div class="section-title">🎯 ${periodLabel}督導榜（教練）</div>`;
-  html += '<div class="awards-grid">';
-  html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
-  html += '</div>';
-
-  html += `<div class="section-title">🌳 ${periodLabel}動員榜（上線）</div>`;
-  html += '<div class="awards-grid">';
-  html += renderAwardCard({ key:'buddies', emoji:'🚌', name:'動員王', desc:'帶最多夥伴到公司（左+右）', unit:'人' }, rank('buddies'));
-  html += '</div>';
+    html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
+    html += '<div class="awards-grid">';
+    AWARDS.filter(a => a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
+    html += '</div>';
+  } else if (currentCat === 'team') {
+    html += `<div class="section-title">🏰 ${periodLabel}團隊榮耀（實戰班分組）</div>`;
+    html += '<div class="awards-grid">';
+    html += renderTeamMetric('⚔️', '最強小隊', '組別平均行動積分', groupArr, 'actionAvg', '分');
+    html += renderTeamMetric('💰', '成交軍團', '組別平均締結積分', groupArr, 'closeAvg', '分');
+    html += renderTeamMetric('📋', '全員到齊', '組內填報率（逼大家都填）', groupArr, 'fillRate', '%');
+    html += renderTeamMetric('✅', '嚴謹軍團', '組證明勾驗證率（逼教練審）', groupArr, 'proofRate', '%');
+    html += '</div>';
+  } else if (currentCat === 'leader') {
+    html += `<div class="section-title">🏅 ${periodLabel}領袖榜（上下線）</div>`;
+    html += '<div class="awards-grid">';
+    html += renderAwardCard({ key:'downlinePts', emoji:'👑', name:'帶線王', desc:'下線行動分加總最高', unit:'分' }, rank('downlinePts'));
+    html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
+    html += renderAwardCard({ key:'buddies', emoji:'🚌', name:'動員王', desc:'帶最多夥伴到公司（左+右）', unit:'人' }, rank('buddies'));
+    html += renderAwardCard({ key:'balance', emoji:'⚖️', name:'雙軌平衡王', desc:'左右區較弱邊最高（兩邊都要顧）', unit:'人' }, rank('balance'));
+    html += '</div>';
+  }
 
   document.getElementById('content').innerHTML = html;
 }
