@@ -395,7 +395,7 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported, decl_read, checkin_at, proof_checks, coach_checks')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported, decl_read, checkin_at, buddy_left, buddy_right, proof_checks, coach_checks')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
