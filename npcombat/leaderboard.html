@@ -249,7 +249,7 @@ const sb = supabase.createClient(
 const AWARDS = [
   { key:'action_pts', emoji:'🏅', name:'行動王',    desc:'純行動積分（不含締結）',    unit:'分', fun:false },
   { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'締結積分最高',             unit:'分', fun:false },
-  { key:'slots',     emoji:'🎫', name:'獎勵達人',  desc:'完成獎勵活動名額最多',     unit:'位', fun:false },
+  { key:'slots',     emoji:'🎫', name:'獎勵達人',  desc:'達成挑戰門檻名額最多（全期累積）', unit:'位', fun:false, cumulative:true },
   { key:'name_list', emoji:'📋', name:'滿門抄斬',  desc:'狂列名單筆數最多',         unit:'筆', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
   { key:'invite',    emoji:'🔗', name:'人脈經營',  desc:'拉近關係次數最多',         unit:'次', fun:false },
@@ -666,9 +666,11 @@ function loadWeek(idx) {
   let html = '';
 
   if (currentCat === 'personal') {
+    const isAllPeriod = idx === -1;
     html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
     html += '<div class="awards-grid">';
-    AWARDS.filter(a => !a.fun).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
+    // 累積型獎項（獎勵達人）只在「全期」顯示，週榜不顯示
+    AWARDS.filter(a => !a.fun && (!a.cumulative || isAllPeriod)).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
     html += '</div>';
 
     html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
