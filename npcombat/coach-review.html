@@ -409,6 +409,9 @@ async function init() {
           ghosted: log.ghosted || 0, rejected: log.rejected || 0,
           group_reported: log.group_reported || false,
           coach_replied: log.coach_replied || false,
+          checkin_at: log.checkin_at || null, checkout_at: log.checkout_at || null,
+          buddy_left: log.buddy_left || 0, buddy_right: log.buddy_right || 0,
+          checkin_confirmed: log.checkin_confirmed || false,
           close_entries: dayCloses.map(c => ({ pts: c.points })),
           sub_count: 0
         };
@@ -844,6 +847,24 @@ function renderStudent() {
     </button>
   </div>`;
 
+  // 公司打卡資訊 + 教練確認
+  if (td.checkin_at) {
+    const cin = td.checkin_at.slice(0,5);
+    const cout = td.checkout_at ? td.checkout_at.slice(0,5) : '—';
+    const buddies = (td.buddy_left||0) + (td.buddy_right||0);
+    const cConfirmed = td.checkin_confirmed || false;
+    dataHtml += `<div class="stu-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
+      <span class="stu-row-label">🏢 公司打卡</span>
+      <span style="font-size:13px;color:var(--text)">${cin} ~ ${cout}　👥${buddies}（👈${td.buddy_left||0}/👉${td.buddy_right||0}）</span>
+    </div>
+    <div class="stu-row">
+      <span class="stu-row-label">📷 打卡照上傳小組</span>
+      <button class="grp-toggle ${cConfirmed ? 'grp-on' : 'grp-off'}" id="cinBtn" onclick="toggleCheckinConfirmed()" ${dis}>
+        ${cConfirmed ? '✅ 已上傳' : '⬜ 未上傳'}
+      </button>
+    </div>`;
+  }
+
   dataHtml += '</div>';
   document.getElementById('stuDataArea').innerHTML = dataHtml;
   document.getElementById('stuDateLabel').textContent = formatDate(getDateStr(currentDay));
@@ -906,6 +927,16 @@ function toggleCoachReplied() {
   btn.textContent = d.coach_replied ? '✅ 已回覆' : '⬜ 未回覆';
 }
 
+function toggleCheckinConfirmed() {
+  const stu = studentList[currentIdx];
+  const d = getStuData(stu);
+  if (!d || getCoachData(stu)?.confirmed) return;
+  d.checkin_confirmed = !d.checkin_confirmed;
+  const btn = document.getElementById('cinBtn');
+  btn.className = 'grp-toggle ' + (d.checkin_confirmed ? 'grp-on' : 'grp-off');
+  btn.textContent = d.checkin_confirmed ? '✅ 已上傳' : '⬜ 未上傳';
+}
+
 // ── Submit（教練確認：寫入 action_logs）──
 async function submitCoach() {
   const stu = studentList[currentIdx];
@@ -924,7 +955,8 @@ async function submitCoach() {
       present: d.present, seminar: d.seminar,
       ghosted: d.ghosted, rejected: d.rejected,
       group_reported: d.group_reported || false,
-      coach_replied: d.coach_replied || false, confirmed: true
+      coach_replied: d.coach_replied || false,
+      checkin_confirmed: d.checkin_confirmed || false, confirmed: true
     };
 
     if (logId) {
