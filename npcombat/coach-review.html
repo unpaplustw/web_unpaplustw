@@ -830,12 +830,20 @@ function renderStudent() {
 
   if (td.close_entries && td.close_entries.length > 0) {
     const totalPts = td.close_entries.reduce((s,e) => s + e.pts, 0);
-    dataHtml += `<div class="stu-row">
-      <span class="stu-row-label">✅ 締結成功</span>
-      <div class="stu-val">${td.close_entries.length} 筆 / ${totalPts} 分</div>
-    </div>`;
+    const cProofOn = td.proof_checks?.close ? 'on' : '';
+    const cCoachOn = td.coach_checks?.close ? 'on' : '';
     const details = td.close_entries.map((e,i) => `第${i+1}筆 → ${e.pts}分`).join('<br>');
-    dataHtml += `<div class="data-close-detail">${details}</div>`;
+    dataHtml += `<div class="stu-act-row">
+      <div class="stu-act-top">
+        <span class="stu-row-label">✅ 締結成功</span>
+        <div class="stu-val">${td.close_entries.length} 筆 / ${totalPts} 分</div>
+      </div>
+      <div class="data-close-detail">${details}</div>
+      <div class="stu-act-checks">
+        <button class="chk chk-proof ${cProofOn}" id="proof-close" onclick="toggleProof('close')" ${dis}>📷 報件證明</button>
+        <button class="chk chk-coach ${cCoachOn}" id="coach-close" onclick="toggleCoachCheck('close')" ${dis}>✅ 已審核</button>
+      </div>
+    </div>`;
   } else {
     dataHtml += `<div class="stu-row">
       <span class="stu-row-label">✅ 締結成功</span>
