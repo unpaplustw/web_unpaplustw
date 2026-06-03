@@ -450,6 +450,9 @@ function calcStats(startDate, endDate) {
     if (endDate && l.log_date > endDate) return false;
     return true;
   });
+  // 組別 → 該組教練的參賽 id（督導分歸給教練）
+  const groupCoachSid = {};
+  batchStudents.forEach(p => { if (p.role === 'coach' && p.group && p.group !== '未分組') groupCoachSid[p.group] = p.id; });
   logs.forEach(log => {
     const s = students[log.student_id];
     if (!s) return;
@@ -469,6 +472,15 @@ function calcStats(startDate, endDate) {
     if (log.decl_read) s.action_pts += 2;
     // 🏢公司打卡 +10（GPS 自動，有 checkin_at 即給）
     if (log.checkin_at) s.action_pts += 10;
+    // 🌳 個人動員：帶夥伴左+右
+    s.buddies += (log.buddy_left || 0) + (log.buddy_right || 0);
+    // 🎯 督導分：教練勾了幾項，歸給該組教練
+    const coachChecks = log.coach_checks || {};
+    const checkCount = Object.values(coachChecks).filter(Boolean).length;
+    if (checkCount) {
+      const coachSid = groupCoachSid[s.group];
+      if (coachSid && students[coachSid]) students[coachSid].supervise += checkCount;
+    }
   });
   const closes = allCloses.filter(c => {
     if (startDate && c.close_date < startDate) return false;
@@ -510,7 +522,7 @@ function loadWeek(idx) {
     const prevEnd = fmtDateISO(weeks[idx - 1].end);
     const { students: cumStudents } = calcStats(null, cumEnd);
     const { students: prevStudents } = calcStats(null, prevEnd);
-    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total'];
+    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total','buddies','supervise'];
     arr.forEach(s => {
       const cum = cumStudents[s.sid];
       const prev = prevStudents[s.sid];
@@ -604,6 +616,16 @@ function loadWeek(idx) {
   html += renderTeamMetric('⚔️', '行動總分平均', '組別平均行動積分', groupArr, 'actionAvg', '分');
   html += renderTeamMetric('💰', '締結總分平均', '組別平均締結積分', groupArr, 'closeAvg', '分');
   html += renderTeamMetric('🎯', '完成獎勵活動', '組內有締結紀錄的比例', groupArr, 'closePct', '%');
+  html += '</div>';
+
+  html += `<div class="section-title">🎯 ${periodLabel}督導榜（教練）</div>`;
+  html += '<div class="awards-grid">';
+  html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
+  html += '</div>';
+
+  html += `<div class="section-title">🌳 ${periodLabel}動員榜（上線）</div>`;
+  html += '<div class="awards-grid">';
+  html += renderAwardCard({ key:'buddies', emoji:'🚌', name:'動員王', desc:'帶最多夥伴到公司（左+右）', unit:'人' }, rank('buddies'));
   html += '</div>';
 
   document.getElementById('content').innerHTML = html;
