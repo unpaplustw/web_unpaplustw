@@ -395,12 +395,12 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported, decl_read, checkin_at, proof_checks, coach_checks')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
   const { data: closeData } = await sb.from('closing_records')
-    .select('member_id, points, close_date').in('member_id', memberIds);
+    .select('member_id, points, close_date, source').in('member_id', memberIds);
   allCloses = closeData || [];
 
   const { data: bonusData } = await sb.from('bonus_rules')
@@ -421,6 +421,15 @@ function renderWeekBar() {
 }
 function fmtDate(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
 function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
+
+// 締結是否計分：admin 補登永遠算；學員自填(daily)要當天證明勾 close=true
+function closeCounts(c) {
+  if (c.source === 'admin') return true;
+  const sid = memberToStu[c.member_id];
+  if (!sid) return false;
+  const log = allLogs.find(l => l.student_id === sid && l.log_date === c.close_date);
+  return !!(log && log.proof_checks && log.proof_checks.close);
+}
 
 // 根據日期範圍過濾並彙總
 function calcStats(startDate, endDate) {
@@ -443,14 +452,22 @@ function calcStats(startDate, endDate) {
   logs.forEach(log => {
     const s = students[log.student_id];
     if (!s) return;
+    const proof = log.proof_checks || {};
     fields.forEach(f => {
       const val = log[f] || 0;
       s[f] += val;
-      // 查詢該日該欄位是否有加權規則
       const matching = allBonusRules.filter(r => r.action_field === f && log.log_date >= r.start_date && log.log_date <= r.end_date);
       const mult = matching.length ? Math.max(...matching.map(r => r.multiplier)) : 1;
-      s.action_pts += val * BASE_PTS[f] * mult;
+      // 證明勾：有=全分，無=×0.5
+      const proofMult = proof[f] ? 1 : 0.5;
+      s.action_pts += val * BASE_PTS[f] * mult * proofMult;
     });
+    // 🎙️小組回報 +5（要證明勾）
+    if (log.group_reported && proof.group) s.action_pts += 5;
+    // 📖朗讀宣言 +2（學員自己拿）
+    if (log.decl_read) s.action_pts += 2;
+    // 🏢公司打卡 +10（GPS 自動，有 checkin_at 即給）
+    if (log.checkin_at) s.action_pts += 10;
   });
   const closes = allCloses.filter(c => {
     if (startDate && c.close_date < startDate) return false;
@@ -459,7 +476,8 @@ function calcStats(startDate, endDate) {
   });
   closes.forEach(c => {
     const sid = memberToStu[c.member_id];
-    if (sid && students[sid]) students[sid].close_pts += c.points || 0;
+    if (!sid || !students[sid]) return;
+    if (closeCounts(c)) students[sid].close_pts += c.points || 0;
   });
   const arr = Object.values(students);
   arr.forEach(s => {
@@ -506,6 +524,7 @@ function loadWeek(idx) {
   const cm = currentBatch.cross_month_score || 900;
   const slotsByMember = {};
   allCloses.forEach(c => {
+    if (!closeCounts(c)) return; // 同樣套證明勾門檻
     if (!slotsByMember[c.member_id]) slotsByMember[c.member_id] = {};
     const m = parseInt(c.close_date.split('-')[1]);
     slotsByMember[c.member_id][m] = (slotsByMember[c.member_id][m] || 0) + (c.points || 0);

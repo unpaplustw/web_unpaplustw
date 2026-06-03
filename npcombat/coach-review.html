@@ -855,19 +855,24 @@ function renderStudent() {
     dataHtml += `<div class="data-sub-row">📦 訂閱客戶 ${td.sub_count} 人</div>`;
   }
 
-  // 小組回報 + 教練回覆（教練可切換）
-  const grp = td.group_reported || false;
-  const replied = td.coach_replied || false;
-  dataHtml += `<div class="stu-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
-    <span class="stu-row-label">🎙️ 學員回報心得</span>
-    <button class="grp-toggle ${grp ? 'grp-on' : 'grp-off'}" id="grpBtn" onclick="toggleGroupReported()" ${dis}>
-      ${grp ? '✅ 已回報' : '⬜ 未回報'}
-    </button>
+  // 🎙️ 小組回報（+5）：學員聲明 + 雙勾（證明=有發3分鐘心得→+5、督導=教練審→+1）
+  const grpClaim = td.group_reported ? '🟢 學員聲明已回報' : '⬜ 學員未聲明';
+  const gProofOn = td.proof_checks?.group ? 'on' : '';
+  const gCoachOn = td.coach_checks?.group ? 'on' : '';
+  dataHtml += `<div class="stu-act-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
+    <div class="stu-act-top">
+      <span class="stu-row-label">🎙️ 小組回報心得</span>
+      <span style="font-size:13px;color:var(--text)">${grpClaim}</span>
+    </div>
+    <div class="stu-act-checks">
+      <button class="chk chk-proof ${gProofOn}" id="proof-group" onclick="toggleProof('group')" ${dis}>📷 有發心得</button>
+      <button class="chk chk-coach ${gCoachOn}" id="coach-group" onclick="toggleCoachCheck('group')" ${dis}>✅ 已審核</button>
+    </div>
   </div>
   <div class="stu-row">
     <span class="stu-row-label">💬 教練回覆心得</span>
-    <button class="grp-toggle ${replied ? 'grp-on' : 'grp-off'}" id="replyBtn" onclick="toggleCoachReplied()" ${dis}>
-      ${replied ? '✅ 已回覆' : '⬜ 未回覆'}
+    <button class="grp-toggle ${td.coach_replied ? 'grp-on' : 'grp-off'}" id="replyBtn" onclick="toggleCoachReplied()" ${dis}>
+      ${td.coach_replied ? '✅ 已回覆' : '⬜ 未回覆'}
     </button>
   </div>`;
 
@@ -940,16 +945,6 @@ function adjStu(key, delta) {
   const f = STU_FIELDS.find(f => f.key === key);
   el.textContent = d[key];
   el.className = 'stu-val' + (d[key] === 0 ? ' zero' : (f?.neg ? ' neg' : ''));
-}
-
-function toggleGroupReported() {
-  const stu = studentList[currentIdx];
-  const d = getStuData(stu);
-  if (!d || getCoachData(stu)?.confirmed) return;
-  d.group_reported = !d.group_reported;
-  const btn = document.getElementById('grpBtn');
-  btn.className = 'grp-toggle ' + (d.group_reported ? 'grp-on' : 'grp-off');
-  btn.textContent = d.group_reported ? '✅ 已回報' : '⬜ 未回報';
 }
 
 function toggleCoachReplied() {
