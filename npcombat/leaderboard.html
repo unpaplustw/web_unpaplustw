@@ -494,6 +494,7 @@ function calcStats(startDate, endDate) {
   });
   const arr = Object.values(students);
   arr.forEach(s => {
+    s.action_pts = Math.round(s.action_pts); // 折扣可能產生 .5，四捨五入
     s.total = s.action_pts + s.close_pts;
   });
   return { students, arr };
