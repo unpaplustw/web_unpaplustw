@@ -484,7 +484,8 @@ function calcStats(startDate, endDate) {
       ghosted:0, rejected:0, name_list:0,
       close_pts:0, action_pts:0, total:0, slots:0,
       buddies:0, buddyLeft:0, buddyRight:0, balance:0, supervise:0,
-      filled:false, filledItems:0, verifiedItems:0, downlinePts:0
+      filled:false, filledItems:0, verifiedItems:0,
+      downlinePts:0, downlineCount:0, downlineAvg:0, downlineNames:[]
     };
   });
   const logs = allLogs.filter(l => {
@@ -548,12 +549,19 @@ function calcStats(startDate, endDate) {
     s.buddies = s.buddyLeft + s.buddyRight;        // 🌳 動員總數
     s.balance = Math.min(s.buddyLeft, s.buddyRight); // ⚖️ 雙軌平衡（取較弱那邊）
   });
-  // 👑 帶線王：下線(sponsor)行動分加總，歸給該上線教練
+  // 👑 領袖王：下線(sponsor)實戰班總分平均，歸給該上線教練 + 收集下線名字
   const sidToSponsor = {};
   batchStudents.forEach(p => { if (p.sponsor_id) sidToSponsor[p.id] = p.sponsor_id; });
   arr.forEach(s => {
     const sponsorId = sidToSponsor[s.sid];
-    if (sponsorId && students[sponsorId]) students[sponsorId].downlinePts += s.action_pts;
+    if (sponsorId && students[sponsorId]) {
+      students[sponsorId].downlinePts += s.total;
+      students[sponsorId].downlineCount += 1;
+      students[sponsorId].downlineNames.push(s.name);
+    }
+  });
+  arr.forEach(s => {
+    s.downlineAvg = s.downlineCount ? Math.round(s.downlinePts / s.downlineCount) : 0;
   });
   return { students, arr };
 }
@@ -632,10 +640,11 @@ function loadWeek(idx) {
   const groups = {};
   arr.forEach(s => {
     if (s.group === '未分組') return;
-    if (!groups[s.group]) groups[s.group] = { action: 0, close: 0, hasClose: 0, count: 0, filledCount: 0, filledItems: 0, verifiedItems: 0 };
+    if (!groups[s.group]) groups[s.group] = { action: 0, close: 0, hasClose: 0, hasSlot: 0, count: 0, filledCount: 0, filledItems: 0, verifiedItems: 0 };
     groups[s.group].action += s.action_pts;
     groups[s.group].close += s.close_pts;
     if (s.close_pts > 0) groups[s.group].hasClose += 1;
+    if (s.slots > 0) groups[s.group].hasSlot += 1;
     if (s.filled) groups[s.group].filledCount += 1;
     groups[s.group].filledItems += s.filledItems;
     groups[s.group].verifiedItems += s.verifiedItems;
@@ -657,6 +666,7 @@ function loadWeek(idx) {
     actionAvg: Math.round(g.action / g.count),
     closeAvg: Math.round(g.close / g.count),
     closePct: Math.round(g.hasClose / g.count * 100),
+    slotPct: Math.round(g.hasSlot / g.count * 100),
     fillRate: Math.round(g.filledCount / g.count * 100),
     proofRate: g.filledItems ? Math.round(g.verifiedItems / g.filledItems * 100) : 0,
   }));
@@ -681,14 +691,19 @@ function loadWeek(idx) {
     html += `<div class="section-title">🏰 ${periodLabel}團隊榮耀（實戰班分組）</div>`;
     html += '<div class="awards-grid">';
     html += renderTeamMetric('⚔️', '最強小隊', '組別平均行動積分', groupArr, 'actionAvg', '分');
-    html += renderTeamMetric('💰', '成交軍團', '組別平均締結積分', groupArr, 'closeAvg', '分');
+    // 成交軍團：全期看達成門檻比例、週榜看本週成交比例
+    if (idx === -1) {
+      html += renderTeamMetric('🏆', '成交軍團', '組內達成挑戰門檻比例', groupArr, 'slotPct', '%');
+    } else {
+      html += renderTeamMetric('💰', '成交軍團', '組內本週成交比例', groupArr, 'closePct', '%');
+    }
     html += renderTeamMetric('📋', '全員到齊', '組內填報率最高', groupArr, 'fillRate', '%');
     html += renderTeamMetric('✅', '嚴謹軍團', '組內證明照驗證率最高', groupArr, 'proofRate', '%');
     html += '</div>';
   } else if (currentCat === 'leader') {
     html += `<div class="section-title">🏅 ${periodLabel}領袖榜（上下線）</div>`;
     html += '<div class="awards-grid">';
-    html += renderAwardCard({ key:'downlinePts', emoji:'👑', name:'帶線王', desc:'下線行動分加總最高', unit:'分' }, rank('downlinePts'));
+    html += renderLeaderKing(rank('downlineAvg'));
     html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
     html += renderAwardCard({ key:'buddies', emoji:'🚌', name:'動員王', desc:'帶最多夥伴到公司（左+右）', unit:'人' }, rank('buddies'));
     html += renderAwardCard({ key:'balance', emoji:'⚖️', name:'雙軌平衡王', desc:'左右區發展最均衡', unit:'人' }, rank('balance'));
@@ -753,6 +768,32 @@ function renderTeamMetric(emoji, name, desc, groups, key, unit) {
         <div class="award-info">
           <div class="award-name">${name}<span class="team-tag">團隊獎</span></div>
           <div class="award-desc">${desc}</div>
+        </div>
+      </div>
+      ${podium}
+    </div>`;
+}
+
+function renderLeaderKing(top3) {
+  let podium;
+  if (top3.length === 0) {
+    podium = '<div class="empty-state">虛位以待，等你來搶！</div>';
+  } else {
+    podium = '<div class="podium">' + top3.map(s => `
+      <div class="podium-row rank-${s.rank}">
+        <div class="rank-badge">${s.rank}</div>
+        ${s.pic ? `<img class="podium-avatar" src="${s.pic}" alt="">` : ''}
+        <div class="podium-name">${s.name}<div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:2px">下線：${s.downlineNames.join('、') || '—'}</div></div>
+        <div class="podium-score">${s.downlineAvg}<span class="podium-unit">分</span></div>
+      </div>`).join('') + '</div>';
+  }
+  return `
+    <div class="award-card">
+      <div class="award-header">
+        <div class="award-emoji">👑</div>
+        <div class="award-info">
+          <div class="award-name">領袖王<span class="team-tag">領袖獎</span></div>
+          <div class="award-desc">下線參與實戰班總分平均最高</div>
         </div>
       </div>
       ${podium}
