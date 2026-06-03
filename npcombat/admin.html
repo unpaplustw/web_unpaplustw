@@ -179,6 +179,16 @@
   .perm-add-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px}
   .perm-add-row select{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
 
+  /* ── 追蹤分析 ── */
+  .track-row{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-left:3px solid var(--muted);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .track-red{border-left-color:var(--red)}
+  .track-orange{border-left-color:var(--yellow)}
+  .track-blue{border-left-color:var(--blue)}
+  .track-name{font-size:14px;font-weight:600;color:var(--white)}
+  .track-mid{font-size:12px;color:var(--muted)}
+  .track-tag{font-size:12px;font-weight:600;color:var(--gold);margin-left:auto}
+  .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
+
   /* ── Dashboard interaction matrix ── */
   .battery{position:relative;width:100%;height:40px;background:var(--navy3);border:2px solid var(--gold-bd);border-radius:8px;margin-bottom:16px;overflow:hidden}
   .battery-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,rgba(212,175,55,.3),var(--gold));border-radius:6px;transition:width .6s ease}
@@ -255,6 +265,7 @@
 
   <div class="tabs">
     <button class="tab on" data-t="dashboard">資訊版</button>
+    <button class="tab" data-t="track">追蹤分析</button>
     <button class="tab" data-t="review">審核名冊</button>
     <button class="tab" data-t="org">教練組織</button>
     <button class="tab" data-t="pairing">配對管理</button>
@@ -264,6 +275,7 @@
   </div>
 
   <div class="panel on" id="p-dashboard"><div class="loading">載入中…</div></div>
+  <div class="panel" id="p-track"><div id="trackArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-review"><div id="reviewArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-org"><div id="orgArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-pairing"><div id="pairArea" class="loading">載入中…</div></div>
@@ -281,7 +293,7 @@ const sb = window.supabase.createClient(
 );
 
 const LIFF_ID = '2009692859-DepTDosN';
-let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], selS = null, selC = null, searchReview = '';
+let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
 let myAllowedTabs = [];
 let isReadonly = false;
 
@@ -312,7 +324,7 @@ async function init() {
       const { data: coachCheck } = await sb.from('batch_coaches').select('id')
         .eq('member_id', member.id).limit(1);
       if (!coachCheck?.length) { document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-text">無管理權限</div></div>'; return; }
-      myAllowedTabs = ['dashboard','review','org','pairing','bonus'];
+      myAllowedTabs = ['dashboard','track','review','org','pairing','bonus'];
       isReadonly = true;
     }
 
@@ -382,6 +394,11 @@ async function load() {
     .select('*').eq('batch_id', bid).gte('log_date', yesterday).lte('log_date', today);
   todayLogs = (recentLogs || []).filter(l => l.log_date === today);
   yesterdayLogs = (recentLogs || []).filter(l => l.log_date === yesterday);
+  // 全期 logs（追蹤分析用）
+  const { data: full } = await sb.from('action_logs')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, confirmed, proof_checks')
+    .eq('batch_id', bid);
+  allLogs = full || [];
   render();
 }
 
@@ -411,7 +428,92 @@ function matchSearch(item) {
 }
 
 function render() {
-  renderDashboard(); renderReview(); renderOrg(); renderPairing(); renderBonus(); renderFinance(); renderPerm();
+  renderDashboard(); renderTrack(); renderReview(); renderOrg(); renderPairing(); renderBonus(); renderFinance(); renderPerm();
+}
+
+// ════════════════════════════════════════════
+// Tab: 追蹤分析（需要關注名單）
+// ════════════════════════════════════════════
+function renderTrack() {
+  const el = document.getElementById('p-track');
+  if (!el) return;
+  const today = localDateStr(new Date());
+  const yesterday = localDateStr(new Date(Date.now() - 86400000));
+  const dayDiff = (d1, d2) => Math.round((new Date(d1) - new Date(d2)) / 86400000);
+  const actScore = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0);
+
+  const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
+  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
+  const approved = students.filter(s => s.status === 'approved');
+  const realStudents = approved.filter(s => !coachMemberIds.has(s.member_id));
+
+  const logsByStu = {};
+  allLogs.forEach(l => { (logsByStu[l.student_id] = logsByStu[l.student_id] || []).push(l); });
+
+  // 🔴 連續沒填（≥2 天或從未）
+  const silent = [];
+  realStudents.forEach(s => {
+    const ls = logsByStu[s.id] || [];
+    const coachName = coachById[s.coach_id] || '未配對';
+    if (!ls.length) { silent.push({ name: nm(s), coach: coachName, gap: 999, txt: '從未填寫' }); return; }
+    const last = ls.map(l => l.log_date).sort().reverse()[0];
+    const gap = dayDiff(today, last);
+    if (gap >= 2) silent.push({ name: nm(s), coach: coachName, gap, txt: gap + ' 天沒填' });
+  });
+  silent.sort((a, b) => b.gap - a.gap);
+
+  // 🟠 待審卡住（學員填了、教練沒確認、且非今天）
+  const stuckByCoach = {};
+  allLogs.forEach(l => {
+    if (l.confirmed || l.log_date > yesterday) return;
+    if (actScore(l) === 0) return; // 全 0 不算填
+    const s = approved.find(x => x.id === l.student_id);
+    if (!s || coachMemberIds.has(s.member_id)) return;
+    const coachName = coachById[s.coach_id] || '未配對';
+    if (!stuckByCoach[coachName]) stuckByCoach[coachName] = new Set();
+    stuckByCoach[coachName].add(nm(s) + '（' + l.log_date.slice(5) + '）');
+  });
+  const stuck = Object.entries(stuckByCoach).map(([coach, set]) => ({ coach, items: [...set] }))
+    .sort((a, b) => b.items.length - a.items.length);
+
+  // 📉 本週比上週下滑（>50%）
+  const d = new Date(today);
+  const thisSun = new Date(d); thisSun.setDate(d.getDate() - d.getDay());
+  const lastSun = new Date(thisSun); lastSun.setDate(thisSun.getDate() - 7);
+  const lastSat = new Date(thisSun); lastSat.setDate(thisSun.getDate() - 1);
+  const tSun = localDateStr(thisSun), lSun = localDateStr(lastSun), lSat = localDateStr(lastSat);
+  const drop = [];
+  realStudents.forEach(s => {
+    const ls = logsByStu[s.id] || [];
+    const thisW = ls.filter(l => l.log_date >= tSun && l.log_date <= today).reduce((a, l) => a + actScore(l), 0);
+    const lastW = ls.filter(l => l.log_date >= lSun && l.log_date <= lSat).reduce((a, l) => a + actScore(l), 0);
+    if (lastW >= 10 && thisW < lastW * 0.5) {
+      drop.push({ name: nm(s), coach: coachById[s.coach_id] || '未配對', lastW, thisW });
+    }
+  });
+  drop.sort((a, b) => (b.lastW - b.thisW) - (a.lastW - a.thisW));
+
+  // ── 渲染 ──
+  let h = '';
+  h += `<div class="sec-title"><span>🔴 連續沒填（教練快關心）</span><span class="sec-count">${silent.length} 人</span></div>`;
+  if (!silent.length) h += `<div class="dash-empty">太棒了，沒人失聯 🎉</div>`;
+  else h += '<div>' + silent.map(x =>
+    `<div class="track-row track-red"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.txt}</span></div>`
+  ).join('') + '</div>';
+
+  h += `<div class="sec-title"><span>🟠 學員填了、教練還沒審</span><span class="sec-count">${stuck.length} 位教練</span></div>`;
+  if (!stuck.length) h += `<div class="dash-empty">審核都跟上了 👍</div>`;
+  else h += '<div>' + stuck.map(x =>
+    `<div class="track-row track-orange"><span class="track-name">教練：${x.coach}</span><span class="track-tag">${x.items.length} 筆待審</span><div class="track-sub">${x.items.join('、')}</div></div>`
+  ).join('') + '</div>';
+
+  h += `<div class="sec-title"><span>📉 本週比上週明顯下滑</span><span class="sec-count">${drop.length} 人</span></div>`;
+  if (!drop.length) h += `<div class="dash-empty">沒有明顯退步 💪</div>`;
+  else h += '<div>' + drop.map(x =>
+    `<div class="track-row track-blue"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.lastW} → ${x.thisW} 分</span></div>`
+  ).join('') + '</div>';
+
+  el.innerHTML = h;
 }
 
 // ════════════════════════════════════════════
@@ -1224,6 +1326,7 @@ async function saveTransferCode(sid) {
 // ════════════════════════════════════════════
 const ALL_TABS = [
   { key:'dashboard', label:'資訊版' },
+  { key:'track', label:'追蹤分析' },
   { key:'review', label:'審核名冊' },
   { key:'org', label:'教練組織' },
   { key:'pairing', label:'配對管理' },
