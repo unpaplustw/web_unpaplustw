@@ -95,20 +95,6 @@
   .data-sub-row{padding:8px 0;font-size:14px;color:var(--muted)}
   .stu-empty{padding:24px;text-align:center;color:var(--muted);font-size:14px;background:var(--card);border-radius:12px;box-shadow:var(--shadow)}
 
-  /* ── Coach input cards ── */
-  .coach-card{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);transition:border-color .2s}
-  .coach-card.has-value{border-color:var(--blue)}
-  .coach-emoji{font-size:28px;line-height:1}
-  .coach-label{font-size:15px;font-weight:600;color:var(--text);margin-top:4px}
-  .coach-ctrl{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}
-  .coach-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:24px;font-weight:700;color:var(--blue);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
-  .coach-btn:active{background:var(--blue-bg);border-color:var(--blue)}
-  .coach-btn:disabled{opacity:.3;cursor:not-allowed}
-  .coach-btn:disabled:active{background:var(--card);border-color:var(--border)}
-  .coach-num{font-size:36px;font-weight:700;color:var(--blue);min-width:48px;text-align:center}
-  .coach-num.zero{color:var(--muted)}
-  .grid3{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .grid3-full{grid-column:1/-1;max-width:calc(50% - 5px);margin:0 auto}
 
   /* ── Buttons ── */
   .submit-wrap{padding:20px 16px;max-width:500px;margin:0 auto;display:flex;gap:10px}
@@ -168,11 +154,6 @@
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-  @media(min-width:500px){
-    .coach-btn{width:56px;height:56px;font-size:28px}
-    .coach-num{font-size:40px}
-  }
 </style>
 </head>
 <body>
@@ -270,7 +251,6 @@ const STU_FIELDS = [
   { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
   { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
 ];
-const COACH_FIELDS = [];
 
 const PLANS = [
   { key:'20k', label:'2萬PV', full:260, half:130 },
@@ -890,10 +870,6 @@ function renderStudent() {
   dataHtml += '</div>';
   document.getElementById('stuDataArea').innerHTML = dataHtml;
   document.getElementById('stuDateLabel').textContent = formatDate(getDateStr(currentDay));
-
-  // Coach vals 已移除：所有欄位統一在 stuDataArea 顯示
-  // Lock coach buttons
-  document.querySelectorAll('.coach-btn').forEach(btn => btn.disabled = isLocked);
 
   // Submit / Undo
   const btnSubmit = document.getElementById('btnSubmit');
