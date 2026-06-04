@@ -191,6 +191,10 @@
   .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
   .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
+  .track-stulist{flex-basis:100%;margin-top:8px;display:flex;flex-direction:column;gap:4px}
+  .track-stu{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--white);padding:4px 0;border-top:1px solid rgba(255,255,255,.04)}
+  .track-dots{font-size:11px;letter-spacing:1px}
+  .track-dots b{color:var(--red);margin-left:4px;font-size:13px}
 
   /* ── Dashboard interaction matrix ── */
   .battery{position:relative;width:100%;height:40px;background:var(--navy3);border:2px solid var(--gold-bd);border-radius:8px;margin-bottom:16px;overflow:hidden}
@@ -466,22 +470,29 @@ function renderTrack() {
   silent.sort((a, b) => b.gap - a.gap);
 
   // 待審分兩種：今日必審（昨天填，今天是deadline）vs 已失職（跨日改不了）
-  const dueByCoach = {};    // 🟠 log_date === 昨天，今天還來得及審
-  const failedByCoach = {}; // ⚫ log_date < 昨天，跨日已無法補審
+  const dueByCoach = {};    // 🟠 log_date === 昨天 → Set(學員名)
+  const failedByCoach = {}; // ⚫ log_date < 昨天 → {學員名: 漏審次數}
   allLogs.forEach(l => {
     if (l.confirmed || l.log_date >= today) return; // 今天填的明天才審，跳過
     if (actScore(l) === 0) return;
     const s = approved.find(x => x.id === l.student_id);
     if (!s || coachMemberIds.has(s.member_id)) return;
     const coachName = coachById[s.coach_id] || '未配對';
-    const bucket = (l.log_date === yesterday) ? dueByCoach : failedByCoach;
-    if (!bucket[coachName]) bucket[coachName] = new Set();
-    bucket[coachName].add(nm(s) + '（' + l.log_date.slice(5) + '）');
+    if (l.log_date === yesterday) {
+      (dueByCoach[coachName] = dueByCoach[coachName] || new Set()).add(nm(s));
+    } else {
+      if (!failedByCoach[coachName]) failedByCoach[coachName] = {};
+      failedByCoach[coachName][nm(s)] = (failedByCoach[coachName][nm(s)] || 0) + 1;
+    }
   });
-  const toList = obj => Object.entries(obj).map(([coach, set]) => ({ coach, items: [...set] }))
+  const due = Object.entries(dueByCoach).map(([coach, set]) => ({ coach, items: [...set] }))
     .sort((a, b) => b.items.length - a.items.length);
-  const due = toList(dueByCoach);
-  const failed = toList(failedByCoach);
+  // 失職：每位教練列學員+漏審次數，按該教練總漏審數排序
+  const failed = Object.entries(failedByCoach).map(([coach, stuMap]) => {
+    const stus = Object.entries(stuMap).map(([name, cnt]) => ({ name, cnt })).sort((a, b) => b.cnt - a.cnt);
+    const total = stus.reduce((a, x) => a + x.cnt, 0);
+    return { coach, stus, total };
+  }).sort((a, b) => b.total - a.total);
 
   // 📉 本週至今 vs 上週同期（同樣天數，公平比較，因為本週還沒結束）
   const d = new Date(today);
@@ -524,8 +535,10 @@ function renderTrack() {
   else h += '<div>' + failed.map(x =>
     `<div class="track-row track-black">
       <span class="track-name">教練：${x.coach}</span>
-      <span class="track-tag">${x.items.length} 筆漏審</span>
-      <div class="track-chips">${x.items.map(i => `<span class="track-chip">${i}</span>`).join('')}</div>
+      <span class="track-tag">共漏審 ${x.total} 次</span>
+      <div class="track-stulist">${x.stus.map(st =>
+        `<div class="track-stu"><span>${st.name}</span><span class="track-dots">${'🔴'.repeat(Math.min(st.cnt,10))}${st.cnt>10?' +'+(st.cnt-10):''} <b>${st.cnt}</b></span></div>`
+      ).join('')}</div>
     </div>`
   ).join('') + '</div>';
 
