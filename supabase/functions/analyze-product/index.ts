@@ -77,21 +77,35 @@ level：red=明確違法、yellow=灰色有風險、green=合法
 function buildSuggestPrompt(npList) {
   let products = '無可用產品資料';
   if (npList && npList.length) {
-    products = npList.map(p => `【${p.name}（${p.eng_name || ''}）】\n- 角色：${p.health_role || ''}${p.is_star ? '（明星三樣）' : ''}\n- 定位：${p.tagline || ''}\n- 賣點：${p.selling_points || ''}\n- 對打：${p.vs_competitor || ''}`).join('\n\n');
+    products = npList.map(p => `【內部代號：${p.name}（${p.eng_name || ''}）｜角色：${p.health_role || ''}${p.is_star ? '，明星三樣' : ''}】\n- 定位：${p.tagline || ''}\n- 賣點：${p.selling_points || ''}\n- 對打競品：${p.vs_competitor || ''}`).join('\n\n');
   }
-  return `你是綠佳利（Naturally Plus）資深業務顧問。根據第一段競品分析，組合綠佳利最佳搭配建議。
-## 綠佳利產品資料（只能用這裡的真實資料，不可編造、不可寫錯產品名）：
+  return `你是資深預防保健顧問。根據第一段競品分析，組合「最佳搭配建議」。
+
+## 可用產品資料（僅供你內部理解產品與競品的對應關係；其中的產品名稱、品牌、商標一律不可寫進輸出）：
 ${products}
-## 健康三角（明星三樣，缺一不可）：識霸明力多=補營養、活美水素水=消除自由基、喚活=長細胞。
+
+## 健康三角（缺一不可，內部對應）：補營養 / 消除自由基 / 長細胞。
+
+## ★★ 去識別化鐵則（最重要，違反即失敗）
+建議內容裡【絕對禁止】出現下列任何字眼：
+- 品牌名：綠佳利、Naturally Plus、NP
+- 產品名：活美水素水、喚活、識霸明力多、普力活、妍漾、晨星，及其任何英文名／縮寫
+- 註冊商標／專利名（含 ® 字樣）：如 Mirtogenol、碧容健、HIF1STEM、FloraGLO、S-Fiber、AC-11、Fibersol、Enovita 等一律不可出現
+- 指向單一品牌的行銷標語：如「銷售15年第一」「熱銷N萬瓶」「連續7年金賞」「每3秒2人飲用」這類排名／銷量話術
+改用下列方式指代產品，做到「內行看得出方向、外人看不出品牌」：
+- 功能定位：高濃度氫水 / 多元類胡蘿蔔素複方 / 體內細胞修復配方 / 五種纖維＋包埋益生菌 / 多元莓果植化素飲 / 益生菌微生態護膚
+- 可驗證的成分與規格數據：如 出廠 3.3ppm、葉黃素:玉米黃素 5:1、水溶性:非水溶性 3:1、5 層包埋 7 種益生菌、能穿透血腦屏障、選擇性還原只中和有害自由基
+- 作用機轉與背景：可說「有大學研究團隊背書」「藥廠規格生產」，但不可點名特定大學／計畫／認證機構
+
 ## 輸出規則
-1. 先推薦與競品對應的產品正面對決（用真實賣點與對打）
-2. 拉高視角：健康三角缺一不可，帶出其他明星產品補缺口
+1. 先針對競品提出對應方向的搭配，用「功能定位＋成分規格數據」正面對決，講清楚為何比這隻競品強
+2. 拉高視角：健康三角缺一不可，帶出另外兩個方向補缺口（一樣只用功能定位，不出現任何產品名）
 3. 若競品是藥品：強調「藥是治標、預防保健才是根本，讓身體不需要一直吃藥」
 4. 若競品是擦的化粧品：強調「擦再多只到表皮，真正的美從體內養」
 5. 語氣口語化講故事，不列規格表
 ## ★ 輸出格式：一個JSON物件，整個在同一行：
 {"type":"suggest","content":"建議內容，換行用 \n"}
-每個產品間用 \n\n，可用 🌟💪💚 emoji。`;
+每個方向間用 \n\n，可用 🌟💪💚 emoji。`;
 }
 
 function extractJsonObjects(text) {
@@ -189,7 +203,7 @@ Deno.serve(async (req) => {
         npList = data || [];
       } catch (_e) { npList = []; }
       systemPrompt = buildSuggestPrompt(npList);
-      userMessage = `競品名稱：${payload.product_name}\n競品類別：${payload.category || '未分類'}\n\n第一段分析結果：\n${payload.attack_summary}\n\n請給出綠佳利最佳搭配建議。`;
+      userMessage = `競品名稱：${payload.product_name}\n競品類別：${payload.category || '未分類'}\n\n第一段分析結果：\n${payload.attack_summary}\n\n請依去識別化鐵則給出最佳搭配建議。`;
       messages.push({ role: 'user', content: userMessage });
     } else if (payload.type === 'claim_check') {
       systemPrompt = CLAIM_PROMPT;

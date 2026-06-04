@@ -252,7 +252,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
 
   <!-- 扣點透明：動手前先讓使用者知道代價 -->
-  <div style="text-align:center;font-size:12px;color:var(--muted);margin:2px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 綠佳利建議免費</div>
+  <div style="text-align:center;font-size:12px;color:var(--muted);margin:2px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 搭配建議免費</div>
 
   <!-- 功能工具（非產品分類）-->
   <div class="tool-grid">
@@ -382,13 +382,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <!-- 綠佳利建議按鈕（第二段） -->
     <div class="np-suggest-box" id="npSuggestBox" style="display:none">
       <button class="btn-np-suggest" id="btnNpSuggest" onclick="requestNpSuggestion()">
-        &#127807; 綠佳利最佳搭配建議
+        &#127807; 最佳搭配建議
       </button>
     </div>
 
     <!-- 綠佳利建議結果 -->
     <div class="np-result" id="npResultBox" style="display:none">
-      <div class="np-result-title">&#127807; 綠佳利建議</div>
+      <div class="np-result-title">&#127807; 搭配建議</div>
       <div class="np-result-body" id="npResultBody"></div>
     </div>
   </div>
@@ -1059,7 +1059,7 @@ async function requestNpSuggestion() {
   }
 
   btn.disabled = false;
-  btn.innerHTML = '&#127807; 綠佳利最佳搭配建議';
+  btn.innerHTML = '&#127807; 最佳搭配建議';
 }
 
 // ── 成分詳情 Modal ──
