@@ -184,6 +184,7 @@
   .track-red{border-left-color:var(--red)}
   .track-orange{border-left-color:var(--yellow)}
   .track-blue{border-left-color:var(--blue)}
+  .track-black{border-left-color:#555}
   .track-name{font-size:14px;font-weight:600;color:var(--white)}
   .track-mid{font-size:12px;color:var(--muted)}
   .track-tag{font-size:12px;font-weight:600;color:var(--gold);margin-left:auto}
@@ -464,20 +465,23 @@ function renderTrack() {
   });
   silent.sort((a, b) => b.gap - a.gap);
 
-  // 🟠 逾期未審（教練的審核日「隔天」都過了還沒審 = 2 天以上）
-  // 正常流程：學員晚上填→教練隔天審。昨天填今天審是正常待辦，不算逾期。
-  const stuckByCoach = {};
+  // 待審分兩種：今日必審（昨天填，今天是deadline）vs 已失職（跨日改不了）
+  const dueByCoach = {};    // 🟠 log_date === 昨天，今天還來得及審
+  const failedByCoach = {}; // ⚫ log_date < 昨天，跨日已無法補審
   allLogs.forEach(l => {
-    if (l.confirmed || l.log_date >= yesterday) return; // 只抓比昨天更早的（≥2天沒審）
-    if (actScore(l) === 0) return; // 全 0 不算填
+    if (l.confirmed || l.log_date >= today) return; // 今天填的明天才審，跳過
+    if (actScore(l) === 0) return;
     const s = approved.find(x => x.id === l.student_id);
     if (!s || coachMemberIds.has(s.member_id)) return;
     const coachName = coachById[s.coach_id] || '未配對';
-    if (!stuckByCoach[coachName]) stuckByCoach[coachName] = new Set();
-    stuckByCoach[coachName].add(nm(s) + '（' + l.log_date.slice(5) + '）');
+    const bucket = (l.log_date === yesterday) ? dueByCoach : failedByCoach;
+    if (!bucket[coachName]) bucket[coachName] = new Set();
+    bucket[coachName].add(nm(s) + '（' + l.log_date.slice(5) + '）');
   });
-  const stuck = Object.entries(stuckByCoach).map(([coach, set]) => ({ coach, items: [...set] }))
+  const toList = obj => Object.entries(obj).map(([coach, set]) => ({ coach, items: [...set] }))
     .sort((a, b) => b.items.length - a.items.length);
+  const due = toList(dueByCoach);
+  const failed = toList(failedByCoach);
 
   // 📉 本週至今 vs 上週同期（同樣天數，公平比較，因為本週還沒結束）
   const d = new Date(today);
@@ -505,12 +509,22 @@ function renderTrack() {
     `<div class="track-row track-red"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.txt}</span></div>`
   ).join('') + '</div>';
 
-  h += `<div class="sec-title"><span>🟠 逾期未審（隔天審核日已過）</span><span class="sec-count">${stuck.length} 位教練</span></div>`;
-  if (!stuck.length) h += `<div class="dash-empty">審核都跟上了 👍</div>`;
-  else h += '<div>' + stuck.map(x =>
+  h += `<div class="sec-title"><span>🟠 今日必審（昨天填，今天是 deadline）</span><span class="sec-count">${due.length} 位教練</span></div>`;
+  if (!due.length) h += `<div class="dash-empty">今天該審的都審完了 👍</div>`;
+  else h += '<div>' + due.map(x =>
     `<div class="track-row track-orange">
       <span class="track-name">教練：${x.coach}</span>
-      <span class="track-tag">${x.items.length} 筆逾期</span>
+      <span class="track-tag">${x.items.length} 筆待審</span>
+      <div class="track-chips">${x.items.map(i => `<span class="track-chip">${i}</span>`).join('')}</div>
+    </div>`
+  ).join('') + '</div>';
+
+  h += `<div class="sec-title"><span>⚫ 已失職（跨日未審，改不了了）</span><span class="sec-count">${failed.length} 位教練</span></div>`;
+  if (!failed.length) h += `<div class="dash-empty">沒有漏審記錄 ✨</div>`;
+  else h += '<div>' + failed.map(x =>
+    `<div class="track-row track-black">
+      <span class="track-name">教練：${x.coach}</span>
+      <span class="track-tag">${x.items.length} 筆漏審</span>
       <div class="track-chips">${x.items.map(i => `<span class="track-chip">${i}</span>`).join('')}</div>
     </div>`
   ).join('') + '</div>';
