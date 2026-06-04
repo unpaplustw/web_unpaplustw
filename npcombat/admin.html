@@ -464,10 +464,11 @@ function renderTrack() {
   });
   silent.sort((a, b) => b.gap - a.gap);
 
-  // 🟠 待審卡住（學員填了、教練沒確認、且非今天）
+  // 🟠 逾期未審（教練的審核日「隔天」都過了還沒審 = 2 天以上）
+  // 正常流程：學員晚上填→教練隔天審。昨天填今天審是正常待辦，不算逾期。
   const stuckByCoach = {};
   allLogs.forEach(l => {
-    if (l.confirmed || l.log_date > yesterday) return;
+    if (l.confirmed || l.log_date >= yesterday) return; // 只抓比昨天更早的（≥2天沒審）
     if (actScore(l) === 0) return; // 全 0 不算填
     const s = approved.find(x => x.id === l.student_id);
     if (!s || coachMemberIds.has(s.member_id)) return;
@@ -504,12 +505,12 @@ function renderTrack() {
     `<div class="track-row track-red"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.txt}</span></div>`
   ).join('') + '</div>';
 
-  h += `<div class="sec-title"><span>🟠 學員填了、教練還沒審</span><span class="sec-count">${stuck.length} 位教練</span></div>`;
+  h += `<div class="sec-title"><span>🟠 逾期未審（隔天審核日已過）</span><span class="sec-count">${stuck.length} 位教練</span></div>`;
   if (!stuck.length) h += `<div class="dash-empty">審核都跟上了 👍</div>`;
   else h += '<div>' + stuck.map(x =>
     `<div class="track-row track-orange">
       <span class="track-name">教練：${x.coach}</span>
-      <span class="track-tag">${x.items.length} 筆待審</span>
+      <span class="track-tag">${x.items.length} 筆逾期</span>
       <div class="track-chips">${x.items.map(i => `<span class="track-chip">${i}</span>`).join('')}</div>
     </div>`
   ).join('') + '</div>';
