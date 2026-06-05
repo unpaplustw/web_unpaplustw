@@ -96,8 +96,10 @@
   .btn-checkin:disabled{opacity:.4;cursor:not-allowed}
   .btn-cin{background:var(--green);color:#fff;border-color:var(--green)}
   .btn-cout{background:var(--card);color:var(--muted);border-color:var(--border)}
+  .buddy-sec{margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+  .buddy-sec-hd{font-size:15px;font-weight:700;color:var(--gold);text-align:center;margin-bottom:10px}
   .buddy-row{display:flex;gap:10px}
-  .buddy-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
+  .buddy-box{flex:1;background:var(--gold-lt);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
   .buddy-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px}
   .buddy-ctrl{display:flex;align-items:center;justify-content:center;gap:10px}
   .buddy-num{font-size:22px;font-weight:700;color:var(--gold);min-width:28px}
@@ -370,33 +372,15 @@
 
 <div id="formArea">
 
-  <!-- ── 公司打卡 ── -->
+  <!-- ── 公司打卡（純到場/離開時間）── -->
   <div class="sec">
   <div class="checkin-sec">
     <div class="checkin-hd">🏢 公司打卡</div>
-    <div class="checkin-sub">到綠佳利服務中心，定位後打卡（記得拍合照發小組）</div>
+    <div class="checkin-sub">到綠佳利服務中心，定位後打卡</div>
     <div class="checkin-status out" id="checkinStatus">📍 尚未打卡</div>
     <div class="checkin-btns">
       <button class="btn-checkin btn-cin" id="btnCheckin" onclick="doCheckin()">📍 我到公司了</button>
       <button class="btn-checkin btn-cout" id="btnCheckout" onclick="doCheckout()" disabled>🚪 我離開了</button>
-    </div>
-    <div class="buddy-row">
-      <div class="buddy-box">
-        <div class="buddy-label">👈 左區夥伴</div>
-        <div class="buddy-ctrl">
-          <button class="act-btn" onclick="adjBuddy('left',-1)">−</button>
-          <div class="buddy-num" id="n-buddy_left">0</div>
-          <button class="act-btn" onclick="adjBuddy('left',1)">＋</button>
-        </div>
-      </div>
-      <div class="buddy-box">
-        <div class="buddy-label">👉 右區夥伴</div>
-        <div class="buddy-ctrl">
-          <button class="act-btn" onclick="adjBuddy('right',-1)">−</button>
-          <div class="buddy-num" id="n-buddy_right">0</div>
-          <button class="act-btn" onclick="adjBuddy('right',1)">＋</button>
-        </div>
-      </div>
     </div>
   </div>
   </div>
@@ -485,6 +469,28 @@
           <button class="act-btn" onclick="adj('seminar',-1)">−</button>
           <div class="act-num zero" id="n-seminar">0</div>
           <button class="act-btn" onclick="adj('seminar',1)">＋</button>
+        </div>
+      </div>
+    </div>
+    <!-- 組織動員：帶夥伴到公司（左右雙軌）-->
+    <div class="buddy-sec">
+      <div class="buddy-sec-hd">🚌 帶夥伴到公司（組織動員）</div>
+      <div class="buddy-row">
+        <div class="buddy-box">
+          <div class="buddy-label">👈 左區夥伴</div>
+          <div class="buddy-ctrl">
+            <button class="act-btn" onclick="adjBuddy('left',-1)">−</button>
+            <div class="buddy-num" id="n-buddy_left">0</div>
+            <button class="act-btn" onclick="adjBuddy('left',1)">＋</button>
+          </div>
+        </div>
+        <div class="buddy-box">
+          <div class="buddy-label">👉 右區夥伴</div>
+          <div class="buddy-ctrl">
+            <button class="act-btn" onclick="adjBuddy('right',-1)">−</button>
+            <div class="buddy-num" id="n-buddy_right">0</div>
+            <button class="act-btn" onclick="adjBuddy('right',1)">＋</button>
+          </div>
         </div>
       </div>
     </div>

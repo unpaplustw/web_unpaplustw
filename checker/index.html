@@ -544,7 +544,7 @@ async function init() {
     }
 
     currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };
-    document.getElementById('userName').textContent = member.name + '，找到對手的弱點';
+    document.getElementById('userName').textContent = member.name + '，為家人把關';
     updateCreditBadge(currentUser.credits);
     showScreen('main');
     loadHistory();
