@@ -1285,6 +1285,7 @@ function backToEdit() {
 // ════════════════════════════════════════════
 // 🎓 結業成長證明書
 // ════════════════════════════════════════════
+function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 const CERT_FIELDS = [
   { key:'name_list', label:'狂列名單', w:1 },
   { key:'meet',      label:'認識新友', w:1 },
