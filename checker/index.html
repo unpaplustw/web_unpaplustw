@@ -245,25 +245,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
   </div>
 
-  <!-- 主功能：查商品（通搜，不分類）-->
-  <div class="search-box">
-    <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱查詢..." autocomplete="off">
-    <button class="btn-search" onclick="doSearch()">&#128269;</button>
-    <div class="ac-list" id="acList"></div>
-  </div>
-
-  <!-- 拍照 -->
-  <div class="photo-row">
-    <label class="btn-photo" id="photoBtn">
-      &#128247; 拍成分表（查不到的商品用這個）
-      <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
-    </label>
-  </div>
-
-  <!-- 扣點透明：動手前先讓使用者知道代價 -->
-  <div style="text-align:center;font-size:12px;color:var(--muted);margin:2px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 搭配建議免費</div>
-
-  <!-- 更多工具（摺疊，預設收起，不打斷查詢動線）-->
+  <!-- 更多工具（摺疊，預設收起，放最上）-->
   <div class="more-tools">
     <div class="more-tools-header" onclick="toggleMoreTools()">
       <span>&#128736;&#65039; 更多工具（字號認證 · 法規教育）</span>
@@ -298,6 +280,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
         <div class="vp-result" id="claimResult"></div>
       </div>
     </div>
+  </div>
+
+  <!-- 主功能：查商品（通搜，不分類）-->
+  <div class="search-box">
+    <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱查詢..." autocomplete="off">
+    <button class="btn-search" onclick="doSearch()">&#128269;</button>
+    <div class="ac-list" id="acList"></div>
   </div>
 
   <!-- 搜尋候選清單（點選才分析）-->
@@ -409,6 +398,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <div class="np-result-title">&#127807; 搭配建議</div>
       <div class="np-result-body" id="npResultBody"></div>
     </div>
+  </div>
+
+  <!-- 扣點透明：動手前先讓使用者知道代價 -->
+  <div style="text-align:center;font-size:12px;color:var(--muted);margin:14px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 搭配建議免費</div>
+
+  <!-- 拍照（查不到的商品用這個）-->
+  <div class="photo-row">
+    <label class="btn-photo" id="photoBtn">
+      &#128247; 拍成分表（查不到的商品用這個）
+      <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
   </div>
 
   <!-- 歷史 -->
