@@ -678,6 +678,7 @@ function doCheckin() {
       }
       checkinAt = nowTimeStr();
       renderCheckin(office.name);
+      saveCheckin(); // 立刻存 DB，不等填報表送出
       toast(`✅ 已在${office.name}打卡！`);
     },
     err => {
@@ -692,7 +693,24 @@ function doCheckout() {
   if (!checkinAt) return;
   checkoutAt = nowTimeStr();
   renderCheckin();
+  saveCheckin(); // 立刻存 DB
   toast('🚪 已記錄離開時間');
+}
+
+// 打卡立即寫入 DB（獨立於填報表送出）
+async function saveCheckin() {
+  if (DEMO_MODE || !studentId) return;
+  const row = { checkin_at: checkinAt, checkout_at: checkoutAt, buddy_left: buddyLeft, buddy_right: buddyRight };
+  try {
+    if (existingId) {
+      await sb.from('action_logs').update(row).eq('id', existingId);
+    } else {
+      const { data } = await sb.from('action_logs')
+        .insert({ ...row, batch_id: BATCH_ID, student_id: studentId, log_date: today() })
+        .select('id').single();
+      if (data) existingId = data.id;
+    }
+  } catch (e) { toast('打卡儲存失敗，請重試'); }
 }
 
 function renderCheckin(officeName) {
@@ -720,6 +738,7 @@ function renderCheckin(officeName) {
 function adjBuddy(side, delta) {
   if (side === 'left') { buddyLeft = Math.max(0, buddyLeft + delta); document.getElementById('n-buddy_left').textContent = buddyLeft; }
   else { buddyRight = Math.max(0, buddyRight + delta); document.getElementById('n-buddy_right').textContent = buddyRight; }
+  if (checkinAt) saveCheckin(); // 已打卡才即時存夥伴數
 }
 
 // ── Declaration ──
