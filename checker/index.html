@@ -119,6 +119,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .raw-ing-arrow.open{transform:rotate(90deg)}
 .raw-ing-body{display:none;padding:0 16px 16px;font-size:14px;line-height:1.9;color:#333}
 .raw-ing-body.open{display:block}
+.more-tools{background:var(--card);border:2px solid var(--border);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow)}
+.more-tools-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;font-size:14px;font-weight:700;color:var(--txt)}
+.more-tools-header:active{background:rgba(0,0,0,.02)}
+.more-tools-arrow{color:var(--muted);font-size:13px;transition:.3s}
+.more-tools-arrow.open{transform:rotate(90deg)}
+.more-tools-body{display:none;padding:0 16px 14px}
+.more-tools-body.open{display:block}
+.more-tools-body .tool-grid{margin-bottom:12px}
+.more-tools-body .verify-panel{margin-bottom:0}
 
 /* ── 四刀卡片 ── */
 .blade{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
@@ -254,32 +263,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   <!-- 扣點透明：動手前先讓使用者知道代價 -->
   <div style="text-align:center;font-size:12px;color:var(--muted);margin:2px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 搭配建議免費</div>
 
-  <!-- 功能工具（非產品分類）-->
-  <div class="tool-grid">
-    <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
-    <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
-  </div>
-
-  <!-- 字號認證面板 -->
-  <div class="verify-panel" id="verifyPanel">
-    <div class="vp-title">&#129706; 認證字號查核</div>
-    <div class="vp-hint">對方說有認證？請他出示字號，輸入查真偽（藥品/醫材）</div>
-    <div class="vp-row">
-      <input class="vp-input" id="verifyInput" type="text" placeholder="如 衛署醫器製字第001081號">
-      <button class="vp-btn" onclick="doVerify()">查證</button>
+  <!-- 更多工具（摺疊，預設收起，不打斷查詢動線）-->
+  <div class="more-tools">
+    <div class="more-tools-header" onclick="toggleMoreTools()">
+      <span>&#128736;&#65039; 更多工具（字號認證 · 法規教育）</span>
+      <span class="more-tools-arrow" id="moreToolsArrow">&#9654;</span>
     </div>
-    <div class="vp-result" id="verifyResult"></div>
-  </div>
+    <div class="more-tools-body" id="moreToolsBody">
+      <!-- 功能工具（非產品分類）-->
+      <div class="tool-grid">
+        <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
+        <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
+      </div>
 
-  <!-- 法規教育面板（違法宣稱拆穿器）-->
-  <div class="verify-panel" id="claimPanel">
-    <div class="vp-title">&#128214; 違法宣稱拆穿</div>
-    <div class="vp-hint">對方（競品老師/上線）說了什麼？貼上來，查違不違法 + 給你反擊話術</div>
-    <div class="vp-row">
-      <input class="vp-input" id="claimInput" type="text" placeholder="如 這個能根治糖尿病">
-      <button class="vp-btn" onclick="doClaim()">查證</button>
+      <!-- 字號認證面板 -->
+      <div class="verify-panel" id="verifyPanel">
+        <div class="vp-title">&#129706; 認證字號查核</div>
+        <div class="vp-hint">對方說有認證？請他出示字號，輸入查真偽（藥品/醫材）</div>
+        <div class="vp-row">
+          <input class="vp-input" id="verifyInput" type="text" placeholder="如 衛署醫器製字第001081號">
+          <button class="vp-btn" onclick="doVerify()">查證</button>
+        </div>
+        <div class="vp-result" id="verifyResult"></div>
+      </div>
+
+      <!-- 法規教育面板（違法宣稱拆穿器）-->
+      <div class="verify-panel" id="claimPanel">
+        <div class="vp-title">&#128214; 違法宣稱拆穿</div>
+        <div class="vp-hint">對方（競品老師/上線）說了什麼？貼上來，查違不違法 + 給你反擊話術</div>
+        <div class="vp-row">
+          <input class="vp-input" id="claimInput" type="text" placeholder="如 這個能根治糖尿病">
+          <button class="vp-btn" onclick="doClaim()">查證</button>
+        </div>
+        <div class="vp-result" id="claimResult"></div>
+      </div>
     </div>
-    <div class="vp-result" id="claimResult"></div>
   </div>
 
   <!-- 搜尋候選清單（點選才分析）-->
@@ -1127,6 +1145,11 @@ function toggleBlade(id) {
 function toggleRawIng() {
   document.getElementById('rawIngBody').classList.toggle('open');
   document.getElementById('rawIngArrow').classList.toggle('open');
+}
+
+function toggleMoreTools() {
+  document.getElementById('moreToolsBody').classList.toggle('open');
+  document.getElementById('moreToolsArrow').classList.toggle('open');
 }
 
 // ── 分析中狀態 ──
