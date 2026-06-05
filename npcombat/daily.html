@@ -7,7 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap');
   :root {
     --bg:#f7f5f0; --card:#ffffff; --gold:#b8960c; --gold-lt:#f5ecd5;
     --text:#2d2a24; --muted:#8c8577; --border:#e8e2d6;
@@ -24,6 +24,42 @@
   .hd-name{font-size:20px;font-weight:700;color:var(--gold)}
   .hd-date{font-size:14px;color:var(--muted);margin-top:4px}
   .hd-day{display:inline-block;background:var(--gold-lt);color:var(--gold);font-size:13px;font-weight:600;padding:4px 14px;border-radius:20px;margin-top:8px}
+  .hd-cert-btn{display:block;margin:12px auto 0;background:linear-gradient(135deg,#d4af37,#f5d76e,#b8860b);color:#3a2e00;font-size:14px;font-weight:800;border:none;border-radius:24px;padding:10px 22px;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(212,175,55,.4);animation:certPulse 2.4s ease-in-out infinite}
+  @keyframes certPulse{0%,100%{transform:scale(1);box-shadow:0 4px 14px rgba(212,175,55,.4)}50%{transform:scale(1.05);box-shadow:0 6px 22px rgba(212,175,55,.6)}}
+
+  /* ── 結業證明書 ── */
+  .cert-overlay{position:fixed;inset:0;z-index:2000;display:none;background:radial-gradient(circle at 50% 0%,#1a1530,#0a0a14 70%);overflow:hidden}
+  .cert-overlay.show{display:block}
+  .cert-confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+  .cert-close{position:fixed;top:14px;right:14px;z-index:5;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:18px;cursor:pointer;backdrop-filter:blur(4px)}
+  .cert-scroll{position:relative;z-index:4;height:100%;overflow-y:auto;padding:20px 14px 40px;-webkit-overflow-scrolling:touch}
+  .cert-paper{max-width:400px;margin:0 auto;background:linear-gradient(160deg,#fffdf5,#fff8e6 55%,#fdeecb);border-radius:14px;box-shadow:0 0 40px rgba(212,175,55,.45),0 20px 60px rgba(0,0,0,.6);position:relative;overflow:hidden;padding:24px 20px 28px;color:#2a2410;border:1px solid #e8d488}
+  .cert-paper::before{content:'';position:absolute;inset:8px;border:1.5px solid #cBa94c;border-radius:8px;pointer-events:none;opacity:.5}
+  .cert-shine{position:absolute;top:-60%;left:-30%;width:60%;height:220%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.55),transparent);transform:rotate(18deg);animation:certShine 4.5s ease-in-out infinite;pointer-events:none}
+  @keyframes certShine{0%{left:-40%}55%,100%{left:130%}}
+  .ct-head{text-align:center;position:relative;z-index:2}
+  .ct-badge{font-size:11px;letter-spacing:3px;color:#b8860b;font-weight:700}
+  .ct-title{font-size:22px;font-weight:900;background:linear-gradient(135deg,#b8860b,#e8c252,#9a6f00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0 6px;letter-spacing:2px}
+  .ct-name{font-size:30px;font-weight:900;color:#2a2410;margin:6px 0;font-family:"Noto Serif TC",serif}
+  .ct-name u{text-decoration-color:#d4af37;text-underline-offset:6px}
+  .ct-period{font-size:12px;color:#8a7a3a}
+  .ct-hr{height:1px;background:linear-gradient(90deg,transparent,#d4af37,transparent);margin:12px 0}
+  .ct-score-wrap{text-align:center;margin:8px 0}
+  .ct-score{font-size:46px;font-weight:900;color:#b8860b;line-height:1}
+  .ct-score-l{font-size:12px;color:#8a7a3a;margin-top:2px}
+  .ct-pct{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#d4af37,#b8860b);padding:3px 12px;border-radius:12px}
+  .ct-radar{display:block;margin:6px auto}
+  .ct-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+  .ct-stat{text-align:center;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:8px;padding:7px 4px}
+  .ct-stat-n{font-size:18px;font-weight:800;color:#9a6f00}
+  .ct-stat-l{font-size:10px;color:#8a7a3a;margin-top:1px}
+  .ct-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
+  .ct-tag{font-size:11px;font-weight:700;color:#7a5c00;background:linear-gradient(135deg,#fbeec0,#f3d987);border:1px solid #d4af37;border-radius:20px;padding:4px 11px;box-shadow:0 1px 3px rgba(212,175,55,.4)}
+  .ct-comment{font-size:12.5px;line-height:1.7;color:#4a3e1a;text-align:center;font-style:italic;margin:10px 6px 6px;padding:10px;background:rgba(212,175,55,.08);border-radius:8px}
+  .ct-seal{text-align:center;margin-top:8px}
+  .ct-seal-stamp{display:inline-block;color:#c0392b;border:2px solid #c0392b;border-radius:50%;width:60px;height:60px;line-height:1.1;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);opacity:.82;margin:0 auto;text-align:center;padding:4px}
+  .cert-actions{max-width:420px;margin:16px auto 0;text-align:center}
+  .cert-hint{font-size:12px;color:rgba(255,255,255,.6)}
 
   /* ── Section ── */
   .sec{padding:0 16px;max-width:500px;margin:0 auto}
@@ -277,8 +313,21 @@
   <div class="hd-name" id="userName">載入中…</div>
   <div class="hd-date" id="dateText"></div>
   <div class="hd-day" id="dayCount"></div>
+  <button class="hd-cert-btn" id="certBtn" onclick="openCert()" style="display:none">🎓 我的成長歷程</button>
 </div>
 <div class="deadline-bar">⏰ 每日最晚 23:00 填寫回報</div>
+
+<!-- ── 結業成長證明書（全螢幕） ── -->
+<div class="cert-overlay" id="certOverlay">
+  <canvas class="cert-confetti" id="certConfetti"></canvas>
+  <button class="cert-close" onclick="closeCert()">✕</button>
+  <div class="cert-scroll">
+    <div class="cert-paper" id="certPaper"></div>
+    <div class="cert-actions">
+      <div class="cert-hint">📸 長按畫面截圖保存你的證明書</div>
+    </div>
+  </div>
+</div>
 
 <!-- ── 戰報儀表板 ── -->
 <div class="war-report" id="warReport" style="display:none">
@@ -680,6 +729,7 @@ function toggleGroupReport() {
 }
 let bid = 1, studentId = null, existingId = null;
 let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
+let memberName = '', batchInfo = null;
 
 // ── Block screen ──
 function showBlock(msg) {
@@ -831,6 +881,7 @@ async function init() {
       .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
+    memberName = member.name;
     document.getElementById('userName').textContent = member.name;
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
     document.getElementById('declName2').textContent = ' ' + member.name + ' ';
@@ -856,14 +907,15 @@ async function init() {
     }
 
     // 載入累積資料
-    const { data: logs } = await sb.from('action_logs').select('meet, invite, present, seminar, ghosted, rejected, log_date, confirmed')
+    const { data: logs } = await sb.from('action_logs').select('name_list, meet, invite, present, seminar, ghosted, rejected, log_date, confirmed')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('confirmed', true);
     const { data: closes } = await sb.from('closing_records').select('points, close_date')
       .eq('member_id', memberId);
 
     // 查活動起迄算天數 + 門檻
-    const { data: batch } = await sb.from('batches').select('start_date, challenge_start, earlybird_score, earlybird_month, single_month_score, cross_month_score, end_date').eq('id', BATCH_ID).single();
+    const { data: batch } = await sb.from('batches').select('name, start_date, challenge_start, earlybird_score, earlybird_month, single_month_score, cross_month_score, end_date').eq('id', BATCH_ID).single();
     const startDate = batch?.challenge_start || batch?.start_date || d;
+    batchInfo = batch;
 
     const allLogs = logs || [];
     const allCloses = closes || [];
@@ -899,6 +951,7 @@ async function init() {
 
     const dayNum = allLogs.length + 1;
     document.getElementById('dayCount').textContent = `第 ${dayNum} 天`;
+    document.getElementById('certBtn').style.display = '';
 
     // ── 戰報計算 ──
     renderWarReport(allLogs, allCloses, batch, d);
@@ -1219,6 +1272,209 @@ function backToEdit() {
   document.getElementById('resultArea').classList.remove('show');
   const btn = document.getElementById('btnSubmit');
   btn.disabled = false; btn.textContent = '送出今日回報';
+}
+
+// ════════════════════════════════════════════
+// 🎓 結業成長證明書
+// ════════════════════════════════════════════
+const CERT_FIELDS = [
+  { key:'name_list', label:'狂列名單', w:1 },
+  { key:'meet',      label:'認識新友', w:1 },
+  { key:'invite',    label:'拉近關係', w:2 },
+  { key:'present',   label:'溝通本說明', w:5 },
+  { key:'seminar',   label:'邀請說明會', w:5 },
+  { key:'ghosted',   label:'被放鴿子', w:1 },
+  { key:'rejected',  label:'締結未果', w:1 },
+];
+const cActPts = o => CERT_FIELDS.reduce((a, f) => a + (o[f.key] || 0) * f.w, 0);
+let certConfettiTimer = null;
+
+async function openCert() {
+  const ov = document.getElementById('certOverlay');
+  ov.classList.add('show');
+  document.getElementById('certPaper').innerHTML = '<div style="text-align:center;padding:80px 0;color:#8a7a3a">統計你的旅程中…</div>';
+  try {
+    const data = await loadCertData();
+    document.getElementById('certPaper').innerHTML = buildCertHTML(data);
+    animateCount();
+    startConfetti();
+  } catch (e) {
+    document.getElementById('certPaper').innerHTML = '<div style="text-align:center;padding:80px 0;color:#c0392b">載入失敗：' + e.message + '</div>';
+  }
+}
+function closeCert() {
+  document.getElementById('certOverlay').classList.remove('show');
+  if (certConfettiTimer) { cancelAnimationFrame(certConfettiTimer); certConfettiTimer = null; }
+}
+
+async function loadCertData() {
+  // 本人全期 logs（不限 confirmed，慶祝看努力全貌）
+  const { data: logs } = await sb.from('action_logs')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, checkin_at, buddy_left, buddy_right')
+    .eq('batch_id', BATCH_ID);
+  const all = logs || [];
+  const mine = all.filter(l => l.student_id === studentId);
+  const { data: closes } = await sb.from('closing_records').select('points, close_date').eq('member_id', memberId);
+  const myCloses = closes || [];
+
+  // 我的累積
+  const sum = k => mine.reduce((a, l) => a + (l[k] || 0), 0);
+  const totals = {}; CERT_FIELDS.forEach(f => totals[f.key] = sum(f.key));
+  const actionPts = cActPts(totals);
+  const closePts = myCloses.reduce((a, c) => a + (c.points || 0), 0);
+  const total = actionPts + closePts;
+  const reportDays = new Set(mine.map(l => l.log_date)).size;
+  const checkinDays = new Set(mine.filter(l => l.checkin_at).map(l => l.log_date)).size;
+  const buddies = mine.reduce((a, l) => a + (l.buddy_left || 0) + (l.buddy_right || 0), 0);
+
+  // 最長連續填報天數
+  const dates = [...new Set(mine.map(l => l.log_date))].sort();
+  let best = 0, run = 0, prev = null;
+  dates.forEach(ds => {
+    if (prev && (new Date(ds) - new Date(prev)) === 86400000) run++; else run = 1;
+    best = Math.max(best, run); prev = ds;
+  });
+
+  // 全班百分位（用 action+close 總分粗算）
+  const perStu = {};
+  all.forEach(l => { perStu[l.student_id] = (perStu[l.student_id] || 0) + cActPts(l); });
+  const myActRank = perStu[studentId] || 0;
+  const allVals = Object.values(perStu);
+  const beat = allVals.length > 1 ? Math.round(allVals.filter(v => v < myActRank).length / (allVals.length - 1) * 100) : 100;
+
+  return { totals, actionPts, closePts, total, reportDays, checkinDays, buddies, streak: best,
+           closeCount: myCloses.length, beat, batch: batchInfo };
+}
+
+function buildCertHTML(d) {
+  const fmt = s => s ? s.replace(/-/g, '.').slice(0,10) : '';
+  const period = d.batch ? `${fmt(d.batch.start_date)} – ${fmt(d.batch.end_date)}` : '';
+  // 稱號徽章（依突出數據）
+  const tags = [];
+  if (d.streak >= 7) tags.push('🔥 七日連燒');
+  if (d.checkinDays >= 5) tags.push('🏢 勤跑公司');
+  if (d.totals.meet >= 30) tags.push('🦋 社交蝴蝶');
+  if (d.totals.name_list >= 50) tags.push('📋 滿門抄斬');
+  if (d.totals.seminar >= 5) tags.push('🎯 會場常客');
+  if (d.closeCount >= 1) tags.push('🔫 成交達陣');
+  if (d.buddies >= 5) tags.push('🚌 動員高手');
+  if (d.beat >= 80) tags.push('👑 頂尖前段');
+  if (!tags.length) tags.push('🌱 勇敢起步');
+
+  // 雷達圖
+  const radar = radarSVG(CERT_FIELDS.map(f => d.totals[f.key]), CERT_FIELDS.map(f => f.label));
+  const comment = certComment(d);
+
+  return `
+    <div class="cert-shine"></div>
+    <div class="ct-head">
+      <div class="ct-badge">GROWTH CERTIFICATE</div>
+      <div class="ct-title">${d.batch ? d.batch.name : '實戰班'} 結業成長證明</div>
+      <div class="ct-name"><u>${memberName}</u></div>
+      <div class="ct-period">${period}</div>
+    </div>
+    <div class="ct-hr"></div>
+    <div class="ct-score-wrap">
+      <div class="ct-score" data-target="${d.total}">0</div>
+      <div class="ct-score-l">總戰績分數</div>
+      <div class="ct-pct">超越全班 ${d.beat}% 夥伴</div>
+    </div>
+    ${radar}
+    <div class="ct-stats">
+      <div class="ct-stat"><div class="ct-stat-n">${d.reportDays}</div><div class="ct-stat-l">填報天數</div></div>
+      <div class="ct-stat"><div class="ct-stat-n">${d.streak}</div><div class="ct-stat-l">最長連續</div></div>
+      <div class="ct-stat"><div class="ct-stat-n">${d.checkinDays}</div><div class="ct-stat-l">到公司天數</div></div>
+      <div class="ct-stat"><div class="ct-stat-n">${d.totals.meet}</div><div class="ct-stat-l">認識新友</div></div>
+      <div class="ct-stat"><div class="ct-stat-n">${d.closeCount}</div><div class="ct-stat-l">締結件數</div></div>
+      <div class="ct-stat"><div class="ct-stat-n">${d.buddies}</div><div class="ct-stat-l">帶來夥伴</div></div>
+    </div>
+    <div class="ct-badges">${tags.map(t => `<span class="ct-tag">${t}</span>`).join('')}</div>
+    <div class="ct-comment">${comment}</div>
+    <div class="ct-seal"><div class="ct-seal-stamp">實戰班<br>委員會</div></div>
+  `;
+}
+
+// 7 軸雷達圖（SVG）
+function radarSVG(vals, labels) {
+  const cx = 130, cy = 110, R = 78, n = vals.length;
+  const max = Math.max(1, ...vals);
+  const pt = (i, r) => {
+    const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
+  };
+  let grid = '';
+  [0.25, 0.5, 0.75, 1].forEach(f => {
+    const p = vals.map((_, i) => pt(i, R * f).join(',')).join(' ');
+    grid += `<polygon points="${p}" fill="none" stroke="#d4af37" stroke-opacity="0.25"/>`;
+  });
+  let axes = '', labs = '';
+  vals.forEach((_, i) => {
+    const [x, y] = pt(i, R);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#d4af37" stroke-opacity="0.2"/>`;
+    const [lx, ly] = pt(i, R + 16);
+    labs += `<text x="${lx}" y="${ly}" font-size="8.5" fill="#8a7a3a" text-anchor="middle" dominant-baseline="middle">${labels[i]}</text>`;
+  });
+  const shape = vals.map((v, i) => pt(i, R * (v / max)).join(',')).join(' ');
+  return `<svg class="ct-radar" width="260" height="220" viewBox="0 0 260 220">
+    ${grid}${axes}
+    <polygon points="${shape}" fill="rgba(212,175,55,.35)" stroke="#b8860b" stroke-width="2">
+      <animate attributeName="opacity" from="0" to="1" dur="0.9s" fill="freeze"/>
+    </polygon>
+    ${labs}
+  </svg>`;
+}
+
+function certComment(d) {
+  // 規則版評語（6/30 前再換成個人化真人版）
+  const bits = [];
+  if (d.streak >= 14) bits.push('你用連續的堅持證明了什麼叫不間斷的行動力');
+  else if (d.streak >= 7) bits.push('連續七天以上的回報，是自律最好的勳章');
+  if (d.totals.seminar >= 5) bits.push('一次次把人帶進會場，你懂得借力使力');
+  if (d.closeCount >= 1) bits.push('你把行動真正轉化成了成果');
+  if (d.totals.meet >= 30) bits.push('主動認識新朋友，你的世界正在變大');
+  if (!bits.length) bits.push('每一次填報，都是你對自己的承諾');
+  const head = d.beat >= 80 ? `${memberName}，你是這一期最耀眼的存在之一。` : `${memberName}，這 ${d.reportDays} 天你從未缺席自己的成長。`;
+  return `${head}${bits.slice(0,2).join('，')}。願你帶著這份戰績，走向下一個高峰。🏆`;
+}
+
+function animateCount() {
+  const el = document.querySelector('.ct-score');
+  if (!el) return;
+  const target = +el.dataset.target || 0;
+  const dur = 1400, t0 = performance.now();
+  function step(t) {
+    const p = Math.min(1, (t - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(target * e).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// 撒花
+function startConfetti() {
+  const cv = document.getElementById('certConfetti');
+  const ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const colors = ['#d4af37','#f5d76e','#b8860b','#fff3c4','#e8c252'];
+  const N = 90;
+  const parts = Array.from({length: N}, () => ({
+    x: Math.random() * cv.width, y: -20 - Math.random() * cv.height,
+    s: 4 + Math.random() * 6, vy: 1.2 + Math.random() * 2.4, vx: -1 + Math.random() * 2,
+    rot: Math.random() * 6.28, vr: -0.1 + Math.random() * 0.2,
+    c: colors[(Math.random() * colors.length) | 0]
+  }));
+  function frame() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    parts.forEach(p => {
+      p.y += p.vy; p.x += p.vx; p.rot += p.vr;
+      if (p.y > cv.height + 20) { p.y = -20; p.x = Math.random() * cv.width; }
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore();
+    });
+    certConfettiTimer = requestAnimationFrame(frame);
+  }
+  frame();
 }
 
 init();
