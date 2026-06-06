@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>結業證書｜視覺展示</title>
+<title>結業證書｜展示</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Noto Sans TC',sans-serif;background:radial-gradient(circle at 50% 0%,#1a1530,#0a0a14 70%);min-height:100vh;padding:18px 12px 60px;color:#2a2410}
+  body{font-family:'Noto Sans TC',sans-serif;background:radial-gradient(circle at 50% 0%,#1a1530,#0a0a14 70%);min-height:100vh;padding:18px 12px 50px;color:#2a2410}
   .confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
   .paper{position:relative;z-index:2;max-width:420px;margin:0 auto;background:linear-gradient(160deg,#fffdf5,#fff8e6 55%,#fdeecb);border-radius:16px;box-shadow:0 0 44px rgba(212,175,55,.45),0 20px 60px rgba(0,0,0,.6);overflow:hidden;padding:26px 20px 30px;border:1.5px solid #e8d488}
   .shine{position:absolute;top:-60%;left:-30%;width:60%;height:220%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);transform:rotate(18deg);animation:shine 5s ease-in-out infinite;pointer-events:none}
@@ -20,28 +20,22 @@
   .westin{display:block;width:fit-content;margin:8px auto 0;font-size:12.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#c0392b,#e07b39);padding:5px 16px;border-radius:14px}
   .sec-l{font-size:12px;font-weight:800;color:#9a6f00;text-align:center;margin:18px 0 8px}
   .style{display:inline-block;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#b8860b,#9a6f00);padding:2px 10px;border-radius:12px}
-  /* 長條 */
-  .bars{display:flex;align-items:flex-end;justify-content:center;gap:11px;height:100px}.bar{flex:1;max-width:48px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.bar-v{font-size:11px;font-weight:800;color:#9a6f00}.bar-t{width:100%;flex:1;display:flex;align-items:flex-end}.bar-f{width:100%;background:linear-gradient(180deg,#f5d76e,#b8860b);border-radius:5px 5px 0 0;height:0;transition:height 1s cubic-bezier(.2,.8,.2,1)}.bar-l{font-size:10px;color:#8a7a3a;margin-top:4px}
-  /* 雷達/曲線 svg */
-  .ct-svg{display:block;margin:4px auto}
+  /* 每週長條 */
+  .weeks{display:flex;align-items:flex-end;justify-content:center;gap:11px;height:100px}.wk{flex:1;max-width:48px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.wk-v{font-size:11px;font-weight:800;color:#9a6f00}.wk-t{width:100%;flex:1;display:flex;align-items:flex-end}.wk-f{width:100%;background:linear-gradient(180deg,#f5d76e,#b8860b);border-radius:5px 5px 0 0;height:0;transition:height 1s cubic-bezier(.2,.8,.2,1)}.wk-l{font-size:10px;color:#8a7a3a;margin-top:4px}
+  /* 強項橫條 */
+  .sb-row{display:flex;align-items:center;gap:8px;margin:6px 0}.sb-lab{font-size:11px;width:72px;text-align:right;color:#5a4e22;flex-shrink:0}.sb-t{flex:1;height:16px;background:#efe6c8;border-radius:8px;overflow:hidden}.sb-f{height:100%;background:linear-gradient(90deg,#f5d76e,#b8860b);border-radius:8px;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}.sb-v{font-size:11px;font-weight:800;color:#9a6f00;width:34px;flex-shrink:0}
   /* 分析 */
-  .an{max-width:240px;margin:4px auto 0}.an-row{display:flex;justify-content:space-between;padding:5px 12px;margin:4px 0;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:8px}.an-k{font-size:12px;color:#8a7a3a}.an-v{font-size:13px;font-weight:800;color:#9a6f00}
+  .an{max-width:240px;margin:8px auto 0}.an-row{display:flex;justify-content:space-between;padding:5px 12px;margin:4px 0;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:8px}.an-k{font-size:12px;color:#8a7a3a}.an-v{font-size:13px;font-weight:800;color:#9a6f00}
   /* 熱力圖 */
-  .hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}.hm div{aspect-ratio:1;border-radius:3px;transform:scale(0);opacity:0}
-  .l0{background:#efe6c8}.l1{background:#f0d27a}.l2{background:#e0b13c}.l3{background:#c08a14}.l4{background:#8a6200}
+  .hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}.hm-c{aspect-ratio:1;border-radius:3px;transform:scale(0);opacity:0;animation:pop .35s forwards}
   @keyframes pop{to{transform:scale(1);opacity:1}}
-  .hm-leg{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:10px;color:#8a7a3a}.hm-leg div{width:11px;height:11px;border-radius:2px}
-  /* 漏斗 */
-  .fn{display:flex;flex-direction:column;align-items:center;gap:3px}.fn-row{height:32px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;border-radius:6px;background:linear-gradient(135deg,#d4af37,#9a6f00);width:0;transition:width .8s ease}.fn-c{font-size:10px;color:#c0392b;font-weight:700}
-  /* 環形 */
-  .rings{display:flex;gap:6px;justify-content:center}
+  .hm-leg{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:10px;color:#8a7a3a}.hm-leg .hm-c{width:11px;height:11px;aspect-ratio:auto;animation:none;transform:none;opacity:1;display:inline-block}
+  .l0{background:#efe6c8}.l1{background:#f0d27a}.l2{background:#e0b13c}.l3{background:#c08a14}.l4{background:#8a6200}
   /* 里程碑 */
-  .tl{position:relative;padding-left:18px}.tl::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#d4af37}
-  .tl-row{position:relative;margin:9px 0;font-size:11px;opacity:0;transform:translateX(-10px)}.tl-row::before{content:'';position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;background:#b8860b;border:2px solid #fff}
+  .tl{position:relative;padding-left:18px;margin:4px 4px}.tl::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#d4af37}.tl-row{position:relative;margin:9px 0;font-size:12px;opacity:0;transform:translateX(-10px)}.tl-row::before{content:'';position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;background:#b8860b;border:2px solid #fffdf5}
   @keyframes slidein{to{opacity:1;transform:translateX(0)}}.tl-d{font-weight:800;color:#9a6f00}.tl-x{color:#5a4e22}
   /* 統計格 */
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.stat{text-align:center;background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.32);border-radius:9px;padding:8px 4px}.stat-n{font-size:19px;font-weight:800;color:#9a6f00}.stat-l{font-size:10px;color:#8a7a3a;margin-top:2px}
-  /* 徽章/評語/印 */
   .badges{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:10px 0}.tag{font-size:11px;font-weight:700;color:#7a5c00;background:linear-gradient(135deg,#fbeec0,#f3d987);border:1px solid #d4af37;border-radius:20px;padding:4px 11px}
   .comment{font-size:12.5px;line-height:1.75;color:#4a3e1a;text-align:center;font-style:italic;margin:12px 6px 6px;padding:11px;background:rgba(212,175,55,.09);border-radius:9px}
   .seal{text-align:center;margin-top:10px}.stamp{color:#c0392b;border:2px solid #c0392b;border-radius:50%;width:64px;height:64px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);opacity:.85;margin:0 auto;text-align:center;padding:4px}
@@ -53,41 +47,41 @@
 <canvas class="confetti" id="cf"></canvas>
 <div class="paper" id="paper"></div>
 <button class="replay" onclick="render()">▶ 重播動畫</button>
-<div class="note">※ 視覺展示頁（游育杰 範例資料）。挑好要哪幾個視覺後，正式版會放進每日回報的「我的成長歷程」</div>
+<div class="note">※ 視覺展示頁（游育杰 範例資料）</div>
 <script>
 const name='游育杰';
-const totals={name_list:142,meet:68,invite:39,present:21,seminar:11,ghosted:7,rejected:6};
+const totals={name_list:142,meet:68,invite:39,present:21,seminar:11};
 const W={name_list:1,meet:1,invite:2,present:5,seminar:5};
 const POS=[['name_list','狂列名單'],['meet','認識新友'],['invite','拉近關係'],['present','溝通本說明'],['seminar','邀請說明會']];
 const D={total:2680,slots:3,reportDays:35,streak:35,checkinDays:18,closeCount:5,buddies:23,
-  totalActs:Object.values(totals).reduce((a,b)=>a+b,0),
+  totalActs:142+68+39+21+11+7+6,
   weekly:[145,248,392,531,712],
   hm:[2,3,1,0,4,3,2,1,2,3,4,0,2,3,4,3,2,1,0,3,4,2,3,4,3,2,1,2,3,4,4,3,2,3,4],
-  funnel:[['認識新友',68],['拉近關係',39],['溝通本說明',21],['邀請說明會',11],['締結',5]],
-  cum:[145,393,633,943,1255,1459,1700,1980,2310,2680],
-  rings:[['締結門檻',78],['填報率',94],['打卡率',51]],
-  tl:[['5/24','開班第一天就填報'],['5/28','第一次帶人進說明會'],['6/02','首次締結成功 🎉'],['6/05','連續填報 7 天 🔥'],['6/18','達成威斯汀門檻'],['6/30','結業，35天全勤']]};
-
-function radarSVG(){const vals=POS.map(([k])=>totals[k]*W[k]),labels=POS.map(p=>p[1]),cx=130,cy=110,R=78,n=vals.length,mx=Math.max(1,...vals);const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/n;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];};let g='';[.25,.5,.75,1].forEach(f=>g+=`<polygon points="${vals.map((_,i)=>pt(i,R*f).join(',')).join(' ')}" fill="none" stroke="#d4af37" stroke-opacity="0.25"/>`);let ax='',lb='';vals.forEach((_,i)=>{const[x,y]=pt(i,R);ax+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#d4af37" stroke-opacity="0.2"/>`;const[lx,ly]=pt(i,R+18);lb+=`<text x="${lx}" y="${ly}" font-size="9" fill="#8a7a3a" text-anchor="middle" dominant-baseline="middle">${labels[i]}</text>`;});return `<svg class="ct-svg" width="260" height="220" viewBox="0 0 260 220">${g}${ax}<polygon points="${vals.map((v,i)=>pt(i,R*(v/mx)).join(',')).join(' ')}" fill="rgba(212,175,55,.4)" stroke="#b8860b" stroke-width="2.5"/>${lb}</svg>`;}
+  tl:[['5/24','開班踏出第一步，首次填報'],['5/28','第一次帶人進說明會 🏛️'],['6/02','首次締結成功 🎉'],['6/05','連續填報 7 天 🔥'],['6/18','達成威斯汀獎勵門檻 🏆'],['6/30','堅持到底，共填報 35 天']]};
 
 function render(){
-  const s=POS.map(([k,l])=>({label:l,pts:totals[k]*W[k]})).sort((a,b)=>b.pts-a.pts);
+  const posPts=POS.map(([k,l])=>({label:l,pts:totals[k]*W[k]}));
+  const s=[...posPts].sort((a,b)=>b.pts-a.pts);
   const dev=totals.name_list+totals.meet,rel=totals.invite*2,close=totals.present*5+totals.seminar*5,tot=dev+rel+close,mxv=Math.max(dev,rel,close);
   const style=mxv<tot*0.45?'⚖️ 全能型':mxv===close?'🎓 成交推進型':mxv===dev?'🏹 開發衝刺型':'🤝 關係經營型';
   const tags=['🔥 全勤連燒','🏢 勤跑公司','🦋 社交蝴蝶','📋 滿門抄斬','🎯 會場常客','🔫 成交達陣','🚌 動員高手','🏆 威斯汀達標','📈 越戰越強'];
+  const sbMax=Math.max(1,...s.map(p=>p.pts));
+  const sbars='<div>'+s.map(p=>`<div class="sb-row"><div class="sb-lab">${p.label}</div><div class="sb-t"><div class="sb-f" data-w="${Math.round(p.pts/sbMax*100)}"></div></div><div class="sb-v">${p.pts}</div></div>`).join('')+'</div>';
+  const hm='<div class="hm">'+D.hm.map((v,i)=>`<div class="hm-c l${v}" style="animation-delay:${i*22}ms"></div>`).join('')+'</div><div class="hm-leg">少 <span class="hm-c l0"></span><span class="hm-c l1"></span><span class="hm-c l2"></span><span class="hm-c l3"></span><span class="hm-c l4"></span> 多</div>';
+  const tl='<div class="tl">'+D.tl.map(m=>`<div class="tl-row"><span class="tl-d">${m[0]}</span>　<span class="tl-x">${m[1]}</span></div>`).join('')+'</div>';
+  const wkMax=Math.max(...D.weekly);
+  const weeks='<div class="weeks">'+D.weekly.map((v,i)=>`<div class="wk"><div class="wk-v">${v}</div><div class="wk-t"><div class="wk-f" data-h="${Math.round(v/wkMax*100)}"></div></div><div class="wk-l">W${i+1}</div></div>`).join('')+'</div>';
+
   document.getElementById('paper').innerHTML=`
     <div class="shine"></div>
     <div class="head"><div class="badge">GROWTH CERTIFICATE</div><div class="title">26期實戰班 結業成長證明</div><div class="name"><u>${name}</u></div><div class="period">2026.05.24 – 2026.06.30</div></div>
     <div class="hr"></div>
     <div class="score" id="score">0</div><div class="score-l">總戰績分數</div><span class="westin">🏆 達成 ${D.slots} 個威斯汀獎勵名額！</span>
-    <div class="sec-l">📈 每週成長軌跡</div><div class="bars" id="bars"></div>
-    <div class="sec-l">📊 行動風格分析　<span class="style">${style}</span></div>${radarSVG()}
+    <div class="sec-l">📈 每週成長軌跡</div>${weeks}
+    <div class="sec-l">📊 行動風格分析　<span class="style">${style}</span></div>${sbars}
     <div class="an"><div class="an-row"><span class="an-k">💪 你的主場</span><span class="an-v">${s[0].label}</span></div><div class="an-row"><span class="an-k">🌱 最有潛力</span><span class="an-v">${s[s.length-1].label}</span></div></div>
-    <div class="sec-l">📅 行動熱力圖</div><div class="hm" id="hm"></div><div class="hm-leg">少 <div class="l0"></div><div class="l1"></div><div class="l2"></div><div class="l3"></div><div class="l4"></div> 多</div>
-    <div class="sec-l">🎢 業務轉換漏斗</div><div class="fn" id="fn"></div>
-    <div class="sec-l">📈 累積分數爬升</div><svg class="ct-svg" width="100%" height="120" viewBox="0 0 340 120" id="area"></svg>
-    <div class="sec-l">⭕ 目標儀表</div><div class="rings" id="rings"></div>
-    <div class="sec-l">📍 里程碑時間軸</div><div class="tl" id="tl"></div>
+    <div class="sec-l">📅 行動熱力圖</div>${hm}
+    <div class="sec-l">📍 里程碑時間軸</div>${tl}
     <div class="sec-l">🎖️ 歷程投入</div>
     <div class="stats">
       <div class="stat"><div class="stat-n">${D.reportDays}</div><div class="stat-l">填報天數</div></div>
@@ -102,26 +96,11 @@ function render(){
     <div class="seal"><div class="stamp">實戰班<br>委員會</div></div>`;
 
   // 動畫
-  // 數字滾動
   const sc=document.getElementById('score'),t0=performance.now();
   (function step(t){const p=Math.min(1,(t-t0)/1400),e=1-Math.pow(1-p,3);sc.textContent=Math.round(D.total*e).toLocaleString();if(p<1)requestAnimationFrame(step);})(t0);
-  // 長條
-  const bars=document.getElementById('bars'),m=Math.max(...D.weekly);bars.innerHTML=D.weekly.map((v,i)=>`<div class="bar"><div class="bar-v">${v}</div><div class="bar-t"><div class="bar-f" id="bf${i}"></div></div><div class="bar-l">W${i+1}</div></div>`).join('');
-  D.weekly.forEach((v,i)=>setTimeout(()=>document.getElementById('bf'+i).style.height=Math.round(v/m*100)+'%',200+i*140));
-  // 熱力圖
-  const hm=document.getElementById('hm');hm.innerHTML=D.hm.map(v=>`<div class="l${v}"></div>`).join('');[...hm.children].forEach((el,i)=>el.style.animation=`pop .35s ${i*25}ms forwards`);
-  // 漏斗
-  const fn=document.getElementById('fn'),mf=D.funnel[0][1];fn.innerHTML='';D.funnel.forEach((f,i)=>{const r=document.createElement('div');r.className='fn-row';r.textContent=f[0]+' '+f[1];fn.appendChild(r);setTimeout(()=>r.style.width=(30+f[1]/mf*70)+'%',150+i*150);if(i<D.funnel.length-1){const c=document.createElement('div');c.className='fn-c';c.textContent='↓ '+Math.round(D.funnel[i+1][1]/f[1]*100)+'%';fn.appendChild(c);}});
-  // 曲線
-  const aw=340,ah=120,mx=Math.max(...D.cum),pd=8,pts=D.cum.map((v,i)=>[pd+i*(aw-2*pd)/(D.cum.length-1),ah-pd-(v/mx)*(ah-2*pd)]),line=pts.map(p=>p.join(',')).join(' ');
-  document.getElementById('area').innerHTML=`<polygon points="${pd},${ah-pd} ${line} ${aw-pd},${ah-pd}" fill="rgba(212,175,55,.3)" opacity="0"><animate attributeName="opacity" from="0" to="1" dur="1s" begin="0.8s" fill="freeze"/></polygon><polyline points="${line}" fill="none" stroke="#b8860b" stroke-width="2.5" stroke-dasharray="1000" stroke-dashoffset="1000"><animate attributeName="stroke-dashoffset" from="1000" to="0" dur="1.5s" fill="freeze"/></polyline>`;
-  // 環形
-  const rings=document.getElementById('rings');rings.innerHTML=D.rings.map((r,i)=>{const c=2*Math.PI*30;return `<svg width="92" height="100" viewBox="0 0 80 92"><circle cx="40" cy="40" r="30" fill="none" stroke="#efe6c8" stroke-width="8"/><circle id="rg${i}" cx="40" cy="40" r="30" fill="none" stroke="#b8860b" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}" transform="rotate(-90 40 40)" style="transition:stroke-dashoffset 1.3s ease ${i*0.2}s"/><text x="40" y="44" font-size="15" font-weight="800" fill="#9a6f00" text-anchor="middle">${r[1]}%</text><text x="40" y="86" font-size="10" fill="#5a4e22" text-anchor="middle">${r[0]}</text></svg>`;}).join('');
-  D.rings.forEach((r,i)=>{const c=2*Math.PI*30;setTimeout(()=>document.getElementById('rg'+i).style.strokeDashoffset=c*(1-r[1]/100),100);});
-  // 里程碑
-  const tl=document.getElementById('tl');tl.innerHTML=D.tl.map(r=>`<div class="tl-row"><span class="tl-d">${r[0]}</span>　<span class="tl-x">${r[1]}</span></div>`).join('');[...tl.children].forEach((el,i)=>el.style.animation=`slidein .5s ${i*160}ms forwards`);
+  setTimeout(()=>{document.querySelectorAll('.wk-f').forEach((b,i)=>setTimeout(()=>b.style.height=b.dataset.h+'%',i*130));document.querySelectorAll('.sb-f').forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+'%',i*100));},300);
+  [...document.querySelectorAll('.tl-row')].forEach((el,i)=>el.style.animation=`slidein .5s ${i*150}ms forwards`);
 }
-// 撒花
 (function(){const cv=document.getElementById('cf'),ctx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;const colors=['#d4af37','#f5d76e','#b8860b','#fff3c4'];const ps=Array.from({length:70},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height,s:4+Math.random()*5,vy:1+Math.random()*2,vx:-1+Math.random()*2,rot:Math.random()*6.28,vr:-.1+Math.random()*.2,c:colors[(Math.random()*colors.length)|0]}));(function f(){ctx.clearRect(0,0,cv.width,cv.height);ps.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.rot+=p.vr;if(p.y>cv.height+20){p.y=-20;p.x=Math.random()*cv.width;}ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);ctx.restore();});requestAnimationFrame(f);})();})();
 render();
 </script>

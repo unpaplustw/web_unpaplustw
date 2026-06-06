@@ -61,6 +61,26 @@
   .ct-wk-bar-track{width:100%;flex:1;display:flex;align-items:flex-end}
   .ct-wk-bar{width:100%;background:linear-gradient(180deg,#f5d76e,#b8860b);border-radius:5px 5px 0 0;transition:height .7s cubic-bezier(.2,.8,.2,1);min-height:3px}
   .ct-wk-lab{font-size:10px;color:#8a7a3a;margin-top:3px}
+  /* 強項橫條 */
+  .ct-sbars{margin:4px 2px}
+  .ct-sbar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .ct-sbar-lab{font-size:11px;width:72px;text-align:right;color:#5a4e22;flex-shrink:0}
+  .ct-sbar-track{flex:1;height:16px;background:#efe6c8;border-radius:8px;overflow:hidden}
+  .ct-sbar-fill{height:100%;background:linear-gradient(90deg,#f5d76e,#b8860b);border-radius:8px;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .ct-sbar-v{font-size:11px;font-weight:800;color:#9a6f00;width:34px;flex-shrink:0}
+  /* 熱力圖 */
+  .ct-hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+  .ct-hm-c{aspect-ratio:1;border-radius:3px;transform:scale(0);opacity:0;animation:cthmpop .35s forwards}
+  @keyframes cthmpop{to{transform:scale(1);opacity:1}}
+  .ct-hm-leg{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:10px;color:#8a7a3a}
+  .ct-hm-leg .ct-hm-c{width:11px;height:11px;aspect-ratio:auto;animation:none;transform:none;opacity:1;display:inline-block}
+  .l0{background:#efe6c8}.l1{background:#f0d27a}.l2{background:#e0b13c}.l3{background:#c08a14}.l4{background:#8a6200}
+  /* 里程碑 */
+  .ct-tl{position:relative;padding-left:18px;margin:4px 4px}
+  .ct-tl::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#d4af37}
+  .ct-tl-row{position:relative;margin:9px 0;font-size:12px}
+  .ct-tl-row::before{content:'';position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;background:#b8860b;border:2px solid #fffdf5}
+  .ct-tl-d{font-weight:800;color:#9a6f00}.ct-tl-x{color:#5a4e22}
   .ct-radar{display:block;margin:6px auto}
   .ct-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
   .ct-stat{text-align:center;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:8px;padding:7px 4px}
@@ -1395,9 +1415,41 @@ async function loadCertData() {
   const nextGap = slots > 0 ? 0 : Math.max(0, eb - apr, sm - may); // 粗略：離下一名額還差多少（簡化顯示）
 
   const totalActs = CERT_FIELDS.reduce((a, f) => a + (totals[f.key] || 0), 0);
+
+  // 📅 行動熱力圖：開班～結業每天行動量（0=無，分 5 級）
+  const byDate = {};
+  mine.forEach(l => { byDate[l.log_date] = (byDate[l.log_date] || 0) + cActPts(l); });
+  const heat = [];
+  const sd = new Date(batchInfo.start_date), ed = new Date(batchInfo.end_date), tdy = new Date(today);
+  const endLoop = ed < tdy ? ed : tdy;
+  for (let dt = new Date(sd); dt <= endLoop; dt.setDate(dt.getDate() + 1)) {
+    const v = byDate[localDateStr(dt)] || 0;
+    const lvl = v === 0 ? 0 : v < 5 ? 1 : v < 15 ? 2 : v < 30 ? 3 : 4;
+    heat.push(lvl);
+  }
+
+  // 📍 里程碑（只列實際發生的）
+  const ms = [];
+  const md = s => (s || '').slice(5).replace('-', '/');
+  if (dates.length) ms.push([md(dates[0]), '開班踏出第一步，首次填報']);
+  const firstSem = mine.filter(l => (l.seminar || 0) > 0).map(l => l.log_date).sort()[0];
+  if (firstSem) ms.push([md(firstSem), '第一次帶人進說明會 🏛️']);
+  const closeDates = myCloses.map(c => c.close_date).sort();
+  if (closeDates.length) ms.push([md(closeDates[0]), '首次締結成功 🎉']);
+  // 連續 7 天達成日
+  let r2 = 0, p2 = null, streak7 = null;
+  dates.forEach(ds => {
+    if (p2 && (new Date(ds) - new Date(p2)) === 86400000) r2++; else r2 = 1;
+    if (r2 === 7 && !streak7) streak7 = ds; p2 = ds;
+  });
+  if (streak7) ms.push([md(streak7), '連續填報 7 天 🔥']);
+  if (slots >= 1 && closeDates.length) ms.push([md(closeDates[closeDates.length-1]), '達成威斯汀獎勵門檻 🏆']);
+  if (dates.length) ms.push([md(dates[dates.length-1]), `堅持到底，共填報 ${reportDays} 天`]);
+  ms.sort((a, b) => a[0].localeCompare(b[0]));
+
   return { totals, actionPts, closePts, total, reportDays, checkinDays, buddies, streak: best,
            closeCount: myCloses.length, weekly, slots, closePtsTotal: closePts, threshold: eb,
-           totalActs, batch: batchInfo };
+           totalActs, heat, milestones: ms, batch: batchInfo };
 }
 
 // A：主場（貢獻分最高）+ 可加強（最低）
@@ -1457,13 +1509,15 @@ function buildCertHTML(d) {
   if (grew) tags.push('📈 越戰越強');
   if (!tags.length) tags.push('🌱 勇敢起步');
 
-  // 雷達圖（強項＝5正向動作，用「分數＝數量×權重」判定多寡）+ 分析
+  // 強項橫條（5正向動作，分數＝數量×權重）+ 分析
   const POS = CERT_FIELDS.filter(f => !['ghosted','rejected'].includes(f.key));
   const posPts = POS.map(f => ({ label: f.label, pts: (d.totals[f.key] || 0) * f.w }));
-  const radar = radarSVG(posPts.map(p => p.pts), posPts.map(p => p.label));
+  const strengths = strengthBars(posPts);
   const analysis = certAnalysis(posPts);   // A：主場 + 可加強
   const styleTag = certStyle(posPts);      // C：行動風格稱號
   const weekBars = weeklyBars(d.weekly);
+  const heatmap = heatmapHTML(d.heat);
+  const milestone = milestoneHTML(d.milestones);
   const comment = certComment(d);
   const westin = d.slots >= 1
     ? `🏆 達成 ${d.slots} 個威斯汀獎勵名額！`
@@ -1486,8 +1540,12 @@ function buildCertHTML(d) {
     <div class="ct-section-l">📈 每週成長軌跡</div>
     ${weekBars}
     <div class="ct-section-l">📊 行動風格分析　<span class="ct-style">${styleTag}</span></div>
-    ${radar}
+    ${strengths}
     ${analysis}
+    <div class="ct-section-l">📅 行動熱力圖</div>
+    ${heatmap}
+    <div class="ct-section-l">📍 里程碑時間軸</div>
+    ${milestone}
     <div class="ct-section-l">🎖️ 歷程投入</div>
     <div class="ct-stats">
       <div class="ct-stat"><div class="ct-stat-n">${d.reportDays}</div><div class="ct-stat-l">填報天數</div></div>
@@ -1518,7 +1576,35 @@ function weeklyBars(weekly) {
   return `<div class="ct-weeks">${bars}</div>`;
 }
 
-// 7 軸雷達圖（SVG）
+// 強項橫條（取代雷達，分數高到低排序，誠實好讀）
+function strengthBars(posPts) {
+  const sorted = [...posPts].sort((a, b) => b.pts - a.pts);
+  const max = Math.max(1, ...sorted.map(p => p.pts));
+  return '<div class="ct-sbars">' + sorted.map(p =>
+    `<div class="ct-sbar-row">
+      <div class="ct-sbar-lab">${p.label}</div>
+      <div class="ct-sbar-track"><div class="ct-sbar-fill" style="width:0%" data-w="${Math.round(p.pts / max * 100)}"></div></div>
+      <div class="ct-sbar-v">${p.pts}</div>
+    </div>`).join('') + '</div>';
+}
+
+// 行動熱力圖
+function heatmapHTML(heat) {
+  if (!heat || !heat.length) return '';
+  const cells = heat.map((lv, i) => `<div class="ct-hm-c l${lv}" style="animation-delay:${i*22}ms"></div>`).join('');
+  return `<div class="ct-hm">${cells}</div>
+    <div class="ct-hm-leg">少 <span class="ct-hm-c l0"></span><span class="ct-hm-c l1"></span><span class="ct-hm-c l2"></span><span class="ct-hm-c l3"></span><span class="ct-hm-c l4"></span> 多</div>`;
+}
+
+// 里程碑時間軸
+function milestoneHTML(ms) {
+  if (!ms || !ms.length) return '<div class="ct-analysis">你的旅程正要開始 🌱</div>';
+  return '<div class="ct-tl">' + ms.map(m =>
+    `<div class="ct-tl-row"><span class="ct-tl-d">${m[0]}</span>　<span class="ct-tl-x">${m[1]}</span></div>`
+  ).join('') + '</div>';
+}
+
+// 7 軸雷達圖（SVG）— 保留備用
 function radarSVG(vals, labels) {
   const cx = 130, cy = 110, R = 78, n = vals.length;
   const max = Math.max(1, ...vals);
@@ -1566,6 +1652,9 @@ function animateBars() {
   setTimeout(() => {
     document.querySelectorAll('.ct-wk-bar').forEach((b, i) => {
       setTimeout(() => { b.style.height = (b.dataset.h || 0) + '%'; }, i * 120);
+    });
+    document.querySelectorAll('.ct-sbar-fill').forEach((b, i) => {
+      setTimeout(() => { b.style.width = (b.dataset.w || 0) + '%'; }, i * 100);
     });
   }, 300);
 }
