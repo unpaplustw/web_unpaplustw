@@ -473,10 +473,10 @@ function stamp() {
 // ════════════════════════════════════════
 async function loadAll() {
   const [ragTop, ragAll, membersAll, unmatchAll] = await Promise.allSettled([
-    q(RAG, 'rag_knowledge?select=title,content,hit_count&order=hit_count.desc&limit=15'),
+    q(MEM, 'rpc/warroom_hit_ranking?p_limit=15'),
     q(RAG, 'rag_knowledge?select=hit_count'),
     q(MEM, 'members?select=trust_building_count,comparison_count,self_doubt_count'),
-    q(MEM, 'unmatch_logs?select=question_text,user_message,content,created_at&order=created_at.desc&limit=30')
+    q(MEM, 'rpc/warroom_unmatch_list?p_limit=30')
   ]);
 
   const ragItems   = ragTop.status   === 'fulfilled' ? ragTop.value   : [];
