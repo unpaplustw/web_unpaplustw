@@ -26,11 +26,11 @@
   .sb-row{display:flex;align-items:center;gap:8px;margin:6px 0}.sb-lab{font-size:11px;width:72px;text-align:right;color:#5a4e22;flex-shrink:0}.sb-t{flex:1;height:16px;background:#efe6c8;border-radius:8px;overflow:hidden}.sb-f{height:100%;background:linear-gradient(90deg,#f5d76e,#b8860b);border-radius:8px;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}.sb-v{font-size:11px;font-weight:800;color:#9a6f00;width:34px;flex-shrink:0}
   /* 分析 */
   .an{max-width:240px;margin:8px auto 0}.an-row{display:flex;justify-content:space-between;padding:5px 12px;margin:4px 0;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:8px}.an-k{font-size:12px;color:#8a7a3a}.an-v{font-size:13px;font-weight:800;color:#9a6f00}
-  /* 出勤日曆（兩色）*/
-  .hm-cap{font-size:11px;color:#8a7a3a;text-align:center;margin-bottom:8px}.hm-cap b{color:#9a6f00;font-size:13px}
-  .hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}.hm-c{aspect-ratio:1;border-radius:3px;transform:scale(0);opacity:0;animation:pop .35s forwards}
-  @keyframes pop{to{transform:scale(1);opacity:1}}
-  .hm-c.on{background:linear-gradient(135deg,#f5d76e,#b8860b)}.hm-c.off{background:#e8ddc0}
+  /* 出勤軌跡條（一橫排）*/
+  .hm-cap{font-size:12px;color:#8a7a3a;text-align:center;margin-bottom:8px}.hm-cap b{color:#9a6f00;font-size:15px}
+  .hm{display:flex;gap:2px;height:22px;padding:0 2px}.hm-c{flex:1;border-radius:2px;transform:scaleY(0);opacity:0;animation:pop .3s forwards}
+  @keyframes pop{to{transform:scaleY(1);opacity:1}}
+  .hm-c.on{background:linear-gradient(180deg,#f5d76e,#b8860b)}.hm-c.off{background:#e8ddc0}
   /* 里程碑 */
   .tl{position:relative;padding-left:18px;margin:4px 4px}.tl::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#d4af37}.tl-row{position:relative;margin:9px 0;font-size:12px;opacity:0;transform:translateX(-10px)}.tl-row::before{content:'';position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;background:#b8860b;border:2px solid #fffdf5}
   @keyframes slidein{to{opacity:1;transform:translateX(0)}}.tl-d{font-weight:800;color:#9a6f00}.tl-x{color:#5a4e22}
@@ -68,7 +68,8 @@ function render(){
   const sbMax=Math.max(1,...s.map(p=>p.pts));
   const sbars='<div>'+s.map(p=>`<div class="sb-row"><div class="sb-lab">${p.label}</div><div class="sb-t"><div class="sb-f" data-w="${Math.round(p.pts/sbMax*100)}"></div></div><div class="sb-v">${p.pts}</div></div>`).join('')+'</div>';
   const hmActive=D.hm.filter(v=>v).length;
-  const hm=`<div class="hm-cap">每格 = 一天，金色 = 當天有出手 · 共出席 <b>${hmActive}/${D.hm.length}</b> 天</div><div class="hm">`+D.hm.map((v,i)=>`<div class="hm-c ${v?'on':'off'}" style="animation-delay:${i*22}ms"></div>`).join('')+'</div>';
+  let hb=0,hr=0;D.hm.forEach(v=>{if(v){hr++;hb=Math.max(hb,hr);}else hr=0;});
+  const hm=`<div class="hm-cap">出席 <b>${hmActive}/${D.hm.length}</b> 天　·　最長連續 <b>${hb}</b> 天 🔥</div><div class="hm">`+D.hm.map((v,i)=>`<div class="hm-c ${v?'on':'off'}" style="animation-delay:${i*18}ms"></div>`).join('')+'</div>';
   const tl='<div class="tl">'+D.tl.map(m=>`<div class="tl-row"><span class="tl-d">${m[0]}</span>　<span class="tl-x">${m[1]}</span></div>`).join('')+'</div>';
   const wkMax=Math.max(...D.weekly);
   const weeks='<div class="weeks">'+D.weekly.map((v,i)=>`<div class="wk"><div class="wk-v">${v}</div><div class="wk-t"><div class="wk-f" data-h="${Math.round(v/wkMax*100)}"></div></div><div class="wk-l">W${i+1}</div></div>`).join('')+'</div>';

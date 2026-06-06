@@ -68,12 +68,12 @@
   .ct-sbar-track{flex:1;height:16px;background:#efe6c8;border-radius:8px;overflow:hidden}
   .ct-sbar-fill{height:100%;background:linear-gradient(90deg,#f5d76e,#b8860b);border-radius:8px;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .ct-sbar-v{font-size:11px;font-weight:800;color:#9a6f00;width:34px;flex-shrink:0}
-  /* 出勤日曆（兩色）*/
-  .ct-hm-cap{font-size:11px;color:#8a7a3a;text-align:center;margin-bottom:8px}.ct-hm-cap b{color:#9a6f00;font-size:13px}
-  .ct-hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
-  .ct-hm-c{aspect-ratio:1;border-radius:3px;transform:scale(0);opacity:0;animation:cthmpop .35s forwards}
-  @keyframes cthmpop{to{transform:scale(1);opacity:1}}
-  .ct-hm-c.on{background:linear-gradient(135deg,#f5d76e,#b8860b)}
+  /* 出勤軌跡條（一橫排）*/
+  .ct-hm-cap{font-size:12px;color:#8a7a3a;text-align:center;margin-bottom:8px}.ct-hm-cap b{color:#9a6f00;font-size:15px}
+  .ct-hm-strip{display:flex;gap:2px;height:22px;padding:0 2px}
+  .ct-hm-c{flex:1;border-radius:2px;transform:scaleY(0);opacity:0;animation:cthmpop .3s forwards}
+  @keyframes cthmpop{to{transform:scaleY(1);opacity:1}}
+  .ct-hm-c.on{background:linear-gradient(180deg,#f5d76e,#b8860b)}
   .ct-hm-c.off{background:#e8ddc0}
   /* 里程碑 */
   .ct-tl{position:relative;padding-left:18px;margin:4px 4px}
@@ -1586,12 +1586,17 @@ function strengthBars(posPts) {
     </div>`).join('') + '</div>';
 }
 
-// 出勤日曆（兩色：金=有行動 / 灰=空白）
+// 出勤軌跡條（一橫排：金=有行動 / 灰=空白，斷檔一目了然）
 function heatmapHTML(heat, active) {
   if (!heat || !heat.length) return '';
-  const cells = heat.map((v, i) => `<div class="ct-hm-c ${v ? 'on' : 'off'}" style="animation-delay:${i*22}ms"></div>`).join('');
-  return `<div class="ct-hm-cap">每格 = 一天，金色 = 當天有出手 · 共出席 <b>${active}/${heat.length}</b> 天</div>
-    <div class="ct-hm">${cells}</div>`;
+  const cells = heat.map((v, i) => `<div class="ct-hm-c ${v ? 'on' : 'off'}" style="animation-delay:${i*18}ms"></div>`).join('');
+  return `<div class="ct-hm-cap">出席 <b>${active}/${heat.length}</b> 天　·　最長連續 <b>${certStreakFromHeat(heat)}</b> 天 🔥</div>
+    <div class="ct-hm-strip">${cells}</div>`;
+}
+function certStreakFromHeat(heat) {
+  let best = 0, run = 0;
+  heat.forEach(v => { if (v) { run++; best = Math.max(best, run); } else run = 0; });
+  return best;
 }
 
 // 里程碑時間軸
