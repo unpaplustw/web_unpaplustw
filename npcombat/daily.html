@@ -68,13 +68,13 @@
   .ct-sbar-track{flex:1;height:16px;background:#efe6c8;border-radius:8px;overflow:hidden}
   .ct-sbar-fill{height:100%;background:linear-gradient(90deg,#f5d76e,#b8860b);border-radius:8px;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .ct-sbar-v{font-size:11px;font-weight:800;color:#9a6f00;width:34px;flex-shrink:0}
-  /* 熱力圖 */
+  /* 出勤日曆（兩色）*/
+  .ct-hm-cap{font-size:11px;color:#8a7a3a;text-align:center;margin-bottom:8px}.ct-hm-cap b{color:#9a6f00;font-size:13px}
   .ct-hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
   .ct-hm-c{aspect-ratio:1;border-radius:3px;transform:scale(0);opacity:0;animation:cthmpop .35s forwards}
   @keyframes cthmpop{to{transform:scale(1);opacity:1}}
-  .ct-hm-leg{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:10px;color:#8a7a3a}
-  .ct-hm-leg .ct-hm-c{width:11px;height:11px;aspect-ratio:auto;animation:none;transform:none;opacity:1;display:inline-block}
-  .l0{background:#efe6c8}.l1{background:#f0d27a}.l2{background:#e0b13c}.l3{background:#c08a14}.l4{background:#8a6200}
+  .ct-hm-c.on{background:linear-gradient(135deg,#f5d76e,#b8860b)}
+  .ct-hm-c.off{background:#e8ddc0}
   /* 里程碑 */
   .ct-tl{position:relative;padding-left:18px;margin:4px 4px}
   .ct-tl::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#d4af37}
@@ -1416,17 +1416,15 @@ async function loadCertData() {
 
   const totalActs = CERT_FIELDS.reduce((a, f) => a + (totals[f.key] || 0), 0);
 
-  // 📅 行動熱力圖：開班～結業每天行動量（0=無，分 5 級）
-  const byDate = {};
-  mine.forEach(l => { byDate[l.log_date] = (byDate[l.log_date] || 0) + cActPts(l); });
+  // 📅 出勤日曆：開班～今天每天「有沒有行動」（1=有出手 / 0=空白）
+  const actDates = new Set(mine.filter(l => cActPts(l) > 0).map(l => l.log_date));
   const heat = [];
   const sd = new Date(batchInfo.start_date), ed = new Date(batchInfo.end_date), tdy = new Date(today);
   const endLoop = ed < tdy ? ed : tdy;
   for (let dt = new Date(sd); dt <= endLoop; dt.setDate(dt.getDate() + 1)) {
-    const v = byDate[localDateStr(dt)] || 0;
-    const lvl = v === 0 ? 0 : v < 5 ? 1 : v < 15 ? 2 : v < 30 ? 3 : 4;
-    heat.push(lvl);
+    heat.push(actDates.has(localDateStr(dt)) ? 1 : 0);
   }
+  const heatActive = heat.filter(v => v).length;
 
   // 📍 里程碑（只列實際發生的）
   const ms = [];
@@ -1449,7 +1447,7 @@ async function loadCertData() {
 
   return { totals, actionPts, closePts, total, reportDays, checkinDays, buddies, streak: best,
            closeCount: myCloses.length, weekly, slots, closePtsTotal: closePts, threshold: eb,
-           totalActs, heat, milestones: ms, batch: batchInfo };
+           totalActs, heat, heatActive, milestones: ms, batch: batchInfo };
 }
 
 // A：主場（貢獻分最高）+ 可加強（最低）
@@ -1516,7 +1514,7 @@ function buildCertHTML(d) {
   const analysis = certAnalysis(posPts);   // A：主場 + 可加強
   const styleTag = certStyle(posPts);      // C：行動風格稱號
   const weekBars = weeklyBars(d.weekly);
-  const heatmap = heatmapHTML(d.heat);
+  const heatmap = heatmapHTML(d.heat, d.heatActive);
   const milestone = milestoneHTML(d.milestones);
   const comment = certComment(d);
   const westin = d.slots >= 1
@@ -1588,12 +1586,12 @@ function strengthBars(posPts) {
     </div>`).join('') + '</div>';
 }
 
-// 行動熱力圖
-function heatmapHTML(heat) {
+// 出勤日曆（兩色：金=有行動 / 灰=空白）
+function heatmapHTML(heat, active) {
   if (!heat || !heat.length) return '';
-  const cells = heat.map((lv, i) => `<div class="ct-hm-c l${lv}" style="animation-delay:${i*22}ms"></div>`).join('');
-  return `<div class="ct-hm">${cells}</div>
-    <div class="ct-hm-leg">少 <span class="ct-hm-c l0"></span><span class="ct-hm-c l1"></span><span class="ct-hm-c l2"></span><span class="ct-hm-c l3"></span><span class="ct-hm-c l4"></span> 多</div>`;
+  const cells = heat.map((v, i) => `<div class="ct-hm-c ${v ? 'on' : 'off'}" style="animation-delay:${i*22}ms"></div>`).join('');
+  return `<div class="ct-hm-cap">每格 = 一天，金色 = 當天有出手 · 共出席 <b>${active}/${heat.length}</b> 天</div>
+    <div class="ct-hm">${cells}</div>`;
 }
 
 // 里程碑時間軸
