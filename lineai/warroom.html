@@ -4,20 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LINEAI APLUS 戰情室</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #030712;
-  --panel: #0b1120;
-  --border: #1a2540;
-  --cyan: #06b6d4;
-  --amber: #f59e0b;
-  --red: #ef4444;
-  --green: #10b981;
-  --purple: #a855f7;
-  --text: #e2e8f0;
-  --sub: #4b6080;
-  --dim: #0f1928;
+  --bg: #f7f5f0;
+  --panel: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --cyan: #b8960c;
+  --amber: #d4af37;
+  --red: #c0392b;
+  --green: #1a8a5a;
+  --purple: #9a7b1f;
+  --text: #1a1a2e;
+  --sub: #6b7280;
+  --dim: #efe9dd;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,13 +33,7 @@ body::after {
   content: '';
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 3px,
-    rgba(6,182,212,0.012) 3px,
-    rgba(6,182,212,0.012) 4px
-  );
+  background:none;
   pointer-events: none;
   z-index: 9999;
 }
@@ -55,12 +49,12 @@ body::after {
 }
 .hdr-left { display: flex; align-items: baseline; gap: 14px; }
 .hdr-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Playfair Display', serif;
   font-size: 2.8rem;
   color: var(--cyan);
   letter-spacing: 0.06em;
   line-height: 1;
-  text-shadow: 0 0 40px rgba(6,182,212,0.25);
+  
 }
 .hdr-sub {
   font-family: 'DM Mono', monospace;
@@ -128,11 +122,11 @@ body::after {
   width: 30px; height: 30px;
   border-radius: 3px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.03);
   border: 1px solid var(--border);
 }
 .ph-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Playfair Display', serif;
   font-size: 1.15rem;
   letter-spacing: 0.12em;
   color: var(--accent);
@@ -144,7 +138,7 @@ body::after {
   letter-spacing: 0.12em;
   padding: 2px 7px;
   border-radius: 2px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.03);
   border: 1px solid var(--border);
   color: var(--sub);
 }
@@ -203,7 +197,7 @@ body::after {
   color: var(--sub); width: 18px; text-align: right; flex-shrink: 0;
 }
 .ri-track {
-  flex: 1; height: 22px; background: rgba(255,255,255,0.03);
+  flex: 1; height: 22px; background: rgba(0,0,0,0.04);
   border-radius: 2px; overflow: hidden; position: relative;
 }
 .ri-fill {
@@ -228,7 +222,7 @@ body::after {
 .cr-lbl { font-size: 0.78rem; color: var(--text); }
 .cr-meta { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--sub); }
 .cr-track {
-  height: 7px; background: rgba(255,255,255,0.05);
+  height: 7px; background: rgba(0,0,0,0.06);
   border-radius: 4px; overflow: hidden;
 }
 .cr-fill { height: 100%; border-radius: 4px; transition: width 1.3s ease; }
