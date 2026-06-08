@@ -625,6 +625,7 @@
 const DEMO_MODE = false;
 const LIFF_ID = '2009692859-IGJ1xPLd';
 const BATCH_ID = 1;
+const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：god.html 帶 ?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF 以該學員身份檢視
 
 const sb = window.supabase.createClient(
   'https://nsgqsopqlkhayuefdout.supabase.co',
@@ -923,14 +924,22 @@ async function init() {
   }
 
   try {
-    // LIFF 登入
-    await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    const profile = await liff.getProfile();
-
-    // 查會員
-    const { data: member } = await sb.from('members_master').select('id, name')
-      .eq('line_user_id', profile.userId).single();
+    // 身份取得：天神視角（god_as + god_key）跳過 LIFF，否則正常 LIFF 登入
+    const _p = new URLSearchParams(location.search);
+    const _godAs = _p.get('god_as'), _godKey = _p.get('god_key');
+    const _isGodView = _godAs && _godKey === GOD_KEY;
+    let member;
+    if (_isGodView) {
+      const { data } = await sb.from('members_master').select('id, name').eq('id', _godAs).single();
+      member = data;
+    } else {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      const profile = await liff.getProfile();
+      const { data } = await sb.from('members_master').select('id, name')
+        .eq('line_user_id', profile.userId).single();
+      member = data;
+    }
     if (!member) { showBlock('查無會員資料，請先完成報名。'); return; }
     memberId = member.id;
 
@@ -940,7 +949,7 @@ async function init() {
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
     memberName = member.name;
-    document.getElementById('userName').textContent = member.name;
+    document.getElementById('userName').textContent = member.name + (_isGodView ? ' 👁️' : '');
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
     document.getElementById('declName2').textContent = ' ' + member.name + ' ';
 
