@@ -263,6 +263,7 @@ let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
 let currentCat = 'personal'; // personal / team / leader
+const VERIFY_FROM = '2026-06-08'; // 證明勾折扣生效日（第三週起）；之前寬限全額
 let batchStudents = [];
 let coachGroups = {};
 let coachInfo = {};
@@ -465,11 +466,8 @@ function fmtDateISO(d) { return d.toISOString().split('T')[0]; }
 
 // 締結是否計分：admin 補登永遠算；學員自填(daily)要當天證明勾 close=true
 function closeCounts(c) {
-  if (c.source === 'admin') return true;
-  const sid = memberToStu[c.member_id];
-  if (!sid) return false;
-  const log = allLogs.find(l => l.student_id === sid && l.log_date === c.close_date);
-  return !!(log && log.proof_checks && log.proof_checks.close);
+  // 締結＝真實報件，在 closing_records 裡就計分（不再卡證明勾）
+  return true;
 }
 
 // 根據日期範圍過濾並彙總
@@ -500,17 +498,19 @@ function calcStats(startDate, endDate) {
     const s = students[log.student_id];
     if (!s) return;
     const proof = log.proof_checks || {};
+    // 驗證寬限：6/8 前系統未上線、教練沒得勾 → 行動分全額；6/8 起才套證明勾折扣
+    const verify = log.log_date >= VERIFY_FROM;
     fields.forEach(f => {
       const val = log[f] || 0;
       s[f] += val;
       const matching = allBonusRules.filter(r => r.action_field === f && log.log_date >= r.start_date && log.log_date <= r.end_date);
       const mult = matching.length ? Math.max(...matching.map(r => r.multiplier)) : 1;
-      // 證明勾：有=全分，無=×0.5
-      const proofMult = proof[f] ? 1 : 0.5;
+      // 證明勾：有=全分，無=×0.5（僅生效日後）
+      const proofMult = !verify || proof[f] ? 1 : 0.5;
       s.action_pts += val * BASE_PTS[f] * mult * proofMult;
     });
-    // 🎙️小組回報 +5（要證明勾）
-    if (log.group_reported && proof.group) s.action_pts += 5;
+    // 🎙️小組回報 +5（生效日後要證明勾；之前學員聲明即給）
+    if (log.group_reported && (!verify || proof.group)) s.action_pts += 5;
     // 📖朗讀宣言 +2（學員自己拿）
     if (log.decl_read) s.action_pts += 2;
     // 🏢公司打卡 +10（GPS 自動，有 checkin_at 即給）

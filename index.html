@@ -55,6 +55,10 @@
   .service-card:nth-child(3) { animation-delay: 0.2s; }
   @media (max-width: 768px) { .hero h1 { font-size: 32px; } .hero { padding: 48px 20px; } .services-grid { grid-template-columns: 1fr; } }
 </style>
+<script>
+  const _s = new URLSearchParams(location.search).get('liff.state');
+  if (_s) location.replace('https://unpaplus.com.tw' + _s);
+</script>
 </head>
 <body>
 

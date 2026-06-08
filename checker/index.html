@@ -411,6 +411,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     </label>
   </div>
 
+  <!-- 回報拍照用的隱藏 input（由「查無」的回報按鈕 startReport 觸發）-->
+  <input id="reportPhotoInput" type="file" accept="image/*" capture="environment" style="display:none">
+
   <!-- 歷史 -->
   <div class="history-section" id="historySection">
     <div class="history-title">大家最近查的</div>
@@ -443,6 +446,8 @@ const SB_RAG_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 
 // Edge Function
 const ANALYZE_URL = SB_RAG_URL + '/functions/v1/analyze-product';
+// 回饋機制：GAS Web App URL（部署 gas/feedback.gs 後把網址貼來這裡）
+const FEEDBACK_GAS_URL = 'PASTE_GAS_WEBAPP_URL_HERE';
 
 const sbMember = window.supabase.createClient(SB_MEMBER_URL, SB_MEMBER_KEY);
 const sbRag = window.supabase.createClient(SB_RAG_URL, SB_RAG_KEY);
@@ -648,7 +653,7 @@ function renderSearchResults(list, q) {
     logQuery('not_found', q, null);
     srBox.innerHTML = '<div class="sr-empty">&#128269; 資料庫查無「' + esc(q) + '」<br>這個商品可能還沒建檔<br><br>' +
       '&#128247; 請改用上方「拍成分表」辨識<br><br>' +
-      '<button class="btn-report" id="btnReport" onclick="reportMissing(\'' + esc(q) + '\')">&#128229; 回報這個商品給後台建檔</button>' +
+      '<button class="btn-report" id="btnReport" onclick="startReport(\'' + esc(q) + '\')">&#128229; 拍成分表回報後台（核可 +5 點）</button>' +
       '</div>';
     srBox.style.display = 'block';
     return;
@@ -1162,19 +1167,45 @@ function hideAnalyzing() {
   document.getElementById('analyzingBox').style.display = 'none';
 }
 
-// ── 回報未建檔商品 ──
-async function reportMissing(name) {
-  const btn = document.getElementById('btnReport');
-  if (btn) { btn.disabled = true; btn.innerHTML = '&#10003; 已收到，會盡快建檔'; }
-  try {
-    await sbRag.from('query_logs').insert({
-      line_user_id: currentUser ? currentUser.lineUserId : 'unknown',
-      query_type: 'report_missing',
-      query_input: name,
-      product_id: null
-    });
-  } catch (e) { /* silent */ }
+// ── 回報未建檔商品（拍成分表 → GAS → Sheet+Drive，核可後加 5 點）──
+let pendingReportName = '';
+function startReport(name) {
+  pendingReportName = name;
+  document.getElementById('reportPhotoInput').click();  // 開相機拍成分表
 }
+document.getElementById('reportPhotoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file || !pendingReportName) return;
+  const name = pendingReportName; pendingReportName = '';
+  const btn = document.getElementById('btnReport');
+  if (btn) { btn.disabled = true; btn.innerHTML = '&#9203; 上傳中...'; }
+  try {
+    const compressed = await compressImage(file, 1200, 0.8);
+    const base64 = await blobToBase64(compressed);
+    // 送 GAS（text/plain 避開 CORS preflight；GAS 寫 Sheet + 照片存 Drive）
+    await fetch(FEEDBACK_GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        line_user_id: currentUser ? currentUser.lineUserId : 'unknown',
+        member_name: currentUser ? currentUser.name : '',
+        product_name: name,
+        photo_base64: base64
+      })
+    });
+    // 同時記 query_logs（後台撈待建檔清單用，不含照片）
+    try {
+      await sbRag.from('query_logs').insert({
+        line_user_id: currentUser ? currentUser.lineUserId : 'unknown',
+        query_type: 'report_missing', query_input: name, product_id: null
+      });
+    } catch (_e) { /* silent */ }
+    if (btn) btn.innerHTML = '&#10003; 已收到！審核後加 5 點';
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '&#9888;&#65039; 上傳失敗，請再試一次'; }
+  }
+});
 
 // ── 餘額顯示（init 設定、扣點後 credit 事件更新）──
 function updateCreditBadge(n) {
