@@ -1018,7 +1018,10 @@ async function init() {
 
     const dayNum = allLogs.length + 1;
     document.getElementById('dayCount').textContent = `第 ${dayNum} 天`;
-    document.getElementById('certBtn').style.display = '';
+    // 🎓 結業證書：7/1 起才解鎖，平常隱藏（保留結業驚喜）。改期改這常數
+    if (today() >= CERT_UNLOCK) {
+      document.getElementById('certBtn').style.display = '';
+    }
 
     // ── 戰報計算 ──
     renderWarReport(allLogs, allCloses, batch, d);
@@ -1345,6 +1348,7 @@ function backToEdit() {
 // 🎓 結業成長證明書
 // ════════════════════════════════════════════
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+const CERT_UNLOCK = '2026-07-01'; // 結業證書解鎖日（之前隱藏）
 const CERT_FIELDS = [
   { key:'name_list', label:'狂列名單', w:1 },
   { key:'meet',      label:'認識新友', w:1 },
