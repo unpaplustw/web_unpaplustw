@@ -447,7 +447,7 @@ const SB_RAG_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 // Edge Function
 const ANALYZE_URL = SB_RAG_URL + '/functions/v1/analyze-product';
 // 回饋機制：GAS Web App URL（部署 gas/feedback.gs 後把網址貼來這裡）
-const FEEDBACK_GAS_URL = 'PASTE_GAS_WEBAPP_URL_HERE';
+const FEEDBACK_GAS_URL = 'https://script.google.com/macros/s/AKfycbw9AEjjNrv1p8vPshfBR-tp444CDOt6RluNiV0LyedMbbnOwPht2zy11D6rzIK-VuzA2g/exec';
 
 const sbMember = window.supabase.createClient(SB_MEMBER_URL, SB_MEMBER_KEY);
 const sbRag = window.supabase.createClient(SB_RAG_URL, SB_RAG_KEY);
