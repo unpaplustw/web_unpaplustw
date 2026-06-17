@@ -128,6 +128,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .more-tools-body.open{display:block}
 .more-tools-body .tool-grid{margin-bottom:12px}
 .more-tools-body .verify-panel{margin-bottom:0}
+.tm-entry{width:100%;display:flex;align-items:center;gap:12px;padding:15px;margin-bottom:16px;border:2px solid #d4537e;border-radius:14px;background:#fbeaf0;cursor:pointer;text-align:left}
+.tm-entry .tm-ic{font-size:26px;flex-shrink:0}
+.tm-entry b{font-size:16px;color:#993556}
+.tm-entry small{color:#993556}
+.tm-entry .tm-ar{margin-left:auto;color:#993556}
+.tm-back{display:inline-block;color:var(--pri);cursor:pointer;font-size:15px;font-weight:700;margin-bottom:14px}
+.tm-title{text-align:center;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--txt)}
+.tm-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px}
+.tm-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
+.tm-bar-name{flex:1;font-size:15px;color:var(--txt)}
+.tm-bar-fill{height:8px;background:#d4537e;border-radius:4px;min-width:8px}
+.tm-bar-cnt{font-weight:700;color:#993556;font-size:15px;min-width:34px;text-align:right}
+.tm-card{padding:14px 16px;margin-bottom:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;box-shadow:var(--shadow)}
+.tm-card-title{font-size:15px;font-weight:700;line-height:1.5;color:var(--txt)}
+.tm-card-tags{margin-top:6px;font-size:12px;color:var(--muted)}
+.tm-d-section{margin-bottom:14px}
+.tm-d-label{font-size:13px;color:#993556;font-weight:700;margin-bottom:4px}
+.tm-d-body{font-size:15px;line-height:1.85;color:#333}
+.tm-d-note{background:#faece7;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#712b13;margin-top:10px}
 
 /* ── 四刀卡片 ── */
 .blade{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
@@ -244,6 +263,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="hd-sub" id="userName"></div>
     <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
   </div>
+
+  <div id="queryArea">
+  <!-- 體感見證入口 -->
+  <button class="tm-entry" onclick="openTestimonials()">
+    <span class="tm-ic">&#128170;</span>
+    <span><b>看大家的真實改善</b><br><small>187 篇真實體感分享</small></span>
+    <span class="tm-ar">&#9654;</span>
+  </button>
 
   <!-- 更多工具（摺疊，預設收起，放最上）-->
   <div class="more-tools">
@@ -418,6 +445,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   <div class="history-section" id="historySection">
     <div class="history-title">大家最近查的</div>
     <div id="historyList"></div>
+  </div>
+  </div><!-- /queryArea -->
+
+  <!-- 體感見證面板 -->
+  <div class="tm-panel" id="tmPanel" style="display:none">
+    <div class="tm-back" onclick="closeTestimonials()">&#8249; 返回查詢</div>
+    <div id="tmStats"></div>
+    <div id="tmList"></div>
+    <div id="tmDetail"></div>
   </div>
 </div>
 
@@ -1155,6 +1191,74 @@ function toggleRawIng() {
 function toggleMoreTools() {
   document.getElementById('moreToolsBody').classList.toggle('open');
   document.getElementById('moreToolsArrow').classList.toggle('open');
+}
+
+// ── 體感見證 ──
+function openTestimonials() {
+  document.getElementById('queryArea').style.display = 'none';
+  document.getElementById('tmPanel').style.display = 'block';
+  document.getElementById('tmList').innerHTML = '';
+  document.getElementById('tmDetail').innerHTML = '';
+  document.getElementById('tmStats').style.display = '';
+  window.scrollTo(0, 0);
+  loadTmStats();
+}
+function closeTestimonials() {
+  document.getElementById('tmPanel').style.display = 'none';
+  document.getElementById('queryArea').style.display = '';
+  window.scrollTo(0, 0);
+}
+async function loadTmStats() {
+  const s = document.getElementById('tmStats');
+  s.innerHTML = '<span class="dot-loading">載入中</span>';
+  const { data } = await sbRag.rpc('testimonial_stats');
+  if (!data) { s.innerHTML = '載入失敗，請重試'; return; }
+  const total = (data.find(d => d.dim === 'total') || {}).cnt || 0;
+  const organs = data.filter(d => d.dim === 'organ').sort((a, b) => b.cnt - a.cnt);
+  const max = organs.length ? organs[0].cnt : 1;
+  s.innerHTML = '<div class="tm-title">&#128202; ' + total + ' 位真實分享</div>' +
+    '<div class="tm-sub">大家改善了哪裡？點下面看真實故事</div>' +
+    organs.map(o => '<div class="tm-bar" onclick="loadTmList(\'' + esc(o.label) + '\')">' +
+      '<span class="tm-bar-name">' + o.label + '</span>' +
+      '<span class="tm-bar-fill" style="width:' + Math.max(8, Math.round(o.cnt / max * 88)) + 'px"></span>' +
+      '<span class="tm-bar-cnt">' + o.cnt + '</span></div>').join('');
+}
+async function loadTmList(organ) {
+  document.getElementById('tmStats').style.display = 'none';
+  const l = document.getElementById('tmList');
+  l.style.display = '';
+  l.innerHTML = '<span class="dot-loading">載入見證</span>';
+  const { data } = await sbRag.from('testimonials').select('id,title,gender,functions').contains('organs', [organ]).eq('status', 'active').limit(60);
+  l.innerHTML = '<div class="tm-back" onclick="tmBackToStats()">&#8249; 換部位</div>' +
+    '<div class="tm-title">' + organ + '</div>' +
+    '<div class="tm-sub">' + (data ? data.length : 0) + ' 篇真實見證</div>' +
+    (data || []).map(t => '<div class="tm-card" onclick="loadTmDetail(' + t.id + ')">' +
+      '<div class="tm-card-title">' + t.title + '</div>' +
+      '<div class="tm-card-tags">' + (t.gender || '') + ' · ' + ((t.functions || []).join(' ')) + '</div></div>').join('');
+}
+function tmBackToStats() {
+  document.getElementById('tmList').innerHTML = '';
+  document.getElementById('tmStats').style.display = '';
+  window.scrollTo(0, 0);
+}
+async function loadTmDetail(id) {
+  document.getElementById('tmList').style.display = 'none';
+  const d = document.getElementById('tmDetail');
+  d.innerHTML = '<span class="dot-loading">載入</span>';
+  const { data } = await sbRag.from('testimonials').select('*').eq('id', id).single();
+  if (!data) { d.innerHTML = '載入失敗'; return; }
+  const seg = [['人物', data.intro], ['起初', data.before_state], ['使用', data.usage_ctx], ['轉變', data.change_state], ['心聲', data.voice]];
+  d.innerHTML = '<div class="tm-back" onclick="tmBackToList()">&#8249; 回見證列表</div>' +
+    '<div class="tm-title">' + data.title + '</div>' +
+    '<div class="tm-sub">' + (data.gender || '') + ' · ' + ((data.organs || []).join(' ')) + '</div>' +
+    seg.filter(x => x[1]).map(x => '<div class="tm-d-section"><div class="tm-d-label">' + x[0] + '</div><div class="tm-d-body">' + x[1] + '</div></div>').join('') +
+    (data.ai_note ? '<div class="tm-d-note">' + data.ai_note + '</div>' : '');
+  window.scrollTo(0, 0);
+}
+function tmBackToList() {
+  document.getElementById('tmDetail').innerHTML = '';
+  document.getElementById('tmList').style.display = '';
+  window.scrollTo(0, 0);
 }
 
 // ── 分析中狀態 ──
