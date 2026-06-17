@@ -147,6 +147,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .tm-d-label{font-size:13px;color:#993556;font-weight:700;margin-bottom:4px}
 .tm-d-body{font-size:15px;line-height:1.85;color:#333}
 .tm-d-note{background:#faece7;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#712b13;margin-top:10px}
+.nd-q{text-align:center;font-size:17px;font-weight:700;color:var(--txt);margin:6px 0 16px}
 
 /* ── 四刀卡片 ── */
 .blade{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
@@ -265,10 +266,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
 
   <div id="queryArea">
-  <!-- 體感見證入口 -->
+  <!-- 三需求門入口 -->
+  <div class="nd-q">你想了解什麼？</div>
+  <button class="tm-entry" onclick="showDoor('product')">
+    <span class="tm-ic">&#128269;</span>
+    <span><b>查產品好不好</b><br><small>查競品成分、揭穿 CP 值</small></span>
+    <span class="tm-ar">&#9654;</span>
+  </button>
   <button class="tm-entry" onclick="openTestimonials()">
     <span class="tm-ic">&#128170;</span>
-    <span><b>看大家的真實改善</b><br><small>187 篇真實體感分享</small></span>
+    <span><b>看大家怎麼改善</b><br><small>187 篇真實體感分享</small></span>
+    <span class="tm-ar">&#9654;</span>
+  </button>
+  <button class="tm-entry" onclick="showDoor('verify')">
+    <span class="tm-ic">&#128737;&#65039;</span>
+    <span><b>對方說的是真的嗎</b><br><small>查字號、破解話術</small></span>
     <span class="tm-ar">&#9654;</span>
   </button>
 
@@ -571,27 +583,44 @@ async function doVerify() {
 async function init() {
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    const profile = await liff.getProfile();
-
-    const { data: member } = await sbMember.from('members')
-      .select('id, name, level, ai_credits')
-      .eq('line_user_id', profile.userId)
-      .single();
-
-    if (!member || member.level < 1) {
-      showBlocked('請成為正式會員');
-      return;
+    // 免登分層：已登入會員 → 設 currentUser；未登入/非會員 → 仍進首頁看第一層(免費)
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      const { data: member } = await sbMember.from('members')
+        .select('id, name, level, ai_credits')
+        .eq('line_user_id', profile.userId)
+        .single();
+      if (member && member.level >= 1) {
+        currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };
+        loadHistory();
+      }
     }
-
-    currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };
-    document.getElementById('userName').textContent = member.name + '，為家人把關';
-    updateCreditBadge(currentUser.credits);
+    updateAuthUI();
     showScreen('main');
-    loadHistory();
   } catch (e) {
-    showBlocked('登入失敗：' + e.message);
+    updateAuthUI();
+    showScreen('main');
   }
+}
+
+// 依登入狀態更新頂部顯示（訪客 vs 會員）
+function updateAuthUI() {
+  const nameEl = document.getElementById('userName');
+  const badgeEl = document.getElementById('creditBadge');
+  if (currentUser) {
+    if (nameEl) nameEl.textContent = currentUser.name + '，為家人把關';
+    if (badgeEl) { badgeEl.style.display = ''; updateCreditBadge(currentUser.credits); }
+  } else {
+    if (nameEl) nameEl.textContent = '先看看大家的真實改善 👇';
+    if (badgeEl) badgeEl.style.display = 'none';
+  }
+}
+
+// 第二層功能(四刀/建議)需登入會員，未登入引導登入
+function ensureMember() {
+  if (currentUser) return true;
+  if (confirm('「查產品分析」是會員功能（用點數）。要現在登入 LINE 解鎖嗎？')) liff.login();
+  return false;
 }
 
 function showScreen(name) {
@@ -849,6 +878,8 @@ function blobToBase64(blob) {
 
 // ── 呼叫 Edge Function（串流）── 第一段：攻擊 ──
 async function callAnalyze(payload, productInfo) {
+  // 免登分層 gate：四刀/建議是第二層會員功能，未登入先引導登入
+  if (!currentUser && ['product', 'image', 'text_query', 'np_suggest'].includes(payload.type)) { ensureMember(); return; }
   lastAnalysisResult = '';
 
   // combination_warning 不經過 Claude，直接在前端顯示（省 token）
@@ -1207,6 +1238,17 @@ function closeTestimonials() {
   document.getElementById('tmPanel').style.display = 'none';
   document.getElementById('queryArea').style.display = '';
   window.scrollTo(0, 0);
+}
+
+// 三需求門：導向對應功能（保留現有區塊，捲動聚焦）
+function showDoor(d) {
+  if (d === 'product') {
+    const sb = document.querySelector('.search-box');
+    if (sb) { sb.scrollIntoView({ behavior: 'smooth', block: 'center' }); const si = document.getElementById('searchInput'); if (si) si.focus(); }
+  } else if (d === 'verify') {
+    const mt = document.querySelector('.more-tools');
+    if (mt) { const body = document.getElementById('moreToolsBody'); if (body && !body.classList.contains('open')) toggleMoreTools(); mt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  }
 }
 async function loadTmStats() {
   const s = document.getElementById('tmStats');
