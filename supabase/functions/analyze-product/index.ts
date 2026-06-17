@@ -2,7 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_API_KEY') || '';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514';   // 四刀核心攻擊，要準
+const HAIKU_MODEL = 'claude-haiku-4-5-20251001';   // 法規教育/綠佳利建議：輔助、已去識別化、省錢
 const SB_URL = Deno.env.get('SUPABASE_URL') || '';
 const SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -238,10 +239,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // model 分層：四刀核心用 Sonnet；法規教育(claim_check)／綠佳利建議(np_suggest) 用 Haiku 省錢
+    const useModel = (payload.type === 'claim_check' || payload.type === 'np_suggest') ? HAIKU_MODEL : CLAUDE_MODEL;
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 4096, system: systemPrompt, messages })
+      body: JSON.stringify({ model: useModel, max_tokens: 4096, system: systemPrompt, messages })
     });
     if (!claudeRes.ok) {
       const err = await claudeRes.text();
