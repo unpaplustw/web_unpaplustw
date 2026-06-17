@@ -1250,29 +1250,45 @@ function showDoor(d) {
     if (mt) { const body = document.getElementById('moreToolsBody'); if (body && !body.classList.contains('open')) toggleMoreTools(); mt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   }
 }
+// AI 重歸納：20 醫學器官 → 9 個使用者語言大類（不照搬 Notion 細分）
+const ORGAN_GROUP = {
+  '👁 眼睛系統': '👁 眼睛視力',
+  '🧠 大腦與神經': '🧠 精神睡眠腦力', '🧘‍♂️ 精神與情緒': '🧠 精神睡眠腦力', '🛌 睡眠系統': '🧠 精神睡眠腦力',
+  '🫀 心血管系統': '🫀 三高心血管', '🔥 內分泌系統': '🫀 三高心血管',
+  '🛡 免疫系統': '🛡 免疫修復', '🧬 肝膽代謝系統': '🛡 免疫修復', '🎗 癌症／重症支持': '🛡 免疫修復',
+  '🦴 骨骼與關節': '🦴 行動關節',
+  '💩 腸道與排便': '🌿 腸胃排便', '🍽 消化系統': '🌿 腸胃排便',
+  '🚽腎臟與泌尿系統': '🚽 泌尿婦科', '👩‍🦰 婦科系統': '🚽 泌尿婦科', '👦 男性泌尿生殖': '🚽 泌尿婦科',
+  '🩻 皮膚系統': '✨ 皮膚美容',
+  '👂耳朵健康': '👂 其他', '🦷口腔系統': '👂 其他', '🩺 呼吸系統': '👂 其他', '🫁肺部系統': '👂 其他'
+};
+function tmGroupOrgans(grp) { return Object.keys(ORGAN_GROUP).filter(o => ORGAN_GROUP[o] === grp); }
 async function loadTmStats() {
   const s = document.getElementById('tmStats');
   s.innerHTML = '<span class="dot-loading">載入中</span>';
   const { data } = await sbRag.rpc('testimonial_stats');
   if (!data) { s.innerHTML = '載入失敗，請重試'; return; }
   const total = (data.find(d => d.dim === 'total') || {}).cnt || 0;
-  const organs = data.filter(d => d.dim === 'organ').sort((a, b) => b.cnt - a.cnt);
-  const max = organs.length ? organs[0].cnt : 1;
+  const grp = {};
+  data.filter(d => d.dim === 'organ').forEach(o => { const g = ORGAN_GROUP[o.label] || o.label; grp[g] = (grp[g] || 0) + Number(o.cnt); });
+  const groups = Object.keys(grp).map(k => ({ label: k, cnt: grp[k] })).sort((a, b) => b.cnt - a.cnt);
+  const max = groups.length ? groups[0].cnt : 1;
   s.innerHTML = '<div class="tm-title">&#128202; ' + total + ' 位真實分享</div>' +
-    '<div class="tm-sub">大家改善了哪裡？點下面看真實故事</div>' +
-    organs.map(o => '<div class="tm-bar" onclick="loadTmList(\'' + esc(o.label) + '\')">' +
-      '<span class="tm-bar-name">' + o.label + '</span>' +
-      '<span class="tm-bar-fill" style="width:' + Math.max(8, Math.round(o.cnt / max * 88)) + 'px"></span>' +
-      '<span class="tm-bar-cnt">' + o.cnt + '</span></div>').join('');
+    '<div class="tm-sub">你最在意哪方面？點下面看真實故事</div>' +
+    groups.map(g => '<div class="tm-bar" onclick="loadTmList(\'' + esc(g.label) + '\')">' +
+      '<span class="tm-bar-name">' + g.label + '</span>' +
+      '<span class="tm-bar-fill" style="width:' + Math.max(8, Math.round(g.cnt / max * 88)) + 'px"></span>' +
+      '<span class="tm-bar-cnt">' + g.cnt + '</span></div>').join('');
 }
-async function loadTmList(organ) {
+async function loadTmList(grp) {
   document.getElementById('tmStats').style.display = 'none';
   const l = document.getElementById('tmList');
   l.style.display = '';
   l.innerHTML = '<span class="dot-loading">載入見證</span>';
-  const { data } = await sbRag.from('testimonials').select('id,title,gender,functions').contains('organs', [organ]).eq('status', 'active').limit(60);
-  l.innerHTML = '<div class="tm-back" onclick="tmBackToStats()">&#8249; 換部位</div>' +
-    '<div class="tm-title">' + organ + '</div>' +
+  const organs = tmGroupOrgans(grp);
+  const { data } = await sbRag.from('testimonials').select('id,title,gender,functions').overlaps('organs', organs.length ? organs : [grp]).eq('status', 'active').limit(80);
+  l.innerHTML = '<div class="tm-back" onclick="tmBackToStats()">&#8249; 換類別</div>' +
+    '<div class="tm-title">' + grp + '</div>' +
     '<div class="tm-sub">' + (data ? data.length : 0) + ' 篇真實見證</div>' +
     (data || []).map(t => '<div class="tm-card" onclick="loadTmDetail(' + t.id + ')">' +
       '<div class="tm-card-title">' + t.title + '</div>' +
