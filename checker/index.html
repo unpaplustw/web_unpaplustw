@@ -159,6 +159,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .tm-lock-foot{text-align:center;margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
 .tm-lock-hint{font-size:13px;color:var(--muted);margin-bottom:12px}
 .tm-lock-btn{background:#06C755;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;padding:12px 22px;cursor:pointer}
+.tm-search{display:flex;gap:8px;margin-bottom:16px}
+.tm-search-input{flex:1;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--txt)}
+.tm-search-btn{padding:0 16px;border:none;border-radius:10px;background:#0f6e56;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0}
 .nd-q{text-align:center;font-size:17px;font-weight:700;color:var(--txt);margin:6px 0 16px}
 
 /* ── 四刀卡片 ── */
@@ -476,7 +479,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
   <!-- 體感見證面板 -->
   <div class="tm-panel" id="tmPanel" style="display:none">
-    <div class="tm-back" onclick="closeTestimonials()">&#8249; 返回查詢</div>
+    <div class="tm-back" onclick="closeTestimonials()">&#8249; 返回首頁</div>
+    <div class="tm-search">
+      <input class="tm-search-input" id="tmSearchInput" type="text" placeholder="打關鍵字，例：肝、睡眠、血壓、眼睛" autocomplete="off" onkeydown="if(event.key==='Enter')tmSearch()">
+      <button class="tm-search-btn" onclick="tmSearch()">&#128269;</button>
+    </div>
     <div id="tmStats"></div>
     <div id="tmList"></div>
     <div id="tmDetail"></div>
@@ -1245,8 +1252,36 @@ function openTestimonials() {
   document.getElementById('tmList').innerHTML = '';
   document.getElementById('tmDetail').innerHTML = '';
   document.getElementById('tmStats').style.display = '';
+  const si = document.getElementById('tmSearchInput'); if (si) si.value = '';
   window.scrollTo(0, 0);
   loadTmStats();
+}
+// 體感搜尋：187 筆小量全撈一次客戶端過濾（title + 體感詞 + 9 大類），鎖照舊（只露標題）
+let tmAll = null;
+async function tmSearch() {
+  const kw = (document.getElementById('tmSearchInput').value || '').trim();
+  if (!kw) { tmBackToStats(); return; }
+  document.getElementById('tmStats').style.display = 'none';
+  document.getElementById('tmDetail').innerHTML = '';
+  const l = document.getElementById('tmList');
+  l.style.display = '';
+  l.innerHTML = '<span class="dot-loading">搜尋見證</span>';
+  if (!tmAll) {
+    const { data } = await sbRag.from('testimonials').select('id,title,gender,organs,functions').eq('status', 'active').limit(300);
+    tmAll = data || [];
+  }
+  const hits = tmAll.filter(t => {
+    const hay = (t.title || '') + ' ' + (t.organs || []).join(' ') + ' ' + (t.functions || []).join(' ') + ' ' + tmOrganLabel(t.organs);
+    return hay.indexOf(kw) > -1;
+  });
+  l.innerHTML = '<div class="tm-back" onclick="tmBackToStats()">&#8249; 回分類</div>' +
+    '<div class="tm-title">「' + kw + '」</div>' +
+    '<div class="tm-sub">' + hits.length + ' 篇相關見證</div>' +
+    (hits.length ? hits.map(t => '<div class="tm-card" onclick="loadTmDetail(' + t.id + ')">' +
+      '<div class="tm-card-title">' + t.title + '</div>' +
+      '<div class="tm-card-tags">' + (t.gender || '') + ' · ' + ((t.functions || []).join(' ')) + '</div></div>').join('')
+      : '<div class="tm-sub" style="margin-top:20px">沒找到，換個關鍵字試試（例：肝、睡眠、血壓、眼睛、過敏）</div>');
+  window.scrollTo(0, 0);
 }
 function closeTestimonials() {
   document.getElementById('tmPanel').style.display = 'none';
