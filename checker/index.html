@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>產品成分查詢</title>
+<title>健康查查 · 為家人把關</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -27,10 +27,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .wrap{max-width:480px;margin:0 auto;padding:16px 16px 100px}
 
 /* ── 頂部 ── */
-.hd{text-align:center;padding:20px 0 16px}
+.hd{text-align:center;padding:18px 0 14px}
 .hd-icon{font-size:36px}
-.hd-title{font-size:20px;font-weight:700;color:var(--pri);margin-top:4px}
-.hd-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.hd-title{font-size:26px;font-weight:800;letter-spacing:2px;color:var(--pri);margin-top:2px}
+.hd-tag{font-size:12.5px;color:var(--muted);margin-top:5px}
+.hd-chips{display:flex;gap:6px;justify-content:center;margin-top:9px;flex-wrap:wrap}
+.hd-chips span{font-size:11px;color:#5f5e5a;background:rgba(0,0,0,.05);padding:3px 10px;border-radius:20px}
+.hd-sub{font-size:12px;color:var(--muted);margin-top:8px}
 
 /* ── 類別選擇（大格子，無橫滑）── */
 .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
@@ -128,25 +131,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .more-tools-body.open{display:block}
 .more-tools-body .tool-grid{margin-bottom:12px}
 .more-tools-body .verify-panel{margin-bottom:0}
-.tm-entry{width:100%;display:flex;align-items:center;gap:12px;padding:15px;margin-bottom:16px;border:2px solid #d4537e;border-radius:14px;background:#fbeaf0;cursor:pointer;text-align:left}
+.tm-entry{width:100%;display:flex;align-items:center;gap:12px;padding:15px;margin-bottom:14px;border:1.5px solid var(--dc,#ccc);border-radius:14px;background:var(--dcb,#fff);cursor:pointer;text-align:left}
 .tm-entry .tm-ic{font-size:26px;flex-shrink:0}
-.tm-entry b{font-size:16px;color:#993556}
-.tm-entry small{color:#993556}
-.tm-entry .tm-ar{margin-left:auto;color:#993556}
+.tm-entry b{font-size:16px;color:var(--dc)}
+.tm-entry small{color:var(--dc);opacity:.82}
+.tm-entry .tm-lockhint{display:block;margin-top:5px;font-size:11.5px;color:#888;font-weight:400}
+.tm-entry .tm-ar{margin-left:auto;color:var(--dc)}
+.door-product{--dc:#185fa5;--dcb:#e6f1fb}
+.door-tm{--dc:#0f6e56;--dcb:#e1f5ee}
+.door-verify{--dc:#854f0b;--dcb:#faeeda}
 .tm-back{display:inline-block;color:var(--pri);cursor:pointer;font-size:15px;font-weight:700;margin-bottom:14px}
 .tm-title{text-align:center;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--txt)}
 .tm-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px}
 .tm-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
 .tm-bar-name{flex:1;font-size:15px;color:var(--txt)}
-.tm-bar-fill{height:8px;background:#d4537e;border-radius:4px;min-width:8px}
-.tm-bar-cnt{font-weight:700;color:#993556;font-size:15px;min-width:34px;text-align:right}
+.tm-bar-fill{height:8px;background:#0f6e56;border-radius:4px;min-width:8px}
+.tm-bar-cnt{font-weight:700;color:#0f6e56;font-size:15px;min-width:34px;text-align:right}
 .tm-card{padding:14px 16px;margin-bottom:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;box-shadow:var(--shadow)}
 .tm-card-title{font-size:15px;font-weight:700;line-height:1.5;color:var(--txt)}
 .tm-card-tags{margin-top:6px;font-size:12px;color:var(--muted)}
 .tm-d-section{margin-bottom:14px}
-.tm-d-label{font-size:13px;color:#993556;font-weight:700;margin-bottom:4px}
+.tm-d-label{font-size:13px;color:#0f6e56;font-weight:700;margin-bottom:4px}
 .tm-d-body{font-size:15px;line-height:1.85;color:#333}
 .tm-d-note{background:#faece7;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#712b13;margin-top:10px}
+.tm-lock{margin-top:8px}
+.tm-skel{height:12px;border-radius:6px;background:#e8e6df;margin:10px 0}
+.tm-lock-foot{text-align:center;margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.tm-lock-hint{font-size:13px;color:var(--muted);margin-bottom:12px}
+.tm-lock-btn{background:#06C755;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;padding:12px 22px;cursor:pointer}
 .nd-q{text-align:center;font-size:17px;font-weight:700;color:var(--txt);margin:6px 0 16px}
 
 /* ── 四刀卡片 ── */
@@ -259,39 +271,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 <!-- ── 主畫面 ── -->
 <div class="wrap" id="mainScreen" style="display:none">
   <div class="hd">
-    <div class="hd-icon">&#128300;</div>
-    <div class="hd-title">產品成分查詢</div>
+    <div class="hd-title">健康查查</div>
+    <div class="hd-tag">查成分 · 看見證 · 破話術，為家人把關</div>
+    <div class="hd-chips"><span>84,000+ 商品</span><span>187 篇真實見證</span></div>
     <div class="hd-sub" id="userName"></div>
     <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
   </div>
 
   <div id="queryArea">
-  <!-- 三需求門入口 -->
+  <!-- 三需求門入口（首頁 hub，點門才展開對應功能）-->
+  <div id="doorMenu">
   <div class="nd-q">你想了解什麼？</div>
-  <button class="tm-entry" onclick="showDoor('product')">
+  <button class="tm-entry door-product" onclick="showDoor('product')">
     <span class="tm-ic">&#128269;</span>
     <span><b>查產品好不好</b><br><small>查競品成分、揭穿 CP 值</small></span>
     <span class="tm-ar">&#9654;</span>
   </button>
-  <button class="tm-entry" onclick="openTestimonials()">
+  <button class="tm-entry door-tm" onclick="openTestimonials()">
     <span class="tm-ic">&#128170;</span>
-    <span><b>看大家怎麼改善</b><br><small>187 篇真實體感分享</small></span>
+    <span><b>看大家怎麼改善</b><br><small>187 人真實體感回饋</small><span class="tm-lockhint">&#128274; 完整故事需綁定 LINE</span></span>
     <span class="tm-ar">&#9654;</span>
   </button>
-  <button class="tm-entry" onclick="showDoor('verify')">
+  <button class="tm-entry door-verify" onclick="showDoor('verify')">
     <span class="tm-ic">&#128737;&#65039;</span>
-    <span><b>對方說的是真的嗎</b><br><small>查字號、破解話術</small></span>
+    <span><b>對方說的是真的嗎</b><br><small>查字號、破解話術 · 免費試</small></span>
     <span class="tm-ar">&#9654;</span>
   </button>
+  </div><!-- /doorMenu -->
 
-  <!-- 更多工具（摺疊，預設收起，放最上）-->
-  <div class="more-tools">
-    <div class="more-tools-header" onclick="toggleMoreTools()">
-      <span>&#128736;&#65039; 更多工具（字號認證 · 法規教育）</span>
-      <span class="more-tools-arrow" id="moreToolsArrow">&#9654;</span>
-    </div>
-    <div class="more-tools-body" id="moreToolsBody">
-      <!-- 功能工具（非產品分類）-->
+  <!-- 對方說的是真的嗎：字號認證 + 法規教育（門點進來才顯示）-->
+  <div id="verifyArea" style="display:none">
+    <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
+    <div class="nd-q">對方說的是真的嗎？</div>
       <div class="tool-grid">
         <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
         <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
@@ -319,8 +330,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
         <div class="vp-result" id="claimResult"></div>
       </div>
     </div>
-  </div>
 
+  <!-- 查產品好不好：通搜 + 候選 + 四刀 + 拍照 + 歷史（門點進來才顯示）-->
+  <div id="productArea" style="display:none">
+  <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
   <!-- 主功能：查商品（通搜，不分類）-->
   <div class="search-box">
     <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱查詢..." autocomplete="off">
@@ -458,6 +471,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div class="history-title">大家最近查的</div>
     <div id="historyList"></div>
   </div>
+  </div><!-- /productArea -->
   </div><!-- /queryArea -->
 
   <!-- 體感見證面板 -->
@@ -1237,18 +1251,29 @@ function openTestimonials() {
 function closeTestimonials() {
   document.getElementById('tmPanel').style.display = 'none';
   document.getElementById('queryArea').style.display = '';
-  window.scrollTo(0, 0);
+  goHome();
 }
 
-// 三需求門：導向對應功能（保留現有區塊，捲動聚焦）
+// 三需求門：首頁 hub 點門 → 隱藏門選單、展開對應功能區（乾淨、不擠）
+function goHome() {
+  document.getElementById('doorMenu').style.display = '';
+  document.getElementById('productArea').style.display = 'none';
+  document.getElementById('verifyArea').style.display = 'none';
+  window.scrollTo(0, 0);
+}
 function showDoor(d) {
+  document.getElementById('doorMenu').style.display = 'none';
   if (d === 'product') {
-    const sb = document.querySelector('.search-box');
-    if (sb) { sb.scrollIntoView({ behavior: 'smooth', block: 'center' }); const si = document.getElementById('searchInput'); if (si) si.focus(); }
+    document.getElementById('productArea').style.display = '';
+    const si = document.getElementById('searchInput'); if (si) si.focus();
   } else if (d === 'verify') {
-    const mt = document.querySelector('.more-tools');
-    if (mt) { const body = document.getElementById('moreToolsBody'); if (body && !body.classList.contains('open')) toggleMoreTools(); mt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    document.getElementById('verifyArea').style.display = '';
   }
+  window.scrollTo(0, 0);
+}
+// 訪客綁定 LINE（公開直連的陌生人 → 引導登入解鎖第二層）
+function bindLine() {
+  try { liff.login(); } catch (e) { alert('請從 LINE 開啟本頁，或先加入官方帳號綁定會員'); }
 }
 // AI 重歸納：20 醫學器官 → 9 個使用者語言大類（不照搬 Notion 細分）
 const ORGAN_GROUP = {
@@ -1302,6 +1327,22 @@ function tmBackToStats() {
 async function loadTmDetail(id) {
   document.getElementById('tmList').style.display = 'none';
   const d = document.getElementById('tmDetail');
+  if (!currentUser) {  // 訪客：標題露、六段故事鎖 → 製造份量感 + 引導綁定
+    d.innerHTML = '<span class="dot-loading">載入</span>';
+    const { data: meta } = await sbRag.from('testimonials').select('title,gender,organs').eq('id', id).single();
+    d.innerHTML = '<div class="tm-back" onclick="tmBackToList()">&#8249; 回見證列表</div>' +
+      '<div class="tm-title">' + (meta ? meta.title : '真實見證') + '</div>' +
+      '<div class="tm-sub">' + (meta ? (meta.gender || '') + ' · ' + ((meta.organs || []).join(' ')) : '') + '</div>' +
+      '<div class="tm-lock">' +
+        '<div class="tm-skel"></div><div class="tm-skel" style="width:88%"></div><div class="tm-skel" style="width:72%"></div>' +
+        '<div class="tm-lock-foot">' +
+          '<div class="tm-lock-hint">&#128274; 完整六段故事僅限會員</div>' +
+          '<button class="tm-lock-btn" onclick="bindLine()">綁定 LINE 看完整 187 篇</button>' +
+        '</div>' +
+      '</div>';
+    window.scrollTo(0, 0);
+    return;
+  }
   d.innerHTML = '<span class="dot-loading">載入</span>';
   const { data } = await sbRag.from('testimonials').select('*').eq('id', id).single();
   if (!data) { d.innerHTML = '載入失敗'; return; }
