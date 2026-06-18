@@ -1288,6 +1288,8 @@ const ORGAN_GROUP = {
   '👂耳朵健康': '👂 其他', '🦷口腔系統': '👂 其他', '🩺 呼吸系統': '👂 其他', '🫁肺部系統': '👂 其他'
 };
 function tmGroupOrgans(grp) { return Object.keys(ORGAN_GROUP).filter(o => ORGAN_GROUP[o] === grp); }
+// 對使用者一律用 9 大類使用者語言，原始 20 類醫學分類只當後台比對顆粒度（不外露）
+function tmOrganLabel(organs) { return [...new Set((organs || []).map(o => ORGAN_GROUP[o] || o))].join('・'); }
 async function loadTmStats() {
   const s = document.getElementById('tmStats');
   s.innerHTML = '<span class="dot-loading">載入中</span>';
@@ -1332,7 +1334,7 @@ async function loadTmDetail(id) {
     const { data: meta } = await sbRag.from('testimonials').select('title,gender,organs').eq('id', id).single();
     d.innerHTML = '<div class="tm-back" onclick="tmBackToList()">&#8249; 回見證列表</div>' +
       '<div class="tm-title">' + (meta ? meta.title : '真實見證') + '</div>' +
-      '<div class="tm-sub">' + (meta ? (meta.gender || '') + ' · ' + ((meta.organs || []).join(' ')) : '') + '</div>' +
+      '<div class="tm-sub">' + (meta ? (meta.gender || '') + ' · ' + tmOrganLabel(meta.organs) : '') + '</div>' +
       '<div class="tm-lock">' +
         '<div class="tm-skel"></div><div class="tm-skel" style="width:88%"></div><div class="tm-skel" style="width:72%"></div>' +
         '<div class="tm-lock-foot">' +
@@ -1349,7 +1351,7 @@ async function loadTmDetail(id) {
   const seg = [['人物', data.intro], ['起初', data.before_state], ['使用', data.usage_ctx], ['轉變', data.change_state], ['心聲', data.voice]];
   d.innerHTML = '<div class="tm-back" onclick="tmBackToList()">&#8249; 回見證列表</div>' +
     '<div class="tm-title">' + data.title + '</div>' +
-    '<div class="tm-sub">' + (data.gender || '') + ' · ' + ((data.organs || []).join(' ')) + '</div>' +
+    '<div class="tm-sub">' + (data.gender || '') + ' · ' + tmOrganLabel(data.organs) + '</div>' +
     seg.filter(x => x[1]).map(x => '<div class="tm-d-section"><div class="tm-d-label">' + x[0] + '</div><div class="tm-d-body">' + x[1] + '</div></div>').join('') +
     (data.ai_note ? '<div class="tm-d-note">' + data.ai_note + '</div>' : '');
   window.scrollTo(0, 0);
