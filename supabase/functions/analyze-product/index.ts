@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_API_KEY') || '';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';   // 四刀核心攻擊，要準
+const CLAUDE_MODEL = 'claude-sonnet-4-6';   // 四刀核心攻擊，要準（舊 claude-sonnet-4-20250514 已下架，2026-06-18 改現役 Sonnet 4.6）
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';   // 法規教育/綠佳利建議：輔助、已去識別化、省錢
 const SB_URL = Deno.env.get('SUPABASE_URL') || '';
 const SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
