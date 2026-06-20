@@ -951,12 +951,15 @@ async function callAnalyze(payload, productInfo) {
 
   hideAnalyzing();
 
-  // 扣點所需：身份(idToken)+ 冪等鍵(request_id)，隨 payload 一起送
+  // 扣點所需：身份(access token，會被 LIFF 自動續期，不像 idToken 會過期)+ 冪等鍵(request_id)
+  let accessToken = null;
+  try { accessToken = liff.getAccessToken(); } catch (_) {}
   let idToken = null;
   try { idToken = liff.getIDToken(); } catch (_) {}
   const reqId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(16).slice(2));
   const body = Object.assign({}, payload, {
     line_user_id: currentUser ? currentUser.lineUserId : null,
+    access_token: accessToken,
     id_token: idToken,
     request_id: reqId
   });

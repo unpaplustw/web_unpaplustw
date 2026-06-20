@@ -161,21 +161,43 @@ function sseError(message, code, remaining) {
   return new Response(stream, { headers: SSE_HEADERS });
 }
 
-// 驗證 LIFF idToken → 回傳可信 line userId(sub)，失敗回 null
 let LAST_VERIFY_DEBUG = '';
+
+// 舊路徑：驗 idToken（會過期，僅向下相容保留）
 async function verifyLineIdToken(idToken) {
   try {
     const body = new URLSearchParams({ id_token: idToken, client_id: LINE_CHANNEL_ID });
     const r = await fetch('https://api.line.me/oauth2/v2.1/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body
     });
     const d = await r.json();
-    LAST_VERIFY_DEBUG = 'http=' + r.status + ' body=' + JSON.stringify(d) + ' tokenLen=' + (idToken ? idToken.length : 0);
-    if (!r.ok) return null;
+    if (!r.ok) { LAST_VERIFY_DEBUG = 'idtoken http=' + r.status + ' ' + JSON.stringify(d); return null; }
     return d.sub || null;
-  } catch (e) { LAST_VERIFY_DEBUG = 'exception=' + (e && e.message ? e.message : String(e)); return null; }
+  } catch (e) { LAST_VERIFY_DEBUG = 'idtoken exc=' + (e && e.message ? e.message : String(e)); return null; }
+}
+
+// 主路徑：用 access token 換可信 userId。access token 會被 LIFF 自動續期，不像 idToken 會過期。
+async function resolveLineUser(payload) {
+  const at = payload.access_token;
+  if (at) {
+    try {
+      // 1) 驗 access token 有效且屬於本 channel（防止他 channel 的 token 冒用）
+      const vr = await fetch('https://api.line.me/oauth2/v2.1/verify?access_token=' + encodeURIComponent(at));
+      const vd = await vr.json();
+      if (!vr.ok || String(vd.client_id) !== LINE_CHANNEL_ID) {
+        LAST_VERIFY_DEBUG = 'at_verify http=' + vr.status + ' ' + JSON.stringify(vd); return null;
+      }
+      // 2) 用 access token 取 userId
+      const pr = await fetch('https://api.line.me/v2/profile', { headers: { Authorization: 'Bearer ' + at } });
+      const pd = await pr.json();
+      if (!pr.ok || !pd.userId) { LAST_VERIFY_DEBUG = 'profile http=' + pr.status + ' ' + JSON.stringify(pd); return null; }
+      return pd.userId;
+    } catch (e) { LAST_VERIFY_DEBUG = 'at_exc=' + (e && e.message ? e.message : String(e)); return null; }
+  }
+  // 向下相容：舊前端只帶 id_token
+  if (payload.id_token) return await verifyLineIdToken(payload.id_token);
+  LAST_VERIFY_DEBUG = 'no token sent';
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -228,9 +250,9 @@ Deno.serve(async (req) => {
     const cost = CHARGE[payload.type] || 0;
     let chargeUser = null;
     const requestId = payload.request_id || null;
-    if (cost > 0 && payload.id_token) {
-      chargeUser = await verifyLineIdToken(payload.id_token);
-      if (!chargeUser) return sseError('【除錯】' + LAST_VERIFY_DEBUG, 'auth');
+    if (cost > 0 && (payload.access_token || payload.id_token)) {
+      chargeUser = await resolveLineUser(payload);
+      if (!chargeUser) return sseError('連線階段過期，請關閉本頁、從 LINE 重新開啟健康查查即可', 'auth');
       try {
         const mb = createClient(MEMBERS_URL, MEMBERS_SERVICE);
         const { data: mem, error } = await mb.from('members').select('ai_credits').eq('line_user_id', chargeUser).single();
