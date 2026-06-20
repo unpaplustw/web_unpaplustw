@@ -170,10 +170,11 @@ async function verifyLineIdToken(idToken) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body
     });
-    if (!r.ok) return null;
     const d = await r.json();
+    console.log('[LINE verify]', r.status, JSON.stringify(d));
+    if (!r.ok) return null;
     return d.sub || null;
-  } catch (_e) { return null; }
+  } catch (_e) { console.log('[LINE verify error]', _e); return null; }
 }
 
 Deno.serve(async (req) => {
