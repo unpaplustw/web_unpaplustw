@@ -162,6 +162,7 @@ function sseError(message, code, remaining) {
 }
 
 // 驗證 LIFF idToken → 回傳可信 line userId(sub)，失敗回 null
+let LAST_VERIFY_DEBUG = '';
 async function verifyLineIdToken(idToken) {
   try {
     const body = new URLSearchParams({ id_token: idToken, client_id: LINE_CHANNEL_ID });
@@ -171,10 +172,10 @@ async function verifyLineIdToken(idToken) {
       body
     });
     const d = await r.json();
-    console.log('[LINE verify]', r.status, JSON.stringify(d));
+    LAST_VERIFY_DEBUG = 'http=' + r.status + ' body=' + JSON.stringify(d) + ' tokenLen=' + (idToken ? idToken.length : 0);
     if (!r.ok) return null;
     return d.sub || null;
-  } catch (_e) { console.log('[LINE verify error]', _e); return null; }
+  } catch (e) { LAST_VERIFY_DEBUG = 'exception=' + (e && e.message ? e.message : String(e)); return null; }
 }
 
 Deno.serve(async (req) => {
@@ -229,7 +230,7 @@ Deno.serve(async (req) => {
     const requestId = payload.request_id || null;
     if (cost > 0 && payload.id_token) {
       chargeUser = await verifyLineIdToken(payload.id_token);
-      if (!chargeUser) return sseError('身份驗證失敗，請重新登入 LINE', 'auth');
+      if (!chargeUser) return sseError('【除錯】' + LAST_VERIFY_DEBUG, 'auth');
       try {
         const mb = createClient(MEMBERS_URL, MEMBERS_SERVICE);
         const { data: mem, error } = await mb.from('members').select('ai_credits').eq('line_user_id', chargeUser).single();

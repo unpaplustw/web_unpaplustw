@@ -453,6 +453,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <div class="np-result-title">&#127807; 搭配建議</div>
       <div class="np-result-body" id="npResultBody"></div>
     </div>
+
+    <!-- 扣點結果（回應結束後顯示） -->
+    <div id="creditLine" style="display:none;text-align:right;font-size:12px;color:var(--muted);padding:10px 4px 0"></div>
   </div>
 
   <!-- 扣點透明：動手前先讓使用者知道代價 -->
@@ -943,6 +946,8 @@ async function callAnalyze(payload, productInfo) {
   document.getElementById('govHitBody').innerHTML = '';
   document.getElementById('verdictBox').style.display = 'none';
   document.getElementById('verdictContent').textContent = '';
+  document.getElementById('creditLine').style.display = 'none';
+  document.getElementById('creditLine').textContent = '';
 
   hideAnalyzing();
 
@@ -1016,6 +1021,8 @@ async function callAnalyze(payload, productInfo) {
 function handleStreamEvent(evt) {
   if (evt.type === 'credit') {
     updateCreditBadge(evt.remaining);
+    var cl = document.getElementById('creditLine');
+    if (cl) { cl.textContent = '💎 剩餘 ' + evt.remaining + ' 點'; cl.style.display = 'block'; }
     return;
   }
   if (evt.type === 'blade') {
