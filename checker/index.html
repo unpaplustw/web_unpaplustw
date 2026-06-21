@@ -164,6 +164,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .tm-search-btn{padding:0 16px;border:none;border-radius:10px;background:#0f6e56;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0}
 .nd-q{text-align:center;font-size:17px;font-weight:700;color:var(--txt);margin:6px 0 16px}
 
+/* ── 3-group 工具列 ── */
+.tg-section{margin-bottom:20px}
+.tg-header{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:10px;padding:0 2px}
+
 /* ── 四刀卡片 ── */
 .blade{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
 .blade-header{display:flex;align-items:center;gap:10px;padding:16px;cursor:pointer;transition:.2s}
@@ -282,66 +286,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
 
   <div id="queryArea">
-  <!-- 三需求門入口（首頁 hub，點門才展開對應功能）-->
-  <div id="doorMenu">
-  <div class="nd-q">你想了解什麼？</div>
-  <button class="tm-entry door-product" onclick="showDoor('product')">
-    <span class="tm-ic">&#128269;</span>
-    <span><b>查產品好不好</b><br><small>查競品成分、揭穿 CP 值</small></span>
-    <span class="tm-ar">&#9654;</span>
-  </button>
-  <button class="tm-entry door-tm" onclick="openTestimonials()">
-    <span class="tm-ic">&#128170;</span>
-    <span><b>看大家怎麼改善</b><br><small>187 人真實體感回饋</small><span class="tm-lockhint">&#128274; 完整故事需綁定 LINE</span></span>
-    <span class="tm-ar">&#9654;</span>
-  </button>
-  <button class="tm-entry door-verify" onclick="showDoor('verify')">
-    <span class="tm-ic">&#128737;&#65039;</span>
-    <span><b>對方說的是真的嗎</b><br><small>查字號、破解話術 · 免費試</small></span>
-    <span class="tm-ar">&#9654;</span>
-  </button>
-  </div><!-- /doorMenu -->
 
-  <!-- 對方說的是真的嗎：字號認證 + 法規教育（門點進來才顯示）-->
-  <div id="verifyArea" style="display:none">
-    <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
-    <div class="nd-q">對方說的是真的嗎？</div>
-      <div class="tool-grid">
-        <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
-        <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
-      </div>
-
-      <!-- 字號認證面板 -->
-      <div class="verify-panel" id="verifyPanel">
-        <div class="vp-title">&#129706; 認證字號查核</div>
-        <div class="vp-hint">對方說有認證？請他出示字號，輸入查真偽（藥品/醫材）</div>
-        <div class="vp-row">
-          <input class="vp-input" id="verifyInput" type="text" placeholder="如 衛署醫器製字第001081號">
-          <button class="vp-btn" onclick="doVerify()">查證</button>
-        </div>
-        <div class="vp-result" id="verifyResult"></div>
-      </div>
-
-      <!-- 法規教育面板（違法宣稱拆穿器）-->
-      <div class="verify-panel" id="claimPanel">
-        <div class="vp-title">&#128214; 違法宣稱拆穿</div>
-        <div class="vp-hint">對方（競品老師/上線）說了什麼？貼上來，查違不違法 + 給你反擊話術</div>
-        <div class="vp-row">
-          <input class="vp-input" id="claimInput" type="text" placeholder="如 這個能根治糖尿病">
-          <button class="vp-btn" onclick="doClaim()">查證</button>
-        </div>
-        <div class="vp-result" id="claimResult"></div>
-      </div>
-    </div>
-
-  <!-- 查產品好不好：通搜 + 候選 + 四刀 + 拍照 + 歷史（門點進來才顯示）-->
-  <div id="productArea" style="display:none">
-  <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
-  <!-- 主功能：查商品（通搜，不分類）-->
+  <!-- ══ 🔍 攻：查產品好不好 ══ -->
+  <div class="tg-section">
+  <div class="tg-header">&#128269; 查產品好不好</div>
   <div class="search-box">
     <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱查詢..." autocomplete="off">
     <button class="btn-search" onclick="doSearch()">&#128269;</button>
     <div class="ac-list" id="acList"></div>
+  </div>
+  <div class="photo-row">
+    <label class="btn-photo" id="photoBtn">
+      &#128247; 拍成分表（查不到的商品用這個）
+      <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
+  </div>
+  <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:12px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 搭配建議免費</div>
   </div>
 
   <!-- 搜尋候選清單（點選才分析）-->
@@ -362,8 +322,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <div class="result-brand" id="resultBrand"></div>
       <div id="resultBadge"></div>
     </div>
-
-    <!-- 原始成分表（先攤開給使用者看，眼見為憑）-->
     <div class="raw-ing" id="rawIngBox">
       <div class="raw-ing-header" onclick="toggleRawIng()">
         <span>&#128203; 原始成分表（政府登記）</span>
@@ -371,21 +329,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       </div>
       <div class="raw-ing-body" id="rawIngBody"></div>
     </div>
-
-    <!-- 真相總結（一句話必殺，最顯眼）-->
     <div class="verdict" id="verdictBox" style="display:none">
       <div class="verdict-label">&#128128; 一句話真相</div>
       <div class="verdict-content" id="verdictContent"></div>
     </div>
-
-    <!-- 政府禁用/限量清單命中（拍照 CAS 精確比對，鐵證）-->
     <div class="gov-hit" id="govHitBox" style="display:none">
       <div class="gov-hit-title">&#128680; 禁用清單命中（台灣 × 歐盟，CAS 精確比對）</div>
       <div id="govHitBody"></div>
       <div class="gov-hit-note">資料來源：台灣食藥署化粧品禁用/限量清單 + 歐盟 CosIng Annex II 禁用清單。命中為成分 CAS 號精確比對，仍請核對實際包裝標示。</div>
     </div>
-
-    <!-- 第一刀 -->
     <div class="blade" id="blade1">
       <div class="blade-header" onclick="toggleBlade('blade1')">
         <span class="blade-icon" id="blade1Icon">&#128202;</span>
@@ -394,8 +346,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       </div>
       <div class="blade-body" id="blade1Body"></div>
     </div>
-
-    <!-- 第二刀 -->
     <div class="blade" id="blade2">
       <div class="blade-header" onclick="toggleBlade('blade2')">
         <span class="blade-icon" id="blade2Icon">&#9888;&#65039;</span>
@@ -404,8 +354,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       </div>
       <div class="blade-body" id="blade2Body"></div>
     </div>
-
-    <!-- 第三刀 -->
     <div class="blade" id="blade3">
       <div class="blade-header" onclick="toggleBlade('blade3')">
         <span class="blade-icon" id="blade3Icon">&#128214;</span>
@@ -414,8 +362,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       </div>
       <div class="blade-body" id="blade3Body"></div>
     </div>
-
-    <!-- 第四刀 -->
     <div class="blade" id="blade4">
       <div class="blade-header" onclick="toggleBlade('blade4')">
         <span class="blade-icon" id="blade4Icon">&#127981;</span>
@@ -424,60 +370,71 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       </div>
       <div class="blade-body" id="blade4Body"></div>
     </div>
-
-    <!-- 成分標籤 -->
     <div class="ingredient-tags" id="ingTags"></div>
-
-    <!-- 特別注意警告（有 combination_warning 才顯示）-->
-    <!-- 廠商裁罰紀錄（信任刀硬證據，前端直接顯示）-->
     <div class="vendor-risk" id="vendorRiskBox">
       <div class="vendor-risk-title">&#127981; 廠商裁罰紀錄</div>
       <div class="vendor-risk-body" id="vendorRiskBody"></div>
       <div class="vendor-risk-note">依 FDA 公開資料比對廠商名稱，請核對是否為同一家公司。</div>
     </div>
-
     <div class="combo-warning" id="comboWarningBox">
       <div class="combo-warning-title">&#9888;&#65039; 特別注意</div>
       <div class="combo-warning-body" id="comboWarningBody"></div>
     </div>
-
-    <!-- 綠佳利建議按鈕（第二段） -->
     <div class="np-suggest-box" id="npSuggestBox" style="display:none">
       <button class="btn-np-suggest" id="btnNpSuggest" onclick="requestNpSuggestion()">
         &#127807; 最佳搭配建議
       </button>
     </div>
-
-    <!-- 綠佳利建議結果 -->
     <div class="np-result" id="npResultBox" style="display:none">
       <div class="np-result-title">&#127807; 搭配建議</div>
       <div class="np-result-body" id="npResultBody"></div>
     </div>
-
-    <!-- 扣點結果（回應結束後顯示） -->
     <div id="creditLine" style="display:none;text-align:right;font-size:12px;color:var(--muted);padding:10px 4px 0"></div>
   </div>
 
-  <!-- 扣點透明：動手前先讓使用者知道代價 -->
-  <div style="text-align:center;font-size:12px;color:var(--muted);margin:14px 0 10px">&#128176; 品名查詢 2 點 · 拍照辨識 3 點 · 搭配建議免費</div>
+  <input id="reportPhotoInput" type="file" accept="image/*" capture="environment" style="display:none">
 
-  <!-- 拍照（查不到的商品用這個）-->
-  <div class="photo-row">
-    <label class="btn-photo" id="photoBtn">
-      &#128247; 拍成分表（查不到的商品用這個）
-      <input class="photo-input" id="photoInput" type="file" accept="image/*" capture="environment">
-    </label>
+  <!-- ══ 💪 秀：看大家怎麼改善 ══ -->
+  <div class="tg-section">
+  <button class="tm-entry door-tm" onclick="openTestimonials()">
+    <span class="tm-ic">&#128170;</span>
+    <span><b>看大家怎麼改善</b><br><small>187 人真實體感回饋</small><span class="tm-lockhint">&#128274; 完整故事需綁定 LINE</span></span>
+    <span class="tm-ar">&#9654;</span>
+  </button>
   </div>
 
-  <!-- 回報拍照用的隱藏 input（由「查無」的回報按鈕 startReport 觸發）-->
-  <input id="reportPhotoInput" type="file" accept="image/*" capture="environment" style="display:none">
+  <!-- ══ 🛡 防：對方說的是真的嗎 ══ -->
+  <div class="tg-section">
+  <div class="tg-header">&#128737;&#65039; 對方說的是真的嗎</div>
+  <div class="tool-grid">
+    <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
+    <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
+  </div>
+  <div class="verify-panel" id="verifyPanel">
+    <div class="vp-title">&#129706; 認證字號查核</div>
+    <div class="vp-hint">對方說有認證？請他出示字號，輸入查真偽（藥品/醫材）</div>
+    <div class="vp-row">
+      <input class="vp-input" id="verifyInput" type="text" placeholder="如 衛署醫器製字第001081號">
+      <button class="vp-btn" onclick="doVerify()">查證</button>
+    </div>
+    <div class="vp-result" id="verifyResult"></div>
+  </div>
+  <div class="verify-panel" id="claimPanel">
+    <div class="vp-title">&#128214; 違法宣稱拆穿</div>
+    <div class="vp-hint">對方（競品老師/上線）說了什麼？貼上來，查違不違法 + 給你反擊話術</div>
+    <div class="vp-row">
+      <input class="vp-input" id="claimInput" type="text" placeholder="如 這個能根治糖尿病">
+      <button class="vp-btn" onclick="doClaim()">查證</button>
+    </div>
+    <div class="vp-result" id="claimResult"></div>
+  </div>
+  </div>
 
   <!-- 歷史 -->
   <div class="history-section" id="historySection">
     <div class="history-title">大家最近查的</div>
     <div id="historyList"></div>
   </div>
-  </div><!-- /productArea -->
   </div><!-- /queryArea -->
 
   <!-- 體感見證面板 -->
@@ -1296,24 +1253,6 @@ async function tmSearch() {
 function closeTestimonials() {
   document.getElementById('tmPanel').style.display = 'none';
   document.getElementById('queryArea').style.display = '';
-  goHome();
-}
-
-// 三需求門：首頁 hub 點門 → 隱藏門選單、展開對應功能區（乾淨、不擠）
-function goHome() {
-  document.getElementById('doorMenu').style.display = '';
-  document.getElementById('productArea').style.display = 'none';
-  document.getElementById('verifyArea').style.display = 'none';
-  window.scrollTo(0, 0);
-}
-function showDoor(d) {
-  document.getElementById('doorMenu').style.display = 'none';
-  if (d === 'product') {
-    document.getElementById('productArea').style.display = '';
-    const si = document.getElementById('searchInput'); if (si) si.focus();
-  } else if (d === 'verify') {
-    document.getElementById('verifyArea').style.display = '';
-  }
   window.scrollTo(0, 0);
 }
 // 訪客綁定 LINE（公開直連的陌生人 → 引導登入解鎖第二層）
