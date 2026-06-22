@@ -389,7 +389,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <div class="np-result-title">&#127807; 搭配建議</div>
       <div class="np-result-body" id="npResultBody"></div>
     </div>
-    <div id="creditLine" style="display:none;text-align:right;font-size:12px;color:var(--muted);padding:10px 4px 0"></div>
+    <div id="creditLine" style="display:none;text-align:right;font-size:11px;color:var(--muted);padding:10px 4px 0"></div>
+    <div id="ratingBox" style="display:none;text-align:right;padding:4px 4px 2px">
+      <span id="ratingLabel" style="font-size:11px;color:var(--muted)">這次分析：</span>
+      <span id="ratingStars" style="font-size:19px;letter-spacing:1px;cursor:pointer"></span>
+    </div>
   </div>
 
   <input id="reportPhotoInput" type="file" accept="image/*" capture="environment" style="display:none">
@@ -485,6 +489,7 @@ let currentUser = null;
 let searchTimer = null;
 let lastAnalysisResult = '';  // 第一段結果，給第二段用
 let lastProductCategory = ''; // 產品類別，給第二段用
+let currentRequestId = null;  // 本次查詢 ID，評分用
 let currentFilterType = null;   // 通搜，不分類（分類是後台 regulatory_type 的事）
 
 // ── 字號認證 ──
@@ -905,6 +910,10 @@ async function callAnalyze(payload, productInfo) {
   document.getElementById('verdictContent').textContent = '';
   document.getElementById('creditLine').style.display = 'none';
   document.getElementById('creditLine').textContent = '';
+  document.getElementById('ratingBox').style.display = 'none';
+  document.getElementById('ratingStars').innerHTML = '';
+  document.getElementById('ratingLabel').textContent = '這次分析：';
+  currentRequestId = null;
 
   hideAnalyzing();
 
@@ -914,6 +923,7 @@ async function callAnalyze(payload, productInfo) {
   let idToken = null;
   try { idToken = liff.getIDToken(); } catch (_) {}
   const reqId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(16).slice(2));
+  currentRequestId = reqId;
   const body = Object.assign({}, payload, {
     line_user_id: currentUser ? currentUser.lineUserId : null,
     access_token: accessToken,
@@ -964,9 +974,10 @@ async function callAnalyze(payload, productInfo) {
       }
     }
 
-    // 分析成功才顯示「綠佳利建議」按鈕 + 刷新查詢紀錄
+    // 分析成功才顯示「綠佳利建議」按鈕 + 評分 + 刷新查詢紀錄
     if (!gotError) {
       document.getElementById('npSuggestBox').style.display = '';
+      if (currentRequestId) { initRatingStars(); document.getElementById('ratingBox').style.display = ''; }
       loadHistory();
     }
 
@@ -1395,6 +1406,34 @@ document.getElementById('reportPhotoInput').addEventListener('change', async (e)
     if (btn) { btn.disabled = false; btn.innerHTML = '&#9888;&#65039; 上傳失敗，請再試一次'; }
   }
 });
+
+// ── 評分（純 DB UPDATE，不呼叫 AI）──
+function initRatingStars() {
+  var s = document.getElementById('ratingStars');
+  s.innerHTML = '';
+  s.style.pointerEvents = '';
+  for (var i = 1; i <= 5; i++) {
+    (function(n) {
+      var sp = document.createElement('span');
+      sp.textContent = '☆';
+      sp.addEventListener('mouseover', function() { highlightStars(n); });
+      sp.addEventListener('mouseout', function() { highlightStars(0); });
+      sp.addEventListener('click', function() { rateQuery(n); });
+      s.appendChild(sp);
+    })(i);
+  }
+}
+function highlightStars(n) {
+  var spans = document.querySelectorAll('#ratingStars span');
+  spans.forEach(function(sp, idx) { sp.textContent = idx < n ? '⭐' : '☆'; });
+}
+async function rateQuery(n) {
+  if (!currentRequestId) return;
+  highlightStars(n);
+  document.getElementById('ratingStars').style.pointerEvents = 'none';
+  document.getElementById('ratingLabel').textContent = '已評分 ';
+  try { await sbRag.from('query_logs').update({ rating: n }).eq('id', currentRequestId); } catch(_e) {}
+}
 
 // ── 餘額顯示（init 設定、扣點後 credit 事件更新）──
 function updateCreditBadge(n) {
