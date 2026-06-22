@@ -515,7 +515,8 @@ const FEEDBACK_GAS_URL = 'https://script.google.com/macros/s/AKfycbw9AEjjNrv1p8v
 const sbMember = window.supabase.createClient(SB_MEMBER_URL, SB_MEMBER_KEY);
 const sbRag = window.supabase.createClient(SB_RAG_URL, SB_RAG_KEY);
 
-let currentUser = null;
+let currentUser = null;   // 已開通會員（members 有列，任何 level）→ 含 credits
+let lineProfile = null;   // 已登入 LINE 但還沒開通會員 → 引導開通用
 let searchTimer = null;
 let lastAnalysisResult = '';  // 第一段結果，給第二段用
 let lastProductCategory = ''; // 產品類別，給第二段用
@@ -599,17 +600,20 @@ async function doVerify() {
 async function init() {
   try {
     await liff.init({ liffId: LIFF_ID });
-    // 免登分層：已登入會員 → 設 currentUser；未登入/非會員 → 仍進首頁看第一層(免費)
-    if (liff.isLoggedIn()) {
-      const profile = await liff.getProfile();
-      const { data: member } = await sbMember.from('members')
-        .select('id, name, level, ai_credits')
-        .eq('line_user_id', profile.userId)
-        .single();
-      if (member && member.level >= 1) {
-        currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };
-        loadHistory();
-      }
+    // 入口固定從 LINE OA 進來：未登入就直接登入（OA 內無感、且發生在進門前→不會中途被踢回首頁）
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    const { data: member } = await sbMember.from('members')
+      .select('id, name, level, ai_credits')
+      .eq('line_user_id', profile.userId)
+      .single();
+    if (member) {
+      // 甲：認出會員（任何 level），能不能用四刀由「點數」決定，不卡 level
+      currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };
+      loadHistory();
+    } else {
+      // 已登入但還沒開通會員 → 記住身份，四刀時引導開通
+      lineProfile = { userId: profile.userId, name: profile.displayName };
     }
     updateAuthUI();
     showScreen('main');
@@ -626,17 +630,35 @@ function updateAuthUI() {
   if (currentUser) {
     if (nameEl) nameEl.textContent = currentUser.name + '，為家人把關';
     if (badgeEl) { badgeEl.style.display = ''; updateCreditBadge(currentUser.credits); }
+  } else if (lineProfile) {
+    if (nameEl) nameEl.textContent = lineProfile.name + '（尚未開通會員）';
+    if (badgeEl) badgeEl.style.display = 'none';
   } else {
-    if (nameEl) nameEl.textContent = '先看看大家的真實改善 👇';
+    if (nameEl) nameEl.textContent = '為家人把關';
     if (badgeEl) badgeEl.style.display = 'none';
   }
 }
 
-// 第二層功能(四刀/建議)需登入會員，未登入引導登入
-function ensureMember() {
-  if (currentUser) return true;
-  if (confirm('「查產品分析」是會員功能（用點數）。要現在登入 LINE 解鎖嗎？')) liff.login();
-  return false;
+// 計費表（與 EF CHARGE 一致；np_suggest 搭配建議免費）
+const COST = { product: 2, text_query: 2, image: 3, np_suggest: 0 };
+
+// 甲：用「有沒有點數」當關卡（不卡 level）。回 true 才放行。
+function gateFeature(type) {
+  const cost = COST[type] || 0;
+  if (cost === 0) return true;                       // 免費功能（搭配建議）
+  if (!currentUser) {
+    if (lineProfile) {                                // 已登入 LINE 但還沒開通會員
+      alert('這是會員功能。你已登入，但尚未開通會員——請聯繫你的推薦人開通後即可使用。');
+    } else {                                          // 理論上 init 已登入，保險再登入一次
+      liff.login();
+    }
+    return false;
+  }
+  if ((currentUser.credits || 0) < cost) {            // 是會員但點數不足
+    alert('點數不足（剩 ' + (currentUser.credits || 0) + ' 點，這項需 ' + cost + ' 點）。請向你的推薦人／上線儲值後再使用。');
+    return false;
+  }
+  return true;
 }
 
 function showScreen(name) {
@@ -894,8 +916,8 @@ function blobToBase64(blob) {
 
 // ── 呼叫 Edge Function（串流）── 第一段：攻擊 ──
 async function callAnalyze(payload, productInfo) {
-  // 免登分層 gate：四刀/建議是第二層會員功能，未登入先引導登入
-  if (!currentUser && ['product', 'image', 'text_query', 'np_suggest'].includes(payload.type)) { ensureMember(); return; }
+  // 甲：依點數放行（非會員→開通、點數不足→儲值；免費功能直接過）
+  if (!gateFeature(payload.type)) return;
   lastAnalysisResult = '';
 
   // combination_warning 不經過 Claude，直接在前端顯示（省 token）
@@ -1315,6 +1337,8 @@ function closeTestimonials() {
 }
 // 訪客綁定 LINE（公開直連的陌生人 → 引導登入解鎖第二層）
 function bindLine() {
+  // 已登入 LINE 但還沒開通會員：登入無法解鎖，引導開通
+  if (lineProfile && !currentUser) { alert('你已登入 LINE，但尚未開通會員。請聯繫你的推薦人開通後即可看完整見證。'); return; }
   try { liff.login(); } catch (e) { alert('請從 LINE 開啟本頁，或先加入官方帳號綁定會員'); }
 }
 // AI 重歸納：20 醫學器官 → 9 個使用者語言大類（不照搬 Notion 細分）
