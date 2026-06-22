@@ -307,7 +307,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <button class="tm-entry door-system" onclick="showDoor('system')">
       <span class="tm-ic">&#127963;&#65039;</span>
       <span><b>查制度</b><br><small>各家傳直銷制度對比</small></span>
-      <span class="door-soon">建置中</span>
+      <span class="tm-ar">&#9654;</span>
     </button>
   </div>
 
@@ -460,14 +460,55 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
   </div><!-- /verifyArea -->
 
-  <!-- ══ 🏛️ 查制度（建置中）══ -->
+  <!-- ══ 🏛️ 查制度（plan-decode 內建）══ -->
   <div id="systemArea" style="display:none">
-  <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
-  <div class="tm-title">&#127963;&#65039; 查制度</div>
-  <div class="tm-sub">各家傳直銷制度對比</div>
-  <div style="background:var(--card);border:1.5px dashed var(--border);border-radius:14px;padding:30px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:2;box-shadow:var(--shadow)">
-    &#128679; <b style="color:var(--txt)">建置中</b><br>
-    這裡即將能查：雙軌／矩陣／階梯制差異、撥出率、晉階門檻、穩定度對比，<br>幫你看懂「為什麼選這家」。
+  <style>
+  .plan-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .plan-co{padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card);box-shadow:var(--shadow);cursor:pointer;transition:.15s}
+  .plan-co.soon{opacity:.45;cursor:default;box-shadow:none}
+  .plan-co-name{font-size:14px;font-weight:700;color:var(--txt)}
+  .plan-co-type{font-size:11px;color:var(--muted);margin-top:3px;min-height:14px}
+  .plan-co-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .plan-co-hb{font-size:11px;color:var(--muted)}
+  .badge-done{font-size:10px;font-weight:700;background:var(--pri-lt);color:var(--pri);padding:2px 8px;border-radius:9999px}
+  .badge-soon{font-size:10px;font-weight:700;background:rgba(0,0,0,.04);color:var(--muted);padding:2px 8px;border-radius:9999px}
+  .plan-sec{font-size:13px;font-weight:700;color:var(--pri);margin:18px 0 8px}
+  .plan-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow)}
+  .plan-stat-l{font-size:12px;color:var(--muted)}
+  .plan-stat-v{font-size:18px;font-weight:700;color:var(--txt);margin-top:2px}
+  .plan-stat-n{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .plan-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
+  .plan-card-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .plan-card-nm{font-size:15px;font-weight:700;color:var(--txt)}
+  .plan-row{margin-bottom:8px}
+  .plan-row:last-child{margin-bottom:0}
+  .plan-row-l{font-size:11px;color:var(--muted)}
+  .plan-row-v{font-size:13px;color:var(--txt);margin-top:1px;line-height:1.55}
+  .plan-tag{font-size:10px;font-weight:700;background:var(--red-bg);color:var(--red);padding:2px 7px;border-radius:9999px;white-space:nowrap}
+  .plan-rank{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);margin-bottom:6px;box-shadow:var(--shadow)}
+  .plan-rank-nm{flex:1;font-size:13px;font-weight:600;color:var(--txt)}
+  .plan-rank-meta{font-size:12px;color:var(--muted)}
+  .plan-weak{border-radius:10px;padding:11px 13px;margin-bottom:8px;font-size:13px;line-height:1.6}
+  .plan-weak.danger{background:var(--red-bg);border:1px solid rgba(220,38,38,.3)}
+  .plan-weak.warn{background:rgba(202,138,4,.08);border:1px solid rgba(202,138,4,.3)}
+  .plan-weak-t{font-weight:700;margin-bottom:3px}
+  .plan-weak.danger .plan-weak-t{color:var(--red)}
+  .plan-weak.warn .plan-weak-t{color:#a16207}
+  .plan-src{font-size:11px;color:var(--muted);text-align:center;padding:12px 0 4px;line-height:1.6}
+  </style>
+  <div id="planListView">
+    <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
+    <div class="tm-title">&#127963;&#65039; 查制度</div>
+    <div class="tm-sub">各家傳直銷制度對比 · 數字來源官方手冊</div>
+    <div class="search-box" style="margin-bottom:12px">
+      <input class="search-input" id="planSearchInput" type="text" placeholder="輸入公司名稱查詢…" autocomplete="off" oninput="filterPlanList()">
+      <button class="btn-search" onclick="filterPlanList()">&#128269;</button>
+    </div>
+    <div id="planList"></div>
+  </div>
+  <div id="planDetailView" style="display:none">
+    <div class="tm-back" onclick="backToPlanList()">&#8249; 返回全部公司</div>
+    <div id="planDetailBody"></div>
   </div>
   </div><!-- /systemArea -->
 
@@ -1290,7 +1331,99 @@ function showDoor(d) {
   document.getElementById('verifyArea').style.display = (d === 'verify') ? '' : 'none';
   document.getElementById('systemArea').style.display = (d === 'system') ? '' : 'none';
   if (d === 'product') { var si = document.getElementById('searchInput'); if (si) si.focus(); }
+  if (d === 'system') { loadPlanIndex(); }
   window.scrollTo(0, 0);
+}
+
+// ── 查制度（內建 plan-decode，靜態 JSON，免扣點：靠進站即 LINE 登入這層）──
+const PLAN_BASE = 'data/companies/';
+let planIndexCache = null;
+async function loadPlanIndex() {
+  document.getElementById('planListView').style.display = '';
+  document.getElementById('planDetailView').style.display = 'none';
+  const box = document.getElementById('planList');
+  if (!planIndexCache) {
+    try { const r = await fetch(PLAN_BASE + 'index.json'); planIndexCache = await r.json(); }
+    catch (e) { box.innerHTML = '<div class="sr-empty">制度資料載入失敗</div>'; return; }
+  }
+  var si = document.getElementById('planSearchInput'); if (si) si.value = '';
+  renderPlanList(planIndexCache);
+}
+function filterPlanList() {
+  if (!planIndexCache) return;
+  var kw = (document.getElementById('planSearchInput').value || '').trim().toLowerCase();
+  var list = kw ? planIndexCache.filter(function (c) {
+    return c.name.toLowerCase().indexOf(kw) >= 0 || (c.type && c.type.toLowerCase().indexOf(kw) >= 0);
+  }) : planIndexCache;
+  renderPlanList(list);
+}
+function renderPlanList(list) {
+  var box = document.getElementById('planList');
+  if (!list.length) { box.innerHTML = '<div class="sr-empty">查無此公司<br><span style="font-size:12px">換個關鍵字，或這家還沒建檔</span></div>'; return; }
+  var sorted = list.slice().sort(function (a, b) {
+    return (a.status === 'complete' ? 0 : 1) - (b.status === 'complete' ? 0 : 1);
+  });
+  box.innerHTML = sorted.map(function (c) {
+    var done = c.status === 'complete';
+    var badge = done ? '<span class="badge-done">已完成</span>' : '<span class="badge-soon">待補</span>';
+    var meta = (c.type ? esc(c.type) + ' · ' : '') + (c.handbook ? '手冊 ' + esc(c.handbook) : '');
+    return '<div class="sr-item"' + (done ? ' onclick="openPlanCompany(\'' + c.slug + '\')"' : ' style="opacity:.5;cursor:default"') + '>' +
+      '<div class="sr-name">' + esc(c.name) + ' ' + badge + '</div>' +
+      (meta ? '<div class="sr-meta">' + meta + '</div>' : '') + '</div>';
+  }).join('');
+}
+async function openPlanCompany(slug) {
+  const body = document.getElementById('planDetailBody');
+  body.innerHTML = '<div class="sr-empty">載入中…</div>';
+  document.getElementById('planListView').style.display = 'none';
+  document.getElementById('planDetailView').style.display = '';
+  window.scrollTo(0, 0);
+  try {
+    const r = await fetch(PLAN_BASE + slug + '.json'); if (!r.ok) throw 0;
+    const d = await r.json();
+    body.innerHTML = renderPlanDetail(d);
+  } catch (e) { body.innerHTML = '<div class="sr-empty">此公司資料建置中</div>'; }
+}
+function backToPlanList() {
+  document.getElementById('planDetailView').style.display = 'none';
+  document.getElementById('planListView').style.display = '';
+  window.scrollTo(0, 0);
+}
+function renderPlanDetail(d) {
+  var ec = d.entry_cost;
+  var html = '<div style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:2px">' + esc(d.meta.name) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">' + esc(d.meta.type) + ' · 手冊 ' + esc(d.meta.handbook) + '</div>';
+  html += '<div class="plan-sec">&#128176; 進場代價</div>';
+  html += '<div class="plan-grid">' +
+    '<div class="plan-stat"><div class="plan-stat-l">首月一次性</div><div class="plan-stat-v">NT$' + ec.first_month.toLocaleString() + '</div><div class="plan-stat-n">' + esc(ec.first_month_note || '') + '</div></div>' +
+    '<div class="plan-stat"><div class="plan-stat-l">每月最低維持</div><div class="plan-stat-v">NT$' + ec.monthly_min.toLocaleString() + '</div><div class="plan-stat-n">' + esc(ec.monthly_min_note || '') + '</div></div></div>';
+  html += '<div class="plan-stat" style="margin-top:8px"><div class="plan-stat-l">一年最低支出</div><div class="plan-stat-v">NT$' + ec.annual_min.toLocaleString() + '</div><div class="plan-stat-n">' + esc(ec.annual_min_note || '') + '</div></div>';
+  if (ec.options && ec.options.length) {
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">創業商品可選：' + ec.options.map(function (o) { return o.pts.toLocaleString() + '點（NT$' + o.cost.toLocaleString() + '）'; }).join('、') + '；點數越高，介紹人推薦獎金也越高。</div>';
+  }
+  html += '<div class="plan-sec">&#128275; 獎金解鎖（滿足條件才領得到）</div>';
+  html += d.bonuses.map(function (b) {
+    return '<div class="plan-card"><div class="plan-card-hd"><div class="plan-card-nm">' + esc(b.name) + '</div>' +
+      (b.tags && b.tags.length ? '<span class="plan-tag">' + b.tags.map(esc).join('・') + '</span>' : '') + '</div>' +
+      '<div class="plan-row"><div class="plan-row-l">每月代價</div><div class="plan-row-v">' + esc(b.monthly_req) + '</div></div>' +
+      '<div class="plan-row"><div class="plan-row-l">關鍵條件</div><div class="plan-row-v">' + esc(b.condition) + '</div></div>' +
+      '<div class="plan-row"><div class="plan-row-l">收入天花板</div><div class="plan-row-v">' + esc(b.ceiling) + '</div></div></div>';
+  }).join('');
+  if (d.ranks && d.ranks.length) {
+    html += '<div class="plan-sec">&#11088; 聘階：你的組織要長這樣</div>';
+    html += d.ranks.map(function (r) {
+      return '<div class="plan-rank"><span class="plan-rank-nm">' + esc(r.name) + '</span><span class="plan-rank-meta">左 ' + r.left + ' / 右 ' + r.right + ' · ' + r.pts + ' 點</span></div>';
+    }).join('');
+    if (d.ranks_note) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">※ ' + esc(d.ranks_note) + '</div>';
+  }
+  if (d.weaknesses && d.weaknesses.length) {
+    html += '<div class="plan-sec">&#9888;&#65039; 結構性弱點</div>';
+    html += d.weaknesses.map(function (w) {
+      return '<div class="plan-weak ' + (w.level === 'danger' ? 'danger' : 'warn') + '"><div class="plan-weak-t">' + esc(w.title) + '</div><div>' + esc(w.desc) + '</div></div>';
+    }).join('');
+  }
+  html += '<div class="plan-src">數字來源：' + esc(d.meta.name) + '官方手冊 ' + esc(d.meta.handbook) + ' · 更新 ' + esc(d.meta.updated) + '</div>';
+  return html;
 }
 
 function openTestimonials() {

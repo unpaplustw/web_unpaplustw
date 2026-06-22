@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "slug": "naturallyplus",
+    "name": "環貫綠佳利",
+    "type": "無限代雙軌制",
+    "handbook": "2026.05",
+    "updated": "2026-06-09"
+  },
+  "entry_cost": {
+    "first_month": 5300,
+    "first_month_note": "商品 4,200 ＋ 訂約費 1,100",
+    "monthly_min": 4200,
+    "monthly_min_note": "10,000 點，斷月不計獎",
+    "annual_min": 51500,
+    "annual_min_note": "首月 5,300 ＋ 後 11 月 × 4,200（12M 合約）",
+    "options": [
+      { "pts": 10000, "cost": 4200 },
+      { "pts": 15000, "cost": 6300 },
+      { "pts": 20000, "cost": 8400 }
+    ]
+  },
+  "bonuses": [
+    {
+      "name": "推薦獎金",
+      "monthly_req": "10,000點 NT$4,200",
+      "condition": "直接介紹 ≥ 1 人且有有效期間",
+      "ceiling": "NT$1,800～7,200 / 人（依新人方案 × 點數）",
+      "tags": []
+    },
+    {
+      "name": "日循環（基本）",
+      "monthly_req": "10,000點 NT$4,200",
+      "condition": "直接介紹 1 人",
+      "ceiling": "NT$6,000 / 日（半獨立循環 × 1）",
+      "tags": []
+    },
+    {
+      "name": "日循環（最大）",
+      "monthly_req": "10,000點 NT$4,200",
+      "condition": "直接介紹 3 人",
+      "ceiling": "NT$24,000 / 日（獨立循環 × 2）",
+      "tags": []
+    },
+    {
+      "name": "領導獎金",
+      "monthly_req": "20,000點 NT$8,400",
+      "condition": "下線達成獨立循環（你控制不了）",
+      "ceiling": "NT$3,000 / 人次，無上限但看下線",
+      "tags": ["門檻雙倍"]
+    },
+    {
+      "name": "開發獎金",
+      "monthly_req": "10,000點 NT$4,200",
+      "condition": "每 10 個直接介紹人當月均達 10,000 點 = 1 口；本人整月無斷有效期間",
+      "ceiling": "總池 ÷ 達標口數（1% 提撥，達標人越多你分越少）",
+      "tags": ["分餅制"]
+    },
+    {
+      "name": "成就獎金",
+      "monthly_req": "10,000點 NT$4,200",
+      "condition": "每天 ≥ 2 人介紹實績 ＋ 左右各 5 個達獨循位置；雙月整期無斷有效期間",
+      "ceiling": "總池 ÷ 達標人數（1% 提撥）",
+      "tags": ["分餅制"]
+    },
+    {
+      "name": "進階成就獎金",
+      "monthly_req": "同成就",
+      "condition": "連續 3 期（6 個月）達成就",
+      "ceiling": "額外 +1% 提撥",
+      "tags": []
+    },
+    {
+      "name": "終身成就獎金",
+      "monthly_req": "同成就",
+      "condition": "連續 6 期（12 個月）達成就",
+      "ceiling": "額外 +1% 提撥（三者可疊加最高 3%）",
+      "tags": []
+    }
+  ],
+  "ranks": [
+    { "name": "一星鑽 ★",    "left": 1,  "right": 1,  "pts": 1  },
+    { "name": "三星鑽 ★★★", "left": 3,  "right": 3,  "pts": 3  },
+    { "name": "五星鑽",       "left": 5,  "right": 5,  "pts": 5  },
+    { "name": "七星鑽",       "left": 7,  "right": 7,  "pts": 7  },
+    { "name": "九星鑽",       "left": 9,  "right": 9,  "pts": 9  },
+    { "name": "CFC MASTER",   "left": 12, "right": 12, "pts": 12 }
+  ],
+  "ranks_note": "星鑽分紅 = 年度總銷售 0.2% × (你的星鑽點數 ÷ 全體總星鑽點數)，分餅制",
+  "weaknesses": [
+    {
+      "title": "大象腿",
+      "desc": "雙軌只算弱腿對碰，強腿養再大都空等。資源全押一邊就等於浪費一半組織力。",
+      "level": "danger"
+    },
+    {
+      "title": "介紹實績歸零",
+      "desc": "介紹實績降到 0，所有累積點數全部清零。不是暫停，是歸零。斷一代就毀。",
+      "level": "danger"
+    },
+    {
+      "title": "分餅制",
+      "desc": "開發、成就、星鑽都是總池 ÷ 達標人數。達標的人越多、你分越少。組織越大，獎金反而縮水。",
+      "level": "warn"
+    },
+    {
+      "title": "受制下線",
+      "desc": "領導／成就／聘階全看下線有沒有達獨立循環。你的收入有一大部分你根本控制不了。",
+      "level": "warn"
+    }
+  ]
+}

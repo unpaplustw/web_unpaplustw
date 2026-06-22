@@ -1,0 +1,23 @@
+[
+  { "slug": "naturallyplus", "name": "環貫綠佳利", "type": "無限代雙軌制", "handbook": "2026.05", "status": "complete" },
+  { "slug": "doterra",     "name": "多特瑞",      "type": "",            "handbook": "2026.03", "status": "pending" },
+  { "slug": "amway",       "name": "安麗",        "type": "",            "handbook": "2025.09", "status": "pending" },
+  { "slug": "marykay",     "name": "玫琳凱",      "type": "",            "handbook": "2025.10", "status": "pending" },
+  { "slug": "herbalife",   "name": "賀寶芙",      "type": "",            "handbook": "2026.03", "status": "pending" },
+  { "slug": "nuskin",      "name": "全美世界",    "type": "",            "handbook": "2025.12", "status": "pending" },
+  { "slug": "usana",       "name": "USANA",       "type": "",            "handbook": "2025.07", "status": "pending" },
+  { "slug": "melaleuca",   "name": "美樂家",      "type": "",            "handbook": "2026.04", "status": "pending" },
+  { "slug": "avon",        "name": "雅芳",        "type": "",            "handbook": "2023.01", "status": "pending" },
+  { "slug": "liman",       "name": "力曼",        "type": "",            "handbook": "2026.05", "status": "pending" },
+  { "slug": "tianlai",     "name": "天麗",        "type": "",            "handbook": "2026.03", "status": "pending" },
+  { "slug": "shuanghe",    "name": "雙鶴",        "type": "",            "handbook": "2025.01", "status": "pending" },
+  { "slug": "bama",        "name": "八馬",        "type": "",            "handbook": "2025.04", "status": "pending" },
+  { "slug": "lixiangjia",  "name": "理想家",      "type": "",            "handbook": "2026.01", "status": "pending" },
+  { "slug": "hongbao",     "name": "宏寶家賀",    "type": "",            "handbook": "2025.10", "status": "pending" },
+  { "slug": "dongzhen",    "name": "東震",        "type": "",            "handbook": "2024.08", "status": "pending" },
+  { "slug": "chengyan",    "name": "丞燕",        "type": "",            "handbook": "2026.04", "status": "pending" },
+  { "slug": "balisidan",   "name": "百麗絲丹",    "type": "",            "handbook": "2026.04", "status": "pending" },
+  { "slug": "shengli",     "name": "生麗",        "type": "",            "handbook": "2026.04", "status": "pending" },
+  { "slug": "lihui",       "name": "力匯",        "type": "",            "handbook": "",        "status": "pending" },
+  { "slug": "laiwei",      "name": "萊威",        "type": "",            "handbook": "",        "status": "pending" }
+]
