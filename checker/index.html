@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>健康查查 · 為家人把關</title>
+<title>全能查查 · 為家人把關</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -140,6 +140,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .door-product{--dc:#185fa5;--dcb:#e6f1fb}
 .door-tm{--dc:#0f6e56;--dcb:#e1f5ee}
 .door-verify{--dc:#854f0b;--dcb:#faeeda}
+.door-system{--dc:#5b3a9e;--dcb:#efe9fa}
+.door-soon{margin-left:auto;font-size:11px;font-weight:700;color:#fff;background:var(--dc);border-radius:10px;padding:2px 8px}
 .tm-back{display:inline-block;color:var(--pri);cursor:pointer;font-size:15px;font-weight:700;margin-bottom:14px}
 .tm-title{text-align:center;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--txt)}
 .tm-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px}
@@ -278,18 +280,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 <!-- ── 主畫面 ── -->
 <div class="wrap" id="mainScreen" style="display:none">
   <div class="hd">
-    <div class="hd-title">健康查查</div>
-    <div class="hd-tag">查成分 · 看見證 · 破話術，為家人把關</div>
+    <div class="hd-title">全能查查</div>
+    <div class="hd-tag">查成分 · 查話術 · 查體感 · 查制度，為家人把關</div>
     <div class="hd-chips"><span>84,000+ 商品</span><span>187 篇真實見證</span></div>
     <div class="hd-sub" id="userName"></div>
     <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
   </div>
 
-  <div id="queryArea">
+  <!-- ══════ 四道門 hub（全能查查）══════ -->
+  <div id="doorMenu">
+    <button class="tm-entry door-product" onclick="showDoor('product')">
+      <span class="tm-ic">&#128269;</span>
+      <span><b>查成分</b><br><small>競品四刀拆解、揭穿 CP 值</small></span>
+      <span class="tm-ar">&#9654;</span>
+    </button>
+    <button class="tm-entry door-verify" onclick="showDoor('verify')">
+      <span class="tm-ic">&#128737;&#65039;</span>
+      <span><b>查字號話術</b><br><small>字號真偽 + 違法宣稱拆穿</small></span>
+      <span class="tm-ar">&#9654;</span>
+    </button>
+    <button class="tm-entry door-tm" onclick="openTestimonials()">
+      <span class="tm-ic">&#128170;</span>
+      <span><b>查體感</b><br><small>187 人真實改善回饋</small><span class="tm-lockhint">&#128274; 完整故事需綁定 LINE</span></span>
+      <span class="tm-ar">&#9654;</span>
+    </button>
+    <button class="tm-entry door-system" onclick="showDoor('system')">
+      <span class="tm-ic">&#127963;&#65039;</span>
+      <span><b>查制度</b><br><small>各家傳直銷制度對比</small></span>
+      <span class="door-soon">建置中</span>
+    </button>
+  </div>
 
-  <!-- ══ 🔍 攻：查產品好不好 ══ -->
+  <!-- ══ 🔍 查成分 ══ -->
+  <div id="productArea" style="display:none">
+  <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
   <div class="tg-section">
-  <div class="tg-header">&#128269; 查產品好不好</div>
   <div class="search-box">
     <input class="search-input" id="searchInput" type="text" placeholder="輸入商品名稱查詢..." autocomplete="off">
     <button class="btn-search" onclick="doSearch()">&#128269;</button>
@@ -398,18 +423,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 
   <input id="reportPhotoInput" type="file" accept="image/*" capture="environment" style="display:none">
 
-  <!-- ══ 💪 秀：看大家怎麼改善 ══ -->
-  <div class="tg-section">
-  <button class="tm-entry door-tm" onclick="openTestimonials()">
-    <span class="tm-ic">&#128170;</span>
-    <span><b>看大家怎麼改善</b><br><small>187 人真實體感回饋</small><span class="tm-lockhint">&#128274; 完整故事需綁定 LINE</span></span>
-    <span class="tm-ar">&#9654;</span>
-  </button>
+  <!-- 歷史（查成分內）-->
+  <div class="history-section" id="historySection">
+    <div class="history-title">大家最近查的</div>
+    <div id="historyList"></div>
   </div>
+  </div><!-- /productArea -->
 
-  <!-- ══ 🛡 防：對方說的是真的嗎 ══ -->
+  <!-- ══ 🛡️ 查字號話術 ══ -->
+  <div id="verifyArea" style="display:none">
+  <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
   <div class="tg-section">
-  <div class="tg-header">&#128737;&#65039; 對方說的是真的嗎</div>
   <div class="tool-grid">
     <div class="tool-box" onclick="toggleVerify()"><span class="tool-emoji">&#129706;</span>字號認證</div>
     <div class="tool-box" onclick="toggleClaim()"><span class="tool-emoji">&#128214;</span>法規教育</div>
@@ -434,12 +458,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
   </div>
 
-  <!-- 歷史 -->
-  <div class="history-section" id="historySection">
-    <div class="history-title">大家最近查的</div>
-    <div id="historyList"></div>
+  </div><!-- /verifyArea -->
+
+  <!-- ══ 🏛️ 查制度（建置中）══ -->
+  <div id="systemArea" style="display:none">
+  <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
+  <div class="tm-title">&#127963;&#65039; 查制度</div>
+  <div class="tm-sub">各家傳直銷制度對比</div>
+  <div style="background:var(--card);border:1.5px dashed var(--border);border-radius:14px;padding:30px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:2;box-shadow:var(--shadow)">
+    &#128679; <b style="color:var(--txt)">建置中</b><br>
+    這裡即將能查：雙軌／矩陣／階梯制差異、撥出率、晉階門檻、穩定度對比，<br>幫你看懂「為什麼選這家」。
   </div>
-  </div><!-- /queryArea -->
+  </div><!-- /systemArea -->
 
   <!-- 體感見證面板 -->
   <div class="tm-panel" id="tmPanel" style="display:none">
@@ -1224,8 +1254,25 @@ function toggleMoreTools() {
 }
 
 // ── 體感見證 ──
+// ── 四道門 hub 開合 ──
+function goHome() {
+  document.getElementById('doorMenu').style.display = '';
+  ['productArea', 'verifyArea', 'systemArea', 'tmPanel'].forEach(function (id) {
+    var el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  window.scrollTo(0, 0);
+}
+function showDoor(d) {
+  document.getElementById('doorMenu').style.display = 'none';
+  document.getElementById('productArea').style.display = (d === 'product') ? '' : 'none';
+  document.getElementById('verifyArea').style.display = (d === 'verify') ? '' : 'none';
+  document.getElementById('systemArea').style.display = (d === 'system') ? '' : 'none';
+  if (d === 'product') { var si = document.getElementById('searchInput'); if (si) si.focus(); }
+  window.scrollTo(0, 0);
+}
+
 function openTestimonials() {
-  document.getElementById('queryArea').style.display = 'none';
+  document.getElementById('doorMenu').style.display = 'none';
   document.getElementById('tmPanel').style.display = 'block';
   document.getElementById('tmList').innerHTML = '';
   document.getElementById('tmDetail').innerHTML = '';
@@ -1263,7 +1310,7 @@ async function tmSearch() {
 }
 function closeTestimonials() {
   document.getElementById('tmPanel').style.display = 'none';
-  document.getElementById('queryArea').style.display = '';
+  document.getElementById('doorMenu').style.display = '';
   window.scrollTo(0, 0);
 }
 // 訪客綁定 LINE（公開直連的陌生人 → 引導登入解鎖第二層）
