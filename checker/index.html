@@ -281,7 +281,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 <div class="wrap" id="mainScreen" style="display:none">
   <div class="hd">
     <div class="hd-title">全能查查</div>
-    <div class="hd-tag">查成分 · 查話術 · 查體感 · 查制度，為家人把關</div>
+    <div class="hd-tag">查成分 · 查真相 · 查體感 · 查制度，為家人把關</div>
     <div class="hd-chips"><span>84,000+ 商品</span><span>187 篇真實見證</span></div>
     <div class="hd-sub" id="userName"></div>
     <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
@@ -296,12 +296,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     </button>
     <button class="tm-entry door-verify" onclick="showDoor('verify')">
       <span class="tm-ic">&#128737;&#65039;</span>
-      <span><b>查字號話術</b><br><small>字號真偽 + 違法宣稱拆穿</small></span>
+      <span><b>查真相</b><br><small>字號真偽 + 違法宣稱拆穿</small></span>
       <span class="tm-ar">&#9654;</span>
     </button>
     <button class="tm-entry door-tm" onclick="openTestimonials()">
       <span class="tm-ic">&#128170;</span>
-      <span><b>查體感</b><br><small>187 人真實改善回饋</small><span class="tm-lockhint">&#128274; 完整故事需綁定 LINE</span></span>
+      <span><b>查體感</b><br><small>187 人真實改善回饋</small></span>
       <span class="tm-ar">&#9654;</span>
     </button>
     <button class="tm-entry door-system" onclick="showDoor('system')">
@@ -430,7 +430,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   </div>
   </div><!-- /productArea -->
 
-  <!-- ══ 🛡️ 查字號話術 ══ -->
+  <!-- ══ 🛡️ 查真相 ══ -->
   <div id="verifyArea" style="display:none">
   <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
   <div class="tg-section">
@@ -1335,7 +1335,7 @@ function closeTestimonials() {
   document.getElementById('doorMenu').style.display = '';
   window.scrollTo(0, 0);
 }
-// 訪客綁定 LINE（公開直連的陌生人 → 引導登入解鎖第二層）
+// 已登入未開通 → 引導開通會員（人人從 OA 進來都已登入，不再有「綁定 LINE」情境）
 function bindLine() {
   // 已登入 LINE 但還沒開通會員：登入無法解鎖，引導開通
   if (lineProfile && !currentUser) { alert('你已登入 LINE，但尚未開通會員。請聯繫你的推薦人開通後即可看完整見證。'); return; }
@@ -1395,7 +1395,7 @@ function tmBackToStats() {
 async function loadTmDetail(id) {
   document.getElementById('tmList').style.display = 'none';
   const d = document.getElementById('tmDetail');
-  if (!currentUser) {  // 訪客：標題露、六段故事鎖 → 製造份量感 + 引導綁定
+  if (!currentUser) {  // 已登入未開通：標題露、六段故事鎖 → 製造份量感 + 引導開通
     d.innerHTML = '<span class="dot-loading">載入</span>';
     const { data: meta } = await sbRag.from('testimonials').select('title,gender,organs').eq('id', id).single();
     d.innerHTML = '<div class="tm-back" onclick="tmBackToList()">&#8249; 回見證列表</div>' +
@@ -1405,7 +1405,7 @@ async function loadTmDetail(id) {
         '<div class="tm-skel"></div><div class="tm-skel" style="width:88%"></div><div class="tm-skel" style="width:72%"></div>' +
         '<div class="tm-lock-foot">' +
           '<div class="tm-lock-hint">&#128274; 完整六段故事僅限會員</div>' +
-          '<button class="tm-lock-btn" onclick="bindLine()">綁定 LINE 看完整 187 篇</button>' +
+          '<button class="tm-lock-btn" onclick="bindLine()">開通會員看完整 187 篇</button>' +
         '</div>' +
       '</div>';
     window.scrollTo(0, 0);
