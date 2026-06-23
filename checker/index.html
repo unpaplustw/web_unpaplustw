@@ -1384,7 +1384,7 @@ async function openPlanCompany(slug) {
     const r = await fetch(PLAN_BASE + slug + '.json'); if (!r.ok) throw 0;
     const d = await r.json();
     body.innerHTML = renderPlanDetail(d);
-    if (d.scale && d.scale.tiers) updateScale(d.scale.default != null ? d.scale.default : d.scale.min);
+    if (d.scale && (d.scale.tiers || d.scale.rate != null)) updateScale(d.scale.default != null ? d.scale.default : d.scale.min);
   } catch (e) { body.innerHTML = '<div class="sr-empty">此公司資料建置中</div>'; }
 }
 function backToPlanList() {
@@ -1394,15 +1394,25 @@ function backToPlanList() {
 }
 // 金額欄位：數字→NT$X；字串→原樣顯示（讓太陽制能寫「NT$1萬起」「依聘階」而非死板 NT$0）
 function planVal(x) { return typeof x === 'number' ? 'NT$' + x.toLocaleString() : esc(x); }
-// 業績獎金沉浸式滑桿
-let SCALE_TIERS = [];
-function scaleTierPct(v) { var p = 0; for (var i = 0; i < SCALE_TIERS.length; i++) { if (v >= SCALE_TIERS[i].min) p = SCALE_TIERS[i].pct; } return p; }
+// 互動滑桿：兩種模式 — 階梯式(tiers，安麗業績獎金) / 固定%＋封頂式(rate+cap，盛宇組織獎金)
+let SCALE = null;
 function updateScale(v) {
-  v = +v; var p = scaleTierPct(v); var g = Math.round(v * p / 100);
-  var el = document.getElementById('scaleOut'); if (!el) return;
-  el.innerHTML = '當月業績 <b>NT$' + v.toLocaleString() + '</b><br>' +
-    (p ? '落在 <b>' + p + '%</b> 檔 → 毛獎金 <b style="color:var(--pri)">NT$' + g.toLocaleString() + '</b>'
-       : '<b style="color:var(--red)">未達 NT$1萬，這個月 0 獎金</b>');
+  v = +v;
+  var el = document.getElementById('scaleOut'); if (!el || !SCALE) return;
+  if (SCALE.tiers) {
+    var p = 0; for (var i = 0; i < SCALE.tiers.length; i++) { if (v >= SCALE.tiers[i].min) p = SCALE.tiers[i].pct; }
+    var g = Math.round(v * p / 100);
+    el.innerHTML = '當月業績 <b>NT$' + v.toLocaleString() + '</b><br>' +
+      (p ? '落在 <b>' + p + '%</b> 檔 → 毛獎金 <b style="color:var(--pri)">NT$' + g.toLocaleString() + '</b>'
+         : '<b style="color:var(--red)">未達 NT$1萬，這個月 0 獎金</b>');
+  } else {
+    var raw = Math.round(v * SCALE.rate / 100);
+    var hit = (SCALE.cap != null && raw > SCALE.cap);
+    var got = hit ? SCALE.cap : raw;
+    el.innerHTML = (SCALE.label ? esc(SCALE.label) + ' ' : '') + '<b>NT$' + v.toLocaleString() + '</b> × ' + SCALE.rate + '%<br>' +
+      (hit ? '= NT$' + raw.toLocaleString() + ' → <b style="color:var(--red)">封頂！這天只領 NT$' + got.toLocaleString() + '</b>'
+           : '→ <b style="color:var(--pri)">NT$' + got.toLocaleString() + '</b>');
+  }
 }
 function renderPlanDetail(d) {
   var ec = d.entry_cost;
@@ -1416,11 +1426,11 @@ function renderPlanDetail(d) {
   if (ec.options && ec.options.length) {
     html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">創業商品可選：' + ec.options.map(function (o) { return o.pts.toLocaleString() + '點（NT$' + o.cost.toLocaleString() + '）'; }).join('、') + '；點數越高，介紹人推薦獎金也越高。</div>';
   }
-  // 業績獎金沉浸式滑桿
-  if (d.scale && d.scale.tiers) {
-    SCALE_TIERS = d.scale.tiers;
+  // 互動滑桿（階梯式 or 固定%＋封頂式）
+  if (d.scale && (d.scale.tiers || d.scale.rate != null)) {
+    SCALE = d.scale;
     var def = d.scale.default != null ? d.scale.default : d.scale.min;
-    html += '<div class="plan-sec">&#128202; 業績獎金：拖拖看你要做多少</div>';
+    html += '<div class="plan-sec">&#128202; ' + esc(d.scale.title || '業績獎金：拖拖看你要做多少') + '</div>';
     html += '<div class="plan-card">' +
       '<input type="range" id="scaleRange" min="' + d.scale.min + '" max="' + d.scale.max + '" step="' + d.scale.step + '" value="' + def + '" oninput="updateScale(this.value)" style="width:100%;accent-color:var(--pri)">' +
       '<div id="scaleOut" style="text-align:center;font-size:15px;margin-top:10px;line-height:1.9"></div>' +
