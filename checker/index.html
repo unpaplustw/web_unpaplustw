@@ -495,6 +495,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
   .plan-weak.danger .plan-weak-t{color:var(--red)}
   .plan-weak.warn .plan-weak-t{color:#a16207}
   .plan-src{font-size:11px;color:var(--muted);text-align:center;padding:12px 0 4px;line-height:1.6}
+  .plan-ftc{display:block;text-align:center;margin-top:14px;padding:12px;border:1.5px solid var(--pri);border-radius:10px;color:var(--pri);font-size:13px;font-weight:700;text-decoration:none}
+  .plan-ftc:active{background:var(--pri-lt)}
   </style>
   <div id="planListView">
     <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
@@ -1459,6 +1461,7 @@ function renderPlanDetail(d) {
     }).join('');
   }
   html += '<div class="plan-src">數字來源：' + esc(d.meta.name) + '官方手冊 ' + esc(d.meta.handbook) + ' · 更新 ' + esc(d.meta.updated) + '</div>';
+  if (d.meta.ftc) html += '<a class="plan-ftc" href="' + esc(d.meta.ftc) + '" target="_blank" rel="noopener">&#128279; 公平會多層次傳銷·官方登記資料</a>';
   return html;
 }
 
