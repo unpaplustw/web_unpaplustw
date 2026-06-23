@@ -1441,7 +1441,7 @@ function renderPlanDetail(d) {
     var rankReq = d.ranks[0] && d.ranks[0].req !== undefined;
     html += '<div class="plan-sec">&#11088; ' + (rankReq ? '聘階責任額：每月要扛多少' : '聘階：你的組織要長這樣') + '</div>';
     html += d.ranks.map(function (r) {
-      var meta = (r.req !== undefined) ? esc(r.req) : ('左 ' + r.left + ' / 右 ' + r.right + ' · ' + r.pts + ' 點');
+      var meta = (r.req !== undefined) ? esc(r.req) : ('左 ' + r.left + ' / 右 ' + r.right + (r.pts ? ' · ' + r.pts + ' 點' : ''));
       return '<div class="plan-rank"><span class="plan-rank-nm">' + esc(r.name) + '</span><span class="plan-rank-meta">' + meta + '</span></div>';
     }).join('');
     if (d.ranks_note) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">※ ' + esc(d.ranks_note) + '</div>';
