@@ -1444,6 +1444,14 @@ function renderPlanDetail(d) {
     }).join('');
     if (d.ranks_note) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">※ ' + esc(d.ranks_note) + '</div>';
   }
+  if (d.incentive) {
+    html += '<div class="plan-sec">' + esc(d.incentive.name || '&#127965;&#65039; 旅遊激勵') + '</div>';
+    if (d.incentive.qualify) html += '<div class="plan-stat" style="margin-bottom:8px"><div class="plan-stat-l">入場資格</div><div class="plan-stat-v" style="font-size:14px;line-height:1.55">' + esc(d.incentive.qualify) + '</div></div>';
+    if (d.incentive.rows && d.incentive.rows.length) html += d.incentive.rows.map(function (r) {
+      return '<div class="plan-stat" style="margin-bottom:6px"><div class="plan-stat-l">' + esc(r.l) + '</div><div class="plan-stat-v">' + esc(r.v) + '</div>' + (r.n ? '<div class="plan-stat-n">' + esc(r.n) + '</div>' : '') + '</div>';
+    }).join('');
+    if (d.incentive.note) html += '<div class="plan-stat-n" style="margin-top:4px;line-height:1.6">※ ' + esc(d.incentive.note) + '</div>';
+  }
   if (d.weaknesses && d.weaknesses.length) {
     html += '<div class="plan-sec">&#9888;&#65039; 結構性弱點</div>';
     html += d.weaknesses.map(function (w) {
