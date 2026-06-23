@@ -1382,6 +1382,7 @@ async function openPlanCompany(slug) {
     const r = await fetch(PLAN_BASE + slug + '.json'); if (!r.ok) throw 0;
     const d = await r.json();
     body.innerHTML = renderPlanDetail(d);
+    if (d.scale && d.scale.tiers) updateScale(d.scale.default != null ? d.scale.default : d.scale.min);
   } catch (e) { body.innerHTML = '<div class="sr-empty">此公司資料建置中</div>'; }
 }
 function backToPlanList() {
@@ -1389,30 +1390,67 @@ function backToPlanList() {
   document.getElementById('planListView').style.display = '';
   window.scrollTo(0, 0);
 }
+// 金額欄位：數字→NT$X；字串→原樣顯示（讓太陽制能寫「NT$1萬起」「依聘階」而非死板 NT$0）
+function planVal(x) { return typeof x === 'number' ? 'NT$' + x.toLocaleString() : esc(x); }
+// 業績獎金沉浸式滑桿
+let SCALE_TIERS = [];
+function scaleTierPct(v) { var p = 0; for (var i = 0; i < SCALE_TIERS.length; i++) { if (v >= SCALE_TIERS[i].min) p = SCALE_TIERS[i].pct; } return p; }
+function updateScale(v) {
+  v = +v; var p = scaleTierPct(v); var g = Math.round(v * p / 100);
+  var el = document.getElementById('scaleOut'); if (!el) return;
+  el.innerHTML = '當月業績 <b>NT$' + v.toLocaleString() + '</b><br>' +
+    (p ? '落在 <b>' + p + '%</b> 檔 → 毛獎金 <b style="color:var(--pri)">NT$' + g.toLocaleString() + '</b>'
+       : '<b style="color:var(--red)">未達 NT$1萬，這個月 0 獎金</b>');
+}
 function renderPlanDetail(d) {
   var ec = d.entry_cost;
   var html = '<div style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:2px">' + esc(d.meta.name) + '</div>' +
     '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">' + esc(d.meta.type) + ' · 手冊 ' + esc(d.meta.handbook) + '</div>';
   html += '<div class="plan-sec">&#128176; 進場代價</div>';
   html += '<div class="plan-grid">' +
-    '<div class="plan-stat"><div class="plan-stat-l">首月一次性</div><div class="plan-stat-v">NT$' + ec.first_month.toLocaleString() + '</div><div class="plan-stat-n">' + esc(ec.first_month_note || '') + '</div></div>' +
-    '<div class="plan-stat"><div class="plan-stat-l">每月最低維持</div><div class="plan-stat-v">NT$' + ec.monthly_min.toLocaleString() + '</div><div class="plan-stat-n">' + esc(ec.monthly_min_note || '') + '</div></div></div>';
-  html += '<div class="plan-stat" style="margin-top:8px"><div class="plan-stat-l">一年最低支出</div><div class="plan-stat-v">NT$' + ec.annual_min.toLocaleString() + '</div><div class="plan-stat-n">' + esc(ec.annual_min_note || '') + '</div></div>';
+    '<div class="plan-stat"><div class="plan-stat-l">首月一次性</div><div class="plan-stat-v">' + planVal(ec.first_month) + '</div><div class="plan-stat-n">' + esc(ec.first_month_note || '') + '</div></div>' +
+    '<div class="plan-stat"><div class="plan-stat-l">' + esc(ec.monthly_label || '每月最低維持') + '</div><div class="plan-stat-v">' + planVal(ec.monthly_min) + '</div><div class="plan-stat-n">' + esc(ec.monthly_min_note || '') + '</div></div></div>';
+  html += '<div class="plan-stat" style="margin-top:8px"><div class="plan-stat-l">' + esc(ec.annual_label || '一年最低支出') + '</div><div class="plan-stat-v">' + planVal(ec.annual_min) + '</div><div class="plan-stat-n">' + esc(ec.annual_min_note || '') + '</div></div>';
   if (ec.options && ec.options.length) {
     html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">創業商品可選：' + ec.options.map(function (o) { return o.pts.toLocaleString() + '點（NT$' + o.cost.toLocaleString() + '）'; }).join('、') + '；點數越高，介紹人推薦獎金也越高。</div>';
   }
-  html += '<div class="plan-sec">&#128275; 獎金解鎖（滿足條件才領得到）</div>';
-  html += d.bonuses.map(function (b) {
-    return '<div class="plan-card"><div class="plan-card-hd"><div class="plan-card-nm">' + esc(b.name) + '</div>' +
-      (b.tags && b.tags.length ? '<span class="plan-tag">' + b.tags.map(esc).join('・') + '</span>' : '') + '</div>' +
-      '<div class="plan-row"><div class="plan-row-l">每月代價</div><div class="plan-row-v">' + esc(b.monthly_req) + '</div></div>' +
-      '<div class="plan-row"><div class="plan-row-l">關鍵條件</div><div class="plan-row-v">' + esc(b.condition) + '</div></div>' +
-      '<div class="plan-row"><div class="plan-row-l">收入天花板</div><div class="plan-row-v">' + esc(b.ceiling) + '</div></div></div>';
-  }).join('');
+  // 進銷存／送貨（明文 vs 心理）
+  if (d.logistics && d.logistics.items && d.logistics.items.length) {
+    html += '<div class="plan-sec">&#128230; 進銷存／送貨（明文 vs 心理）</div>';
+    html += d.logistics.items.map(function (it) {
+      return '<div class="plan-card"><div class="plan-card-nm" style="font-size:14px;margin-bottom:8px">' + esc(it.label) + '</div>' +
+        '<div class="plan-row"><div class="plan-row-l">明文</div><div class="plan-row-v">' + esc(it.official) + '</div></div>' +
+        '<div class="plan-row"><div class="plan-row-l">心理／實際</div><div class="plan-row-v" style="color:var(--red)">' + esc(it.real) + '</div></div></div>';
+    }).join('');
+    if (d.logistics.note) html += '<div class="plan-stat-n" style="margin-top:2px">' + esc(d.logistics.note) + '</div>';
+  }
+  // 業績獎金沉浸式滑桿
+  if (d.scale && d.scale.tiers) {
+    SCALE_TIERS = d.scale.tiers;
+    var def = d.scale.default != null ? d.scale.default : d.scale.min;
+    html += '<div class="plan-sec">&#128202; 業績獎金：拖拖看你要做多少</div>';
+    html += '<div class="plan-card">' +
+      '<input type="range" id="scaleRange" min="' + d.scale.min + '" max="' + d.scale.max + '" step="' + d.scale.step + '" value="' + def + '" oninput="updateScale(this.value)" style="width:100%;accent-color:var(--pri)">' +
+      '<div id="scaleOut" style="text-align:center;font-size:15px;margin-top:10px;line-height:1.9"></div>' +
+      (d.scale.note ? '<div class="plan-stat-n" style="margin-top:10px">' + esc(d.scale.note) + '</div>' : '') +
+      '</div>';
+  }
+  if (d.bonuses && d.bonuses.length) {
+    html += '<div class="plan-sec">&#128275; ' + (d.scale ? '其他獎金解鎖' : '獎金解鎖') + '（滿足條件才領得到）</div>';
+    html += d.bonuses.map(function (b) {
+      return '<div class="plan-card"><div class="plan-card-hd"><div class="plan-card-nm">' + esc(b.name) + '</div>' +
+        (b.tags && b.tags.length ? '<span class="plan-tag">' + b.tags.map(esc).join('・') + '</span>' : '') + '</div>' +
+        '<div class="plan-row"><div class="plan-row-l">每月代價</div><div class="plan-row-v">' + esc(b.monthly_req) + '</div></div>' +
+        '<div class="plan-row"><div class="plan-row-l">關鍵條件</div><div class="plan-row-v">' + esc(b.condition) + '</div></div>' +
+        '<div class="plan-row"><div class="plan-row-l">收入天花板</div><div class="plan-row-v">' + esc(b.ceiling) + '</div></div></div>';
+    }).join('');
+  }
   if (d.ranks && d.ranks.length) {
-    html += '<div class="plan-sec">&#11088; 聘階：你的組織要長這樣</div>';
+    var rankReq = d.ranks[0] && d.ranks[0].req !== undefined;
+    html += '<div class="plan-sec">&#11088; ' + (rankReq ? '聘階責任額：每月要扛多少' : '聘階：你的組織要長這樣') + '</div>';
     html += d.ranks.map(function (r) {
-      return '<div class="plan-rank"><span class="plan-rank-nm">' + esc(r.name) + '</span><span class="plan-rank-meta">左 ' + r.left + ' / 右 ' + r.right + ' · ' + r.pts + ' 點</span></div>';
+      var meta = (r.req !== undefined) ? esc(r.req) : ('左 ' + r.left + ' / 右 ' + r.right + ' · ' + r.pts + ' 點');
+      return '<div class="plan-rank"><span class="plan-rank-nm">' + esc(r.name) + '</span><span class="plan-rank-meta">' + meta + '</span></div>';
     }).join('');
     if (d.ranks_note) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">※ ' + esc(d.ranks_note) + '</div>';
   }
