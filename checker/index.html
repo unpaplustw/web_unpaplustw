@@ -1444,16 +1444,6 @@ function renderPlanDetail(d) {
     }).join('');
     if (d.ranks_note) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">※ ' + esc(d.ranks_note) + '</div>';
   }
-  // 進銷存／送貨（明文 vs 心理）— 歸在底部分析區
-  if (d.logistics && d.logistics.items && d.logistics.items.length) {
-    html += '<div class="plan-sec">&#128230; 進銷存／送貨（明文 vs 心理）</div>';
-    html += d.logistics.items.map(function (it) {
-      return '<div class="plan-card"><div class="plan-card-nm" style="font-size:14px;margin-bottom:8px">' + esc(it.label) + '</div>' +
-        '<div class="plan-row"><div class="plan-row-l">明文</div><div class="plan-row-v">' + esc(it.official) + '</div></div>' +
-        '<div class="plan-row"><div class="plan-row-l">心理／實際</div><div class="plan-row-v" style="color:var(--red)">' + esc(it.real) + '</div></div></div>';
-    }).join('');
-    if (d.logistics.note) html += '<div class="plan-stat-n" style="margin-top:2px">' + esc(d.logistics.note) + '</div>';
-  }
   if (d.weaknesses && d.weaknesses.length) {
     html += '<div class="plan-sec">&#9888;&#65039; 結構性弱點</div>';
     html += d.weaknesses.map(function (w) {
