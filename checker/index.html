@@ -142,6 +142,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .door-verify{--dc:#854f0b;--dcb:#faeeda}
 .door-system{--dc:#5b3a9e;--dcb:#efe9fa}
 .door-soon{margin-left:auto;font-size:11px;font-weight:700;color:#fff;background:var(--dc);border-radius:10px;padding:2px 8px}
+.door-cost{--dc:#b03a2e;--dcb:#fbeae7}
+/* ── 查自費（醫療費用）── */
+.mc-chip{font-size:17px;padding:12px 18px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--txt);cursor:pointer;font-weight:600;box-shadow:var(--shadow);margin:0 8px 8px 0}
+.mc-tag{font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;flex:0 0 auto}
+.mc-row{padding:11px 0;border-top:1px solid var(--border)}
+.mc-row:first-child{border-top:none}
+.mc-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.mc-n{font-size:16px;font-weight:600;line-height:1.5;color:var(--txt)}
+.mc-price{font-size:16px;font-weight:600;color:var(--yellow);text-align:right;flex:0 0 auto}
+.mc-sub{font-size:14px;color:var(--muted);line-height:1.55;margin-top:3px}
+.mc-sub.warn{color:var(--yellow)}
+.mc-prevent{margin-top:6px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}
 .tm-back{display:inline-block;color:var(--pri);cursor:pointer;font-size:15px;font-weight:700;margin-bottom:14px}
 .tm-title{text-align:center;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--txt)}
 .tm-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px}
@@ -281,7 +293,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 <div class="wrap" id="mainScreen" style="display:none">
   <div class="hd">
     <div class="hd-title">全能查查</div>
-    <div class="hd-tag">查成分 · 查真相 · 查體感 · 查制度，為家人把關</div>
+    <div class="hd-tag">查成分·查真相·查體感·查制度·查自費，為家人把關</div>
     <div class="hd-chips"><span>84,000+ 商品</span><span>187 篇真實見證</span></div>
     <div class="hd-sub" id="userName"></div>
     <div class="hd-sub" id="creditBadge" style="margin-top:6px;font-size:15px;font-weight:700">&#128142; 你的點數 <span id="creditNum">—</span></div>
@@ -307,6 +319,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <button class="tm-entry door-system" onclick="showDoor('system')">
       <span class="tm-ic">&#127963;&#65039;</span>
       <span><b>查制度</b><br><small>各家傳直銷制度對比</small></span>
+      <span class="tm-ar">&#9654;</span>
+    </button>
+    <button class="tm-entry door-cost" onclick="showDoor('cost')">
+      <span class="tm-ic">&#128176;</span>
+      <span><b>查自費</b><br><small>健保付多少、自己付多少、缺口在哪</small></span>
       <span class="tm-ar">&#9654;</span>
     </button>
   </div>
@@ -513,6 +530,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
     <div id="planDetailBody"></div>
   </div>
   </div><!-- /systemArea -->
+
+  <!-- ══ 💰 查自費（醫療費用）══ -->
+  <div id="costArea" style="display:none">
+    <div class="tm-back" onclick="goHome()">&#8249; 返回首頁</div>
+    <div class="search-box">
+      <input class="search-input" id="mcInput" type="text" placeholder="打大概的字就好，例如「腸」「換膝蓋」" autocomplete="off" oninput="mcSuggest()">
+      <button class="btn-search" onclick="mcSuggest()">&#128269;</button>
+    </div>
+    <div id="mcSugLabel" style="font-size:14px;color:var(--muted);margin:4px 0 10px">載入中…</div>
+    <div id="mcSuggest" style="display:flex;flex-wrap:wrap"></div>
+    <div id="mcResult" style="margin-top:8px"></div>
+    <p style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0 4px;margin:0;line-height:1.6">原型示意，實際金額與給付條件以健保署與醫院當期公告為準</p>
+  </div>
 
   <!-- 體感見證面板 -->
   <div class="tm-panel" id="tmPanel" style="display:none">
@@ -1322,7 +1352,7 @@ function toggleMoreTools() {
 // ── 四道門 hub 開合 ──
 function goHome() {
   document.getElementById('doorMenu').style.display = '';
-  ['productArea', 'verifyArea', 'systemArea', 'tmPanel'].forEach(function (id) {
+  ['productArea', 'verifyArea', 'systemArea', 'costArea', 'tmPanel'].forEach(function (id) {
     var el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   window.scrollTo(0, 0);
@@ -1332,9 +1362,84 @@ function showDoor(d) {
   document.getElementById('productArea').style.display = (d === 'product') ? '' : 'none';
   document.getElementById('verifyArea').style.display = (d === 'verify') ? '' : 'none';
   document.getElementById('systemArea').style.display = (d === 'system') ? '' : 'none';
+  document.getElementById('costArea').style.display = (d === 'cost') ? '' : 'none';
   if (d === 'product') { var si = document.getElementById('searchInput'); if (si) si.focus(); }
   if (d === 'system') { loadPlanIndex(); }
+  if (d === 'cost') { mcLoad(); }
   window.scrollTo(0, 0);
+}
+
+// ── 💰 查自費（醫療費用，靜態 JSON，免費搜尋；AI 按鈕建構中）──
+let mcData = {}, mcAll = [], mcLoaded = false;
+async function mcLoad() {
+  if (!mcLoaded) {
+    try {
+      const r = await fetch('data/medcost.json');
+      const arr = await r.json();
+      arr.forEach(function (o) { mcData[o.name] = o; });
+      mcAll = arr.map(function (o) { return o.name; });
+      mcLoaded = true;
+    } catch (e) { document.getElementById('mcSugLabel').textContent = '資料載入失敗'; return; }
+  }
+  document.getElementById('mcInput').value = '';
+  mcSuggest();
+  if (mcAll.length) mcRender(mcAll[0]);
+}
+function mcLevelTag(level) {
+  var c = 'gray';
+  if (level.indexOf('全額') >= 0 || level === '給付') c = 'pri';
+  else if (level.indexOf('部分') >= 0 || level.indexOf('條件') >= 0) c = 'yellow';
+  else if (level.indexOf('不給付') >= 0) c = 'red';
+  var bg = c === 'pri' ? 'var(--pri-lt)' : (c === 'yellow' ? 'var(--yellow-bg)' : (c === 'red' ? 'var(--red-bg)' : 'rgba(0,0,0,.05)'));
+  var fg = c === 'pri' ? 'var(--pri)' : (c === 'yellow' ? 'var(--yellow)' : (c === 'red' ? 'var(--red)' : 'var(--muted)'));
+  return '<span class="mc-tag" style="background:' + bg + ';color:' + fg + '">' + esc(level) + '</span>';
+}
+function mcSuggest() {
+  var q = document.getElementById('mcInput').value.trim();
+  var list, label;
+  if (!q) { list = mcAll.slice(0, 8); label = '熱門查詢（或直接搜尋）：'; }
+  else {
+    list = mcAll.filter(function (n) {
+      return n.indexOf(q) >= 0 || mcData[n].kw.some(function (w) { return w.indexOf(q) >= 0 || q.indexOf(w) >= 0; });
+    });
+    label = list.length ? '為您找到：' : '找不到，換個關鍵字';
+  }
+  document.getElementById('mcSugLabel').textContent = label;
+  var box = document.getElementById('mcSuggest');
+  if (!list.length) { box.innerHTML = '<button class="mc-chip" onclick="alert(\'問 AI 查詢功能建構中，敬請期待\')">🛠️ 問 AI（建構中）</button>'; return; }
+  box.innerHTML = list.slice(0, 20).map(function (n) {
+    return '<button class="mc-chip" onclick="mcRender(\'' + esc(n) + '\');document.getElementById(\'mcInput\').value=\'\';mcSuggest()">' + esc(n) + '</button>';
+  }).join('');
+}
+function mcRender(name) {
+  var d = mcData[name]; if (!d) return;
+  var h = '<div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px"><span style="font-size:21px;font-weight:700;color:var(--txt)">' + esc(name) + '</span><span class="sr-meta" style="background:var(--bg);padding:4px 12px;border-radius:999px;margin:0">' + esc(d.type) + '</span></div>';
+  h += '<div class="plan-sec" style="color:var(--pri)">&#128737;&#65039; 健保有付</div><div class="plan-card">';
+  h += (d.nhi || []).map(function (r) {
+    var s = '<div class="mc-row"><div class="mc-top"><span class="mc-n">' + esc(r.item) + '</span>' + mcLevelTag(r.level) + '</div>';
+    if (r.note) s += '<div class="mc-sub warn">⚠️ 但書：' + esc(r.note) + '</div>';
+    return s + '</div>';
+  }).join('') + '</div>';
+  h += '<div class="plan-sec" style="color:var(--yellow)">&#128176; 要自己付</div><div class="plan-card">';
+  h += (d.self || []).map(function (r) {
+    var s = '<div class="mc-row"><div class="mc-top"><span class="mc-n">' + esc(r.item) + '</span><span class="mc-price">' + esc(r.price) + '</span></div>';
+    if (r.why) s += '<div class="mc-sub">差在哪：' + esc(r.why) + '</div>';
+    return s + '</div>';
+  }).join('') + '</div>';
+  h += '<div class="plan-weak danger"><div class="plan-weak-t">⚠️ 缺口（健保不賠的）</div><div style="font-size:15px;line-height:1.6">' + esc(d.gap || '') + '</div></div>';
+  h += '<div class="plan-sec">&#127963;&#65039; 政府規定／補助</div><div class="plan-card">';
+  h += (d.gov || []).map(function (r) {
+    return '<div class="mc-row"><div class="mc-n">' + esc(r.item) + '</div><div class="mc-sub">' + esc(r.note) + '</div></div>';
+  }).join('') + '</div>';
+  if (d.prevent && d.prevent.length >= 2) {
+    h += '<div class="mc-prevent"><div style="font-size:16px;font-weight:700;margin-bottom:10px">&#9878;&#65039; 先預防，還是後治療？</div>' +
+      '<div style="background:var(--pri-lt);border-radius:10px;padding:12px 14px"><div style="font-size:13px;color:var(--pri);margin-bottom:2px">花小錢預防</div><div style="font-size:16px;line-height:1.5">' + esc(d.prevent[0]) + '</div></div>' +
+      '<div style="text-align:center;margin:6px 0;color:var(--muted)">&#11015;&#65039;</div>' +
+      '<div style="background:var(--red-bg);border-radius:10px;padding:12px 14px"><div style="font-size:13px;color:var(--red);margin-bottom:2px">不預防的代價</div><div style="font-size:16px;line-height:1.5">' + esc(d.prevent[1]) + '</div></div></div>';
+  }
+  h += '<button class="mc-chip" style="width:100%;margin:14px 0 0;padding:15px;font-size:16px;text-align:center" onclick="alert(\'問 AI 講更清楚：功能建構中，敬請期待\')">🛠️ 問 AI 講更清楚（建構中）</button>';
+  document.getElementById('mcResult').innerHTML = h;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ── 查制度（內建 plan-decode，靜態 JSON，免扣點：靠進站即 LINE 登入這層）──
