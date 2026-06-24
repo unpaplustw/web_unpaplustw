@@ -1392,6 +1392,13 @@ function backToPlanList() {
   document.getElementById('planListView').style.display = '';
   window.scrollTo(0, 0);
 }
+// 制度模型精粹（差異化一句話；完整精粹在 wiki 制度模式/獎金結構/*.md）
+const MODEL_ESSENCE = {
+  '雙軌制': '無限代——只要搞定 2 條腿就能無限往下深；大象腿是小代價，封頂才是真限制。',
+  '太陽制': '沒有無限代——下線做到頂就突破跑掉，逼你養 20-30 條腿；「沒有大象腿」是用這換的。',
+  '矩陣制': '固定寬×深的格子，超過就溢出；寬度被限、深度有上限。',
+  '單線制': '所有人排成一條線，靠你上面的人帶動，個人影響力最小。'
+};
 // 金額欄位：數字→NT$X；字串→原樣顯示（讓太陽制能寫「NT$1萬起」「依聘階」而非死板 NT$0）
 function planVal(x) { return typeof x === 'number' ? 'NT$' + x.toLocaleString() : esc(x); }
 // 互動滑桿：兩種模式 — 階梯式(tiers，安麗業績獎金) / 固定%＋封頂式(rate+cap，盛宇組織獎金)
@@ -1418,6 +1425,9 @@ function renderPlanDetail(d) {
   var ec = d.entry_cost;
   var html = '<div style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:2px">' + esc(d.meta.name) + '</div>' +
     '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">' + esc(d.meta.type) + ' · 手冊 ' + esc(d.meta.handbook) + '</div>';
+  if (d.meta.model && MODEL_ESSENCE[d.meta.model]) {
+    html += '<div style="background:var(--pri-lt);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--txt);margin-bottom:4px">&#129516; 制度模型：<b>' + esc(d.meta.model) + '</b> — ' + esc(MODEL_ESSENCE[d.meta.model]) + '</div>';
+  }
   html += '<div class="plan-sec">&#128176; 進場代價</div>';
   html += '<div class="plan-grid">' +
     '<div class="plan-stat"><div class="plan-stat-l">首月一次性</div><div class="plan-stat-v">' + planVal(ec.first_month) + '</div><div class="plan-stat-n">' + esc(ec.first_month_note || '') + '</div></div>' +

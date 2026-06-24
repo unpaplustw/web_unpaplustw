@@ -5,7 +5,8 @@
     "type": "差額制太陽制（業績獎金 3%～21%）",
     "handbook": "2025.09",
     "updated": "2026-06-23",
-    "ftc": "https://fair.ftc.gov.tw/fair/report/report_info.aspx?sn=84308897"
+    "ftc": "https://fair.ftc.gov.tw/fair/report/report_info.aspx?sn=84308897",
+    "model": "太陽制"
   },
   "entry_cost": {
     "first_month": 1000,
