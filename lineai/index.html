@@ -261,7 +261,7 @@ nav{
 
 /* ── NAV CARDS ── */
 .cards{
-  display:grid;grid-template-columns:repeat(2,1fr);
+  display:grid;grid-template-columns:repeat(3,1fr);
   gap:10px;padding:16px 28px 36px;
 }
 .card{
@@ -274,7 +274,7 @@ nav{
 .card:hover{transform:translateY(-4px);border-color:var(--ac);box-shadow:0 8px 20px rgba(184,150,12,.15);}
 .card::before{content:'';position:absolute;top:-1px;left:-1px;width:10px;height:10px;border-top:2px solid var(--ac);border-left:2px solid var(--ac);}
 .card::after{content:'';position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-bottom:2px solid var(--ac);border-right:2px solid var(--ac);}
-.c1{--ac:#06b6d4;} .c2{--ac:#f59e0b;} .c3{--ac:#a855f7;} .c4{--ac:#10b981;}
+.c1{--ac:#06b6d4;} .c2{--ac:#f59e0b;} .c3{--ac:#a855f7;}
 .ct{font-family:'Playfair Display',serif;font-size:1.1rem;letter-spacing:.1em;color:var(--ac);margin-bottom:5px;}
 .cd{font-size:.65rem;color:var(--sub);line-height:1.55;}
 .ca{font-family:'DM Mono',monospace;font-size:.57rem;color:var(--ac);margin-top:10px;letter-spacing:.1em;}
@@ -518,11 +518,6 @@ footer{
     <div class="ct">🔗 LINEAI 入口</div>
     <div class="cd">CFC 五大團隊分組、一鍵加入 LINE 官方帳號</div>
     <div class="ca">OPEN LINEAI HUB →</div>
-  </a>
-  <a class="card c4" href="rag-review.html">
-    <div class="ct">📚 知識庫</div>
-    <div class="cd">豐富資料庫，語意多重搜尋機制</div>
-    <div class="ca">BROWSE KNOWLEDGE →</div>
   </a>
 </div>
 

@@ -47,7 +47,7 @@ body::after {
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
 }
-.hdr-left { display: flex; align-items: baseline; gap: 14px; }
+.hdr-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .hdr-title {
   font-family: 'Playfair Display', serif;
   font-size: 2.8rem;
@@ -279,10 +279,9 @@ body::after {
 </style>
 </head>
 <body>
-<a href="index.html" style="position:fixed;top:10px;left:10px;z-index:99999;background:rgba(15,25,45,.78);color:#8fb8d8;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px;font-family:sans-serif;border:1px solid rgba(140,180,220,.25);backdrop-filter:blur(4px)">← 指揮中心</a>
-
 <header class="hdr">
   <div class="hdr-left">
+    <a href="index.html" style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--sub);letter-spacing:.1em;text-decoration:none">← 指揮中心</a>
     <div class="hdr-title">LINEAI APLUS 戰情室</div>
     <div class="hdr-sub">COMMAND CENTER · ALL TIME</div>
   </div>
