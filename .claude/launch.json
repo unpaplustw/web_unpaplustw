@@ -13,5 +13,11 @@
       "runtimeArgs": ["-m", "http.server", "3457", "--directory", "/Users/randoph/pCloud Drive/GitHub/web_unpaplustw"],
       "port": 3457
     }
+    ,{
+      "name": "lineai-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3458", "--directory", "/Users/randophmac/pCloud Drive/GitHub/web_unpaplustw/lineai"],
+      "port": 3458
+    }
   ]
 }

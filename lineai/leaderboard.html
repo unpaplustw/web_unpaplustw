@@ -6,168 +6,141 @@
 <title>LINEAI APLUS — LINE 團隊排行榜</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f7f5f0;--bg2:#ffffff;--bg3:#efe9dd;--border:rgba(0,0,0,0.08);--text:#1a1a2e;--dim:#6b7280;--white:#1a1a2e}
+:root{
+  --bg:#f7f5f0;--panel:#ffffff;--border:rgba(0,0,0,0.08);
+  --cyan:#b8960c;--amber:#d4af37;--red:#c0392b;--green:#1a8a5a;--purple:#9a7b1f;
+  --text:#1a1a2e;--sub:#6b7280;--dim:#efe9dd;
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 45% at 10% 15%,rgba(0,229,176,.05) 0%,transparent 55%),radial-gradient(ellipse 50% 40% at 88% 78%,rgba(176,109,255,.05) 0%,transparent 50%);pointer-events:none;z-index:0}
-body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.011) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.011) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
-main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 28px 100px}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:24px 28px}
 
-/* NAV */
-nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;border-bottom:1px solid var(--border);background:rgba(247,245,240,.92);backdrop-filter:blur(16px);position:sticky;top:0;z-index:200}
-.nav-l{display:flex;align-items:center;gap:12px}
-.nav-logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,#00e5b0,#b06dff);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;color:#07090f;flex-shrink:0}
-.nav-title{font-family:'Playfair Display',serif;font-size:18px;letter-spacing:2px;color:var(--white)}
-.nav-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-left:4px}
-.nav-r{display:flex;align-items:center;gap:10px}
-.live{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:#00e5b0}
-.live::before{content:'';width:6px;height:6px;border-radius:50%;background:#00e5b0;animation:blink 2s infinite}
-.refresh-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--dim);transition:all .2s}
-.refresh-btn:hover{border-color:#00e5b0;color:#00e5b0}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.hdr-left{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.hdr-title{font-family:'Playfair Display',serif;font-size:2.8rem;color:var(--cyan);letter-spacing:.06em;line-height:1}
+.hdr-sub{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--sub);letter-spacing:.18em}
+.hdr-right{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--sub);padding-bottom:2px}
+.pulse{width:7px;height:7px;background:var(--cyan);border-radius:50%;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* HEADER */
-.page-hd{padding:52px 0 36px}
-.eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;color:#00e5b0;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
-.eyebrow::before{content:'';width:18px;height:1px;background:#00e5b0}
-.page-title{font-family:'Playfair Display',serif;font-size:clamp(44px,7vw,84px);line-height:.95;letter-spacing:2px;color:var(--white);margin-bottom:10px}
-.page-title span{color:#00e5b0}
-.page-desc{font-size:13px;color:var(--dim);font-weight:300}
-
-/* TIME TOGGLE */
-.toggle-wrap{margin-bottom:44px;display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
-.tog{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;padding:7px 18px;border-radius:7px;cursor:pointer;color:var(--dim);border:none;background:transparent;transition:all .2s}
-.tog.active{background:rgba(0,229,176,.12);color:#00e5b0;border:1px solid rgba(0,229,176,.25)}
+.toggle-wrap{margin-bottom:28px;display:flex;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:4px;width:fit-content}
+.tog{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.08em;padding:6px 16px;border-radius:2px;cursor:pointer;color:var(--sub);border:none;background:transparent;transition:all .2s}
+.tog.active{background:var(--dim);color:var(--cyan);border:1px solid rgba(184,150,12,.3)}
 .tog:hover:not(.active){color:var(--text)}
 
-/* SECTION HEADER */
-.section-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;margin-top:48px}
-.section-title{font-family:'Playfair Display',serif;font-size:26px;letter-spacing:2px;color:var(--white)}
-.section-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim)}
+.section-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;margin-top:40px}
+.section-title{font-family:'Playfair Display',serif;font-size:1.4rem;letter-spacing:.1em;color:var(--cyan)}
+.section-count{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--sub)}
 
-/* GRIDS */
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
-.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
 
-/* BOARD CARD */
-.board{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--c,#00e5b0);border-radius:14px;overflow:hidden;animation:fadeUp .45s ease both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.board{background:var(--panel);border:1px solid var(--border);border-radius:3px;overflow:hidden;position:relative;animation:fadeUp .45s ease both}
+.board::before,.board::after{content:'';position:absolute;width:10px;height:10px}
+.board::before{top:-1px;left:-1px;border-top:2px solid var(--c,var(--cyan));border-left:2px solid var(--c,var(--cyan))}
+.board::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--c,var(--cyan));border-right:2px solid var(--c,var(--cyan))}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .board:nth-child(1){animation-delay:.04s}.board:nth-child(2){animation-delay:.09s}
 .board:nth-child(3){animation-delay:.13s}.board:nth-child(4){animation-delay:.17s}
 
-/* BOARD HEADER */
-.board-hd{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.board-hd{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
 .board-hd-l{display:flex;align-items:center;gap:9px;min-width:0}
-.board-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(255,255,255,.05);flex-shrink:0}
-.board-name{font-family:'Playfair Display',serif;font-size:17px;letter-spacing:1.5px;color:var(--white);white-space:nowrap}
-.board-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);margin-top:1px;letter-spacing:.5px}
-.board-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.05);color:var(--dim);white-space:nowrap;flex-shrink:0}
+.board-icon{width:28px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--dim);border:1px solid var(--border);flex-shrink:0}
+.board-name{font-family:'Playfair Display',serif;font-size:.95rem;letter-spacing:.08em;color:var(--c,var(--cyan));white-space:nowrap}
+.board-sub{font-family:'DM Mono',monospace;font-size:.5rem;color:var(--sub);margin-top:1px;letter-spacing:.04em}
+.board-badge{font-family:'DM Mono',monospace;font-size:.52rem;padding:2px 7px;border-radius:2px;background:var(--dim);border:1px solid var(--border);color:var(--sub);white-space:nowrap;flex-shrink:0}
 
-/* RANK ROWS */
 .rank-list{padding:4px 0}
-.rank-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.03);transition:background .18s;animation:slideIn .35s ease both}
+.rank-row{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--border);transition:background .18s;animation:slideIn .35s ease both}
 .rank-row:last-child{border-bottom:none}
-.rank-row:hover{background:rgba(255,255,255,.03)}
-.rank-row.r1{background:rgba(255,255,255,.025)}
-@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.rank-row:hover{background:var(--dim)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
 .rank-row:nth-child(1){animation-delay:.08s}.rank-row:nth-child(2){animation-delay:.13s}.rank-row:nth-child(3){animation-delay:.18s}
-.rank-num{font-family:'Playfair Display',serif;font-size:20px;line-height:1;min-width:20px;text-align:center}
-.r1 .rank-num{color:#ffd700}.r2 .rank-num{color:#b0bec5}.r3 .rank-num{color:#cd7f32}
-.rank-medal{font-size:16px;line-height:1;flex-shrink:0}
+.rank-num{font-family:'Playfair Display',serif;font-size:1.1rem;line-height:1;min-width:18px;text-align:center;color:var(--sub)}
+.r1 .rank-num{color:var(--amber)}.r2 .rank-num{color:var(--sub)}.r3 .rank-num{color:var(--sub)}
+.rank-medal{font-size:14px;line-height:1;flex-shrink:0}
 .rank-info{flex:1;min-width:0}
-.rank-name{font-size:13px;font-weight:500;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rank-name small{font-size:10px;color:var(--dim);font-weight:300;margin-left:5px}
-.rank-bar-bg{margin-top:5px;height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
-.rank-bar{height:100%;border-radius:2px;background:var(--c,#00e5b0);width:0;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.rank-name{font-size:.78rem;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-name small{font-size:.62rem;color:var(--sub);font-weight:300;margin-left:4px}
+.rank-bar-bg{margin-top:4px;height:2px;background:var(--dim);border-radius:2px;overflow:hidden}
+.rank-bar{height:100%;border-radius:2px;background:var(--c,var(--cyan));width:0;transition:width 1s cubic-bezier(.16,1,.3,1)}
 .rank-val-wrap{text-align:right;flex-shrink:0}
-.rank-val{font-family:'Playfair Display',serif;font-size:22px;line-height:1;color:var(--c,#00e5b0)}
-.rank-unit{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px}
-.empty-state{padding:22px 16px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--dim)}
+.rank-val{font-family:'DM Mono',monospace;font-size:1.05rem;line-height:1;color:var(--c,var(--cyan))}
+.rank-unit{font-family:'DM Mono',monospace;font-size:.5rem;color:var(--sub);margin-top:2px}
+.empty-state{padding:20px 14px;text-align:center;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--sub)}
 
-/* SKELETON */
-.sk{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg2) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;display:inline-block}
+.sk{background:linear-gradient(90deg,var(--dim) 25%,var(--panel) 50%,var(--dim) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:2px;display:inline-block}
 @keyframes shimmer{to{background-position:-200% 0}}
 
-/* FOOTER */
-footer{border-top:1px solid var(--border);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px}
-.ft-l{color:var(--dim)}.ft-r{color:rgba(74,90,120,.5)}
-#last-upd{color:#00e5b0}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--sub)}
 
 @media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}main{padding:0 14px 60px}nav,footer{padding-left:14px;padding-right:14px}}
+@media(max-width:600px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}body{padding:16px}footer{flex-direction:column;gap:4px}}
 </style>
 </head>
 <body>
-<nav>
-  <div class="nav-l">
-    <a href="index.html" style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--dim);letter-spacing:.1em;text-decoration:none;margin-right:8px;flex-shrink:0">← 指揮中心</a>
-    <div class="nav-logo">LA</div>
-    <div><div class="nav-title">LINEAI APLUS</div></div>
-    <span class="nav-sub">· LINE 團隊排行榜</span>
-  </div>
-  <div class="nav-r">
-    <div id="data-badge" style="font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid rgba(74,90,120,.2);background:transparent;color:var(--dim);">—</div>
-  </div>
-</nav>
 
-<main>
-  <div class="page-hd">
-    <div class="eyebrow">Team Leaderboard · 環貫綠佳利 APLUS</div>
-    <h1 class="page-title">LINE<br><span>團隊排行榜</span></h1>
-    <p class="page-desc">誰的團隊最活躍？誰的成員最難搞？<br>用數據說話，每天更新，高下立見。</p>
+<header class="hdr">
+  <div class="hdr-left">
+    <a href="index.html" style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--sub);letter-spacing:.1em;text-decoration:none">← 指揮中心</a>
+    <div class="hdr-title">LINE 排行榜</div>
+    <div class="hdr-sub">TEAM LEADERBOARD · 環貫綠佳利 APLUS</div>
   </div>
+  <div class="hdr-right">
+    <div class="pulse"></div>
+    <span id="data-badge">每日更新</span>
+  </div>
+</header>
 
-  <div class="toggle-wrap">
-    <button class="tog active" data-period="month"   onclick="switchPeriod(this)">本月</button>
-    <button class="tog"        data-period="quarter" onclick="switchPeriod(this)">本季</button>
-    <button class="tog"        data-period="year"    onclick="switchPeriod(this)">本年</button>
-    <button class="tog"        data-period="all"     onclick="switchPeriod(this)">全時段</button>
-  </div>
+<div class="toggle-wrap">
+  <button class="tog active" data-period="month"   onclick="switchPeriod(this)">本月</button>
+  <button class="tog"        data-period="quarter" onclick="switchPeriod(this)">本季</button>
+  <button class="tog"        data-period="year"    onclick="switchPeriod(this)">本年</button>
+  <button class="tog"        data-period="all"     onclick="switchPeriod(this)">全時段</button>
+</div>
 
-  <!-- ── TENANT ── -->
-  <div class="section-hd">
-    <h2 class="section-title">LINE 團隊排行榜</h2>
-    <span class="section-count">10 個榜單</span>
-  </div>
-  <div class="grid-4">
-    <div class="board" id="b-recruit"  style="--c:#00e5b0"></div>
-    <div class="board" id="b-approved" style="--c:#22c55e"></div>
-    <div class="board" id="b-active"   style="--c:#ff9f1c"></div>
-    <div class="board" id="b-density"  style="--c:#fbbf24"></div>
-  </div>
-  <div class="grid-4">
-    <div class="board" id="b-morning"  style="--c:#38bdf8"></div>
-    <div class="board" id="b-noon"     style="--c:#f59e0b"></div>
-    <div class="board" id="b-evening"  style="--c:#a78bfa"></div>
-    <div class="board" id="b-night"    style="--c:#6366f1"></div>
-  </div>
-  <div class="grid-2">
-    <div class="board" id="b-npfacts"  style="--c:#f472b6"></div>
-    <div class="board" id="b-miss"     style="--c:#94a3b8"></div>
-  </div>
+<!-- ── TENANT ── -->
+<div class="section-hd">
+  <h2 class="section-title">LINE 團隊排行榜</h2>
+  <span class="section-count">10 個榜單</span>
+</div>
+<div class="grid-4">
+  <div class="board" id="b-recruit"  style="--c:var(--cyan)"></div>
+  <div class="board" id="b-approved" style="--c:var(--green)"></div>
+  <div class="board" id="b-active"   style="--c:var(--red)"></div>
+  <div class="board" id="b-density"  style="--c:var(--purple)"></div>
+</div>
+<div class="grid-4">
+  <div class="board" id="b-morning"  style="--c:var(--amber)"></div>
+  <div class="board" id="b-noon"     style="--c:var(--cyan)"></div>
+  <div class="board" id="b-evening"  style="--c:var(--purple)"></div>
+  <div class="board" id="b-night"    style="--c:var(--sub)"></div>
+</div>
+<div class="grid-2">
+  <div class="board" id="b-npfacts"  style="--c:var(--red)"></div>
+  <div class="board" id="b-miss"     style="--c:var(--sub)"></div>
+</div>
 
-  <!-- ── INDIVIDUAL ── -->
-  <div class="section-hd" style="margin-top:64px">
-    <h2 class="section-title">個人排行榜</h2>
-    <span class="section-count">7 個榜單 · 核准會員</span>
-  </div>
-  <div class="grid-4">
-    <div class="board" id="b-ind-q"   style="--c:#00e5b0"></div>
-    <div class="board" id="b-ind-sd"  style="--c:#b06dff"></div>
-    <div class="board" id="b-ind-cmp" style="--c:#38bdf8"></div>
-    <div class="board" id="b-ind-tr"  style="--c:#f59e0b"></div>
-  </div>
-  <div class="grid-3">
-    <div class="board" id="b-ind-esc" style="--c:#ff4466"></div>
-    <div class="board" id="b-ind-db"  style="--c:#94a3b8"></div>
-    <div class="board" id="b-ind-tn"  style="--c:#f472b6"></div>
-  </div>
-</main>
+<!-- ── INDIVIDUAL ── -->
+<div class="section-hd" style="margin-top:52px">
+  <h2 class="section-title">個人排行榜</h2>
+  <span class="section-count">7 個榜單 · 核准會員</span>
+</div>
+<div class="grid-4">
+  <div class="board" id="b-ind-q"   style="--c:var(--cyan)"></div>
+  <div class="board" id="b-ind-sd"  style="--c:var(--purple)"></div>
+  <div class="board" id="b-ind-cmp" style="--c:var(--amber)"></div>
+  <div class="board" id="b-ind-tr"  style="--c:var(--red)"></div>
+</div>
+<div class="grid-3">
+  <div class="board" id="b-ind-esc" style="--c:var(--red)"></div>
+  <div class="board" id="b-ind-db"  style="--c:var(--sub)"></div>
+  <div class="board" id="b-ind-tn"  style="--c:var(--green)"></div>
+</div>
 
 <footer>
-  <div class="ft-l">最後更新：<span id="last-upd">—</span></div>
-  <div class="ft-r">Supabase · nsgqsopqlkhayuefdout</div>
+  <div>最後更新：<span id="last-upd">—</span></div>
+  <div>Supabase · nsgqsopqlkhayuefdout</div>
 </footer>
 
 <script>

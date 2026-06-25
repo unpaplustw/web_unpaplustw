@@ -4,154 +4,133 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LINE 團隊入口 — 環貫綠佳利 APLUS</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f7f5f0; --bg2:#ffffff; --bg3:#efe9dd;
-  --border:rgba(0,0,0,0.08);
-  --text:#1a1a2e; --dim:#6b7280; --white:#1a1a2e;
-  --green:#00b900;
+  --bg:#f7f5f0;--panel:#ffffff;--border:rgba(0,0,0,0.08);
+  --cyan:#b8960c;--amber:#d4af37;--red:#c0392b;--green:#00b900;--purple:#9a7b1f;
+  --text:#1a1a2e;--sub:#6b7280;--dim:#efe9dd;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 10% 20%,rgba(0,229,176,.05) 0%,transparent 55%),radial-gradient(ellipse 50% 40% at 88% 78%,rgba(176,109,255,.04) 0%,transparent 50%);pointer-events:none;z-index:0}
-body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.01) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.01) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:24px 28px}
 
-/* NAV */
-nav{position:sticky;top:0;z-index:100;height:60px;display:flex;align-items:center;padding:0 24px;background:rgba(247,245,240,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
-.nav-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#00e5b0,#00b900);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:17px;color:#07090f;margin-right:12px;flex-shrink:0}
-.nav-title{font-family:'Playfair Display',serif;font-size:19px;letter-spacing:2px;color:var(--white)}
-.nav-sub{font-size:13px;color:var(--dim);margin-left:10px}
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.hdr-left{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.hdr-title{font-family:'Playfair Display',serif;font-size:2.8rem;color:var(--cyan);letter-spacing:.06em;line-height:1}
+.hdr-sub{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--sub);letter-spacing:.18em}
+.hdr-right{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--sub);padding-bottom:2px}
+.pulse{width:7px;height:7px;background:var(--cyan);border-radius:50%;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* MAIN */
-main{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 20px 80px}
-
-/* HERO */
-.hero{padding:48px 0 40px;text-align:center}
-.hero-eyebrow{font-size:12px;letter-spacing:3px;color:#00e5b0;text-transform:uppercase;margin-bottom:12px;opacity:.8}
-.hero-title{font-family:'Playfair Display',serif;font-size:clamp(40px,8vw,72px);line-height:.95;letter-spacing:2px;color:var(--white);margin-bottom:14px}
-.hero-title em{color:#00e5b0;font-style:normal}
-.hero-desc{font-size:16px;color:var(--dim);font-weight:300;line-height:1.7;max-width:480px;margin:0 auto}
-
-/* CFC GROUP */
-.cfc-group{margin-bottom:48px}
-.cfc-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-.cfc-line{width:4px;height:28px;border-radius:2px;background:var(--c,#00e5b0);flex-shrink:0}
-.cfc-name{font-family:'Playfair Display',serif;font-size:22px;letter-spacing:2px;color:var(--white)}
-.cfc-badge{font-size:11px;color:var(--c,#00e5b0);background:rgba(from var(--c,#00e5b0) r g b / .1);border:1px solid rgba(from var(--c,#00e5b0) r g b / .2);padding:3px 10px;border-radius:20px;margin-left:auto;white-space:nowrap}
+/* CFC GROUPS */
+.cfc-group{margin-bottom:36px}
+.cfc-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.cfc-line{width:3px;height:24px;border-radius:2px;background:var(--c,var(--cyan));flex-shrink:0}
+.cfc-name{font-family:'Playfair Display',serif;font-size:1.3rem;letter-spacing:.1em;color:var(--text)}
+.cfc-badge{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--c,var(--cyan));background:rgba(0,0,0,.03);border:1px solid var(--border);padding:2px 8px;border-radius:2px;margin-left:auto;white-space:nowrap}
 
 /* ANCHOR NAV */
-.anchor-nav{display:flex;flex-wrap:wrap;gap:10px;padding:12px 0 36px}
-.anchor-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:12px;background:var(--bg2);border:2px solid rgba(from var(--c,#00e5b0) r g b / .35);color:var(--white);font-size:16px;font-weight:500;text-decoration:none;transition:all .2s;cursor:pointer;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.2)}
-.anchor-btn:hover{border-color:rgba(from var(--c,#00e5b0) r g b / .8);background:rgba(from var(--c,#00e5b0) r g b / .1);transform:translateY(-2px)}
-.anchor-btn:active{transform:translateY(0)}
-.anchor-dot{width:10px;height:10px;border-radius:50%;background:var(--c,#00e5b0);flex-shrink:0}
+.anchor-nav-wrap{margin-bottom:28px}
+.anchor-nav-label{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--sub);letter-spacing:.1em;margin-bottom:8px}
+.anchor-nav{display:flex;flex-wrap:wrap;gap:8px}
+.anchor-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:3px;background:var(--panel);border:1px solid var(--border);color:var(--sub);font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-decoration:none;transition:all .2s;cursor:pointer}
+.anchor-btn:hover{border-color:var(--c,var(--cyan));color:var(--c,var(--cyan))}
+.anchor-dot{width:6px;height:6px;border-radius:50%;background:var(--c,var(--cyan));flex-shrink:0}
 
-/* TEAM CARDS GRID */
-.teams-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+/* TEAMS GRID */
+.teams-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 
-/* TEAM CARD */
-.team-card{background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--c,#00e5b0);border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:16px;transition:transform .2s,border-color .2s;animation:up .45s ease both}
-.team-card:hover{transform:translateY(-2px);border-color:rgba(from var(--c,#00e5b0) r g b / .4)}
+/* TEAM CARD — warroom panel style */
+.team-card{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:20px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;transition:box-shadow .2s;animation:up .45s ease both}
+.team-card::before,.team-card::after{content:'';position:absolute;width:10px;height:10px}
+.team-card::before{top:-1px;left:-1px;border-top:2px solid var(--c,var(--cyan));border-left:2px solid var(--c,var(--cyan))}
+.team-card::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--c,var(--cyan));border-right:2px solid var(--c,var(--cyan))}
+.team-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
 @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
-/* CARD TOP */
-.card-top{display:flex;align-items:flex-start;gap:14px}
-.card-avatar{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:21px;letter-spacing:1px;color:var(--c,#00e5b0);background:rgba(from var(--c,#00e5b0) r g b / .1);border:1px solid rgba(from var(--c,#00e5b0) r g b / .2);flex-shrink:0}
+.card-top{display:flex;align-items:flex-start;gap:12px}
+.card-avatar{width:44px;height:44px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;letter-spacing:1px;color:var(--c,var(--cyan));background:var(--dim);border:1px solid var(--border);flex-shrink:0}
 .card-info{flex:1;min-width:0}
-.card-name{font-size:20px;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:8px}
+.card-name{font-family:'Playfair Display',serif;font-size:1.1rem;letter-spacing:.06em;color:var(--text);line-height:1.2;margin-bottom:8px}
 
-/* LEADER TAGS */
-.leader-rows{display:flex;flex-direction:column;gap:5px}
+.leader-rows{display:flex;flex-direction:column;gap:4px}
 .leader-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.leader-tier{font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
-.tier-cfc{background:rgba(255,215,0,.12);color:#ffd700}
-.tier-peak{background:rgba(56,189,248,.1);color:#38bdf8}
-.tier-achieve{background:rgba(0,229,176,.1);color:#00e5b0}
-.leader-names{font-size:13px;color:var(--dim);line-height:1.5;font-weight:300}
-.leader-empty{font-size:12px;color:rgba(90,106,138,.45);font-style:italic}
+.leader-tier{font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.06em;padding:2px 6px;border-radius:2px;background:var(--dim);color:var(--sub);border:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+.leader-names{font-size:.78rem;color:var(--text);line-height:1.5;font-weight:300}
+.leader-empty{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--sub);font-style:italic}
+
+/* TIER BADGES */
+.tier-cfc{background:rgba(255,215,0,.1);color:#b8960c}
+.tier-peak{background:var(--dim);color:var(--sub)}
+.tier-achieve{background:rgba(26,138,90,.1);color:var(--green)}
 
 /* LINE BUTTON */
-.line-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;background:var(--green);border-radius:12px;color:#fff;font-size:17px;font-weight:500;text-decoration:none;transition:all .2s;border:none;cursor:pointer;line-height:1}
-.line-btn:hover{background:#009a00;transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,185,0,.3)}
-.line-btn:active{transform:translateY(0)}
+.line-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--green);border-radius:3px;color:#fff;font-size:16px;font-weight:500;text-decoration:none;transition:all .2s;border:none;cursor:pointer;line-height:1}
+.line-btn:hover{background:#009a00;box-shadow:0 4px 12px rgba(0,185,0,.25)}
 .line-btn svg{flex-shrink:0}
 
-/* APLUS BANNER (bottom) */
-.aplus-section{margin-top:64px}
-.aplus-divider{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-.aplus-divider-line{flex:1;height:1px;background:var(--border)}
-.aplus-divider-text{font-size:12px;color:var(--dim);letter-spacing:2px;white-space:nowrap}
-.aplus-card{background:rgba(0,185,0,.06);border:2px solid rgba(0,185,0,.2);border-radius:18px;padding:32px 28px;display:flex;align-items:center;gap:24px}
-.aplus-icon{width:64px;height:64px;border-radius:16px;background:rgba(0,185,0,.12);border:1px solid rgba(0,185,0,.25);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+/* APLUS SECTION */
+.aplus-section{margin-top:48px;padding-top:24px;border-top:1px solid var(--border)}
+.aplus-label{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.14em;color:var(--sub);margin-bottom:16px}
+.aplus-card{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:24px;display:flex;align-items:center;gap:20px;position:relative;overflow:hidden}
+.aplus-card::before,.aplus-card::after{content:'';position:absolute;width:10px;height:10px}
+.aplus-card::before{top:-1px;left:-1px;border-top:2px solid var(--green);border-left:2px solid var(--green)}
+.aplus-card::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--green);border-right:2px solid var(--green)}
+.aplus-icon{width:52px;height:52px;border-radius:3px;background:var(--dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .aplus-body{flex:1}
-.aplus-label{font-size:12px;letter-spacing:2px;color:#00b900;text-transform:uppercase;margin-bottom:6px}
-.aplus-title{font-size:22px;font-weight:700;color:var(--white);margin-bottom:6px}
-.aplus-desc{font-size:14px;color:var(--dim);font-weight:300;line-height:1.6}
-.aplus-btn{display:flex;align-items:center;gap:10px;background:var(--green);color:#fff;font-size:17px;font-weight:500;padding:16px 28px;border-radius:12px;text-decoration:none;white-space:nowrap;transition:all .2s;flex-shrink:0}
-.aplus-btn:hover{background:#009a00;transform:translateY(-1px)}
+.aplus-title-label{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.12em;color:var(--sub);margin-bottom:4px}
+.aplus-title{font-family:'Playfair Display',serif;font-size:1.2rem;letter-spacing:.06em;color:var(--text);margin-bottom:6px}
+.aplus-desc{font-size:.78rem;color:var(--sub);line-height:1.7}
+.aplus-btn{display:flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-size:15px;font-weight:500;padding:12px 22px;border-radius:3px;text-decoration:none;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.aplus-btn:hover{background:#009a00}
 
-/* FOOTER */
-footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--dim)}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--border);font-family:'DM Mono',monospace;font-size:.58rem;color:var(--sub);text-align:center}
 
-/* RESPONSIVE */
 @media(max-width:640px){
   .teams-grid{grid-template-columns:1fr}
   .aplus-card{flex-direction:column;text-align:center}
   .aplus-btn{width:100%;justify-content:center}
-  .card-name{font-size:19px}
-  .line-btn{font-size:16px;padding:16px}
-  nav{padding:0 16px}
-  main{padding:0 14px 60px}
-}
-@media(min-width:641px) and (max-width:860px){
-  .aplus-card{flex-wrap:wrap}
-  .aplus-btn{width:100%;justify-content:center;margin-top:4px}
+  body{padding:16px}
 }
 </style>
 </head>
 <body>
-<nav>
-  <div class="nav-logo">LA</div>
-  <span class="nav-title">LINEAI APLUS</span>
-  <span class="nav-sub">LINE 團隊入口</span>
-  <a href="index.html" style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--dim);letter-spacing:.1em;text-decoration:none;margin-left:auto;flex-shrink:0">← 指揮中心</a>
-</nav>
 
-<main>
-  <div class="hero">
-    <div class="hero-eyebrow">環貫綠佳利 · APLUS AI 顧問系統</div>
-    <h1 class="hero-title">選擇你的<br><em>LINE 團隊</em></h1>
-    <p class="hero-desc">找到你的推薦人所在的團隊，點擊加入 LINE，<br>由 AI 顧問即時為你服務。</p>
+<header class="hdr">
+  <div class="hdr-left">
+    <a href="index.html" style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--sub);letter-spacing:.1em;text-decoration:none">← 指揮中心</a>
+    <div class="hdr-title">LINE 團隊入口</div>
+    <div class="hdr-sub">CFC 環貫綠佳利 · APLUS AI 顧問系統</div>
   </div>
-
-  <div id="anchor-nav-wrap">
-    <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:12px;letter-spacing:.5px">CFC 大團隊快捷　<span style="font-size:13px;color:var(--dim)">↓ 點擊跳至</span></div>
-    <div class="anchor-nav" id="anchor-nav"></div>
+  <div class="hdr-right">
+    <div class="pulse"></div>
+    <span>即時可加入</span>
   </div>
-  <div id="groups-container"></div>
+</header>
 
-  <!-- APLUS 非系統入口 -->
-  <div class="aplus-section">
-    <div class="aplus-divider">
-      <div class="aplus-divider-line"></div>
-      <div class="aplus-divider-text">非 APLUS 系統會員</div>
-      <div class="aplus-divider-line"></div>
+<div id="anchor-nav-wrap">
+  <div class="anchor-nav-label">CFC 大團隊快捷</div>
+  <div class="anchor-nav" id="anchor-nav"></div>
+</div>
+
+<div id="groups-container"></div>
+
+<!-- APLUS 非系統入口 -->
+<div class="aplus-section">
+  <div class="aplus-label">NON-APLUS MEMBER · 非系統入口</div>
+  <div class="aplus-card">
+    <div class="aplus-icon">💬</div>
+    <div class="aplus-body">
+      <div class="aplus-title-label">還不屬於任何團隊？</div>
+      <div class="aplus-title">Aplus 公關</div>
+      <div class="aplus-desc">不確定要加哪個團隊，或是還沒有推薦人，歡迎先加入公關帳號，由專人為你說明。</div>
     </div>
-    <div class="aplus-card">
-      <div class="aplus-icon">💬</div>
-      <div class="aplus-body">
-        <div class="aplus-label">還不屬於任何團隊？</div>
-        <div class="aplus-title">Aplus 公關</div>
-        <div class="aplus-desc">不確定要加哪個團隊，或是還沒有推薦人，<br>歡迎先加入公關帳號，由專人為你說明。</div>
-      </div>
-      <a class="aplus-btn" href="https://line.me/R/ti/p/%40752oqdzy" target="_blank" rel="noopener">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.630 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-        加入 LINE
-      </a>
-    </div>
+    <a class="aplus-btn" href="https://line.me/R/ti/p/%40752oqdzy" target="_blank" rel="noopener">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.630 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+      加入 LINE
+    </a>
   </div>
-</main>
+</div>
 
 <footer>環貫綠佳利 APLUS © 2026 · npplus.club</footer>
 
