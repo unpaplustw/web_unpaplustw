@@ -154,6 +154,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
 .mc-sub{font-size:14px;color:var(--muted);line-height:1.55;margin-top:3px}
 .mc-sub.warn{color:var(--yellow)}
 .mc-prevent{margin-top:6px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}
+.mc-rank-item{display:flex;align-items:center;gap:12px}
+.mc-rank{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--pri-lt);color:var(--pri);font-weight:800;font-size:15px;flex:0 0 auto}
+.mc-rank.top{background:var(--pri);color:#fff}
+.mc-arrow{margin-left:auto;color:var(--muted);font-size:20px}
 .tm-back{display:inline-block;color:var(--pri);cursor:pointer;font-size:15px;font-weight:700;margin-bottom:14px}
 .tm-title{text-align:center;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--txt)}
 .tm-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px}
@@ -538,8 +542,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans
       <input class="search-input" id="mcInput" type="text" placeholder="打大概的字就好，例如「腸」「換膝蓋」" autocomplete="off" oninput="mcSuggest()">
       <button class="btn-search" onclick="mcSuggest()">&#128269;</button>
     </div>
-    <div id="mcSugLabel" style="font-size:14px;color:var(--muted);margin:4px 0 10px">載入中…</div>
-    <div id="mcSuggest" style="display:flex;flex-wrap:wrap"></div>
+    <div id="mcSugLabel" style="font-size:15px;font-weight:700;color:var(--txt);margin:8px 0 10px">載入中…</div>
+    <div id="mcSuggest"></div>
     <div id="mcResult" style="margin-top:8px"></div>
     <p style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0 4px;margin:0;line-height:1.6">原型示意，實際金額與給付條件以健保署與醫院當期公告為準</p>
   </div>
@@ -1382,8 +1386,8 @@ async function mcLoad() {
     } catch (e) { document.getElementById('mcSugLabel').textContent = '資料載入失敗'; return; }
   }
   document.getElementById('mcInput').value = '';
+  document.getElementById('mcResult').innerHTML = '';   // 還沒查，不先跳結果
   mcSuggest();
-  if (mcAll.length) mcRender(mcAll[0]);
 }
 function mcLevelTag(level) {
   var c = 'gray';
@@ -1395,25 +1399,40 @@ function mcLevelTag(level) {
   return '<span class="mc-tag" style="background:' + bg + ';color:' + fg + '">' + esc(level) + '</span>';
 }
 function mcSuggest() {
+  document.getElementById('mcResult').innerHTML = '';   // 切回清單視圖
+  var lbl = document.getElementById('mcSugLabel'), box = document.getElementById('mcSuggest');
+  lbl.style.display = ''; box.style.display = '';
   var q = document.getElementById('mcInput').value.trim();
-  var list, label;
-  if (!q) { list = mcAll.slice(0, 8); label = '熱門查詢（或直接搜尋）：'; }
+  var list, hot;
+  if (!q) { list = mcAll.slice(0, 12); lbl.textContent = '🔥 大家都在查（點一下看費用）'; hot = true; }
   else {
     list = mcAll.filter(function (n) {
       return n.indexOf(q) >= 0 || mcData[n].kw.some(function (w) { return w.indexOf(q) >= 0 || q.indexOf(w) >= 0; });
     });
-    label = list.length ? '為您找到：' : '找不到，換個關鍵字';
+    lbl.textContent = list.length ? ('為您找到 ' + list.length + ' 筆：') : '找不到，換個關鍵字試試';
+    hot = false;
   }
-  document.getElementById('mcSugLabel').textContent = label;
-  var box = document.getElementById('mcSuggest');
-  if (!list.length) { box.innerHTML = '<button class="mc-chip" onclick="alert(\'問 AI 查詢功能建構中，敬請期待\')">🛠️ 問 AI（建構中）</button>'; return; }
-  box.innerHTML = list.slice(0, 20).map(function (n) {
-    return '<button class="mc-chip" onclick="mcRender(\'' + esc(n) + '\');document.getElementById(\'mcInput\').value=\'\';mcSuggest()">' + esc(n) + '</button>';
+  if (!list.length) {
+    box.innerHTML = '<div class="sr-item mc-rank-item" onclick="alert(\'問 AI 查詢功能建構中，敬請期待\')"><span class="mc-rank" style="background:var(--bg)">🛠️</span><span class="sr-name" style="font-size:17px">問 AI（建構中）</span></div>';
+    return;
+  }
+  box.innerHTML = list.slice(0, 20).map(function (n, i) {
+    var badge = hot ? '<span class="mc-rank' + (i < 3 ? ' top' : '') + '">' + (i + 1) + '</span>'
+                    : '<span class="mc-rank" style="background:var(--bg);color:var(--muted)">&#128269;</span>';
+    return '<div class="sr-item mc-rank-item" onclick="mcRender(\'' + esc(n) + '\')">' + badge + '<span class="sr-name" style="font-size:17px">' + esc(n) + '</span><span class="mc-arrow">&#8250;</span></div>';
   }).join('');
+}
+function mcBackToList() {
+  document.getElementById('mcInput').value = '';
+  mcSuggest();
+  window.scrollTo(0, 0);
 }
 function mcRender(name) {
   var d = mcData[name]; if (!d) return;
-  var h = '<div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px"><span style="font-size:21px;font-weight:700;color:var(--txt)">' + esc(name) + '</span><span class="sr-meta" style="background:var(--bg);padding:4px 12px;border-radius:999px;margin:0">' + esc(d.type) + '</span></div>';
+  document.getElementById('mcSugLabel').style.display = 'none';
+  document.getElementById('mcSuggest').style.display = 'none';
+  var h = '<div class="tm-back" onclick="mcBackToList()">&#8249; 回熱門排行</div>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px"><span style="font-size:21px;font-weight:700;color:var(--txt)">' + esc(name) + '</span><span class="sr-meta" style="background:var(--bg);padding:4px 12px;border-radius:999px;margin:0">' + esc(d.type) + '</span></div>';
   h += '<div class="plan-sec" style="color:var(--pri)">&#128737;&#65039; 健保有付</div><div class="plan-card">';
   h += (d.nhi || []).map(function (r) {
     var s = '<div class="mc-row"><div class="mc-top"><span class="mc-n">' + esc(r.item) + '</span>' + mcLevelTag(r.level) + '</div>';
