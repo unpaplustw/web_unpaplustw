@@ -11,7 +11,7 @@
   { "slug": "liman",       "name": "力曼",        "type": "",            "handbook": "2026.05", "status": "pending" },
   { "slug": "tianlai",     "name": "天麗",        "type": "",            "handbook": "2026.03", "status": "pending" },
   { "slug": "shuanghe",    "name": "雙鶴",        "type": "",            "handbook": "2025.01", "status": "pending" },
-  { "slug": "bama",        "name": "八馬",        "type": "",            "handbook": "2025.04", "status": "pending" },
+  { "slug": "bama",        "name": "八馬",        "type": "太陽制（Unilevel）", "handbook": "2025.04", "status": "complete" },
   { "slug": "lixiangjia",  "name": "理想家",      "type": "",            "handbook": "2026.01", "status": "pending" },
   { "slug": "hongbao",     "name": "宏寶家賀",    "type": "",            "handbook": "2025.10", "status": "pending" },
   { "slug": "dongzhen",    "name": "東震",        "type": "",            "handbook": "2024.08", "status": "pending" },

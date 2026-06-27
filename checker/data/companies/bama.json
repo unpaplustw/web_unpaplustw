@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "slug": "bama",
+    "name": "八馬",
+    "model": "太陽制",
+    "type": "太陽制（Unilevel，6代＋階級差額）",
+    "handbook": "2025.04（規章 20250401）",
+    "ftc": "https://fair.ftc.gov.tw/fair/report/report_info.aspx?sn=24201689",
+    "updated": "2026-06-22"
+  },
+  "entry_cost": {
+    "first_month": "入會套組 NT$5,800 起",
+    "first_month_note": "入會購套組（罐裝 5,800／旅行組 6,300）",
+    "monthly_label": "每月維持",
+    "monthly_min": "100P ≈ NT$3,500／月",
+    "monthly_min_note": "差額／領導／同階三大組織獎金全綁每月 Autoship，停訂即歸零",
+    "annual_label": "斷單後果",
+    "annual_min": "連 12 個月未購 → 停傳銷權",
+    "annual_min_note": "連 24 個月未購 → 下線組織歸安置人"
+  },
+  "bonuses": [
+    {
+      "name": "組織拓展獎金",
+      "monthly_req": "個人 100P（免 Autoship）",
+      "condition": "按下線『第幾代』抽 %，領幾代看合格寬線數：1 條→1 代、2 條→2 代…5 條→6 代；每代滿 100P，不足往下併",
+      "ceiling": "六代 7-5-5-2-2-2，最高 23%",
+      "tags": []
+    },
+    {
+      "name": "組織差額獎金",
+      "monthly_req": "個人 100P ＋ 每月 Autoship ＋ 合格 M1",
+      "condition": "抽『你階級% − 下線階級%』整組無限代往下。階級%：M2=1%、M3=3%、D1=5%、D2=6%、D3=7%、P1=8%、P2=8.5%、CP=9%、CCP=9.5%（BP/M1=0）",
+      "ceiling": "最高差 9.5%；下線升到跟你同階，這段就歸零",
+      "tags": ["需 Autoship", "無限代"]
+    },
+    {
+      "name": "組織領導獎金",
+      "monthly_req": "個人 100P ＋ 每月 Autoship ＋ 合格 M1",
+      "condition": "以合格 M1 劃代：M1-M3 領 4 代（3/2/2/2）、D1 以上領 6 代（3/2/2/2/3/3）",
+      "ceiling": "⚠️ 尚未確認：規章 p.6-7 未載明 % 乘哪筆業績，無法換算實際金額",
+      "tags": ["需 Autoship", "計算基礎待確認"]
+    },
+    {
+      "name": "同階培育獎金",
+      "monthly_req": "個人 100P ＋ 每月 Autoship ＋ 合格 M1",
+      "condition": "同階級第一代：D1→D1=1%、D2→D2=0.5%、D3→D3=0.5%",
+      "ceiling": "⚠️ 尚未確認：①計算方式寫 0.5%~2% 但表格最高僅 1% ②未載明 % 乘哪筆業績",
+      "tags": ["需 Autoship", "計算基礎待確認"]
+    },
+    {
+      "name": "旅遊教育津貼",
+      "monthly_req": "按聘階（D1 起）",
+      "condition": "D1~D2=200TEF、D3~P1=300TEF、P2~CCP=400TEF（1TEF=0.5 歐元）",
+      "ceiling": "固定給付，400TEF ≈ NT$7,000／月",
+      "tags": []
+    },
+    {
+      "name": "汽車廣告補貼",
+      "monthly_req": "按聘階（M3 起）",
+      "condition": "M3=1 瓶、D1~D3=2 瓶、P1~CCP=3 瓶居家四寶實物，需貼車廣告拍照申請",
+      "ceiling": "實物給付",
+      "tags": []
+    }
+  ],
+  "ranks": [
+    { "name": "BP 伙伴", "req": "100P" },
+    { "name": "M1 一星經理", "req": "500P ＋ 直 B 寬線三人 ＋ 直 B 合計 500PV" },
+    { "name": "M2 二星經理", "req": "M1×1 ＋ 當月 2,500P" },
+    { "name": "M3 三星經理", "req": "M1×2 ＋ 當月 5,000P" },
+    { "name": "D1 一星總監", "req": "M1×3 ＋ 當月 10,000P" },
+    { "name": "D2 二星總監", "req": "M2×3 ＋ 當月 25,000P" },
+    { "name": "D3 三星總監", "req": "M3×3 ＋ 當月 50,000P" },
+    { "name": "P1 一星總裁", "req": "D1×3 ＋ 當月 100,000P" },
+    { "name": "P2 二星總裁", "req": "D2×3 ＋ 當月 250,000P" },
+    { "name": "CP 皇冠總裁", "req": "D3×3 ＋ 當月 500,000P" },
+    { "name": "CCP 勳級皇冠總裁", "req": "P1×3 ＋ 當月 700,000P" }
+  ],
+  "ranks_note": "太陽制；升聘業績當月計算、每月歸零重算。1PV=1 歐元 × 匯率 35（公司保留單方調整）",
+  "weaknesses": [
+    { "title": "Autoship 一停，三大組織獎金歸零", "level": "danger", "desc": "差額／領導／同階培育全綁每月 Autoship（100P ≈ NT$3,500），停訂即三項同時歸零" },
+    { "title": "聘階業績每月歸零重算", "level": "warn", "desc": "升聘業績當月計算、每月歸零，月底未達標當月聘階無效" },
+    { "title": "領獎深度綁寬線數", "level": "warn", "desc": "組織拓展獎金要養 5 條合格寬線才領滿 6 代，只有 1 條只領第 1 代 7%" },
+    { "title": "點值匯率公司可單方調整", "level": "warn", "desc": "1PV=1 歐元、匯率 1:35，公司保留調整權；歐元波動或調匯率時台幣收入跟著變" }
+  ]
+}
