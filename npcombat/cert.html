@@ -91,7 +91,7 @@
 </div>
 
 <script>
-const LIFF_ID = '2009692859-IGJ1xPLd';
+const LIFF_ID = '2009692859-hOq6FL5k'; // cert.html 專屬 LIFF（Endpoint 綁 cert.html）
 const BATCH_ID = 1;
 const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF
 
@@ -510,7 +510,8 @@ async function init() {
       member = data;
     } else {
       await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) { liff.login(); return; }
+      // 登入完務必回到本頁（cert.html），否則會跳回 LIFF 綁定的 daily.html
+      if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
       const profile = await liff.getProfile();
       const { data } = await sb.from('members_master').select('id, name')
         .eq('line_user_id', profile.userId).single();
