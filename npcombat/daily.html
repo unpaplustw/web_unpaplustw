@@ -82,13 +82,23 @@
   .ct-tl-row::before{content:'';position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;background:#b8860b;border:2px solid #fffdf5}
   .ct-tl-d{font-weight:800;color:#9a6f00}.ct-tl-x{color:#5a4e22}
   .ct-radar{display:block;margin:6px auto}
-  .ct-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+  .ct-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
   .ct-stat{text-align:center;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:8px;padding:7px 4px}
   .ct-stat-n{font-size:18px;font-weight:800;color:#9a6f00}
   .ct-stat-l{font-size:10px;color:#8a7a3a;margin-top:1px}
   .ct-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
   .ct-tag{font-size:11px;font-weight:700;color:#7a5c00;background:linear-gradient(135deg,#fbeec0,#f3d987);border:1px solid #d4af37;border-radius:20px;padding:4px 11px;box-shadow:0 1px 3px rgba(212,175,55,.4)}
-  .ct-comment{font-size:12.5px;line-height:1.7;color:#4a3e1a;text-align:center;font-style:italic;margin:10px 6px 6px;padding:10px;background:rgba(212,175,55,.08);border-radius:8px}
+  .ct-ai-block{max-width:280px;margin:6px auto 0;background:rgba(90,120,160,.08);border:1px solid rgba(90,120,160,.3);border-radius:12px;padding:12px 16px}
+  .ct-ai-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+  .ct-ai-row+.ct-ai-row{border-top:1px dashed rgba(90,120,160,.25)}
+  .ct-ai-k{color:#5a6a80;font-weight:600}
+  .ct-ai-v{color:#2a3a50;font-weight:700;text-align:right}
+  .ct-ai-text{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(90,120,160,.25);font-size:12.5px;line-height:1.6;color:#3a4a60}
+  .ct-ai-note{margin-top:6px;font-size:10px;color:#8a94a0;text-align:center}
+  .ct-coach-block{max-width:280px;margin:10px auto 6px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.35);border-radius:12px;padding:14px 16px;text-align:center}
+  .ct-coach-award{display:inline-block;margin-bottom:8px;font-size:14px;font-weight:800;color:#7a1a1a;background:linear-gradient(135deg,#f5d67a,#d4af37);padding:5px 16px;border-radius:16px;letter-spacing:1px;box-shadow:0 2px 8px rgba(180,140,20,.35)}
+  .ct-coach-text{font-size:12.5px;line-height:1.7;color:#4a3e1a;font-style:italic}
+  .ct-coach-sign{margin-top:8px;font-size:12px;color:#9a6f00;font-weight:700;text-align:right}
   .ct-seal{text-align:center;margin-top:8px}
   .ct-seal-stamp{display:inline-block;color:#c0392b;border:2px solid #c0392b;border-radius:50%;width:60px;height:60px;line-height:1.1;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);opacity:.82;margin:0 auto;text-align:center;padding:4px}
   .cert-actions{max-width:420px;margin:16px auto 0;text-align:center}
@@ -1389,6 +1399,18 @@ async function loadCertData() {
   const mine = all.filter(l => l.student_id === studentId);
   const { data: closes } = await sb.from('closing_records').select('points, close_date').eq('member_id', memberId);
   const myCloses = closes || [];
+  const { data: bsRow } = await sb.from('batch_students').select('cert_comment, cert_award, coach_id, cert_by_coach, cert_ai_insight').eq('id', studentId).single();
+  const customComment = bsRow && bsRow.cert_comment;
+  const customAiInsight = bsRow && bsRow.cert_ai_insight;
+  const customAward = bsRow && bsRow.cert_by_coach ? bsRow.cert_award : null;
+  let coachName = null;
+  if (bsRow && bsRow.cert_by_coach && bsRow.coach_id) {
+    const { data: coachRow } = await sb.from('batch_coaches').select('member_id').eq('id', bsRow.coach_id).single();
+    if (coachRow) {
+      const { data: coachMember } = await sb.from('members_master').select('name').eq('id', coachRow.member_id).single();
+      coachName = coachMember && coachMember.name;
+    }
+  }
 
   // 我的累積
   const sum = k => mine.reduce((a, l) => a + (l[k] || 0), 0);
@@ -1460,7 +1482,7 @@ async function loadCertData() {
 
   return { totals, actionPts, closePts, total, reportDays, checkinDays, buddies, streak: best,
            closeCount: myCloses.length, weekly, slots, closePtsTotal: closePts, threshold: eb,
-           totalActs, heat, heatActive, milestones: ms, batch: batchInfo };
+           totalActs, heat, heatActive, milestones: ms, batch: batchInfo, customComment, customAward, coachName, customAiInsight };
 }
 
 // A：主場（貢獻分最高）+ 可加強（最低）
@@ -1471,6 +1493,56 @@ function certAnalysis(posPts) {
   return `<div class="ct-analysis">
     <div class="ct-an-row"><span class="ct-an-k">💪 你的主場</span><span class="ct-an-v">${top.label}</span></div>
     <div class="ct-an-row"><span class="ct-an-k">🌱 最有潛力</span><span class="ct-an-v">${low.label}</span></div>
+  </div>`;
+}
+
+// AI 數據洞察：純數據自比（不跟同儕比），成長趨勢 + 行動效率
+// 26期已一次寫死進 batch_students.cert_ai_insight（結業後資料不再變動，省得每次重算）；
+// 沒有預存資料的未來期別，退回即時計算版本
+function aiInsight(d) {
+  if (d.customAiInsight) {
+    return `<div class="ct-ai-block">
+      <div class="ct-ai-text" style="margin-top:0;padding-top:0;border-top:none">${d.customAiInsight}</div>
+      <div class="ct-ai-note">由 AI 依你的行動紀錄生成</div>
+    </div>`;
+  }
+  const weekly = d.weekly || [];
+  const half = Math.ceil(weekly.length / 2);
+  const firstHalf = weekly.slice(0, half), secondHalf = weekly.slice(half);
+  const avg = arr => arr.length ? arr.reduce((a, w) => a + w.pts, 0) / arr.length : 0;
+  const firstAvg = avg(firstHalf), secondAvg = avg(secondHalf);
+
+  let trendKind, trend;
+  if (!secondHalf.length || (firstAvg === 0 && secondAvg === 0)) {
+    trendKind = 'na'; trend = '資料還在累積中';
+  } else if (firstAvg === 0) {
+    trendKind = 'up'; trend = '從零到有，後段明顯發力 🚀';
+  } else {
+    const pct = Math.round((secondAvg - firstAvg) / firstAvg * 100);
+    if (pct >= 20) { trendKind = 'up'; trend = `後段比前段成長 ${pct}% 📈`; }
+    else if (pct <= -20) { trendKind = 'down'; trend = `前段衝刺力道強，後段略緩`; }
+    else { trendKind = 'flat'; trend = '維持穩定的行動節奏'; }
+  }
+
+  const efficiency = d.reportDays > 0 ? d.actionPts / d.reportDays : 0;
+  const effStr = efficiency.toFixed(1);
+
+  // 依趨勢＋效率組一句 AI 鼓勵語（系統生成，非教練親筆，語氣理性但鼓勵）
+  let encourage;
+  if (trendKind === 'na') encourage = '持續填報，AI 會幫你把每一步都算進成長曲線裡。';
+  else if (trendKind === 'up') encourage = efficiency >= 3
+    ? '不只往上走，每次行動的含金量也很高，這是最理想的成長型態。'
+    : '上升趨勢很明確，接下來把每次行動的深度拉高，效益會更驚人。';
+  else if (trendKind === 'down') encourage = '後段步調放緩很正常，數據看得到你前段打下的底子，重新加速隨時都來得及。';
+  else encourage = efficiency >= 3
+    ? '穩定中帶著高效率，這種節奏最適合長期作戰。'
+    : '節奏穩定是好事，下一步試著拉高每次行動的份量，成長曲線會更明顯。';
+
+  return `<div class="ct-ai-block">
+    <div class="ct-ai-row"><span class="ct-ai-k">📈 成長趨勢</span><span class="ct-ai-v">${trend}</span></div>
+    <div class="ct-ai-row"><span class="ct-ai-k">⚡ 行動效率</span><span class="ct-ai-v">${effStr} 分/填報天</span></div>
+    <div class="ct-ai-text">${encourage}</div>
+    <div class="ct-ai-note">由系統依你的行動紀錄自動生成</div>
   </div>`;
 }
 
@@ -1530,6 +1602,7 @@ function buildCertHTML(d) {
   const heatmap = heatmapHTML(d.heat, d.heatActive);
   const milestone = milestoneHTML(d.milestones);
   const comment = certComment(d);
+  const signName = (d.customComment && d.coachName) ? `${d.coachName} 教練` : '實戰班委員會';
   const westin = d.slots >= 1
     ? `🏆 達成 ${d.slots} 個威斯汀獎勵名額！`
     : `🎯 締結 ${d.closePtsTotal} 分，朝威斯汀獎勵邁進`;
@@ -1561,13 +1634,18 @@ function buildCertHTML(d) {
     <div class="ct-stats">
       <div class="ct-stat"><div class="ct-stat-n">${d.reportDays}</div><div class="ct-stat-l">填報天數</div></div>
       <div class="ct-stat"><div class="ct-stat-n">${d.streak}</div><div class="ct-stat-l">最長連續</div></div>
-      <div class="ct-stat"><div class="ct-stat-n">${d.checkinDays}</div><div class="ct-stat-l">到公司天數</div></div>
       <div class="ct-stat"><div class="ct-stat-n">${d.totalActs}</div><div class="ct-stat-l">總行動次數</div></div>
       <div class="ct-stat"><div class="ct-stat-n">${d.closeCount}</div><div class="ct-stat-l">締結件數</div></div>
-      <div class="ct-stat"><div class="ct-stat-n">${d.buddies}</div><div class="ct-stat-l">帶來夥伴</div></div>
     </div>
     <div class="ct-badges">${tags.map(t => `<span class="ct-tag">${t}</span>`).join('')}</div>
-    <div class="ct-comment">${comment}</div>
+    <div class="ct-section-l">🤖 AI 數據洞察</div>
+    ${aiInsight(d)}
+    <div class="ct-section-l">🎖️ 教練頒獎</div>
+    <div class="ct-coach-block">
+      ${d.customAward ? `<div class="ct-coach-award">🏆 ${d.customAward}</div>` : ''}
+      <div class="ct-coach-text">「${comment}」</div>
+      <div class="ct-coach-sign">— ${signName}</div>
+    </div>
     <div class="ct-seal"><div class="ct-seal-stamp">實戰班<br>委員會</div></div>
   `;
 }
@@ -1651,7 +1729,8 @@ function radarSVG(vals, labels) {
 }
 
 function certComment(d) {
-  // 規則版評語（6/30 前再換成個人化真人版）
+  // 個人化評語（batch_students.cert_comment，逐人手動撰寫）；沒有才退回規則拼句版
+  if (d.customComment) return d.customComment;
   const bits = [];
   if (d.streak >= 14) bits.push('你用連續的堅持證明了什麼叫不間斷的行動力');
   else if (d.streak >= 7) bits.push('連續七天以上的回報，是自律最好的勳章');
