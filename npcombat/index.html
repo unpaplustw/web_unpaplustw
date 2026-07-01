@@ -61,6 +61,14 @@ body::before{
 .nav-title{font-size:15px;font-weight:700}
 .nav-desc{font-size:12px;color:var(--txt2);margin-top:2px}
 .nav-arrow{color:var(--txt2);font-size:18px}
+/* 已結束的卡片：灰掉、不可點 */
+.nav-card.closed{opacity:0.5;filter:grayscale(1);cursor:default;pointer-events:none}
+.nav-card.closed:hover{transform:none;box-shadow:var(--shadow);border-color:var(--border)}
+.nav-badge-closed{font-size:11px;font-weight:700;color:#fff;background:#9ca3af;border-radius:8px;padding:3px 9px;flex-shrink:0}
+/* 成長證明主按鈕：金色高亮 */
+.nav-card.cert{background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);box-shadow:0 4px 18px rgba(184,150,12,0.18)}
+.nav-card.cert .nav-title{color:var(--gold3)}
+.nav-card.cert:hover{border-color:var(--gold);box-shadow:0 6px 22px rgba(184,150,12,0.28)}
 .footer{text-align:center;padding:32px 0 16px;color:var(--txt2);font-size:11px}
 .fade-up{opacity:0;transform:translateY(20px);animation:fadeUp .6s ease forwards}
 @keyframes fadeUp{to{opacity:1;transform:none}}
@@ -122,38 +130,46 @@ body::before{
   </div>
 
   <div class="nav-grid fade-up">
-    <a class="nav-card" href="brochure.html">
+    <a class="nav-card cert" href="cert.html">
+      <div class="nav-icon">🎓</div>
+      <div class="nav-info">
+        <div class="nav-title">我的成長歷程</div>
+        <div class="nav-desc">查看你的結業成長證明書</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </a>
+    <div class="nav-card closed">
       <div class="nav-icon">📖</div>
       <div class="nav-info">
         <div class="nav-title">報名簡章</div>
         <div class="nav-desc">課程內容、時程、入學門檻一次看</div>
       </div>
-      <div class="nav-arrow">›</div>
-    </a>
-    <a class="nav-card" href="leaderboard.html">
+      <div class="nav-badge-closed">已結束</div>
+    </div>
+    <div class="nav-card closed">
       <div class="nav-icon">🏆</div>
       <div class="nav-info">
         <div class="nav-title">排行榜</div>
         <div class="nav-desc">本週各獎項前三名</div>
       </div>
-      <div class="nav-arrow">›</div>
-    </a>
-    <a class="nav-card" href="https://liff.line.me/2009692859-IGJ1xPLd">
+      <div class="nav-badge-closed">已結束</div>
+    </div>
+    <div class="nav-card closed">
       <div class="nav-icon">📊</div>
       <div class="nav-info">
         <div class="nav-title">學員回報</div>
         <div class="nav-desc">填寫今日行動量與締結紀錄</div>
       </div>
-      <div class="nav-arrow">›</div>
-    </a>
-    <a class="nav-card" href="https://liff.line.me/2009692859-AElMlHqu">
+      <div class="nav-badge-closed">已結束</div>
+    </div>
+    <div class="nav-card closed">
       <div class="nav-icon">✏️</div>
       <div class="nav-info">
         <div class="nav-title">教練回報</div>
         <div class="nav-desc">審查學員回報、補充教練欄位、確認鎖定</div>
       </div>
-      <div class="nav-arrow">›</div>
-    </a>
+      <div class="nav-badge-closed">已結束</div>
+    </div>
   </div>
 
   <div class="footer">實戰班委員會</div>
