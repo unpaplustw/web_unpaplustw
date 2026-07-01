@@ -355,6 +355,12 @@ function buildCertHTML(d) {
       <div class="ct-score-l">總戰績分數</div>
       <div class="ct-westin">${westin}</div>
     </div>
+    <div class="ct-section-l">🎖️ 教練頒獎</div>
+    <div class="ct-coach-block">
+      ${d.customAward ? `<div class="ct-coach-award">🏆 ${d.customAward}</div>` : ''}
+      <div class="ct-coach-text">「${comment}」</div>
+      <div class="ct-coach-sign">— ${signName}</div>
+    </div>
     <div class="ct-section-l">📈 每週成長軌跡</div>
     ${weekBars}
     <div class="ct-section-l">📊 行動風格分析　<span class="ct-style">${styleTag}</span></div>
@@ -374,12 +380,6 @@ function buildCertHTML(d) {
     <div class="ct-badges">${tags.map(t => `<span class="ct-tag">${t}</span>`).join('')}</div>
     <div class="ct-section-l">🤖 AI 數據洞察</div>
     ${aiInsight(d)}
-    <div class="ct-section-l">🎖️ 教練頒獎</div>
-    <div class="ct-coach-block">
-      ${d.customAward ? `<div class="ct-coach-award">🏆 ${d.customAward}</div>` : ''}
-      <div class="ct-coach-text">「${comment}」</div>
-      <div class="ct-coach-sign">— ${signName}</div>
-    </div>
     <div class="ct-seal"><div class="ct-seal-stamp">實戰班<br>委員會</div></div>
   `;
 }
