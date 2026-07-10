@@ -3,14 +3,30 @@
     "name": "萬宗歸一 — 傳直銷獎金計算邏輯目錄",
     "source": "wiki/生涯庫/傳直銷百科/制度核心/萬宗歸一.md",
     "updated": "2026-07-05",
-    "companies_verified": 37,
+    "companies_verified": 38,
     "note": "本檔記邏輯（算法）不記數字；各家 %、金額是參數，在各公司 JSON／wiki 公司頁。查差異＝兩家代號集合相減；查『誰用某算法』＝讀該邏輯的 companies。引擎跑「邏輯 × 公司參數」。companies 一律用 slug，對照 index.json。"
   },
   "baskets": [
-    { "id": "develop", "name": "開發市場", "definition": "你的動作（賣、拉）直接就有錢，不必等下線賺錢" },
-    { "id": "org", "name": "組織收入", "definition": "下線/組織先賺到（出單、業績、達循環）你才分得到（分母＝你的線）" },
-    { "id": "pool", "name": "分紅收入", "definition": "分母＝全公司營業額池，按點數共分" },
-    { "id": "welfare", "name": "福利", "definition": "非分潤給付：達標或維持身分就給（現金或實物）" }
+    {
+      "id": "develop",
+      "name": "開發市場",
+      "definition": "你的動作（賣、拉）直接就有錢，不必等下線賺錢"
+    },
+    {
+      "id": "org",
+      "name": "組織收入",
+      "definition": "下線/組織先賺到（出單、業績、達循環）你才分得到（分母＝你的線）"
+    },
+    {
+      "id": "pool",
+      "name": "分紅收入",
+      "definition": "分母＝全公司營業額池，按點數共分"
+    },
+    {
+      "id": "welfare",
+      "name": "福利",
+      "definition": "非分潤給付：達標或維持身分就給（現金或實物）"
+    }
   ],
   "criteria": [
     "互斥判準①：抽下線購買/業績時——不限職級、淺層(1-2層) flat% → 開發市場；差%、需聘階解鎖、或深層代數 → 組織收入",
@@ -22,24 +38,370 @@
   ],
   "out_of_scope": "歸併/緊縮、強制儲蓄、倍增手法（複數同名/多經營權）、K值/封頂/池化正規化、獎金轉購物金強制回流＝計算機制非獎金，不分類，記在公司頁",
   "logics": [
-    { "id": "零售價差", "basket": "develop", "formula": "售價 − 進價", "model": "太陽/通用", "desc": "賣給客戶賺的：進貨優惠價 → 建議售價的價差", "companies": ["amway","herbalife","laiwei","liman","avon","usana","sunrider","shanmeide","doterra","marykay","noevir"] },
-    { "id": "個人業績獎", "basket": "develop", "formula": "個人業績 × 自己聘階%", "model": "太陽/差額", "desc": "自己進貨的業績，按本人聘階比例回饋（非賣客戶價差）", "companies": ["amway","shengli","tianlai","shuanghe","hongbao","yisibiti","avon","liman","balisidan","sunrider","nuskin","newimage","dongzhen","lixiangjia","cosway","totalife"] },
-    { "id": "推薦固定獎金", "basket": "develop", "formula": "套裝級距 → 固定額", "model": "雙軌", "desc": "介紹新人，依他買的方案給固定獎金", "recruit_risk": true, "companies": ["naturallyplus","lihui","laiwei","fudizi","sunrider","shanmeide","lixiangjia","cosway","totalife"] },
-    { "id": "推薦比例獎金", "basket": "develop", "formula": "直推/首1-2層下線業績 × flat%", "model": "雙軌/太陽", "desc": "直推新人首購、或首二層下線購買點數，抽固定%（不限職級）", "companies": ["shengyu","balisidan","taihezi","chengyan","melaleuca","laiwei","usana","bestworld","pinmoer","doterra","nuskin","cosway","wanguo"] },
-    { "id": "推薦差額", "basket": "develop", "formula": "(你% − 直推%) × 直推業績", "model": "太陽", "desc": "你進價與第一線下線進價的差", "companies": ["herbalife","avon","shanmeide"] },
-    { "id": "雙軌對碰", "basket": "org", "formula": "弱腿業績 × %", "model": "雙軌", "desc": "左右兩線取弱邊業績抽%", "companies": ["naturallyplus","shengyu","balisidan","lihui","taihezi","laiwei","usana","lixiangjia","atomy","wanguo"] },
-    { "id": "雙軌層碰", "basket": "org", "formula": "逐層配對 × %", "model": "雙軌", "desc": "左右每層配對、各層第一位計一次", "companies": ["taihezi","wanguo"] },
-    { "id": "直推達標固定", "basket": "org", "formula": "下線達成循環/里程碑 → 固定額", "model": "雙軌", "desc": "你直推的人達成獨立循環，給你固定一筆", "companies": ["naturallyplus"] },
-    { "id": "太陽級差", "basket": "org", "formula": "限代數逐代 (你% − 下線%) × 業績", "model": "太陽", "desc": "聘階差價算到 N 代，月底歸零重算（無限代級差亦歸此列）", "companies": ["amway","shengli","tianlai","bama","yisibiti","puzhong","shuanghe","hongbao","liman","avon","fudizi","bestworld","nefful","newimage","dongzhen","cosway","totalife"] },
-    { "id": "代數獎", "basket": "org", "formula": "下線 N 代業績 × 固定%（聘階解鎖）", "model": "通用", "desc": "升到某階，抽下線 N 代組織業績", "companies": ["amway","herbalife","avon","bama","laiwei","taihezi","balisidan","fudizi","puzhong","chengyan","liman","shengli","tianlai","shuanghe","hongbao","yisibiti","melaleuca","sunrider","bestworld","pinmoer","doterra","nuskin","nefful","newimage","marykay","cosway","wanguo","noevir"] },
-    { "id": "破線補抓", "basket": "org", "formula": "突破脫離下線的組織業績 × %", "model": "差額", "desc": "下線突破跑掉後，另抽他組織業績", "companies": ["liman","hongbao","amway","chengyan","herbalife","bestworld","pinmoer","shanmeide","nuskin","nefful","marykay"] },
-    { "id": "培育升聘", "basket": "org", "formula": "下線升聘階 → 你領一筆/%", "model": "通用", "desc": "養出/協助下線升官時計獎", "companies": ["shengli","bama","hongbao","yisibiti","fudizi","melaleuca","sunrider","shanmeide","marykay"] },
-    { "id": "配對獎", "basket": "org", "formula": "抽下線「所領獎金」× %", "model": "雙軌", "desc": "下線領得多，你按比例配對再領（萬國電商另有「向上對等」＝抽上線對碰5%×2代，方向反轉全場唯一）", "companies": ["lihui","laiwei","taihezi","usana","sunrider","lixiangjia","wanguo","shengyu"] },
-    { "id": "層組抽成", "basket": "org", "formula": "指定層（組）業績 × 該層固定%", "model": "通用/矩陣", "desc": "對指定層的下線業績按該層成數抽（基礎多為每月重消/循環消費；不需左右配對，與對碰/層碰無關）。富地滋為矩陣容器安置（7×12），矩陣＝放人規則非算法", "companies": ["balisidan","taihezi","pinmoer","fudizi"] },
-    { "id": "池化分紅", "basket": "pool", "formula": "全公司營業額 × 提撥% ÷ 總點數 × 個人點數", "model": "通用", "desc": "公司提撥一筆，達標者按點數分餅", "companies": ["naturallyplus","amway","shengli","tianlai","hongbao","puzhong","herbalife","liman","balisidan","laiwei","yisibiti","shuanghe","taihezi","usana","bestworld","pinmoer","doterra","nefful","newimage","dongzhen","lixiangjia","totalife","atomy","wanguo"] },
-    { "id": "達標一次獎", "basket": "welfare", "formula": "達聘階/業績 → 給一筆", "model": "通用", "desc": "升到某階一次性給現金或實物", "companies": ["shengyu","laiwei","amway","hongbao","melaleuca","usana","sunrider","pinmoer","atomy","noevir"] },
-    { "id": "聘階維持津貼", "basket": "welfare", "formula": "維持聘階 → 每期固定領", "model": "通用", "desc": "只要保住身分，每月固定領", "companies": ["bama","melaleuca","doterra"] },
-    { "id": "競賽排名獎", "basket": "welfare", "formula": "全國排名前 N → 給獎", "model": "通用", "desc": "看全國排名（前五/前十）才有", "companies": ["hongbao","shengli"] },
-    { "id": "領導旅遊實物", "basket": "welfare", "formula": "達標 → 旅遊/車", "model": "通用", "desc": "達門檻給旅遊、購車補助（賀寶芙旅遊促銷來源未定位，暫不列）", "companies": ["amway","shuanghe","hongbao","puzhong","taihezi","shengli","avon","totalife","noevir"] }
+    {
+      "id": "零售價差",
+      "basket": "develop",
+      "formula": "售價 − 進價",
+      "model": "太陽/通用",
+      "desc": "賣給客戶賺的：進貨優惠價 → 建議售價的價差",
+      "companies": [
+        "amway",
+        "herbalife",
+        "laiwei",
+        "liman",
+        "avon",
+        "usana",
+        "sunrider",
+        "shanmeide",
+        "doterra",
+        "marykay",
+        "noevir",
+        "meian"
+      ]
+    },
+    {
+      "id": "個人業績獎",
+      "basket": "develop",
+      "formula": "個人業績 × 自己聘階%",
+      "model": "太陽/差額",
+      "desc": "自己進貨的業績，按本人聘階比例回饋（非賣客戶價差）",
+      "companies": [
+        "amway",
+        "shengli",
+        "tianlai",
+        "shuanghe",
+        "hongbao",
+        "yisibiti",
+        "avon",
+        "liman",
+        "balisidan",
+        "sunrider",
+        "nuskin",
+        "newimage",
+        "dongzhen",
+        "lixiangjia",
+        "cosway",
+        "totalife"
+      ]
+    },
+    {
+      "id": "推薦固定獎金",
+      "basket": "develop",
+      "formula": "套裝級距 → 固定額",
+      "model": "雙軌",
+      "desc": "介紹新人，依他買的方案給固定獎金",
+      "recruit_risk": true,
+      "companies": [
+        "naturallyplus",
+        "lihui",
+        "laiwei",
+        "fudizi",
+        "sunrider",
+        "shanmeide",
+        "lixiangjia",
+        "cosway",
+        "totalife"
+      ]
+    },
+    {
+      "id": "推薦比例獎金",
+      "basket": "develop",
+      "formula": "直推/首1-2層下線業績 × flat%",
+      "model": "雙軌/太陽",
+      "desc": "直推新人首購、或首二層下線購買點數，抽固定%（不限職級）",
+      "companies": [
+        "shengyu",
+        "balisidan",
+        "taihezi",
+        "chengyan",
+        "melaleuca",
+        "laiwei",
+        "usana",
+        "bestworld",
+        "pinmoer",
+        "doterra",
+        "nuskin",
+        "cosway",
+        "wanguo"
+      ]
+    },
+    {
+      "id": "推薦差額",
+      "basket": "develop",
+      "formula": "(你% − 直推%) × 直推業績",
+      "model": "太陽",
+      "desc": "你進價與第一線下線進價的差",
+      "companies": [
+        "herbalife",
+        "avon",
+        "shanmeide"
+      ]
+    },
+    {
+      "id": "雙軌對碰",
+      "basket": "org",
+      "formula": "弱腿業績 × %",
+      "model": "雙軌",
+      "desc": "左右兩線取弱邊業績抽%",
+      "companies": [
+        "naturallyplus",
+        "shengyu",
+        "balisidan",
+        "lihui",
+        "taihezi",
+        "laiwei",
+        "usana",
+        "lixiangjia",
+        "atomy",
+        "wanguo",
+        "meian"
+      ]
+    },
+    {
+      "id": "雙軌層碰",
+      "basket": "org",
+      "formula": "逐層配對 × %",
+      "model": "雙軌",
+      "desc": "左右每層配對、各層第一位計一次",
+      "companies": [
+        "taihezi",
+        "wanguo"
+      ]
+    },
+    {
+      "id": "直推達標固定",
+      "basket": "org",
+      "formula": "下線達成循環/里程碑 → 固定額",
+      "model": "雙軌",
+      "desc": "你直推的人達成獨立循環，給你固定一筆",
+      "companies": [
+        "naturallyplus",
+        "meian"
+      ]
+    },
+    {
+      "id": "太陽級差",
+      "basket": "org",
+      "formula": "限代數逐代 (你% − 下線%) × 業績",
+      "model": "太陽",
+      "desc": "聘階差價算到 N 代，月底歸零重算（無限代級差亦歸此列）",
+      "companies": [
+        "amway",
+        "shengli",
+        "tianlai",
+        "bama",
+        "yisibiti",
+        "puzhong",
+        "shuanghe",
+        "hongbao",
+        "liman",
+        "avon",
+        "fudizi",
+        "bestworld",
+        "nefful",
+        "newimage",
+        "dongzhen",
+        "cosway",
+        "totalife"
+      ]
+    },
+    {
+      "id": "代數獎",
+      "basket": "org",
+      "formula": "下線 N 代業績 × 固定%（聘階解鎖）",
+      "model": "通用",
+      "desc": "升到某階，抽下線 N 代組織業績",
+      "companies": [
+        "amway",
+        "herbalife",
+        "avon",
+        "bama",
+        "laiwei",
+        "taihezi",
+        "balisidan",
+        "fudizi",
+        "puzhong",
+        "chengyan",
+        "liman",
+        "shengli",
+        "tianlai",
+        "shuanghe",
+        "hongbao",
+        "yisibiti",
+        "melaleuca",
+        "sunrider",
+        "bestworld",
+        "pinmoer",
+        "doterra",
+        "nuskin",
+        "nefful",
+        "newimage",
+        "marykay",
+        "cosway",
+        "wanguo",
+        "noevir"
+      ]
+    },
+    {
+      "id": "破線補抓",
+      "basket": "org",
+      "formula": "突破脫離下線的組織業績 × %",
+      "model": "差額",
+      "desc": "下線突破跑掉後，另抽他組織業績",
+      "companies": [
+        "liman",
+        "hongbao",
+        "amway",
+        "chengyan",
+        "herbalife",
+        "bestworld",
+        "pinmoer",
+        "shanmeide",
+        "nuskin",
+        "nefful",
+        "marykay"
+      ]
+    },
+    {
+      "id": "培育升聘",
+      "basket": "org",
+      "formula": "下線升聘階 → 你領一筆/%",
+      "model": "通用",
+      "desc": "養出/協助下線升官時計獎",
+      "companies": [
+        "shengli",
+        "bama",
+        "hongbao",
+        "yisibiti",
+        "fudizi",
+        "melaleuca",
+        "sunrider",
+        "shanmeide",
+        "marykay"
+      ]
+    },
+    {
+      "id": "配對獎",
+      "basket": "org",
+      "formula": "抽下線「所領獎金」× %",
+      "model": "雙軌",
+      "desc": "下線領得多，你按比例配對再領（萬國電商另有「向上對等」＝抽上線對碰5%×2代，方向反轉全場唯一）",
+      "companies": [
+        "lihui",
+        "laiwei",
+        "taihezi",
+        "usana",
+        "sunrider",
+        "lixiangjia",
+        "wanguo",
+        "shengyu"
+      ]
+    },
+    {
+      "id": "層組抽成",
+      "basket": "org",
+      "formula": "指定層（組）業績 × 該層固定%",
+      "model": "通用/矩陣",
+      "desc": "對指定層的下線業績按該層成數抽（基礎多為每月重消/循環消費；不需左右配對，與對碰/層碰無關）。富地滋為矩陣容器安置（7×12），矩陣＝放人規則非算法",
+      "companies": [
+        "balisidan",
+        "taihezi",
+        "pinmoer",
+        "fudizi"
+      ]
+    },
+    {
+      "id": "池化分紅",
+      "basket": "pool",
+      "formula": "全公司營業額 × 提撥% ÷ 總點數 × 個人點數",
+      "model": "通用",
+      "desc": "公司提撥一筆，達標者按點數分餅",
+      "companies": [
+        "naturallyplus",
+        "amway",
+        "shengli",
+        "tianlai",
+        "hongbao",
+        "puzhong",
+        "herbalife",
+        "liman",
+        "balisidan",
+        "laiwei",
+        "yisibiti",
+        "shuanghe",
+        "taihezi",
+        "usana",
+        "bestworld",
+        "pinmoer",
+        "doterra",
+        "nefful",
+        "newimage",
+        "dongzhen",
+        "lixiangjia",
+        "totalife",
+        "atomy",
+        "wanguo"
+      ]
+    },
+    {
+      "id": "達標一次獎",
+      "basket": "welfare",
+      "formula": "達聘階/業績 → 給一筆",
+      "model": "通用",
+      "desc": "升到某階一次性給現金或實物",
+      "companies": [
+        "shengyu",
+        "laiwei",
+        "amway",
+        "hongbao",
+        "melaleuca",
+        "usana",
+        "sunrider",
+        "pinmoer",
+        "atomy",
+        "noevir"
+      ]
+    },
+    {
+      "id": "聘階維持津貼",
+      "basket": "welfare",
+      "formula": "維持聘階 → 每期固定領",
+      "model": "通用",
+      "desc": "只要保住身分，每月固定領",
+      "companies": [
+        "bama",
+        "melaleuca",
+        "doterra"
+      ]
+    },
+    {
+      "id": "競賽排名獎",
+      "basket": "welfare",
+      "formula": "全國排名前 N → 給獎",
+      "model": "通用",
+      "desc": "看全國排名（前五/前十）才有",
+      "companies": [
+        "hongbao",
+        "shengli"
+      ]
+    },
+    {
+      "id": "領導旅遊實物",
+      "basket": "welfare",
+      "formula": "達標 → 旅遊/車",
+      "model": "通用",
+      "desc": "達門檻給旅遊、購車補助（賀寶芙旅遊促銷來源未定位，暫不列）",
+      "companies": [
+        "amway",
+        "shuanghe",
+        "hongbao",
+        "puzhong",
+        "taihezi",
+        "shengli",
+        "avon",
+        "totalife",
+        "noevir"
+      ]
+    }
   ]
 }
