@@ -301,7 +301,7 @@ const sb = window.supabase.createClient(
 );
 
 const LIFF_ID = '2009692859-DepTDosN';
-let bid = 1, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
+let bid = null, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
 let myAllowedTabs = [];
 let isReadonly = false;
 
@@ -362,7 +362,12 @@ async function init() {
   const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false });
   const sel = document.getElementById('selBatch');
   sel.innerHTML = (batches || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('');
-  if (batches?.length) { bid = batches[0].id; sel.value = bid; }
+  // 預設選當期（is_active），沒有才退回最新一期。下拉可自由切換看歷屆
+  if (batches?.length) {
+    const active = batches.find(b => b.is_active);
+    bid = (active || batches[0]).id;
+    sel.value = bid;
+  }
   sel.addEventListener('change', e => { bid = Number(e.target.value); load(); });
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {

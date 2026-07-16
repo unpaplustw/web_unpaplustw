@@ -286,7 +286,7 @@
 <!-- ── 戰報儀表板 ── -->
 <div class="war-report" id="warReport" style="display:none">
   <div class="wr-card" id="wrCard">
-    <div class="wr-title">⚔️ 威斯汀挑戰戰報</div>
+    <div class="wr-title" id="wrTitle">⚔️ 挑戰戰報</div>
 
     <div class="wr-ring-wrap">
       <div class="wr-ring">
@@ -543,7 +543,12 @@
 <script>
 const DEMO_MODE = false;
 const LIFF_ID = '2009692859-IGJ1xPLd';
-const BATCH_ID = 1;
+// 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
+let BATCH_ID = null;
+async function resolveBatchId() {
+  const { data } = await sb.from('batches').select('id').eq('is_active', true).maybeSingle();
+  return data ? data.id : null;
+}
 const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：god.html 帶 ?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF 以該學員身份檢視
 
 const sb = window.supabase.createClient(
@@ -705,7 +710,7 @@ function toggleGroupReport() {
   document.getElementById('groupCheck').textContent = groupReported ? '✓' : '';
   document.getElementById('groupReport').classList.toggle('checked', groupReported);
 }
-let bid = 1, studentId = null, existingId = null;
+let studentId = null, existingId = null;
 let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
 let memberName = '', batchInfo = null;
 
@@ -843,6 +848,10 @@ async function init() {
   }
 
   try {
+    // 當期批次（換屆只改 DB）
+    BATCH_ID = await resolveBatchId();
+    if (!BATCH_ID) { showBlock('目前沒有進行中的班期。'); return; }
+
     // 身份取得：天神視角（god_as + god_key）跳過 LIFF，否則正常 LIFF 登入
     const _p = new URLSearchParams(location.search);
     const _godAs = _p.get('god_as'), _godKey = _p.get('god_key');
@@ -899,7 +908,7 @@ async function init() {
       .eq('member_id', memberId);
 
     // 查活動起迄算天數 + 門檻
-    const { data: batch } = await sb.from('batches').select('name, start_date, challenge_start, earlybird_score, earlybird_month, single_month_score, cross_month_score, end_date').eq('id', BATCH_ID).single();
+    const { data: batch } = await sb.from('batches').select('name, event_name, start_date, challenge_start, earlybird_score, earlybird_month, single_month_score, cross_month_score, end_date').eq('id', BATCH_ID).single();
     const startDate = batch?.challenge_start || batch?.start_date || d;
     batchInfo = batch;
 
@@ -951,6 +960,9 @@ async function init() {
 // ── War Report ──
 function renderWarReport(allLogs, allCloses, batch, todayStr) {
   if (!batch) return;
+  // 無獎勵活動（event_name 空）→ 整個挑戰戰報隱藏（門檻/月份都是活動專屬）
+  if (!batch.event_name) { document.getElementById('warReport').style.display = 'none'; return; }
+  document.getElementById('wrTitle').textContent = `⚔️ ${batch.event_name}挑戰戰報`;
   const eb = batch.earlybird_score || 700;
   const ebMonth = batch.earlybird_month || 4;
   const sm = batch.single_month_score || 800;

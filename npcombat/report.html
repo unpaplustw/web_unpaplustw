@@ -124,7 +124,8 @@ const sb = window.supabase.createClient(
   { db: { schema: 'npcombat' } }
 );
 
-const BATCH_ID = 1;
+// 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
+let BATCH_ID = null;
 let batchInfo = {};
 let coachRecord = null;
 let myStudents = [];
@@ -148,10 +149,14 @@ function daysAgo(dateStr) {
 }
 
 async function init() {
-  const { data: batch } = await sb.from('batches').select('*').eq('id', BATCH_ID).single();
-  batchInfo = batch || {};
-  document.getElementById('batchInfo').textContent =
-    `${batchInfo.name || ''}（${batchInfo.event_name || ''}）目標 ${batchInfo.target_points || 800} 分`;
+  const { data: batch } = await sb.from('batches').select('*').eq('is_active', true).maybeSingle();
+  if (!batch) { document.getElementById('batchInfo').textContent = '目前沒有進行中的班期'; return; }
+  BATCH_ID = batch.id;
+  batchInfo = batch;
+  // 有活動才標活動名與目標分（event_name 空 = 這期沒辦活動）
+  document.getElementById('batchInfo').textContent = batchInfo.event_name
+    ? `${batchInfo.name}（${batchInfo.event_name}）目標 ${batchInfo.single_month_score || 800} 分`
+    : batchInfo.name;
 
   const { data: coaches } = await sb.from('batch_coaches')
     .select('id, phone, rank, cfc, member_id, members_master(name, member_code)')
@@ -282,7 +287,7 @@ function renderOverview() {
       ${sponsorName ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px">上線：${sponsorName}</div>` : ''}
       <div class="bar-wrap"><div class="bar-fill ${barClass}" style="width:${pct}%"></div></div>
       <div class="stu-stats">
-        <span class="stu-pts" style="font-size:14px;font-weight:500">威斯汀獎勵積分 ${a.pts} / ${target}分${a.pts >= target ? ' 🎉' : ''}</span>
+        <span class="stu-pts" style="font-size:14px;font-weight:500">締結積分 ${a.pts} / ${target}分${a.pts >= target ? ' 🎉' : ''}</span>
         <span class="stu-score" style="font-size:15px;font-weight:500">行動積分 ${score}</span>
       </div>
       <div class="stu-detail">
@@ -337,7 +342,7 @@ function renderForm() {
       </div>
       <div class="form-grid full form-pts-row">
         <div class="fg fg-pts">
-          <label>威斯汀獎勵積分</label>
+          <label>締結積分</label>
           <input type="number" inputmode="numeric" min="0" id="f-pts-${s.id}" value="${log?.company_points ?? ''}">
         </div>
       </div>

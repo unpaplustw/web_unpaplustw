@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的成長歷程 ── 26期實戰班</title>
+<title>我的成長歷程 ── 實戰班</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
@@ -92,7 +92,9 @@
 
 <script>
 const LIFF_ID = '2009692859-hOq6FL5k'; // cert.html 專屬 LIFF（Endpoint 綁 cert.html）
-const BATCH_ID = 1;
+// 證書屬於「學員最近參加的那一期」，不跟 is_active 走
+// （26 期結業生沒參加 27 期，仍要看得到自己的證書）→ 於 init 依學員身份決定
+let BATCH_ID = null;
 const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF
 
 const sb = window.supabase.createClient(
@@ -175,13 +177,19 @@ async function loadCertData() {
     return { num: i + 1, pts };
   });
 
-  // 🎯 威斯汀獎勵名額（締結跨門檻，跟目標比）
-  const eb = batchInfo.earlybird_score || 700, sm = batchInfo.single_month_score || 800, cm = batchInfo.cross_month_score || 900;
-  const mon = {}; myCloses.forEach(c => { const m = +c.close_date.split('-')[1]; mon[m] = (mon[m] || 0) + (c.points || 0); });
-  const apr = mon[4] || 0, may = mon[5] || 0, jun = mon[6] || 0;
-  const aS = Math.floor(apr / eb), mS = Math.floor(may / sm), jS = Math.floor(jun / sm);
-  const crossPool = (apr - aS * eb) + (may - mS * sm) + (jun - jS * sm);
-  const slots = aS + mS + jS + Math.floor(crossPool / cm);
+  // 🎯 獎勵活動名額（締結跨門檻）。event_name 空 = 該期無活動 → slots=0，相關 UI 隱藏
+  // ⚠️ 月份門檻（4/5/6）為 26 期威斯汀專屬；未來活動月份不同時需連同 batches 門檻欄位改
+  const hasEvent = !!(batchInfo && batchInfo.event_name);
+  let slots = 0, eb = 0;
+  if (hasEvent) {
+    eb = batchInfo.earlybird_score || 700;
+    const sm = batchInfo.single_month_score || 800, cm = batchInfo.cross_month_score || 900;
+    const mon = {}; myCloses.forEach(c => { const m = +c.close_date.split('-')[1]; mon[m] = (mon[m] || 0) + (c.points || 0); });
+    const apr = mon[4] || 0, may = mon[5] || 0, jun = mon[6] || 0;
+    const aS = Math.floor(apr / eb), mS = Math.floor(may / sm), jS = Math.floor(jun / sm);
+    const crossPool = (apr - aS * eb) + (may - mS * sm) + (jun - jS * sm);
+    slots = aS + mS + jS + Math.floor(crossPool / cm);
+  }
 
   const totalActs = CERT_FIELDS.reduce((a, f) => a + (totals[f.key] || 0), 0);
 
@@ -210,12 +218,13 @@ async function loadCertData() {
     if (r2 === 7 && !streak7) streak7 = ds; p2 = ds;
   });
   if (streak7) ms.push([md(streak7), '連續填報 7 天 🔥']);
-  if (slots >= 1 && closeDates.length) ms.push([md(closeDates[closeDates.length-1]), '達成威斯汀獎勵門檻 🏆']);
+  if (hasEvent && slots >= 1 && closeDates.length) ms.push([md(closeDates[closeDates.length-1]), `達成${batchInfo.event_name}獎勵門檻 🏆`]);
   if (dates.length) ms.push([md(dates[dates.length-1]), `堅持到底，共填報 ${reportDays} 天`]);
   ms.sort((a, b) => a[0].localeCompare(b[0]));
 
   return { totals, actionPts, closePts, total, reportDays, checkinDays, buddies, streak: best,
-           closeCount: myCloses.length, weekly, slots, closePtsTotal: closePts, threshold: eb,
+           closeCount: myCloses.length, weekly, slots, hasEvent, eventName: batchInfo?.event_name || '',
+           closePtsTotal: closePts, threshold: eb,
            totalActs, heat, heatActive, milestones: ms, batch: batchInfo, customComment, customAward, coachName, customAiInsight };
 }
 
@@ -320,7 +329,7 @@ function buildCertHTML(d) {
   if (d.totals.seminar >= 5) tags.push('🎯 會場常客');
   if (d.closeCount >= 1) tags.push('🔫 成交達陣');
   if (d.buddies >= 5) tags.push('🚌 動員高手');
-  if (d.slots >= 1) tags.push('🏆 威斯汀達標');
+  if (d.hasEvent && d.slots >= 1) tags.push(`🏆 ${d.eventName}達標`);
   // 成長徽章：最後一週 >= 第一週 → 持續成長
   const grew = d.weekly.length >= 2 && d.weekly[d.weekly.length-1].pts >= d.weekly[0].pts && d.weekly[0].pts > 0;
   if (grew) tags.push('📈 越戰越強');
@@ -337,9 +346,14 @@ function buildCertHTML(d) {
   const milestone = milestoneHTML(d.milestones);
   const comment = certComment(d);
   const signName = (d.customComment && d.coachName) ? `${d.coachName} 教練` : '實戰班委員會';
-  const westin = d.slots >= 1
-    ? `🏆 達成 ${d.slots} 個威斯汀獎勵名額！`
-    : `🎯 締結 ${d.closePtsTotal} 分，朝威斯汀獎勵邁進`;
+  // 有活動才講名額；沒活動就講成交本身（次數是故事）
+  const westin = !d.hasEvent
+    ? (d.closeCount >= 1
+        ? `🔫 成交 ${d.closeCount} 件，累積 ${d.closePtsTotal} 分`
+        : `🌱 持續行動中，成交就在下一步`)
+    : d.slots >= 1
+      ? `🏆 達成 ${d.slots} 個${d.eventName}獎勵名額！`
+      : `🎯 締結 ${d.closePtsTotal} 分，朝${d.eventName}獎勵邁進`;
 
   return `
     <div class="cert-shine"></div>
@@ -521,15 +535,17 @@ async function init() {
     memberId = member.id;
     memberName = member.name;
 
-    // 查本期學員身份
-    const { data: stu } = await sb.from('batch_students').select('id, status')
-      .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
-    if (!stu || stu.status !== 'approved') { showMsg(member.name + '，查無你在 26 期實戰班的參與紀錄。'); return; }
+    // 取該學員「最近參加的一期」（證書屬於本人，不跟 is_active 走）
+    const { data: stu } = await sb.from('batch_students').select('id, status, batch_id')
+      .eq('member_id', memberId).eq('status', 'approved')
+      .order('batch_id', { ascending: false }).limit(1).maybeSingle();
+    if (!stu) { showMsg(member.name + '，查無你的實戰班參與紀錄。'); return; }
     studentId = stu.id;
+    BATCH_ID = stu.batch_id;
 
-    // 查班次資訊
+    // 查班次資訊（event_name 空 = 該期無活動 → 隱藏名額/達標里程碑）
     const { data: batch } = await sb.from('batches')
-      .select('name, start_date, end_date, earlybird_score, single_month_score, cross_month_score')
+      .select('name, event_name, start_date, end_date, earlybird_score, single_month_score, cross_month_score')
       .eq('id', BATCH_ID).single();
     batchInfo = batch;
 

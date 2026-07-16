@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>26期實戰班 ── 決戰威斯汀</title>
+<title>實戰班</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -81,8 +81,8 @@ body::before{
 <body>
 <div class="container">
   <div class="header fade-up">
-    <h1>26期實戰班</h1>
-    <div class="event">決戰威斯汀</div>
+    <h1 id="batchName">實戰班</h1>
+    <div class="event" id="eventName" style="display:none"></div>
     <div class="motto">「一個人玩不是玩，一群人玩才是玩。」</div>
   </div>
 
@@ -100,10 +100,11 @@ body::before{
       </svg>
       <div class="ring-center">
         <div class="ring-pct"><span id="pctNum">0</span><span class="ring-pct-sign">%</span></div>
-        <div class="ring-label">全體達標率</div>
+        <div class="ring-label">本週填報率</div>
       </div>
     </div>
-    <div class="ring-detail"><span id="achievedNum">0</span> / <span id="totalNum">0</span> 人達標威斯汀</div>
+    <div class="ring-detail"><span id="achievedNum">0</span> / <span id="totalNum">0</span> 人本週有回報</div>
+    <div class="ring-target" id="ringSub">一起動起來，別讓夥伴等你</div>
   </div>
 
   <div style="text-align:center;margin-top:24px;margin-bottom:6px;font-size:12px;font-weight:700;letter-spacing:3px;color:var(--gold);text-transform:uppercase" id="cdTitle">倒數開班</div>
@@ -124,13 +125,45 @@ body::before{
       <div class="stat-label">全體總行動</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num" id="statAvg">--</div>
-      <div class="stat-label">平均積分</div>
+      <div class="stat-num" id="statActive">--</div>
+      <div class="stat-label">本週活躍人數</div>
     </div>
   </div>
 
   <div class="nav-grid fade-up">
-    <a class="nav-card cert" href="https://liff.line.me/2009692859-hOq6FL5k">
+    <a class="nav-card" href="brochure.html">
+      <div class="nav-icon">📖</div>
+      <div class="nav-info">
+        <div class="nav-title">報名簡章</div>
+        <div class="nav-desc">課程內容、時程、入學門檻一次看</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </a>
+    <a class="nav-card" data-lock="start" href="https://liff.line.me/2009692859-IGJ1xPLd">
+      <div class="nav-icon">📊</div>
+      <div class="nav-info">
+        <div class="nav-title">學員回報</div>
+        <div class="nav-desc">填寫今日行動量與締結紀錄</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </a>
+    <a class="nav-card" data-lock="start" href="https://liff.line.me/2009692859-AElMlHqu">
+      <div class="nav-icon">✏️</div>
+      <div class="nav-info">
+        <div class="nav-title">教練回報</div>
+        <div class="nav-desc">審查學員回報、確認鎖定</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </a>
+    <a class="nav-card" data-lock="start" href="leaderboard.html">
+      <div class="nav-icon">🏆</div>
+      <div class="nav-info">
+        <div class="nav-title">排行榜</div>
+        <div class="nav-desc">本週各獎項前三名</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </a>
+    <a class="nav-card cert" data-lock="start" href="https://liff.line.me/2009692859-hOq6FL5k">
       <div class="nav-icon">🎓</div>
       <div class="nav-info">
         <div class="nav-title">我的成長歷程</div>
@@ -138,38 +171,6 @@ body::before{
       </div>
       <div class="nav-arrow">›</div>
     </a>
-    <div class="nav-card closed">
-      <div class="nav-icon">📖</div>
-      <div class="nav-info">
-        <div class="nav-title">報名簡章</div>
-        <div class="nav-desc">課程內容、時程、入學門檻一次看</div>
-      </div>
-      <div class="nav-badge-closed">已結束</div>
-    </div>
-    <div class="nav-card closed">
-      <div class="nav-icon">🏆</div>
-      <div class="nav-info">
-        <div class="nav-title">排行榜</div>
-        <div class="nav-desc">本週各獎項前三名</div>
-      </div>
-      <div class="nav-badge-closed">已結束</div>
-    </div>
-    <div class="nav-card closed">
-      <div class="nav-icon">📊</div>
-      <div class="nav-info">
-        <div class="nav-title">學員回報</div>
-        <div class="nav-desc">填寫今日行動量與締結紀錄</div>
-      </div>
-      <div class="nav-badge-closed">已結束</div>
-    </div>
-    <div class="nav-card closed">
-      <div class="nav-icon">✏️</div>
-      <div class="nav-info">
-        <div class="nav-title">教練回報</div>
-        <div class="nav-desc">審查學員回報、補充教練欄位、確認鎖定</div>
-      </div>
-      <div class="nav-badge-closed">已結束</div>
-    </div>
   </div>
 
   <div class="footer">實戰班委員會</div>
@@ -182,14 +183,17 @@ const sb = typeof supabase !== 'undefined'
   ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'npcombat' } })
   : null;
 
-let batchStart = null, batchEnd = null, target = 800;
+let batchStart = null, batchEnd = null;
+
+// 本地日期字串（勿用 toISOString，會有時區位移）
+const localDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 function startCountdown() {
   const now0 = new Date();
   const started = batchStart && now0 >= batchStart;
   // 已開班 → 倒數結束日；未開班 → 倒數開班日
   const countTarget = started ? batchEnd : batchStart;
-  document.getElementById('cdTitle').textContent = started ? '決戰倒數' : '倒數開班';
+  document.getElementById('cdTitle').textContent = started ? '結業倒數' : '倒數開班';
 
   function tick() {
     const now = new Date();
@@ -208,6 +212,23 @@ function startCountdown() {
   }
   tick();
   setInterval(tick, 1000);
+}
+
+// data-lock="start" 的卡片：開班日前自動鎖，開班當天 00:00 自動解鎖（不需人工開關）
+function lockNavUntilStart() {
+  if (!batchStart) return;
+  const locked = new Date() < batchStart;
+  if (!locked) return;
+  const label = `${batchStart.getMonth()+1}/${batchStart.getDate()} 開放`;
+  document.querySelectorAll('.nav-card[data-lock="start"]').forEach(card => {
+    card.classList.add('closed');
+    card.removeAttribute('href');
+    const arrow = card.querySelector('.nav-arrow');
+    if (arrow) {
+      arrow.className = 'nav-badge-closed';
+      arrow.textContent = label;
+    }
+  });
 }
 
 function animateRing(pct) {
@@ -230,100 +251,90 @@ function getCurrentWeek() {
   if (!batchStart) return 0;
   const now = new Date();
   if (now < batchStart) return 0;
-  return Math.min(Math.floor((now - batchStart) / (7 * 86400000)) + 1, 5);
+  return Math.floor((now - batchStart) / (7 * 86400000)) + 1;
+}
+
+// 本週區間（開班日起算每 7 天為一週，與排行榜週次對齊）
+function currentWeekRange() {
+  if (!batchStart) return null;
+  const now = new Date();
+  if (now < batchStart) return null;
+  const idx = Math.floor((now - batchStart) / (7 * 86400000));
+  const s = new Date(batchStart); s.setDate(s.getDate() + idx * 7);
+  const e = new Date(s); e.setDate(e.getDate() + 6);
+  return { start: localDateStr(s), end: localDateStr(e > batchEnd ? batchEnd : e) };
 }
 
 async function init() {
-  // 從資料庫讀班次資訊
-  const { data: batch } = await sb.from('batches').select('start_date, end_date, earlybird_score, single_month_score, cross_month_score')
-    .eq('id', 1).single();
-  if (batch) {
-    batchStart = new Date(batch.start_date);
-    batchEnd = new Date(batch.end_date);
-    batchEnd.setHours(23, 59, 59, 999);
-    target = batch.single_month_score || 800;
+  // 當期批次（is_active）→ 換屆只改 DB，不改碼
+  const { data: batch } = await sb.from('batches')
+    .select('id, name, event_name, start_date, end_date')
+    .eq('is_active', true).maybeSingle();
+  if (!batch) { document.getElementById('batchName').textContent = '暫無進行中班期'; return; }
+
+  const BID = batch.id;
+  batchStart = new Date(batch.start_date);
+  batchEnd = new Date(batch.end_date);
+  batchEnd.setHours(23, 59, 59, 999);
+
+  document.getElementById('batchName').textContent = batch.name;
+  document.title = batch.event_name ? `${batch.name} ── ${batch.event_name}` : batch.name;
+  // event_name 有值才顯示活動（不定期活動，沒辦就安靜）
+  if (batch.event_name) {
+    const el = document.getElementById('eventName');
+    el.textContent = batch.event_name;
+    el.style.display = '';
   }
-  const EB = batch?.earlybird_score || 700;
-  const SM = batch?.single_month_score || 800;
-  const CM = batch?.cross_month_score || 900;
 
   startCountdown();
+  lockNavUntilStart();
 
-  // 一次查學員＋教練（含 member_id）
-  const { data: stuData } = await sb.from('batch_students')
-    .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
-  const { data: coachData } = await sb.from('batch_coaches')
-    .select('id, member_id').eq('batch_id', 1).eq('status', 'approved');
-  const stuCount = stuData ? stuData.length : 0;
-  const coachCount = coachData ? coachData.length : 0;
-  const total = stuCount + coachCount;
-
+  // 學員＋教練＝全體參與者
+  const [{ data: stuData }, { data: coachData }] = await Promise.all([
+    sb.from('batch_students').select('id').eq('batch_id', BID).eq('status', 'approved'),
+    sb.from('batch_coaches').select('id').eq('batch_id', BID).eq('status', 'approved')
+  ]);
+  const total = (stuData?.length || 0) + (coachData?.length || 0);
   document.getElementById('totalNum').textContent = total;
-  document.getElementById('statWeek').textContent = '第' + getCurrentWeek() + '週';
 
-  if (total === 0) {
+  const week = getCurrentWeek();
+  document.getElementById('statWeek').textContent = week ? '第' + week + '週' : '未開班';
+
+  const range = currentWeekRange();
+  if (total === 0 || !range) {
+    // 未開班或尚無成員：圓圈歸零，改顯示期待感
     document.getElementById('achievedNum').textContent = '0';
     document.getElementById('statActions').textContent = '0';
-    document.getElementById('statAvg').textContent = '0';
+    document.getElementById('statActive').textContent = '0';
+    document.getElementById('ringSub').textContent = range ? '等待夥伴加入' : '開班後開始統計';
     animateRing(0);
     return;
   }
 
-  // 建立對應表（學員＋教練）
-  const sidToMid = {}, midToSid = {};
-  (stuData || []).forEach(s => { sidToMid[s.id] = s.member_id; midToSid[s.member_id] = s.id; });
-  (coachData || []).forEach(c => { sidToMid[c.id] = c.member_id; midToSid[c.member_id] = c.id; });
-  const memberIds = [
-    ...(stuData || []).map(s => s.member_id),
-    ...(coachData || []).map(c => c.member_id)
-  ];
-
-  // 查行動紀錄 + 締結紀錄
+  // 全期行動（總量）＋ 本週填報（誰有動）
   const { data: logs } = await sb.from('action_logs')
-    .select('student_id, name_list, meet, invite, present, seminar, ghosted, rejected')
-    .eq('batch_id', 1);
-  const { data: closes } = await sb.from('closing_records')
-    .select('member_id, points, close_date').in('member_id', memberIds);
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
+    .eq('batch_id', BID);
 
-  // 彙總每位學員積分
-  const sums = {};
   let allActions = 0;
-  (logs || []).forEach(log => {
-    const sid = log.student_id;
-    if (!sums[sid]) sums[sid] = 0;
-    sums[sid] += (log.name_list||0)*1 + (log.meet||0)*1 + (log.invite||0)*2 + (log.present||0)*5 + (log.seminar||0)*5 + (log.ghosted||0)*1 + (log.rejected||0)*1;
-    allActions += (log.meet||0) + (log.invite||0) + (log.present||0) + (log.seminar||0) + (log.ghosted||0) + (log.rejected||0);
+  const weekFilled = new Set();
+  (logs || []).forEach(l => {
+    allActions += (l.name_list||0) + (l.meet||0) + (l.invite||0) + (l.present||0)
+                + (l.seminar||0) + (l.ghosted||0) + (l.rejected||0);
+    if (l.log_date >= range.start && l.log_date <= range.end) weekFilled.add(l.student_id);
   });
 
-  (closes || []).forEach(c => {
-    const sid = midToSid[c.member_id];
-    if (sid) { if (!sums[sid]) sums[sid] = 0; sums[sid] += c.points || 0; }
-  });
+  const filled = weekFilled.size;
+  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
 
-  // 名額計算（與排行榜同邏輯：按月拆分，早鳥700/同月800/跨月900）
-  const slotsByMember = {};
-  (closes || []).forEach(c => {
-    if (!slotsByMember[c.member_id]) slotsByMember[c.member_id] = {};
-    const m = parseInt(c.close_date.split('-')[1]);
-    slotsByMember[c.member_id][m] = (slotsByMember[c.member_id][m] || 0) + (c.points || 0);
-  });
-  let achieved = 0;
-  Object.values(slotsByMember).forEach(months => {
-    const apr = months[4] || 0, may = months[5] || 0, jun = months[6] || 0;
-    const aprSlots = Math.floor(apr / EB);
-    const maySlots = Math.floor(may / SM);
-    const junSlots = Math.floor(jun / SM);
-    const crossPool = (apr - aprSlots * EB) + (may - maySlots * SM) + (jun - junSlots * SM);
-    const crossSlots = Math.floor(crossPool / CM);
-    if (aprSlots + maySlots + junSlots + crossSlots >= 1) achieved++;
-  });
-  const totalScore = Object.values(sums).reduce((a,b) => a+b, 0);
-  const avgScore = total > 0 ? Math.round(totalScore / total) : 0;
-  const pct = total > 0 ? Math.round((achieved / total) * 100) : 0;
-
-  document.getElementById('achievedNum').textContent = achieved;
-  document.getElementById('statActions').textContent = allActions;
-  document.getElementById('statAvg').textContent = avgScore;
+  document.getElementById('achievedNum').textContent = filled;
+  document.getElementById('statActions').textContent = allActions.toLocaleString();
+  document.getElementById('statActive').textContent = filled;
+  document.getElementById('ringSub').textContent =
+    pct === 100 ? '🔥 全員到齊，這就是氣勢！'
+    : pct >= 80 ? '差幾個人就滿了，揪一下！'
+    : pct >= 50 ? '一半以上動起來了，跟上！'
+    : '一起動起來，別讓夥伴等你';
   animateRing(pct);
 }
 

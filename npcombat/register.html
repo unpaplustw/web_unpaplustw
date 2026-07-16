@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>26期實戰班｜報名登記</title>
+<title>實戰班｜報名登記</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -403,7 +403,7 @@
 <div class="screen" id="screen-approved">
   <div class="screen-icon">🏆</div>
   <h2>已是正式學員</h2>
-  <p>你已通過審核，正式加入26期實戰班。<br>全力衝刺，一起達標！</p>
+  <p>你已通過審核，正式加入<span id="okBatch">實戰班</span>。<br>全力衝刺，一起達標！</p>
 </div>
 
 <!-- 學員：未通過 -->
@@ -458,11 +458,11 @@
 <!-- 主畫面 -->
 <div id="main-form">
   <div class="hero">
-    <div class="badge">2026 · 共赴威斯汀</div>
-    <h1>26期實戰班<br><span>報名登記</span></h1>
+    <div class="badge" id="heroBadge">2026 · 實戰班</div>
+    <h1><span id="heroBatch">實戰班</span><br><span>報名登記</span></h1>
     <div class="info-card">
-      <div class="info-row"><span class="label">📌 開班典禮</span><span>2026/05/24（日）21:00</span></div>
-      <div class="info-row"><span class="label">⚠️ 截止時間</span><span>2026/05/21（四）23:00</span></div>
+      <div class="info-row"><span class="label">📌 開班典禮</span><span id="infoStart">—</span></div>
+      <div class="info-row"><span class="label">⚠️ 截止時間</span><span id="infoDeadline">—</span></div>
       <div class="info-row"><span class="label">💰 報名費用</span><span>450 元 / 次</span></div>
     </div>
   </div>
@@ -653,7 +653,29 @@
 const LIFF_ID      = '2009692859-1LNWRlIq';
 const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-const BATCH_ID     = 1;
+// 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
+let BATCH_ID = null;
+let BATCH = null;
+async function resolveBatch() {
+  const { data } = await sb.from('batches')
+    .select('id, name, event_name, start_date').eq('is_active', true).maybeSingle();
+  return data || null;
+}
+
+// 報名頁抬頭：班名/活動/開班典禮/截止（截止＝開班前 3 天 23:00，沿用 26 期慣例）
+function renderHero(b) {
+  const WD = ['日','一','二','三','四','五','六'];
+  const fmt = (d, hhmm) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}（${WD[d.getDay()]}）${hhmm}`;
+  const start = new Date(b.start_date + 'T00:00:00');
+  const dl = new Date(start); dl.setDate(dl.getDate() - 3);
+  document.getElementById('heroBatch').textContent = b.name;
+  document.getElementById('okBatch').textContent = b.name;
+  document.getElementById('heroBadge').textContent =
+    b.event_name ? `${start.getFullYear()} · 共赴${b.event_name}` : `${start.getFullYear()} · ${b.name}`;
+  document.getElementById('infoStart').textContent = fmt(start, '21:00');
+  document.getElementById('infoDeadline').textContent = fmt(dl, '23:00');
+  document.title = `${b.name}｜報名登記`;
+}
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: 'npcombat' }
@@ -840,6 +862,12 @@ async function handleCoachSubmit() {
 
 async function init() {
   try {
+    // 當期批次（換屆只改 DB）
+    BATCH = await resolveBatch();
+    if (!BATCH) { alert('目前沒有開放報名的班期。'); return; }
+    BATCH_ID = BATCH.id;
+    renderHero(BATCH);
+
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
 

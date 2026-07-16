@@ -232,7 +232,12 @@
 
 <script>
 const LIFF_ID = '2009692859-AElMlHqu';
-const BATCH_ID = 1;
+// 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
+let BATCH_ID = null;
+async function resolveBatchId() {
+  const { data } = await sb.from('batches').select('id').eq('is_active', true).maybeSingle();
+  return data ? data.id : null;
+}
 
 const sb = window.supabase.createClient(
   'https://nsgqsopqlkhayuefdout.supabase.co',
@@ -308,6 +313,10 @@ async function init() {
   document.getElementById('dateText').textContent = getDateStr('today').replace(/-/g,' / ');
 
   try {
+    // 當期批次（換屆只改 DB）
+    BATCH_ID = await resolveBatchId();
+    if (!BATCH_ID) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
+
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }

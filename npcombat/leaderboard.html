@@ -318,7 +318,11 @@ function showBlackout() {
 // ── Init ──
 async function init() {
   // 載入最新班次
-  const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false }).limit(1);
+  // 當期（is_active）；沒有 active 才退回最新一期。避免預建下一期時排行榜提前跳空
+  let { data: batches } = await sb.from('batches').select('*').eq('is_active', true).limit(1);
+  if (!batches || !batches.length) {
+    ({ data: batches } = await sb.from('batches').select('*').order('id', { ascending: false }).limit(1));
+  }
   if (!batches || !batches.length) { showEmpty('尚未建立班次'); return; }
   currentBatch = batches[0];
 
@@ -567,7 +571,11 @@ function calcStats(startDate, endDate) {
 }
 
 // ── 載入週資料（純前端計算） ──
+// 該期有沒有獎勵活動（event_name 空 = 公司這期沒辦 → 活動相關榜自動隱藏）
+const hasEventNow = () => !!(currentBatch && currentBatch.event_name);
+
 function loadWeek(idx) {
+  const hasEvent = hasEventNow();
   if (isBlackout()) { showBlackout(); return; }
   currentWeek = idx;
 
@@ -599,27 +607,31 @@ function loadWeek(idx) {
   }
 
   // 名額計算（全期，不受週次篩選）
-  const eb = currentBatch.earlybird_score || 700;
-  const sm = currentBatch.single_month_score || 800;
-  const cm = currentBatch.cross_month_score || 900;
-  const slotsByMember = {};
-  allCloses.forEach(c => {
-    if (!closeCounts(c)) return; // 同樣套證明勾門檻
-    if (!slotsByMember[c.member_id]) slotsByMember[c.member_id] = {};
-    const m = parseInt(c.close_date.split('-')[1]);
-    slotsByMember[c.member_id][m] = (slotsByMember[c.member_id][m] || 0) + (c.points || 0);
-  });
-  Object.entries(slotsByMember).forEach(([mid, months]) => {
-    const sid = memberToStu[mid];
-    if (!sid || !students[sid]) return;
-    const apr = months[4] || 0, may = months[5] || 0, jun = months[6] || 0;
-    const aprSlots = Math.floor(apr / eb);
-    const maySlots = Math.floor(may / sm);
-    const junSlots = Math.floor(jun / sm);
-    const crossPool = (apr - aprSlots * eb) + (may - maySlots * sm) + (jun - junSlots * sm);
-    const crossSlots = Math.floor(crossPool / cm);
-    students[sid].slots = aprSlots + maySlots + junSlots + crossSlots;
-  });
+  // 僅在該期有獎勵活動時計算（event_name 空 = 公司沒辦活動 → slots 全 0，相關榜自動隱藏）
+  // ⚠️ 月份門檻（4/5/6）是 26 期威斯汀專屬；未來活動月份不同時，此段需連同 batches 門檻欄位一起改
+  if (hasEvent) {
+    const eb = currentBatch.earlybird_score || 700;
+    const sm = currentBatch.single_month_score || 800;
+    const cm = currentBatch.cross_month_score || 900;
+    const slotsByMember = {};
+    allCloses.forEach(c => {
+      if (!closeCounts(c)) return; // 同樣套證明勾門檻
+      if (!slotsByMember[c.member_id]) slotsByMember[c.member_id] = {};
+      const m = parseInt(c.close_date.split('-')[1]);
+      slotsByMember[c.member_id][m] = (slotsByMember[c.member_id][m] || 0) + (c.points || 0);
+    });
+    Object.entries(slotsByMember).forEach(([mid, months]) => {
+      const sid = memberToStu[mid];
+      if (!sid || !students[sid]) return;
+      const apr = months[4] || 0, may = months[5] || 0, jun = months[6] || 0;
+      const aprSlots = Math.floor(apr / eb);
+      const maySlots = Math.floor(may / sm);
+      const junSlots = Math.floor(jun / sm);
+      const crossPool = (apr - aprSlots * eb) + (may - maySlots * sm) + (jun - junSlots * sm);
+      const crossSlots = Math.floor(crossPool / cm);
+      students[sid].slots = aprSlots + maySlots + junSlots + crossSlots;
+    });
+  }
 
   // 即使無資料也顯示獎項標題，讓大家知道有哪些可以玩
 
@@ -679,8 +691,9 @@ function loadWeek(idx) {
     const isAllPeriod = idx === -1;
     html += `<div class="section-title">⚔️ ${periodLabel}個人戰績</div>`;
     html += '<div class="awards-grid">';
-    // 累積型獎項（獎勵達人）只在「全期」顯示，週榜不顯示
-    AWARDS.filter(a => !a.fun && (!a.cumulative || isAllPeriod)).forEach(a => { html += renderAwardCard(a, rank(a.key)); });
+    // 累積型獎項（獎勵達人）只在「全期」顯示，且該期要有獎勵活動才存在
+    AWARDS.filter(a => !a.fun && (!a.cumulative || isAllPeriod) && (a.key !== 'slots' || hasEvent))
+      .forEach(a => { html += renderAwardCard(a, rank(a.key)); });
     html += '</div>';
 
     html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
@@ -691,11 +704,11 @@ function loadWeek(idx) {
     html += `<div class="section-title">🏰 ${periodLabel}團隊榮耀（實戰班分組）</div>`;
     html += '<div class="awards-grid">';
     html += renderTeamMetric('⚔️', '最強小隊', '組別平均行動積分', groupArr, 'actionAvg', '分');
-    // 成交軍團：全期看達成門檻比例、週榜看本週成交比例
-    if (idx === -1) {
+    // 成交軍團：有活動的全期看達成門檻比例；否則看成交比例
+    if (idx === -1 && hasEvent) {
       html += renderTeamMetric('🏆', '成交軍團', '組內達成挑戰門檻比例', groupArr, 'slotPct', '%');
     } else {
-      html += renderTeamMetric('💰', '成交軍團', '組內本週成交比例', groupArr, 'closePct', '%');
+      html += renderTeamMetric('💰', '成交軍團', idx === -1 ? '組內成交比例' : '組內本週成交比例', groupArr, 'closePct', '%');
     }
     html += renderTeamMetric('📋', '全員到齊', '組內填報率最高', groupArr, 'fillRate', '%');
     html += renderTeamMetric('✅', '嚴謹軍團', '組內證明照驗證率最高', groupArr, 'proofRate', '%');
