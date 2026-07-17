@@ -4,7 +4,8 @@
     "source": "wiki/生涯庫/傳直銷百科/制度核心/萬宗歸一.md",
     "updated": "2026-07-05",
     "companies_verified": 38,
-    "note": "本檔記邏輯（算法）不記數字；各家 %、金額是參數，在各公司 JSON／wiki 公司頁。查差異＝兩家代號集合相減；查『誰用某算法』＝讀該邏輯的 companies。引擎跑「邏輯 × 公司參數」。companies 一律用 slug，對照 index.json。"
+    "note": "本檔記邏輯（算法）不記數字；各家 %、金額是參數，在各公司 JSON／wiki 公司頁。查差異＝兩家代號集合相減；查『誰用某算法』＝讀該邏輯的 companies。引擎跑「邏輯 × 公司參數」。companies 一律用 slug，對照 index.json。 | 2026-07-17 新增7家(克緹/百雅康/環球百順/全球威粒/加捷/紅崴/東森全球)；美樂家模型更正為5×7矩陣",
+    "updated_at": "2026-07-17"
   },
   "baskets": [
     {
@@ -56,7 +57,9 @@
         "doterra",
         "marykay",
         "noevir",
-        "meian"
+        "meian",
+        "kelti",
+        "partnerco"
       ]
     },
     {
@@ -81,7 +84,12 @@
         "dongzhen",
         "lixiangjia",
         "cosway",
-        "totalife"
+        "totalife",
+        "kelti",
+        "gwobest",
+        "weili",
+        "jiajie",
+        "goodarch"
       ]
     },
     {
@@ -122,7 +130,12 @@
         "doterra",
         "nuskin",
         "cosway",
-        "wanguo"
+        "wanguo",
+        "partnerco",
+        "gwobest",
+        "weili",
+        "jiajie",
+        "eud"
       ]
     },
     {
@@ -142,7 +155,7 @@
       "basket": "org",
       "formula": "弱腿業績 × %",
       "model": "雙軌",
-      "desc": "左右兩線取弱邊業績抽%",
+      "desc": "左右兩線取弱邊業績抽%；百雅康為 1 動力線 vs 2-5 佣金線多線變體",
       "companies": [
         "naturallyplus",
         "shengyu",
@@ -154,7 +167,10 @@
         "lixiangjia",
         "atomy",
         "wanguo",
-        "meian"
+        "meian",
+        "partnerco",
+        "weili",
+        "eud"
       ]
     },
     {
@@ -165,7 +181,8 @@
       "desc": "左右每層配對、各層第一位計一次",
       "companies": [
         "taihezi",
-        "wanguo"
+        "wanguo",
+        "weili"
       ]
     },
     {
@@ -202,7 +219,11 @@
         "newimage",
         "dongzhen",
         "cosway",
-        "totalife"
+        "totalife",
+        "kelti",
+        "gwobest",
+        "jiajie",
+        "goodarch"
       ]
     },
     {
@@ -239,7 +260,11 @@
         "marykay",
         "cosway",
         "wanguo",
-        "noevir"
+        "noevir",
+        "gwobest",
+        "weili",
+        "jiajie",
+        "goodarch"
       ]
     },
     {
@@ -294,7 +319,9 @@
         "sunrider",
         "lixiangjia",
         "wanguo",
-        "shengyu"
+        "shengyu",
+        "partnerco",
+        "eud"
       ]
     },
     {
@@ -307,7 +334,8 @@
         "balisidan",
         "taihezi",
         "pinmoer",
-        "fudizi"
+        "fudizi",
+        "eud"
       ]
     },
     {
@@ -340,7 +368,14 @@
         "lixiangjia",
         "totalife",
         "atomy",
-        "wanguo"
+        "wanguo",
+        "kelti",
+        "partnerco",
+        "gwobest",
+        "weili",
+        "jiajie",
+        "goodarch",
+        "eud"
       ]
     },
     {
@@ -359,7 +394,9 @@
         "sunrider",
         "pinmoer",
         "atomy",
-        "noevir"
+        "noevir",
+        "jiajie",
+        "goodarch"
       ]
     },
     {
@@ -371,7 +408,8 @@
       "companies": [
         "bama",
         "melaleuca",
-        "doterra"
+        "doterra",
+        "weili"
       ]
     },
     {
@@ -400,7 +438,9 @@
         "shengli",
         "avon",
         "totalife",
-        "noevir"
+        "noevir",
+        "jiajie",
+        "goodarch"
       ]
     }
   ]

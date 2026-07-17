@@ -58,7 +58,7 @@
   {
     "slug": "melaleuca",
     "name": "美樂家",
-    "type": "消費型單線制（7代）",
+    "type": "5×7矩陣（消費型）",
     "handbook": "2026.04",
     "status": "pending"
   },
@@ -264,5 +264,54 @@
     "type": "雙軌制（BDC固定額MPCP）",
     "handbook": "2026.05",
     "status": "pending"
+  },
+  {
+    "slug": "kelti",
+    "name": "克緹國際",
+    "type": "太陽差額制",
+    "handbook": "2016.05",
+    "status": "complete"
+  },
+  {
+    "slug": "partnerco",
+    "name": "百雅康",
+    "type": "多線對碰制",
+    "handbook": "2026.04",
+    "status": "complete"
+  },
+  {
+    "slug": "gwobest",
+    "name": "環球百順",
+    "type": "太陽差額+安置代數",
+    "handbook": "2026.06",
+    "status": "complete"
+  },
+  {
+    "slug": "weili",
+    "name": "全球威粒",
+    "type": "雙軌制",
+    "handbook": "2026.05",
+    "status": "complete"
+  },
+  {
+    "slug": "jiajie",
+    "name": "加捷生醫",
+    "type": "太陽三線考核制",
+    "handbook": "2026.06",
+    "status": "complete"
+  },
+  {
+    "slug": "goodarch",
+    "name": "紅崴科技",
+    "type": "太陽階梯累計制",
+    "handbook": "2025.05",
+    "status": "complete"
+  },
+  {
+    "slug": "eud",
+    "name": "東森全球",
+    "type": "雙軌制",
+    "handbook": "2026.03",
+    "status": "complete"
   }
 ]
