@@ -84,7 +84,9 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
     <input type="text" id="search" class="inp" placeholder="搜尋 編號/姓名" onkeydown="if(event.key==='Enter')loadData()">
     <select id="filter" class="inp" onchange="loadData()" title="資料篩選">
       <option value="all">全部</option>
-      <option value="active">有效</option>
+      <option value="valid">✅ 資格有效</option>
+      <option value="invalid">⛔ 資格失效</option>
+      <option value="active">狀態 active</option>
       <option value="terminated">已解約</option>
       <option value="no_sponsor">缺推薦人</option>
     </select>
@@ -107,7 +109,7 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
   </div>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>編號</th><th>姓名</th><th>階段</th><th>商品</th><th>入會</th><th>方案倒數</th><th>更新</th><th>更新者</th><th>狀態</th><th></th></tr></thead>
+      <thead><tr><th>編號</th><th>姓名</th><th>資格</th><th>階段</th><th>商品</th><th>入會</th><th>方案倒數</th><th>更新</th><th>更新者</th><th>狀態</th><th></th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -163,7 +165,7 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
           <button class="btn sm ghost" onclick="toggleAll('new',false)">全不選</button>
         </h3>
         <div class="sub">姓名遮罩（********）代表非直接下線，公司隱私保護所致，仍可先建檔用編號回追，之後再人工補真名。</div>
-        <div class="difftbl"><table><thead><tr><th></th><th>編號</th><th>姓名</th><th>登錄日</th><th>最終購買</th></tr></thead><tbody id="tblNew"></tbody></table></div>
+        <div class="difftbl"><table><thead><tr><th></th><th>編號</th><th>姓名</th><th>資格</th><th>登錄日</th><th>最終購買</th></tr></thead><tbody id="tblNew"></tbody></table></div>
       </div>
 
       <div class="diffsec">
@@ -313,10 +315,15 @@ function applyView(){
   else rows.sort((a,b)=>String(a.member_id).localeCompare(String(b.member_id)));
   renderRows(rows);
 }
+function validHtml(v){
+  if(v===true)  return '<span class="tag active">✅ 有效</span>';
+  if(v===false) return '<span class="tag terminated">⛔ 失效</span>';
+  return '<span class="miss">－</span>';
+}
 function rowCells(m){
   const stg=m.plan_stage||'無方案'; const scls=stg==='再購'?'s2':(stg==='新入會'?'':'s0');
   const prod=m.product?esc(m.product):(m.product_code?esc(m.product_code):'<span class="miss">－</span>');
-  return `<td><span class="stage ${scls}">${esc(stg)}</span></td><td>${prod}</td>`
+  return `<td>${validHtml(m.is_valid)}</td><td><span class="stage ${scls}">${esc(stg)}</span></td><td>${prod}</td>`
     +`<td>${m.registered_at?(esc(m.registered_at)+'<div style="color:#9fb0c8;font-size:.78rem;">入會 '+tenure(m.registered_at)+'</div>'):'<span class="miss">－</span>'}</td>`
     +`<td>${cdHtml(m.registered_at,m.plan_length)}</td><td>${agoText(m.updated_at)}</td>`
     +`<td>${m.updated_by?esc(m.updated_by):'<span class="miss">－</span>'}</td>`
@@ -377,7 +384,8 @@ async function save(){
 }
 
 /* ===== CSV 匯入比對 ===== */
-const PLAN_FIELD_LABELS = { registered_at:'登錄日', bcp:'BCP', sp:'SP', payment_method:'付款方式', product_code:'商品代碼', effective_purchase_date:'有效購買日', last_purchase_date:'最終購買日' };
+const PLAN_FIELD_LABELS = { registered_at:'登錄日', bcp:'BCP', sp:'SP', payment_method:'付款方式', product_code:'商品代碼', effective_purchase_date:'有效購買日', last_purchase_date:'最終購買日', is_valid:'資格' };
+const fmtVal = v => v===true?'✅有效' : v===false?'⛔失效' : (v==null||v===''?'－':String(v));
 let IMPORT_DIFF = { newMembers:[], nameFills:[], planDiffs:[] };
 
 function openImport(){
@@ -414,7 +422,10 @@ function parseNdsCsv(text){
     const last_purchase_date=(l[15]||'').trim();
     let payment_method='', product_code='';
     if(pay.includes(':')){ const parts=pay.split(':'); payment_method=parts[0].trim(); product_code=(parts[1]||'').trim(); }
-    rows.push({ member_id:id, name, country, registered_at, bcp, sp, payment_method, product_code, effective_purchase_date, last_purchase_date });
+    /* 第13欄「有效日」：空白=資格有效、0=已失效 */
+    const vd=(l[13]||'').trim();
+    const is_valid = vd==='' ? true : (vd==='0' ? false : null);
+    rows.push({ member_id:id, name, country, registered_at, bcp, sp, payment_method, product_code, effective_purchase_date, last_purchase_date, is_valid });
   }
   return rows;
 }
@@ -440,6 +451,7 @@ function buildDiff(csvRows, dbRows){
     if(cmpStr(c.product_code, d.product_code)) changes.push({field:'product_code', old:d.product_code, new:c.product_code});
     if(cmpStr(c.effective_purchase_date, d.effective_purchase_date)) changes.push({field:'effective_purchase_date', old:d.effective_purchase_date, new:c.effective_purchase_date});
     if(cmpStr(c.last_purchase_date, d.last_purchase_date)) changes.push({field:'last_purchase_date', old:d.last_purchase_date, new:c.last_purchase_date});
+    if(c.is_valid!==null && c.is_valid!==d.is_valid) changes.push({field:'is_valid', old:d.is_valid, new:c.is_valid});
     if(changes.length) planDiffs.push({ member_id:c.member_id, name:d.name||c.name, changes });
   });
   return { newMembers, nameFills, planDiffs };
@@ -467,7 +479,7 @@ function renderImportDiff(csvCount, dbCount){
   IMPORT_DIFF.newMembers.forEach((r,i)=>{
     const tr=document.createElement('tr');
     const maskedNote = r.name==='********' ? '<span class="warn-mask">********（遮罩）</span>' : esc(r.name||'－');
-    tr.innerHTML=`<td><input type="checkbox" class="chk-new" data-i="${i}" checked></td><td>${esc(r.member_id)}</td><td>${maskedNote}</td><td>${esc(r.registered_at)}</td><td>${esc(r.last_purchase_date)}</td>`;
+    tr.innerHTML=`<td><input type="checkbox" class="chk-new" data-i="${i}" checked></td><td>${esc(r.member_id)}</td><td>${maskedNote}</td><td>${validHtml(r.is_valid)}</td><td>${esc(r.registered_at)}</td><td>${esc(r.last_purchase_date)}</td>`;
     tblNew.appendChild(tr);
   });
   document.getElementById('cntNew').textContent=' 共 '+IMPORT_DIFF.newMembers.length+' 筆';
@@ -483,7 +495,7 @@ function renderImportDiff(csvCount, dbCount){
   const tblPlan=document.getElementById('tblPlan'); tblPlan.innerHTML='';
   IMPORT_DIFF.planDiffs.forEach((r,i)=>{
     const tr=document.createElement('tr');
-    const changesHtml=r.changes.map(c=>`<span class="changetag">${PLAN_FIELD_LABELS[c.field]||c.field}：${esc(c.old==null?'－':c.old)} → ${esc(c.new)}</span>`).join('');
+    const changesHtml=r.changes.map(c=>`<span class="changetag">${PLAN_FIELD_LABELS[c.field]||c.field}：${esc(fmtVal(c.old))} → ${esc(fmtVal(c.new))}</span>`).join('');
     tr.innerHTML=`<td><input type="checkbox" class="chk-plan" data-i="${i}" checked></td><td>${esc(r.member_id)}</td><td>${esc(r.name)}</td><td>${changesHtml}</td>`;
     tblPlan.appendChild(tr);
   });
