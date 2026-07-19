@@ -266,6 +266,11 @@ const OA_ENDPOINTS = {
 const DEFAULT_OA = "randoph";
 const N8N_CATALOG_URL = "PLACEHOLDER_N8N_CATALOG_WEBHOOK_URL";
 
+/* Supabase：回報直接寫進 randoph_nds.members（後台 corp.html 讀的同一張表） */
+const SUPABASE_URL  = "https://nsgqsopqlkhayuefdout.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
+const NDS_RPC_URL   = SUPABASE_URL + "/rest/v1/rpc/nds_report_submit";
+
 /* 內建商品目錄 fallback（正式以 DB 為準）；ref_price 用於分組標題顯示 */
 /* 顯示順序：用戶指定前段(喚活→明力多→48包系列→妍漾) + 其餘接後；spec 與 DB 一致供反查 */
 const FALLBACK_CATALOG = [
@@ -422,14 +427,26 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
   };
 
   try {
+    /* 主要寫入：直接進 Supabase（後台 corp.html 讀的同一張表） */
+    const res = await fetch(NDS_RPC_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON },
+      body: JSON.stringify({ p: payload })
+    });
+    if(!res.ok) throw new Error('伺服器回應 '+res.status);
+    const result = await res.json();
+    if(result && result.success===false){ showResult(result.message||'送出失敗，請聯絡管理者。','warning'); resetBtn(); return; }
+
+    /* 次要通知：原 n8n webhook 保留，非阻塞（掛掉不影響回報成功） */
     const oaKey = getOaFromUrl() || DEFAULT_OA;
-    const submitUrl = OA_ENDPOINTS[oaKey] || OA_ENDPOINTS[DEFAULT_OA];
-    const res = await fetch(submitUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-    if(res.ok){
-      let result={}; try{ result=await res.json(); }catch(_){}
-      if(result.success===false){ showResult(result.message||'送出失敗，請聯絡管理者。','warning'); resetBtn(); }
-      else { document.getElementById('btnText').textContent='回報成功！'; document.getElementById('btnSpinner').style.display='none'; btn.style.background='linear-gradient(135deg,#00b09b,#96c93d)'; setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },1800); }
-    } else { throw new Error('伺服器回應 '+res.status); }
+    const notifyUrl = OA_ENDPOINTS[oaKey] || OA_ENDPOINTS[DEFAULT_OA];
+    fetch(notifyUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
+      .catch(e=>console.warn('n8n notify failed (已寫入DB，不影響)',e));
+
+    document.getElementById('btnText').textContent='回報成功！';
+    document.getElementById('btnSpinner').style.display='none';
+    btn.style.background='linear-gradient(135deg,#00b09b,#96c93d)';
+    setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },1800);
   } catch(err){ console.error('submit error',err); showResult('送出失敗：'+err.message,'error'); resetBtn(); }
 });
 </script>
