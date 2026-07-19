@@ -84,10 +84,12 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
     <input type="text" id="search" class="inp" placeholder="搜尋 編號/姓名" onkeydown="if(event.key==='Enter')loadData()">
     <select id="filter" class="inp" onchange="loadData()" title="資料篩選">
       <option value="all">全部</option>
+      <option value="cancelled">🚫 已解約（PAY:0）</option>
+      <option value="paying">💳 未解約</option>
+      <option value="over18">📅 入會滿 18 個月</option>
+      <option value="over18_ok">📅 滿 18 個月・未解約</option>
       <option value="valid">✅ 資格有效</option>
       <option value="invalid">⛔ 資格失效</option>
-      <option value="active">狀態 active</option>
-      <option value="terminated">已解約</option>
       <option value="no_sponsor">缺推薦人</option>
     </select>
     <select id="stageFilter" class="inp" onchange="applyView()" title="階段">
@@ -135,7 +137,7 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
       <div class="fg"><label>購買商品</label><select class="inp" id="m_product"><option value="">－ 不變更 －</option></select><div class="tierbadge" id="m_tier_badge" style="display:none;"></div></div>
       <div class="fg" id="fg_length"><label>方案長度</label><select class="inp" id="m_plan_length"><option value="">－</option></select></div>
       <div class="fg" id="fg_variant"><label>給點方式</label><select class="inp" id="m_plan_variant"><option value="">－</option><option value="A">A 標準</option><option value="B">B 預購</option></select></div>
-      <div class="fg"><label>續購付款</label><select class="inp" id="m_payment_method"><option value="">－</option><option value="4">信用卡自動</option><option value="1">銀行自動</option><option value="2">貨到付款</option><option value="3">臨櫃</option><option value="0">終止</option></select></div>
+      <div class="fg"><label>續購付款</label><select class="inp" id="m_payment_method"><option value="">－</option><option value="4">信用卡自動</option><option value="1">銀行自動</option><option value="2">貨到付款</option><option value="3">臨櫃</option><option value="0">解約</option></select></div>
       <div class="fg"><label>扣款日</label><input class="inp" id="m_billing_day"></div>
     </div>
     <div class="sec">推薦與位置</div>
