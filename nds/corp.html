@@ -72,8 +72,8 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
 <body>
 <div id="login">
   <h1>🔐 NDS 會員管理</h1>
-  <input type="text" id="operator" class="inp" placeholder="你的姓名（用於紀錄更新者）" onkeydown="if(event.key==='Enter')login()">
-  <input type="password" id="pw" class="inp" placeholder="請輸入管理密碼" onkeydown="if(event.key==='Enter')login()">
+  <input type="text" id="username" class="inp" placeholder="帳號" autocapitalize="none" autocorrect="off" onkeydown="if(event.key==='Enter')login()">
+  <input type="password" id="pw" class="inp" placeholder="密碼" onkeydown="if(event.key==='Enter')login()">
   <button class="btn" onclick="login()">登入</button>
   <div class="msg err" id="loginErr"></div>
 </div>
@@ -103,6 +103,7 @@ th{background:#16203250;color:var(--accent);font-weight:700;position:sticky;top:
     <button class="btn sm" onclick="loadData()">查詢</button>
     <button class="btn sm ghost" onclick="openImport()">📥 CSV 匯入比對</button>
     <span class="count" id="count"></span>
+    <span class="count" id="whoami" style="color:var(--accent);font-weight:700;"></span>
   </div>
   <div class="tablewrap">
     <table>
@@ -214,12 +215,12 @@ const LEN_BY_STAGE = { "新入會":["1+11","1+5","新12M"], "再購":["12+2","6+
 const NO_VARIANT = ["新12M","24M"];
 const EFFECT_MONTHS = { "1+11":12, "1+5":6, "新12M":12, "12+2":12, "6+1":6, "24M":24 };
 
-let PW = "", OPERATOR = "", ROWS = [];
+let PW = "", USERNAME = "", OPERATOR = "", ROWS = [];
 
 async function api(payload){
   const r = await fetch(RPC_URL, { method:'POST',
     headers:{ 'Content-Type':'application/json', 'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON },
-    body: JSON.stringify({ p: { ...payload, password: PW, operator: OPERATOR } }) });
+    body: JSON.stringify({ p: { ...payload, username: USERNAME, password: PW } }) });
   if(!r.ok) throw new Error('Supabase '+r.status);
   return await r.json();
 }
@@ -252,19 +253,21 @@ function agoText(ts){ if(!ts) return '<span class="miss">－</span>'; const d=Ma
 
 async function login(){
   PW=document.getElementById('pw').value;
-  OPERATOR=document.getElementById('operator').value.trim();
+  USERNAME=document.getElementById('username').value.trim().toLowerCase();
   const err=document.getElementById('loginErr'); err.style.display='none';
-  if(!OPERATOR){ err.textContent='請先輸入你的姓名'; err.style.display='block'; return; }
+  if(!USERNAME){ err.textContent='請輸入帳號'; err.style.display='block'; return; }
   try{
     const d=await api({action:'list',filter:'all',limit:1});
-    if(d.success===false){ err.textContent=d.message||'密碼錯誤'; err.style.display='block'; return; }
-    localStorage.setItem('nds_operator', OPERATOR);
+    if(d.success===false){ err.textContent=d.message||'帳號或密碼錯誤'; err.style.display='block'; return; }
+    OPERATOR=d.operator||USERNAME;
+    localStorage.setItem('nds_username', USERNAME);
+    document.getElementById('whoami').textContent='👤 '+OPERATOR;
     document.getElementById('login').style.display='none';
     document.getElementById('app').style.display='block';
     buildProductOptions(); bindPlanEvents(); loadData();
   }catch(e){ err.textContent='連線失敗：'+e.message; err.style.display='block'; }
 }
-(function(){ const saved=localStorage.getItem('nds_operator'); if(saved) document.getElementById('operator').value=saved; })();
+(function(){ const saved=localStorage.getItem('nds_username'); if(saved) document.getElementById('username').value=saved; })();
 function buildProductOptions(){
   const sel=document.getElementById('m_product');
   CATALOG.forEach(it=>{ const o=document.createElement('option'); o.value=it.code+'|'+it.spec; o.textContent=it.label;
