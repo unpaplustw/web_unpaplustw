@@ -116,6 +116,17 @@
   .nav-btn:disabled{opacity:.3;cursor:not-allowed}
   .nav-info{font-size:13px;color:var(--muted)}
 
+  /* ── 簡單模式：小組關懷「有回應」 ── */
+  .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
+  .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
+  .eng-name{flex:1;font-size:16px;font-weight:600;color:var(--text)}
+  .eng-name .code{font-size:11px;color:var(--muted);margin-left:6px;font-weight:400}
+  .eng-toggle{display:flex;gap:6px;flex-shrink:0}
+  .eng-btn{padding:8px 15px;border-radius:22px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.12s}
+  .eng-btn.yes.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+  .eng-btn.no.on{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+  .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
+
   /* ── Mode Tabs ── */
   .mode-tabs{display:flex;gap:0;max-width:500px;margin:0 auto;padding:12px 16px 0}
   .mode-tab{flex:1;padding:12px;border:none;border-bottom:3px solid transparent;background:none;font-size:15px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
@@ -278,6 +289,8 @@ let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
 let currentDay = 'today';
+let coachMode = 'simple';                       // full=審核制(26期) / simple=信任制+有回應(27期起)
+let engToday = {}, engYesterday = {};           // student_id -> engaged(bool)，簡單模式的每日「有回應」
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -313,9 +326,12 @@ async function init() {
   document.getElementById('dateText').textContent = getDateStr('today').replace(/-/g,' / ');
 
   try {
-    // 當期批次（換屆只改 DB）
-    BATCH_ID = await resolveBatchId();
-    if (!BATCH_ID) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
+    // 當期批次（換屆只改 DB）+ 教練模式
+    const { data: batchRow } = await sb.from('batches').select('id, coach_mode').eq('is_active', true).maybeSingle();
+    if (!batchRow) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
+    BATCH_ID = batchRow.id;
+    coachMode = batchRow.coach_mode || 'simple';
+    if (coachMode === 'simple') document.getElementById('tabReview').textContent = '小組關懷';
 
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
@@ -366,7 +382,7 @@ async function init() {
     // 查配對學員（只撈已批准）
     const { data: students } = await sb.from('batch_students').select('id, member_id')
       .eq('coach_id', coachId).eq('status', 'approved');
-    if (!students || students.length === 0) { toast('目前無配對學員'); renderSummary(); return; }
+    if (!students || students.length === 0) { toast('目前無配對學員'); renderReview(); return; }
 
     // 查學員基本資料
     const memberIds = students.map(s => s.member_id);
@@ -437,6 +453,17 @@ async function init() {
       };
     });
 
+    // 簡單模式：載入今天/昨天「有回應」紀錄
+    if (coachMode === 'simple' && coachId) {
+      const { data: engRows } = await sb.from('coach_engagement')
+        .select('student_id, log_date, engaged')
+        .eq('coach_id', coachId).in('log_date', [getDateStr('today'), getDateStr('yesterday')]);
+      engToday = {}; engYesterday = {};
+      (engRows || []).forEach(r => {
+        (r.log_date === getDateStr('today') ? engToday : engYesterday)[r.student_id] = r.engaged;
+      });
+    }
+
   } catch (e) {
     if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
     document.getElementById('coachName').textContent = '載入失敗';
@@ -444,8 +471,14 @@ async function init() {
   }
 
   renderMyReport();
-  renderSummary();
+  renderReview();
   setMode('my');
+}
+
+// 學員審查／小組關懷 分派（依教練模式）
+function renderReview() {
+  if (coachMode === 'simple') renderEngagement();
+  else renderSummary();
 }
 
 // ── Mode Toggle ──
@@ -464,7 +497,7 @@ function setMode(mode) {
     renderMyReport();
   } else {
     document.querySelector('.day-toggle').style.display = '';
-    renderSummary();
+    renderReview();
   }
 }
 
@@ -678,10 +711,53 @@ function setDay(day) {
   document.getElementById('btnToday').classList.toggle('on', day === 'today');
   document.getElementById('btnYesterday').classList.toggle('on', day === 'yesterday');
   if (currentMode === 'my') { renderMyReport(); return; }
+  if (coachMode === 'simple') { renderEngagement(); return; }
   if (document.getElementById('detailView').style.display !== 'none') {
     renderStudent();
   }
   renderSummary();
+}
+
+// ── 簡單模式：小組關懷（每日「有回應」，純監控不計分） ──
+function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
+
+function renderEngagement() {
+  document.getElementById('summaryDate').textContent = formatDate(getDateStr(currentDay));
+  const hd = document.querySelector('#summaryView .summary-hd span');
+  if (hd) hd.textContent = '小組關懷';
+
+  const map = engMapFor(currentDay);
+  let yes = 0, marked = 0;
+  let h = `<div class="eng-hint">今天小組裡，每個人有沒有回應？點一下記錄，「沒回應」的就是要主動關心的人。</div>`;
+
+  studentList.forEach(stu => {
+    const v = map[stu.id];            // true / false / undefined(未標記)
+    if (v === true) yes++;
+    if (v !== undefined) marked++;
+    h += `<div class="eng-row">
+      <span class="eng-name">${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}</span>
+      <span class="eng-toggle">
+        <button class="eng-btn yes ${v === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}', true)">有回應</button>
+        <button class="eng-btn no ${v === false ? 'on' : ''}" onclick="toggleEngage('${stu.id}', false)">沒回應</button>
+      </span>
+    </div>`;
+  });
+
+  const total = studentList.length;
+  h += `<div class="eng-total">✅ 有回應 ${yes} / ${total}　·　已標記 ${marked} / ${total}</div>`;
+  document.getElementById('summaryBody').innerHTML = h;
+}
+
+async function toggleEngage(studentId, engaged) {
+  const map = engMapFor(currentDay);
+  const prev = map[studentId];
+  map[studentId] = engaged;          // 樂觀更新
+  renderEngagement();
+  const { error } = await sb.from('coach_engagement').upsert({
+    batch_id: BATCH_ID, coach_id: coachId, student_id: studentId,
+    log_date: getDateStr(currentDay), engaged
+  }, { onConflict: 'batch_id,student_id,log_date' });
+  if (error) { map[studentId] = prev; renderEngagement(); toast('儲存失敗：' + error.message); }
 }
 
 // ── Summary ──
