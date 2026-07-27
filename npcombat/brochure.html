@@ -51,6 +51,20 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .req-content{flex:1}
 .req-title{font-size:14px;font-weight:700;margin-bottom:2px}
 .req-desc{font-size:12px;color:var(--txt2);line-height:1.5}
+.pt-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+.pt-rule{display:flex;align-items:center;gap:10px;padding:11px 0;font-size:14px;font-weight:600;border-bottom:1px dashed var(--border)}
+.pt-badge{flex-shrink:0;background:rgba(224,92,92,.12);color:#c0392b;font-size:12px;font-weight:900;padding:3px 11px;border-radius:20px}
+.pt-steps{margin-top:12px;font-size:13px;line-height:2;color:var(--txt2)}
+.pt-steps b{color:var(--gold3)}
+.pt-final{margin-top:14px;text-align:center;font-size:14px;font-weight:700;color:var(--gold3)}
+.vid-plan{margin:6px 0 4px}
+.vid-week{font-size:12px;font-weight:900;letter-spacing:3px;color:var(--gold);margin:14px 0 8px;padding-left:2px}
+.vid-week:first-child{margin-top:0}
+.vid-row{display:flex;gap:12px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--border)}
+.vid-date{flex-shrink:0;width:48px;text-align:center;font-size:17px;font-weight:900;color:var(--gold3);line-height:1.1}
+.vid-date span{display:block;font-size:11px;font-weight:500;color:var(--txt2);margin-top:2px}
+.vid-list{font-size:14px;line-height:1.7;color:var(--txt)}
+.vid-list b{color:var(--gold3);font-weight:900;font-size:13px}
 .score-table{width:100%;border-collapse:collapse;margin:8px 0}
 .score-table th{text-align:left;padding:10px 12px;font-size:12px;color:var(--gold3);border-bottom:1px solid rgba(184,150,12,0.15);font-weight:700;}
 .score-table td{padding:12px 12px;font-size:16px;font-weight:600;border-bottom:1px solid var(--border);line-height:1.5}
@@ -78,16 +92,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 
   <div class="hero">
     <div class="hero-badge">🏆 27期實戰班</div>
-    <h1>用行動說話<br>37 天實戰計畫</h1>
+    <h1>用行動說話<br>31 天實戰計畫</h1>
     <p class="hero-sub">邊做邊學、邊學邊玩、邊玩邊賺。<br>看影片、交作業、天天行動，把本事練成本能。</p>
     <div class="hero-motto">「一個人玩不是玩，一群人玩才是玩。」</div>
   </div>
 
   <div class="section">
     <div class="target-card">
-      <div class="target-num">37<span style="font-size:24px">天</span></div>
+      <div class="target-num">31<span style="font-size:24px">天</span></div>
       <div class="target-label">每天一個行動</div>
-      <div class="target-desc">7/26 – 8/31，用累積的次數證明你來過。</div>
+      <div class="target-desc">8/2 – 9/1，用累積的次數證明你來過。</div>
     </div>
   </div>
 
@@ -118,29 +132,29 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 
   <div class="section">
     <div class="section-tag">培訓時程</div>
-    <div class="section-title">7/26 開班 → 8月底結業</div>
+    <div class="section-title">8/2 開班 → 9/1 結業</div>
     <div class="timeline">
       <div class="tl-item">
         <div class="tl-dot"></div>
-        <div class="tl-date">7/26 前</div>
+        <div class="tl-date">8/2 前</div>
         <div class="tl-title">入學考驗</div>
         <div class="tl-desc">完成自我定位、準備 10 個名單，通過教練確認。</div>
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
-        <div class="tl-date">7/26 — 8/1</div>
-        <div class="tl-title">準備週：武裝自己</div>
-        <div class="tl-desc">名單健檢、排滿行事曆、邀約演練。解決「不敢開口」的問題。</div>
+        <div class="tl-date">8/2（日）</div>
+        <div class="tl-title">開班典禮</div>
+        <div class="tl-desc">晚上實戰班之夜開幕，正式集結，一起出發。</div>
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
-        <div class="tl-date">8/2 — 8/8</div>
-        <div class="tl-title">提升週：火力全開</div>
-        <div class="tl-desc">ABC 實戰演練、T-UP 推崇演練，提高轉換率。</div>
+        <div class="tl-date">8/3 — 8/13</div>
+        <div class="tl-title">培訓期：練基本功</div>
+        <div class="tl-desc">兩週看完 17 部培訓影片、完成作業，一邊學一邊出手行動。</div>
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
-        <div class="tl-date">8/9 — 8/31</div>
+        <div class="tl-date">8/14 — 9/1</div>
         <div class="tl-title">極限衝刺</div>
         <div class="tl-desc">每日定聚、個案突破、教練重兵支援締結，全力衝刺！</div>
       </div>
@@ -192,15 +206,39 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 
   <div class="section">
     <div class="section-tag">培訓內容</div>
-    <div class="section-title">看影片、交作業</div>
-    <p class="section-text">27 期不只衝行動，還要把基本功練起來：</p>
-    <div style="background:rgba(224,123,0,.06);border:1px dashed #e07b00;border-radius:12px;padding:16px;margin-top:4px">
-      <div style="font-size:13px;font-weight:700;color:#e07b00;margin-bottom:8px">✏️ 待補（Randoph 填）</div>
-      <div style="font-size:14px;line-height:1.9;color:var(--txt2,#6b7280)">
-        ・影片：共幾支？什麼時候看？<br>
-        ・作業：什麼形式？交給誰？多久一次？<br>
-        ・沒看完 / 沒交，會怎樣？
+    <div class="section-title">17 部影片 · 看完交作業</div>
+    <p class="section-text">🎦 兩週看完 17 部培訓影片，每天看完當天進度、完成作業，把基本功練起來：</p>
+    <div class="vid-plan">
+      <div class="vid-week">第一週</div>
+      <div class="vid-row"><div class="vid-date">8/3<span>一</span></div><div class="vid-list"><b>第0部</b> 前導　<b>第1部</b> 夢想版　<b>第2部</b> 確信行業</div></div>
+      <div class="vid-row"><div class="vid-date">8/4<span>二</span></div><div class="vid-list"><b>第4部</b> 確信公司　<b>第5部</b> 確信商品</div></div>
+      <div class="vid-row"><div class="vid-date">8/5<span>三</span></div><div class="vid-list"><b>第6部</b> 確信制度　<b>第7部</b> 確信系統</div></div>
+      <div class="vid-row"><div class="vid-date">8/6<span>四</span></div><div class="vid-list"><b>第8部</b> 設定目標　<b>第9部</b> 列名單作戰會議1</div></div>
+      <div class="vid-row"><div class="vid-date">8/7<span>五</span></div><div class="vid-list"><b>第10部</b> 邀約　<b>第11部</b> 自我定位</div></div>
+      <div class="vid-week">第二週</div>
+      <div class="vid-row"><div class="vid-date">8/10<span>一</span></div><div class="vid-list"><b>第12部</b> 會場運作2</div></div>
+      <div class="vid-row"><div class="vid-date">8/11<span>二</span></div><div class="vid-list"><b>第13部</b> 疑慮處理</div></div>
+      <div class="vid-row"><div class="vid-date">8/12<span>三</span></div><div class="vid-list"><b>第14部</b> 作戰會議2　<b>第15部</b> 跟進</div></div>
+      <div class="vid-row"><div class="vid-date">8/13<span>四</span></div><div class="vid-list"><b>第16部</b> 專業形象　<b>第17部</b> 實現夢想的開始</div></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-tag">承諾機制</div>
+    <div class="section-title">說到做到 · 記滿三點退班</div>
+    <p class="section-text">實戰班是「一起完成」的承諾。為了讓大家互相把關、沒有人半途掉隊，設有記點制度：</p>
+    <div class="pt-card">
+      <div class="pt-rule"><span class="pt-badge">記 1 點</span>未按進度繳交作業</div>
+      <div class="pt-rule" style="border-bottom:none"><span class="pt-badge">記 1 點</span>無故缺席週日「實戰班之夜」</div>
+      <div class="pt-steps">
+        <b>先關心，才記點：</b><br>
+        ① 第一次沒跟上，教練不會急著記點 —— 會先勸導、並找你的上線一起了解狀況，陪你調整。<br>
+        ② 經勸導仍未改善，才開始累計。<br>
+        ③ 累計滿 <b style="color:#c0392b">3 點</b>，退出本期實戰班。
       </div>
+      <div class="pt-final">🤝 來了，就一起走到最後。</div>
     </div>
   </div>
 
@@ -246,9 +284,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="divider"></div>
 
   <div class="cta-section">
-    <div class="cta-text">準備好了嗎？<br>37 天後，讓數字說話。</div>
+    <div class="cta-text">準備好了嗎？<br>31 天後，讓數字說話。</div>
     <a class="cta-btn" href="https://liff.line.me/2009692859-1LNWRlIq">立即報名 →</a>
-    <div class="cta-date">⚠️ 報名截止：7/23（四）晚上 23:00 ── 逾期不候</div>
+    <div class="cta-date">⚠️ 報名截止：7/30（四）晚上 23:00 ── 逾期不候</div>
   </div>
 
   <div class="footer">
