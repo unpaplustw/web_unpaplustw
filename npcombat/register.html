@@ -662,7 +662,7 @@ async function resolveBatch() {
   return data || null;
 }
 
-// 報名頁抬頭：班名/活動/開班典禮/截止（截止＝開班前 3 天 23:00，沿用 26 期慣例）
+// 報名頁抬頭：班名/活動/開班典禮/截止（截止＝開班前 3 天 21:00）
 function renderHero(b) {
   const WD = ['日','一','二','三','四','五','六'];
   const fmt = (d, hhmm) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}（${WD[d.getDay()]}）${hhmm}`;
@@ -673,7 +673,7 @@ function renderHero(b) {
   document.getElementById('heroBadge').textContent =
     b.event_name ? `${start.getFullYear()} · 共赴${b.event_name}` : `${start.getFullYear()} · ${b.name}`;
   document.getElementById('infoStart').textContent = fmt(start, '21:00');
-  document.getElementById('infoDeadline').textContent = fmt(dl, '23:00');
+  document.getElementById('infoDeadline').textContent = fmt(dl, '21:00');
   document.title = `${b.name}｜報名登記`;
 }
 
