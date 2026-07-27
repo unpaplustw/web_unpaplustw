@@ -543,31 +543,6 @@
         <p class="hint">若找不到你的上線，請聯繫對方確認是否已完成登記並通過審核。</p>
       </div>
 
-      <div class="field">
-        <label>自我定位 <span class="req">*</span></label>
-        <textarea id="f-intro" rows="5" placeholder="請填入與上線口頭演練後的版本（演練時間需在 3～5 分鐘）" style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans TC',sans-serif;font-size:15px;padding:13px 14px;outline:none;resize:none;line-height:1.6;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;"></textarea>
-        <p class="hint" id="intro-count">已輸入 0 字</p>
-      </div>
-
-      <div class="divider"><span>10 個準備接觸的名單</span></div>
-
-      <div class="field">
-        <label>基礎名單 <span class="req">*</span></label>
-        <p class="hint" style="margin-bottom:10px;">填入10位尚未傳遞綠佳利資訊的對象（講過、暗示過的不算）</p>
-        <div class="name-grid">
-          <div class="name-item"><span class="num">1</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">2</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">3</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">4</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">5</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">6</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">7</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">8</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">9</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-          <div class="name-item"><span class="num">10</span><input type="text" class="name-input" placeholder="姓名" maxlength="15"></div>
-        </div>
-      </div>
-
       <div class="divider"><span>匯款資訊</span></div>
 
       <div class="bank-card">
@@ -684,10 +659,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let lineUserId  = null;
 let lineProfile = null;
 
-document.getElementById('f-intro').addEventListener('input', function() {
-  document.getElementById('intro-count').textContent = `已輸入 ${this.value.length} 字`;
-});
-
 const ALL_SCREENS = [
   'screen-exists', 'screen-approved', 'screen-rejected',
   'screen-success',
@@ -736,8 +707,6 @@ async function handleStudentSubmit() {
   const phone       = document.getElementById('f-phone').value.trim();
   const registered  = document.querySelector('input[name="registered"]:checked')?.value;
   const coachId     = document.getElementById('f-coach').value;
-  const intro       = document.getElementById('f-intro').value.trim();
-  const names       = [...document.querySelectorAll('.name-input')].map(i => i.value.trim()).filter(Boolean);
   const transfer    = document.getElementById('f-transfer').value.trim();
   const errEl       = document.getElementById('error-msg');
   errEl.style.display = 'none';
@@ -750,8 +719,6 @@ async function handleStudentSubmit() {
   if (!registered)  errors.push('請選擇是否已完成 A Plus 系統註冊');
   if (registered === 'no') errors.push('請先完成 A Plus 系統官網註冊，再回來填寫報名表');
   if (!coachId)     errors.push('請選擇上線（教練）');
-  if (intro.length < 100) errors.push(`自我定位至少需 100 字（目前 ${intro.length} 字）`);
-  if (names.length < 10)  errors.push(`請填寫 10 個名單（目前 ${names.length} 個）`);
   const transferClean = transfer.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{5}$/.test(transferClean)) errors.push('匯款帳號後 5 碼必須是 5 位數字');
 
@@ -786,8 +753,8 @@ async function handleStudentSubmit() {
       phone,
       registered:    registered === 'yes',
       group_name:    '啟動班',
-      introduction:  intro,
-      name_list:     names,
+      introduction:  null,
+      name_list:     [],
       transfer_code: transferClean,
       status:        'pending'
     });
