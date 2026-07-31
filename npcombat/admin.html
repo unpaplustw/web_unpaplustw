@@ -315,7 +315,15 @@ async function init() {
   // ── LIFF 門禁 ──
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
+    if (!liff.isLoggedIn()) {
+      // 防跳轉迴圈：若剛從 LINE 登入回來(網址帶 code)卻仍未登入 = 瀏覽器擋 cookie，停下來給提示，別再跳
+      if (new URLSearchParams(location.search).has('code')) {
+        document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🔁</div><div class="empty-text">登入無法完成，通常是瀏覽器擋了 Cookie。<br><br>請改用以下方式：<br>① 直接在 <b>LINE App 內</b>開啟此頁<br>② 或用 Chrome（非無痕）、關閉「封鎖第三方 Cookie」<br><br>連結：liff.line.me/2009692859-DepTDosN</div></div>';
+        return;
+      }
+      liff.login({ redirectUri: location.origin + location.pathname });
+      return;
+    }
     const profile = await liff.getProfile();
 
     const { data: member } = await sb.from('members_master').select('id, name')
@@ -417,7 +425,7 @@ async function load() {
 
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'拉近關係', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
-const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組'];
+const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組'];
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
 const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 

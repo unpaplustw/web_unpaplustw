@@ -747,7 +747,8 @@ async function handleStudentSubmit() {
       .select('id').single();
     if (memberErr) throw memberErr;
 
-    const { error: studentErr } = await sb.from('batch_students').insert({
+    // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 給教練重審），避免撞 UNIQUE(member_id,batch_id)
+    const { error: studentErr } = await sb.from('batch_students').upsert({
       batch_id:      BATCH_ID,
       member_id:     member.id,
       sponsor_id:    coachId,
@@ -758,7 +759,7 @@ async function handleStudentSubmit() {
       name_list:     [],
       transfer_code: transferClean,
       status:        'pending'
-    });
+    }, { onConflict: 'member_id,batch_id' });
     if (studentErr) throw studentErr;
 
     showScreen('screen-success');
@@ -812,9 +813,10 @@ async function handleCoachSubmit() {
       .select('id').single();
     if (memberErr) throw memberErr;
 
-    const { error: coachErr } = await sb.from('batch_coaches').insert({
+    // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 重審）
+    const { error: coachErr } = await sb.from('batch_coaches').upsert({
       batch_id: BATCH_ID, member_id: member.id, phone, rank, cfc, status: 'pending'
-    });
+    }, { onConflict: 'batch_id,member_id' });
     if (coachErr) throw coachErr;
 
     showScreen('screen-coach-success');
@@ -852,16 +854,16 @@ async function init() {
 
       if (student) {
         if (student.status === 'approved')  { showScreen('screen-approved'); return; }
-        if (student.status === 'rejected')  { showScreen('screen-rejected'); return; }
-        showScreen('screen-exists'); return;
+        // 被退件 → 不擋，落到下方表單可重新報名（送出會 upsert 覆蓋原記錄）
+        if (student.status !== 'rejected')  { showScreen('screen-exists'); return; }
       }
 
       const { data: coach } = await sb.from('batch_coaches').select('id, status')
         .eq('batch_id', BATCH_ID).eq('member_id', member.id).single();
       if (coach) {
         if (coach.status === 'approved')  { showScreen('screen-coach-approved'); return; }
-        if (coach.status === 'rejected')  { showScreen('screen-coach-rejected'); return; }
-        showScreen('screen-coach-pending'); return;
+        // 被退件 → 不擋，落到下方表單可重新登記（送出會 upsert 覆蓋原記錄）
+        if (coach.status !== 'rejected')  { showScreen('screen-coach-pending'); return; }
       }
     }
 
