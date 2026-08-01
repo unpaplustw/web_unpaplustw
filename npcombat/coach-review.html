@@ -178,6 +178,7 @@
   .g-img-cap{padding:9px 6px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);border-top:1px solid var(--border)}
   .g-img-cap span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:1px}
   .g-savetip{margin-top:9px;text-align:center;font-size:13px;color:var(--muted);background:var(--gold-lt);border-radius:10px;padding:9px}
+  .g-bgtitle{font-size:15px;font-weight:700;color:var(--gold3);margin-bottom:8px;padding-left:2px}
   .g-list{margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:var(--text)}
   .g-list li{margin-bottom:7px}
   .g-list li::marker{color:var(--gold);font-weight:700}
@@ -411,22 +412,36 @@ https://ppt.cc/fJAcix
 
         <div class="g-step">
           <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">存好 Zoom 虛擬背景</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前先存好。<b>每週日的實戰班之夜都是用 Zoom</b>，每次都用得到。<br>👉 <b>怎麼做：</b>長按下面圖片存到手機，也記得提醒學員存。</div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前先存好。<b>每週日的實戰班之夜都是用 Zoom</b>，每次都用得到。<br>👉 <b>怎麼做：</b><b>教練用教練版、學員用學員版</b>，兩種都存起來，學員版要轉給你的組員。</div>
           <div class="g-step-body">
             <!-- 圖片未上傳前自動隱藏（onerror），避免破圖 -->
             <div id="secZoomBg" style="display:none">
+              <div class="g-bgtitle">👤 教練用（你自己）</div>
               <div class="g-imgs">
                 <div class="g-img">
-                  <img src="assets/zoom-bg-desktop.jpg" alt="電腦版 Zoom 背景"
+                  <img src="assets/zoom-bg-desktop.jpg" alt="教練版 電腦 Zoom 背景"
                        onload="document.getElementById('secZoomBg').style.display=''"
                        onerror="this.closest('.g-img').style.display='none'">
-                  <div class="g-img-cap">💻 電腦版<span>16:9 橫式</span></div>
+                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
                 </div>
                 <div class="g-img portrait">
-                  <img src="assets/zoom-bg-mobile.jpg" alt="手機版 Zoom 背景"
+                  <img src="assets/zoom-bg-mobile.jpg" alt="教練版 手機 Zoom 背景"
                        onload="document.getElementById('secZoomBg').style.display=''"
                        onerror="this.closest('.g-img').style.display='none'">
-                  <div class="g-img-cap">📱 手機版<span>9:16 直式</span></div>
+                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
+                </div>
+              </div>
+              <div class="g-bgtitle" style="margin-top:18px">🎓 學員用（轉給組員）</div>
+              <div class="g-imgs">
+                <div class="g-img">
+                  <img src="assets/student-bg-desktop.jpg" alt="學員版 電腦 Zoom 背景"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
+                </div>
+                <div class="g-img portrait">
+                  <img src="assets/student-bg-mobile.jpg" alt="學員版 手機 Zoom 背景"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
                 </div>
               </div>
               <div class="g-savetip">👆 <b>長按圖片</b> →「儲存影像」即可存到手機相簿</div>
