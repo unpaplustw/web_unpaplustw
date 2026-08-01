@@ -127,6 +127,33 @@
   .eng-btn.no.on{background:var(--red-bg);border-color:var(--red);color:var(--red)}
   .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
 
+  /* ── 教練指南 ── */
+  .guide-wrap{max-width:500px;margin:0 auto;padding:16px}
+  .guide-intro{font-size:14px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:18px}
+  .guide-phase{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
+  .guide-phase-hd{font-size:18px;font-weight:700;color:var(--text)}
+  .guide-phase-sub{font-size:12px;color:var(--muted);margin:2px 0 12px}
+  .guide-body{font-size:15px;line-height:1.9;color:var(--text)}
+  .guide-body ul{margin:0;padding-left:4px;list-style:none}
+  .guide-body li{position:relative;padding-left:26px;margin-bottom:10px}
+  .guide-body li::before{content:'✔';position:absolute;left:0;top:1px;color:var(--gold);font-weight:700}
+  .guide-body b{color:var(--gold3)}
+  .guide-body .g-note{font-size:13px;color:var(--muted);background:var(--gold-lt);border-radius:10px;padding:10px 12px;margin-top:8px;line-height:1.7}
+  .guide-placeholder{font-size:14px;color:var(--muted);text-align:center;padding:18px 0;font-style:italic}
+  .g-sec{margin-bottom:22px}
+  .g-sec:last-child{margin-bottom:0}
+  .g-sec-t{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gold-lt)}
+  .g-link{display:flex;align-items:center;gap:8px;padding:11px 13px;margin-bottom:7px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;color:var(--gold);text-decoration:none;-webkit-tap-highlight-color:transparent}
+  .g-link:active{background:var(--gold-lt)}
+  .g-copybox{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .g-text{margin:0;padding:13px 14px;font-family:inherit;font-size:14px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:290px;overflow-y:auto}
+  .g-copy{width:100%;padding:12px;border:none;border-top:1px solid var(--border);background:var(--gold-lt);color:var(--gold);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .g-copy:active{opacity:.7}
+  .g-copy.done{background:var(--green-bg);color:var(--green)}
+  .g-list{margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:var(--text)}
+  .g-list li{margin-bottom:7px}
+  .g-list li::marker{color:var(--gold);font-weight:700}
+
   /* ── Mode Tabs ── */
   .mode-tabs{display:flex;gap:0;max-width:500px;margin:0 auto;padding:12px 16px 0}
   .mode-tab{flex:1;padding:12px;border:none;border-bottom:3px solid transparent;background:none;font-size:15px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
@@ -181,6 +208,7 @@
 <div class="mode-tabs">
   <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">自己回報</button>
   <button class="mode-tab" id="tabReview" onclick="setMode('review')">學員審查</button>
+  <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
 
 <!-- Day Toggle -->
@@ -235,6 +263,116 @@
     <button class="nav-btn" id="btnPrev" onclick="navStudent(-1)">← 上一位</button>
     <span class="nav-info" id="navInfo"></span>
     <button class="nav-btn" id="btnNext" onclick="navStudent(1)">下一位 →</button>
+  </div>
+</div>
+
+<!-- Guide View：教練指南（開班前/中/後）內容陸續填入 -->
+<div id="guideView" style="display:none">
+  <div class="guide-wrap">
+    <div class="guide-intro">教練帶班手冊 —— 照著做，帶好你的小組 💪</div>
+
+    <div class="guide-phase" data-phase="before">
+      <div class="guide-phase-hd">🟢 開班前</div>
+      <div class="guide-phase-sub">報名 ～ 8/2 開班</div>
+      <div class="guide-body" id="guideBefore">
+
+        <div class="g-sec">
+          <div class="g-sec-t">🎬 教練工具教學</div>
+          <a class="g-link" href="https://youtu.be/7VARzHYF7XE" target="_blank" rel="noopener">▶️ 教學影片 ①</a>
+          <a class="g-link" href="https://youtu.be/msFXvX3kYKo" target="_blank" rel="noopener">▶️ 教學影片 ②</a>
+          <a class="g-link" href="https://youtu.be/-uA6uKWPWgI" target="_blank" rel="noopener">▶️ 教學影片 ③</a>
+        </div>
+
+        <div class="g-sec">
+          <div class="g-sec-t">📝 學員進群組準備事項</div>
+          <div class="g-copybox">
+<pre class="g-text" id="cpIntro">姓名/實戰班成就領袖/工作/經營時間＆區域/參加實戰班次數
+《範例》 王小美/林O霖/美髮師/1個月台北/2次
+1.
+2.
+3.
+4.
+5.
+6.</pre>
+            <button class="g-copy" onclick="copyGuide('cpIntro',this)">📋 一鍵複製</button>
+          </div>
+        </div>
+
+        <div class="g-sec">
+          <div class="g-sec-t">🎉 全員到齊文案</div>
+          <div class="g-copybox">
+<pre class="g-text" id="cpAllHere">🎉我們全員到齊了🎉
+我是第____組的教練_________ 以下有幾件事情請大家留意一下：
+
+1️⃣記事本中有更換zoom背景的方式及圖片，請大家在開班典禮時記得更換背景唷！
+2️⃣要請大家開班典禮後，記得回到小組，我將用Line會議室進行我們第一次的定聚唷!😁
+3️⃣尚未加入實戰班大群組的學員請記得加入並改名稱 ⚠️進入社群需要完成：
+使用者名稱更改為 (19初/組別/學/姓名）
+放上【本人照片】
+https://ppt.cc/fJAcix
+4️⃣請大家加我的line方便未來聯絡唷～
+非常開心接下來的4週能和大家一起互助成長、往理想的人生邁進🔅🔅🔅🔅🔅</pre>
+            <button class="g-copy" onclick="copyGuide('cpAllHere',this)">📋 一鍵複製</button>
+          </div>
+          <div class="g-note" style="margin-top:10px">
+            <b>⚠️ 傳進小組前請先確認：</b>
+            <ol class="g-list" style="margin-top:6px">
+              <li>空白處填入自己的<b>組別與名字</b></li>
+              <li>若組員在<b>開班典禮當天</b>就全員到齊，第 2 點的「明晚」要改成「<b>今晚</b>」</li>
+              <li>第 3 點務必<b>放上連結</b>（Line 會議室或 Zoom）；改用 Zoom 記得改內容</li>
+              <li>第 4 點的「組別」直接改成你的組</li>
+              <li>可在文案後附上「實戰班大群改名＋照片教學影片」網址（見下）</li>
+            </ol>
+          </div>
+          <a class="g-link" style="margin-top:8px" href="https://www.youtube.com/watch?v=pRwtfxqY0gk" target="_blank" rel="noopener">▶️ 大群改名＋照片教學（貼給學員看）</a>
+        </div>
+
+        <div class="g-sec">
+          <div class="g-sec-t">✅ 確認用接龍 ①　A+ 官網註冊</div>
+          <div class="g-copybox">
+<pre class="g-text" id="cpRoll1">確定已註冊A+官方網站並且可以觀看培訓影片
+1.
+2.
+3.
+4.
+5.
+6.</pre>
+            <button class="g-copy" onclick="copyGuide('cpRoll1',this)">📋 一鍵複製</button>
+          </div>
+        </div>
+
+        <div class="g-sec">
+          <div class="g-sec-t">✅ 確認用接龍 ②　大群改名</div>
+          <div class="g-copybox">
+<pre class="g-text" id="cpRoll2">已加入大群並且名字為正確格式
+1.
+2.
+3.
+4.
+5.
+6.</pre>
+            <button class="g-copy" onclick="copyGuide('cpRoll2',this)">📋 一鍵複製</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="guide-phase" data-phase="during">
+      <div class="guide-phase-hd">🔵 開班中</div>
+      <div class="guide-phase-sub">8/3 ～ 8/31</div>
+      <div class="guide-body" id="guideDuring">
+        <div class="guide-placeholder">內容整理中，敬請期待 ✍️</div>
+      </div>
+    </div>
+
+    <div class="guide-phase" data-phase="after">
+      <div class="guide-phase-hd">🟡 開班後</div>
+      <div class="guide-phase-sub">9/1 結業 ～</div>
+      <div class="guide-body" id="guideAfter">
+        <div class="guide-placeholder">內容整理中，敬請期待 ✍️</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -486,8 +624,10 @@ function setMode(mode) {
   currentMode = mode;
   document.getElementById('tabMyReport').classList.toggle('on', mode === 'my');
   document.getElementById('tabReview').classList.toggle('on', mode === 'review');
+  document.getElementById('tabGuide').classList.toggle('on', mode === 'guide');
   document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
   document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
+  document.getElementById('guideView').style.display = mode === 'guide' ? '' : 'none';
   document.getElementById('detailView').style.display = 'none';
   if (mode === 'my') {
     currentDay = 'today';
@@ -495,10 +635,44 @@ function setMode(mode) {
     document.getElementById('btnYesterday').classList.remove('on');
     document.querySelector('.day-toggle').style.display = 'none';
     renderMyReport();
+  } else if (mode === 'guide') {
+    document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
   } else {
     document.querySelector('.day-toggle').style.display = '';
     renderReview();
   }
+}
+
+// ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
+function copyGuide(id, btn) {
+  const text = document.getElementById(id).textContent;
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = '✅ 已複製';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); }, 1600);
+  };
+  // 備援：iOS/LINE webview 的 textarea.select() 常失效，改用 contentEditable + Range
+  const fallback = () => {
+    const box = document.createElement('div');
+    box.textContent = text;
+    box.contentEditable = 'true';
+    box.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap;user-select:text;-webkit-user-select:text';
+    document.body.appendChild(box);
+    const range = document.createRange();
+    range.selectNodeContents(box);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    sel.removeAllRanges();
+    document.body.removeChild(box);
+    ok ? done() : toast('複製失敗，請長按上方文字手動複製');
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else fallback();
 }
 
 // 🎓 教練頒獎（獎項名稱＋評語）本期改由後台直接寫入 batch_students.cert_award/cert_comment/cert_by_coach；
