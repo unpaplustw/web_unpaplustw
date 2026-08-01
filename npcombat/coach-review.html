@@ -179,6 +179,8 @@
   .g-img-cap span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:1px}
   .g-savetip{margin-top:9px;text-align:center;font-size:13px;color:var(--muted);background:var(--gold-lt);border-radius:10px;padding:9px}
   .g-bgtitle{font-size:15px;font-weight:700;color:var(--gold3);margin-bottom:8px;padding-left:2px}
+  .g-warn{margin-top:10px;background:var(--red-bg);border:1.5px solid var(--red);border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.8;color:var(--text)}
+  .g-warn b{color:var(--red)}
   .g-list{margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:var(--text)}
   .g-list li{margin-bottom:7px}
   .g-list li::marker{color:var(--gold);font-weight:700}
@@ -428,18 +430,33 @@ https://ppt.cc/fJAcix
         </div>
 
         <div class="g-step">
-          <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">全員到齊，發歡迎文案</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>上面的接龍<b>三項全組都完成</b>之後。<br>👉 <b>怎麼做：</b>複製下面文案，<b>先改成自己的組別和名字</b>，再貼到小組。</div>
+          <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">開班典禮前，發提醒文案</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前。<b>不用等全員到齊</b>——人陸續進來就可以先發 A，等大家都到齊了再發 B。<br>👉 <b>怎麼做：</b>複製文案，<b>先改成自己的組別和名字</b>，再貼到小組。</div>
           <div class="g-step-body">
+            <div class="g-do"><b>A. 平常發</b>（人還在陸續加入時）</div>
             <div class="g-copybox">
-<pre class="g-text" id="cpAllHere">🎉我們全員到齊了🎉
+<pre class="g-text" id="cpAllHere">🎉歡迎大家加入實戰班🎉
 我是第____組的教練_________ 以下有幾件事情請大家留意一下：
 
-1️⃣記事本中有更換zoom背景的方式及圖片，請大家在開班典禮時記得更換背景唷！
-2️⃣要請大家開班典禮後，記得回到小組，我將用Line會議室進行我們第一次的定聚唷!😁
+1️⃣開班典禮記得換上實戰班的zoom背景唷！背景圖放在本群「相簿」裡，自己去下載😊
+
+2️⃣【最重要】開班典禮結束後，請一定要回到小組，我將用Line會議室進行我們第0次的定聚唷!😁
+
 3️⃣請大家加我的line方便未來聯絡唷～
-非常開心接下來的4週能和大家一起互助成長、往理想的人生邁進🔅🔅🔅🔅🔅</pre>
+
+非常開心接下來的一個月能和大家一起互助成長、往理想的人生邁進🔅🔅🔅🔅🔅</pre>
               <button class="g-copy" onclick="copyGuide('cpAllHere',this)">📋 一鍵複製</button>
+            </div>
+            <div class="g-do" style="margin-top:16px"><b>B. 全員到齊時發</b>（短短一則，最後提醒就好）</div>
+            <div class="g-copybox">
+<pre class="g-text" id="cpAllDone">🎉我們全員到齊了🎉
+
+開班典禮前再提醒大家兩件事：
+1️⃣記得換上實戰班的zoom背景（相簿裡有）
+2️⃣典禮結束後請回到小組，我們要進行第0次定聚
+
+期待跟大家一起開始這一個月🔥</pre>
+              <button class="g-copy" onclick="copyGuide('cpAllDone',this)">📋 一鍵複製</button>
             </div>
             <div class="g-note" style="margin-top:10px">
               <b>⚠️ 貼出去前，這 5 點先確認：</b>
@@ -447,7 +464,7 @@ https://ppt.cc/fJAcix
                 <li>開頭空白處填入自己的<b>組別與名字</b></li>
                 <li>第 2 點務必<b>放上定聚連結</b>（Line 會議室或 Zoom）；改用 Zoom 記得把文字一起改</li>
                 <li>第 3 點記得放<b>自己的 LINE</b>（ID 或 QR）</li>
-                <li>還有人沒進社群？把<b>步驟 2 那一則</b>再貼一次（裡面已含教學影片）</li>
+                <li>還有人沒進社群？把<b>步驟 3 那一則</b>再貼一次（裡面已含教學影片）</li>
               </ol>
             </div>
           </div>
@@ -483,6 +500,7 @@ https://ppt.cc/fJAcix
           <div class="g-sec-t">🛠 其他教練工具</div>
           <div class="g-do">想知道學員最近有沒有在動？用官方 LINE 查 👇</div>
           <a class="g-link" href="https://youtu.be/-uA6uKWPWgI" target="_blank" rel="noopener">▶️ 藉由官方 LINE 了解學員狀況</a>
+          <div class="g-warn">⚠️ <b>只能看，不能回！</b><br>官方 LINE 僅供查看學員狀況，<b>不可在裡面回覆學員</b>。<br>若有回應，<b>罰 500 元</b>。</div>
         </div>
 
       </div>
