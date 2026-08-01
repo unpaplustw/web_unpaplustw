@@ -160,6 +160,12 @@
   .g-todo-t{font-size:15px;font-weight:700;color:var(--text);line-height:1.5}
   .g-todo-d{font-size:13px;color:var(--muted);line-height:1.75;margin-top:3px}
   .g-eg{display:inline-block;margin-top:5px;padding:4px 10px;background:var(--card);border:1px dashed var(--gold);border-radius:8px;font-size:12px;color:var(--gold);font-weight:600}
+  .g-imgs{display:flex;gap:10px}
+  .g-img{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .g-img img{width:100%;display:block}
+  .g-img-cap{padding:9px 6px;text-align:center;font-size:13px;font-weight:700;color:var(--gold)}
+  .g-img-cap span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:1px}
+  .g-savetip{margin-top:9px;text-align:center;font-size:13px;color:var(--muted);background:var(--gold-lt);border-radius:10px;padding:9px}
   .g-list{margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:var(--text)}
   .g-list li{margin-bottom:7px}
   .g-list li::marker{color:var(--gold);font-weight:700}
@@ -369,6 +375,26 @@ https://ppt.cc/fJAcix
             </ol>
           </div>
           <a class="g-link" style="margin-top:8px" href="https://www.youtube.com/watch?v=pRwtfxqY0gk" target="_blank" rel="noopener">▶️ 大群改名＋照片教學（貼給學員看）</a>
+        </div>
+
+        <!-- 圖片未上傳前自動隱藏（onerror），避免破圖 -->
+        <div class="g-sec" id="secZoomBg" style="display:none">
+          <div class="g-sec-t">🖼️ Zoom 虛擬背景（開班典禮用）</div>
+          <div class="g-imgs">
+            <div class="g-img">
+              <img src="assets/zoom-bg-desktop.jpg" alt="電腦版 Zoom 背景"
+                   onload="document.getElementById('secZoomBg').style.display=''"
+                   onerror="this.closest('.g-img').style.display='none'">
+              <div class="g-img-cap">💻 電腦版<span>16:9 橫式</span></div>
+            </div>
+            <div class="g-img">
+              <img src="assets/zoom-bg-mobile.jpg" alt="手機版 Zoom 背景"
+                   onload="document.getElementById('secZoomBg').style.display=''"
+                   onerror="this.closest('.g-img').style.display='none'">
+              <div class="g-img-cap">📱 手機版<span>9:16 直式</span></div>
+            </div>
+          </div>
+          <div class="g-savetip">👆 <b>長按圖片</b> →「儲存影像」即可存到手機相簿</div>
         </div>
 
         <div class="g-sec">
