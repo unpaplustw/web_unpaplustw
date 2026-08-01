@@ -129,7 +129,11 @@
 
   /* ── 教練指南 ── */
   .guide-wrap{max-width:500px;margin:0 auto;padding:16px}
-  .guide-intro{font-size:14px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:18px}
+  .guide-intro{font-size:14px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:14px}
+  .guide-nav{display:flex;gap:7px;margin-bottom:16px}
+  .guide-nav-btn{flex:1;padding:11px 4px;border:1.5px solid var(--border);border-radius:22px;background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.15s}
+  .guide-nav-btn.on{background:var(--gold);border-color:var(--gold);color:#fff}
+  .guide-nav-btn .now{display:block;font-size:10px;font-weight:500;opacity:.85;margin-top:1px}
   .guide-phase{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
   .guide-phase-hd{font-size:18px;font-weight:700;color:var(--text)}
   .guide-phase-sub{font-size:12px;color:var(--muted);margin:2px 0 12px}
@@ -150,6 +154,11 @@
   .g-copy{width:100%;padding:12px;border:none;border-top:1px solid var(--border);background:var(--gold-lt);color:var(--gold);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .g-copy:active{opacity:.7}
   .g-copy.done{background:var(--green-bg);color:var(--green)}
+  .g-todo{display:flex;gap:10px;padding:13px 14px;margin-bottom:9px;background:var(--gold-lt);border-radius:12px}
+  .g-todo:last-child{margin-bottom:0}
+  .g-todo-ic{font-size:17px;line-height:1.5;flex-shrink:0}
+  .g-todo-t{font-size:15px;font-weight:700;color:var(--text);line-height:1.5}
+  .g-todo-d{font-size:13px;color:var(--muted);line-height:1.75;margin-top:3px}
   .g-list{margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:var(--text)}
   .g-list li{margin-bottom:7px}
   .g-list li::marker{color:var(--gold);font-weight:700}
@@ -271,6 +280,12 @@
   <div class="guide-wrap">
     <div class="guide-intro">教練帶班手冊 —— 照著做，帶好你的小組 💪</div>
 
+    <div class="guide-nav">
+      <button class="guide-nav-btn" id="gnavBefore" onclick="showGuidePhase('before')">開班前</button>
+      <button class="guide-nav-btn" id="gnavDuring" onclick="showGuidePhase('during')">開班中</button>
+      <button class="guide-nav-btn" id="gnavAfter"  onclick="showGuidePhase('after')">開班後</button>
+    </div>
+
     <div class="guide-phase" data-phase="before">
       <div class="guide-phase-hd">🟢 開班前</div>
       <div class="guide-phase-sub">報名 ～ 8/2 開班</div>
@@ -355,6 +370,24 @@ https://ppt.cc/fJAcix
           </div>
         </div>
 
+        <div class="g-sec">
+          <div class="g-sec-t">⭐ 開班典禮前後要做的事</div>
+          <div class="g-todo">
+            <div class="g-todo-ic">⭐️</div>
+            <div>
+              <div class="g-todo-t">傳開班典禮文案至小組</div>
+              <div class="g-todo-d">本文案由<b>總教練</b>傳在教練團群組 ＋ 實戰班大群，請教練們到群組取用，分享到自己的小組，提醒大家<b>準時參加開班典禮</b>。</div>
+            </div>
+          </div>
+          <div class="g-todo">
+            <div class="g-todo-ic">⭐️</div>
+            <div>
+              <div class="g-todo-t">提醒開班典禮之後要一起小組定聚</div>
+              <div class="g-todo-d">可將<b>每週定聚的時間與網址</b>設為小組公告。</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -427,6 +460,7 @@ let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
 let currentDay = 'today';
+let batchDates = { start: null, end: null };    // 班期起訖（教練指南依此判斷當前階段）
 let coachMode = 'simple';                       // full=審核制(26期) / simple=信任制+有回應(27期起)
 let engToday = {}, engYesterday = {};           // student_id -> engaged(bool)，簡單模式的每日「有回應」
 
@@ -465,10 +499,12 @@ async function init() {
 
   try {
     // 當期批次（換屆只改 DB）+ 教練模式
-    const { data: batchRow } = await sb.from('batches').select('id, coach_mode').eq('is_active', true).maybeSingle();
+    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date').eq('is_active', true).maybeSingle();
     if (!batchRow) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
     BATCH_ID = batchRow.id;
     coachMode = batchRow.coach_mode || 'simple';
+    batchDates = { start: batchRow.start_date, end: batchRow.end_date };
+    initGuidePhase();
     if (coachMode === 'simple') document.getElementById('tabReview').textContent = '小組關懷';
 
     // LIFF 登入
@@ -642,6 +678,32 @@ function setMode(mode) {
     renderReview();
   }
 }
+
+// ── 教練指南：依今天日期自動落在當前階段（開班前/中/後），避免看到不相干的雜訊 ──
+function currentGuidePhase() {
+  const today = getDateStr('today');
+  if (!batchDates.start) return 'before';
+  if (today < batchDates.start) return 'before';   // 開班日之前
+  if (today > batchDates.end)   return 'after';    // 結業之後
+  return 'during';                                  // 開班期間
+}
+
+function showGuidePhase(phase) {
+  const now = currentGuidePhase();
+  ['before','during','after'].forEach(p => {
+    const sec = document.querySelector(`.guide-phase[data-phase="${p}"]`);
+    if (sec) sec.style.display = (p === phase) ? '' : 'none';
+    const btn = document.getElementById('gnav' + p.charAt(0).toUpperCase() + p.slice(1));
+    if (btn) {
+      btn.classList.toggle('on', p === phase);
+      // 當前階段標記「現在」，教練一眼知道自己在哪個時期
+      const label = { before:'開班前', during:'開班中', after:'開班後' }[p];
+      btn.innerHTML = label + (p === now ? '<span class="now">● 現在</span>' : '');
+    }
+  });
+}
+
+function initGuidePhase() { showGuidePhase(currentGuidePhase()); }
 
 // ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
 function copyGuide(id, btn) {
