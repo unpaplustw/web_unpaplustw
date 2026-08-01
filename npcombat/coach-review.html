@@ -329,27 +329,70 @@
         </div>
 
         <div class="g-step">
-          <div class="g-step-hd"><span class="g-step-n">2</span><span class="g-step-t">請學員加入實戰班社群</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>組員進小組群之後。<br>👉 <b>怎麼做：</b>複製下面這一則貼到小組，<b>連結、規則、教學都在裡面</b>，貼一次就好。</div>
+          <div class="g-step-hd"><span class="g-step-n">2</span><span class="g-step-t">背景圖放進小組相簿</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>貼通知給學員<b>之前</b>先做好，學員才拿得到。<br>👉 <b>怎麼做：</b>長按下面圖片存到手機 → 上傳到<b>小組群的相簿</b>，學員要用時自己去拿。</div>
+          <div class="g-step-body">
+            <!-- 圖片未上傳前自動隱藏（onerror），避免破圖 -->
+            <div id="secZoomBg" style="display:none">
+              <div class="g-bgtitle">👤 教練用（你自己）</div>
+              <div class="g-imgs">
+                <div class="g-img">
+                  <img src="assets/zoom-bg-desktop.jpg" alt="教練版 電腦 Zoom 背景"
+                       onload="document.getElementById('secZoomBg').style.display=''"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
+                </div>
+                <div class="g-img portrait">
+                  <img src="assets/zoom-bg-mobile.jpg" alt="教練版 手機 Zoom 背景"
+                       onload="document.getElementById('secZoomBg').style.display=''"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
+                </div>
+              </div>
+              <div class="g-bgtitle" style="margin-top:18px">🎓 學員用（放進小組相簿）</div>
+              <div class="g-imgs">
+                <div class="g-img">
+                  <img src="assets/student-bg-desktop.jpg" alt="學員版 電腦 Zoom 背景"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
+                </div>
+                <div class="g-img portrait">
+                  <img src="assets/student-bg-mobile.jpg" alt="學員版 手機 Zoom 背景"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
+                </div>
+              </div>
+              <div class="g-savetip">👆 <b>長按圖片</b> →「儲存影像」，再上傳到小組相簿</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">3</span><span class="g-step-t">貼一則通知給學員</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>相簿準備好之後。<br>👉 <b>怎麼做：</b>複製下面這一則貼到小組，<b>社群、改名、Zoom 設定全部包在裡面</b>，貼一次就好。</div>
           <div class="g-step-body">
             <div class="g-copybox">
-<pre class="g-text" id="cpBigGroup">⚠️請加入實戰班社群⚠️
-https://ppt.cc/fJAcix
+<pre class="g-text" id="cpBigGroup">⚠️開班前請完成以下設定⚠️
 
-進去後請完成這兩件事：
+【1】加入實戰班社群
+https://ppt.cc/fJAcix
+進去後請完成：
 ①名稱改為（27初/組別/學/姓名）
 ②放上【本人照片】
+不會改👉 https://youtu.be/pRwtfxqY0gk
+照片要正方形👉 https://youtu.be/msFXvX3kYKo
 
-不會改的看這裡👇
-改名字＋大頭照：https://youtu.be/pRwtfxqY0gk
-照片改成正方形：https://youtu.be/msFXvX3kYKo</pre>
+【2】設定 Zoom（每週日實戰班之夜都要用）
+①改姓名👉 https://youtu.be/4x1NaPCqXoE
+②換背景👉 https://youtu.be/fZ3s98IGY2w
+※ 背景圖已放在本群「相簿」，請自行下載使用</pre>
               <button class="g-copy" onclick="copyGuide('cpBigGroup',this)">📋 一鍵複製</button>
             </div>
           </div>
         </div>
 
         <div class="g-step">
-          <div class="g-step-hd"><span class="g-step-n">3</span><span class="g-step-t">貼接龍，確認大家都完成</span></div>
+          <div class="g-step-hd"><span class="g-step-n">4</span><span class="g-step-t">貼接龍，確認大家都完成</span></div>
           <div class="g-step-when">📌 <b>什麼時候：</b>開班前一定要全部完成。<br>👉 <b>怎麼做：</b>這一則<b>三件事合在一起</b>，貼一次就好。學員完成哪項，就在那項的編號後面寫自己的名字，<b>沒寫的就是還沒好，要去關心</b>。</div>
           <div class="g-step-body">
             <div class="g-copybox">
@@ -385,7 +428,7 @@ https://ppt.cc/fJAcix
         </div>
 
         <div class="g-step">
-          <div class="g-step-hd"><span class="g-step-n">4</span><span class="g-step-t">全員到齊，發歡迎文案</span></div>
+          <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">全員到齊，發歡迎文案</span></div>
           <div class="g-step-when">📌 <b>什麼時候：</b>上面的接龍<b>三項全組都完成</b>之後。<br>👉 <b>怎麼做：</b>複製下面文案，<b>先改成自己的組別和名字</b>，再貼到小組。</div>
           <div class="g-step-body">
             <div class="g-copybox">
@@ -407,49 +450,6 @@ https://ppt.cc/fJAcix
                 <li>還有人沒進社群？把<b>步驟 2 那一則</b>再貼一次（裡面已含教學影片）</li>
               </ol>
             </div>
-          </div>
-        </div>
-
-        <div class="g-step">
-          <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">存好 Zoom 虛擬背景</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前先存好。<b>每週日的實戰班之夜都是用 Zoom</b>，每次都用得到。<br>👉 <b>怎麼做：</b><b>教練用教練版、學員用學員版</b>，兩種都存起來，學員版要轉給你的組員。</div>
-          <div class="g-step-body">
-            <!-- 圖片未上傳前自動隱藏（onerror），避免破圖 -->
-            <div id="secZoomBg" style="display:none">
-              <div class="g-bgtitle">👤 教練用（你自己）</div>
-              <div class="g-imgs">
-                <div class="g-img">
-                  <img src="assets/zoom-bg-desktop.jpg" alt="教練版 電腦 Zoom 背景"
-                       onload="document.getElementById('secZoomBg').style.display=''"
-                       onerror="this.closest('.g-img').style.display='none'">
-                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
-                </div>
-                <div class="g-img portrait">
-                  <img src="assets/zoom-bg-mobile.jpg" alt="教練版 手機 Zoom 背景"
-                       onload="document.getElementById('secZoomBg').style.display=''"
-                       onerror="this.closest('.g-img').style.display='none'">
-                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
-                </div>
-              </div>
-              <div class="g-bgtitle" style="margin-top:18px">🎓 學員用（轉給組員）</div>
-              <div class="g-imgs">
-                <div class="g-img">
-                  <img src="assets/student-bg-desktop.jpg" alt="學員版 電腦 Zoom 背景"
-                       onerror="this.closest('.g-img').style.display='none'">
-                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
-                </div>
-                <div class="g-img portrait">
-                  <img src="assets/student-bg-mobile.jpg" alt="學員版 手機 Zoom 背景"
-                       onerror="this.closest('.g-img').style.display='none'">
-                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
-                </div>
-              </div>
-              <div class="g-savetip">👆 <b>長按圖片</b> →「儲存影像」即可存到手機相簿</div>
-            </div>
-            <div class="g-do" style="margin-top:14px">存好之後，照這支影片設定到 Zoom 裡 👇</div>
-            <a class="g-link" href="https://youtu.be/fZ3s98IGY2w" target="_blank" rel="noopener">▶️ Zoom 會議更換背景</a>
-            <div class="g-do" style="margin-top:12px">進會議的名字也要改成正確格式 👇</div>
-            <a class="g-link" href="https://youtu.be/4x1NaPCqXoE" target="_blank" rel="noopener">▶️ Zoom 會議更換姓名</a>
           </div>
         </div>
 
