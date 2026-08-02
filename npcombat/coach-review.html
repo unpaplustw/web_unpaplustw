@@ -1038,7 +1038,10 @@ async function submitMyReport() {
       if (error) throw error;
     } else {
       const insertData = { ...payload, batch_id: BATCH_ID, student_id: myStudentId, log_date: dateStr };
-      const { data, error } = await sb.from('action_logs').insert(insertData).select('id').single();
+      // upsert：當天若已有紀錄（例如先打了卡）insert 會撞 UNIQUE(batch_id,student_id,log_date)
+      const { data, error } = await sb.from('action_logs')
+        .upsert(insertData, { onConflict: 'batch_id,student_id,log_date' })
+        .select('id').single();
       if (error) throw error;
       myData[logIdKey] = data.id;
     }
@@ -1401,9 +1404,11 @@ async function submitCoach() {
       const { error } = await sb.from('action_logs').update(updateData).eq('id', logId);
       if (error) throw error;
     } else {
-      // 學員沒填但教練要補建（防呆）
+      // 學員沒填但教練要補建（防呆）；用 upsert 避免撞 UNIQUE（學員可能只打了卡）
       const insertData = { ...updateData, batch_id: BATCH_ID, student_id: stu.id, log_date: dateStr };
-      const { data, error } = await sb.from('action_logs').insert(insertData).select('id').single();
+      const { data, error } = await sb.from('action_logs')
+        .upsert(insertData, { onConflict: 'batch_id,student_id,log_date' })
+        .select('id').single();
       if (error) throw error;
       stu[logIdKey] = data.id;
     }

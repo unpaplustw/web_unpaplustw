@@ -659,11 +659,16 @@ async function saveCheckin() {
   const row = { checkin_at: checkinAt, checkout_at: checkoutAt, buddy_left: buddyLeft, buddy_right: buddyRight };
   try {
     if (existingId) {
-      await sb.from('action_logs').update(row).eq('id', existingId);
+      const { error } = await sb.from('action_logs').update(row).eq('id', existingId);
+      if (error) throw error;
     } else {
-      const { data } = await sb.from('action_logs')
-        .insert({ ...row, batch_id: BATCH_ID, student_id: studentId, log_date: today() })
+      // upsert：今天若已有紀錄，insert 會撞 UNIQUE(batch_id,student_id,log_date) 而靜默失敗
+      // → 導致 existingId 一直是 null，之後「我離開了」永遠寫不進去（26期實際發生過）
+      const { data, error } = await sb.from('action_logs')
+        .upsert({ ...row, batch_id: BATCH_ID, student_id: studentId, log_date: today() },
+                { onConflict: 'batch_id,student_id,log_date' })
         .select('id').single();
+      if (error) throw error;
       if (data) existingId = data.id;
     }
   } catch (e) { toast('打卡儲存失敗，請重試'); }
@@ -1116,9 +1121,15 @@ async function submit() {
         buddy_left: buddyLeft, buddy_right: buddyRight
       };
       if (existingId) {
-        await sb.from('action_logs').update(logRow).eq('id', existingId);
+        const { error: updErr } = await sb.from('action_logs').update(logRow).eq('id', existingId);
+        if (updErr) throw updErr;
       } else {
-        const { data } = await sb.from('action_logs').insert(logRow).select('id').single();
+        // 必須 upsert：若今天已有紀錄（例如先打了卡）insert 會撞 UNIQUE 而靜默失敗，
+        // 學員會看到「送出成功」但資料沒進去
+        const { data, error: insErr } = await sb.from('action_logs')
+          .upsert(logRow, { onConflict: 'batch_id,student_id,log_date' })
+          .select('id').single();
+        if (insErr) throw insErr;
         if (data) existingId = data.id;
       }
 
