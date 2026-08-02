@@ -545,8 +545,8 @@ function applyActionLock() {
   if (gr) {
     gr.classList.add('locked');
     gr.removeAttribute('onclick');
-    const chk = gr.querySelector('#groupCheck');
-    if (chk) chk.insertAdjacentHTML('afterend', `<span class="act-lock" style="margin-left:auto">🔒 ${label}</span>`);
+    // 插在最後面（勾選框已隱藏，插它後面會跑到最左）
+    gr.insertAdjacentHTML('beforeend', `<span class="act-lock">🔒 ${label}</span>`);
   }
   const bar = document.querySelector('.deadline-bar');
   if (bar) bar.insertAdjacentHTML('afterend',
