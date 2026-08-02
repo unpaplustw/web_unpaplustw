@@ -40,6 +40,9 @@
   .act-lock{flex-shrink:0;background:var(--gold-lt);color:var(--gold);font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap}
   .lock-note{background:var(--gold-lt);border:1.5px dashed var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.8;color:var(--text);text-align:center}
   .lock-note b{color:var(--gold3)}
+  .today-plan{background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin:14px 0;font-size:15px;line-height:1.9;color:var(--text);text-align:center;box-shadow:var(--shadow)}
+  .today-plan b{color:var(--gold);font-size:14px;letter-spacing:1px}
+  .today-plan-link{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--gold);font-weight:600;text-decoration:none}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -506,6 +509,28 @@ async function resolveBatchId() {
 }
 
 // 課程還沒上到 → 七大行動鎖住，只開放締結。8/6（列名單單元）後自動全開
+// 培訓期每日影片進度（⚠️ course.html 也有一份 PLAN，改課表要兩處一起改）
+const STUDY_PLAN = {
+  '2026-08-03': '第1單元 前導 · 第2單元 夢想版 · 第3單元 確信行業',
+  '2026-08-04': '第4單元 確信公司 · 第5單元 確信商品',
+  '2026-08-05': '第6單元 確信制度 · 第7單元 確信系統',
+  '2026-08-06': '第8單元 設定目標 · 第9單元 列名單作戰會議1',
+  '2026-08-07': '第10單元 邀約 · 第11單元 自我定位',
+  '2026-08-10': '第12單元 會場運作2',
+  '2026-08-11': '第13單元 疑慮處理',
+  '2026-08-12': '第14單元 作戰會議2 · 第15單元 跟進',
+  '2026-08-13': '第16單元 專業形象 · 第17單元 實現夢想的開始',
+};
+function renderTodayPlan() {
+  const plan = STUDY_PLAN[today()];
+  if (!plan) return;                       // 非培訓日不顯示
+  const bar = document.querySelector('.deadline-bar');
+  if (!bar) return;
+  bar.insertAdjacentHTML('afterend',
+    `<div class="today-plan">📖 <b>今天的影片進度</b><br>${plan.replace(/ · /g, '<br>')}
+     <a href="course.html" class="today-plan-link">看完整課表 ›</a></div>`);
+}
+
 function applyActionLock() {
   if (!actionOpenDate || today() >= actionOpenDate) return;   // 沒設定或已開放 → 不鎖
   const [, m, d] = actionOpenDate.split('-');
@@ -601,7 +626,7 @@ function showBlock(msg) {
   document.getElementById('userName').textContent = '⚠️ 無法使用';
   document.getElementById('dayCount').style.display = 'none';
   // 沒資格的人不該看到班內資訊（截止時間、解鎖提示）→ 整頁只留擋頁
-  document.querySelectorAll('.deadline-bar, .lock-note').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.deadline-bar, .lock-note, .today-plan').forEach(el => el.style.display = 'none');
   const dt = document.getElementById('dateText');
   if (dt) dt.style.display = 'none';
   document.getElementById('resultArea').innerHTML = `
@@ -761,6 +786,7 @@ async function init() {
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
+    renderTodayPlan();   // 培訓期顯示今天要看哪幾單元
     memberName = member.name;
     document.getElementById('userName').textContent = member.name + (_isGodView ? ' 👁️' : '');
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
