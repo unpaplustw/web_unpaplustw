@@ -131,15 +131,7 @@ body::before{
   </div>
 
   <div class="nav-grid fade-up">
-    <a class="nav-card" href="brochure.html">
-      <div class="nav-icon">📖</div>
-      <div class="nav-info">
-        <div class="nav-title">報名簡章</div>
-        <div class="nav-desc">課程內容、時程、入學門檻一次看</div>
-      </div>
-      <div class="nav-arrow">›</div>
-    </a>
-    <a class="nav-card" data-lock="start" href="https://liff.line.me/2009692859-IGJ1xPLd">
+    <a class="nav-card" href="https://liff.line.me/2009692859-IGJ1xPLd">
       <div class="nav-icon">📊</div>
       <div class="nav-info">
         <div class="nav-title">學員回報</div>
@@ -155,22 +147,30 @@ body::before{
       </div>
       <div class="nav-arrow">›</div>
     </a>
-    <a class="nav-card" data-lock="start" href="leaderboard.html">
+    <div class="nav-card closed">
       <div class="nav-icon">🏆</div>
       <div class="nav-info">
         <div class="nav-title">排行榜</div>
         <div class="nav-desc">本週各獎項前三名</div>
       </div>
-      <div class="nav-arrow">›</div>
-    </a>
-    <a class="nav-card cert" data-lock="start" href="https://liff.line.me/2009692859-hOq6FL5k">
+      <div class="nav-badge-closed">即將開放</div>
+    </div>
+    <div class="nav-card closed">
       <div class="nav-icon">🎓</div>
       <div class="nav-info">
         <div class="nav-title">我的成長歷程</div>
         <div class="nav-desc">查看你的結業成長證明書</div>
       </div>
-      <div class="nav-arrow">›</div>
-    </a>
+      <div class="nav-badge-closed">結業後開放</div>
+    </div>
+    <div class="nav-card closed">
+      <div class="nav-icon">📖</div>
+      <div class="nav-info">
+        <div class="nav-title">報名簡章</div>
+        <div class="nav-desc">課程內容、時程一次看</div>
+      </div>
+      <div class="nav-badge-closed">報名已截止</div>
+    </div>
   </div>
 
   <div class="footer">實戰班委員會</div>
@@ -215,6 +215,8 @@ function startCountdown() {
 }
 
 // data-lock="start" 的卡片：開班日前自動鎖，開班當天 00:00 自動解鎖（不需人工開關）
+// ⚠️ 27 期開班後改為手動控制（排行榜/成長歷程/簡章直接寫 class="nav-card closed"），
+//    目前沒有卡片帶 data-lock，此函式等於閒置。要恢復自動鎖只需在該卡加上 data-lock="start"
 function lockNavUntilStart() {
   if (!batchStart) return;
   const locked = new Date() < batchStart;
