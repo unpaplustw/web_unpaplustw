@@ -600,6 +600,10 @@ function showBlock(msg) {
   document.getElementById('warReport').style.display = 'none';
   document.getElementById('userName').textContent = '⚠️ 無法使用';
   document.getElementById('dayCount').style.display = 'none';
+  // 沒資格的人不該看到班內資訊（截止時間、解鎖提示）→ 整頁只留擋頁
+  document.querySelectorAll('.deadline-bar, .lock-note').forEach(el => el.style.display = 'none');
+  const dt = document.getElementById('dateText');
+  if (dt) dt.style.display = 'none';
   document.getElementById('resultArea').innerHTML = `
     <div class="result-card" style="margin-top:20px;text-align:center">
       <div class="result-emoji">🚫</div>
@@ -731,7 +735,6 @@ async function init() {
     // 當期批次（換屆只改 DB）
     BATCH_ID = await resolveBatchId();
     if (!BATCH_ID) { showBlock('目前沒有進行中的班期。'); return; }
-    applyActionLock();   // 課程未上到 → 鎖住七大行動
 
     // 身份取得：天神視角（god_as + god_key）跳過 LIFF，否則正常 LIFF 登入
     const _p = new URLSearchParams(location.search);
@@ -757,6 +760,7 @@ async function init() {
       .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
+    applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     memberName = member.name;
     document.getElementById('userName').textContent = member.name + (_isGodView ? ' 👁️' : '');
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
