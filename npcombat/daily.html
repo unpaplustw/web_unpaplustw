@@ -16,7 +16,8 @@
     --shadow:0 2px 12px rgba(0,0,0,.06);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{overflow-x:hidden;width:100%}
+  /* clip 不是 hidden：hidden 會讓 body 變成捲動容器，害頁籤的 position:sticky 失效 */
+  html,body{overflow-x:clip;width:100%}
   body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 100px}
 
   /* ── Header ── */
@@ -81,13 +82,13 @@
   .hw-list{margin:0;padding-left:1.4em;font-size:15px;line-height:1.85;color:var(--text)}
   .hw-list li{margin-bottom:8px}
   .hw-empty{font-size:14px;color:var(--muted)}
-  .hw-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;font-size:11px;
+  .hw-tag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:20px;font-size:12.5px;
           font-weight:600;vertical-align:1px;white-space:nowrap}
   .hw-tag.t{background:rgba(140,140,140,.2);color:var(--muted)}   /* 文字 */
   .hw-tag.a{background:rgba(212,175,55,.22);color:var(--gold)}    /* 錄音 */
   .hw-tag.v{background:rgba(214,110,80,.2);color:#c2603f}         /* 錄影 */
   .hw-note{margin-top:12px;padding:10px 12px;border-radius:9px;background:var(--gold-lt);
-           font-size:13px;color:var(--muted);line-height:1.7;text-align:center}
+           font-size:14px;color:var(--muted);line-height:1.7;text-align:center}
   .hw-note b{color:var(--gold)}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
