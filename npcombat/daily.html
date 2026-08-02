@@ -41,41 +41,53 @@
   .act-lock{flex-shrink:0;background:var(--gold-lt);color:var(--gold);font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap}
   .lock-note{background:var(--gold-lt);border:1.5px dashed var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.8;color:var(--text);text-align:center}
   .lock-note b{color:var(--gold3)}
-  .today-plan{background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin:14px 0;font-size:15px;line-height:1.9;color:var(--text);text-align:center;box-shadow:var(--shadow)}
-  .today-plan b{color:var(--gold);font-size:14px;letter-spacing:1px}
-  .today-plan-link{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--gold);font-weight:600;text-decoration:none}
-  /* 單元播放鈕：長輩也好按，整條寬、字大 */
-  .unit-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-  .unit-btn{display:block;width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--gold);
-            background:rgba(212,175,55,.10);color:var(--gold);font-size:15px;font-weight:700;
-            font-family:inherit;text-align:center;cursor:pointer;line-height:1.4}
-  .unit-btn:active{background:rgba(212,175,55,.24)}
-  .unit-btn.soon{border-style:dashed;border-color:var(--border);background:transparent;color:var(--muted);
-                 font-weight:600;cursor:default}
-  .unit-btn span{display:block;font-size:12px;font-weight:400;margin-top:3px;opacity:.75}
-  /* 影片播放器 */
-  .video-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);
-               flex-direction:column;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .video-modal.show{display:block}
-  .video-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;color:#fff;
-              position:sticky;top:-16px;padding:16px 0 10px;margin-top:-16px;background:rgba(0,0,0,.94);z-index:2}
-  .video-head h3{flex:1;font-size:16px;font-weight:700;margin:0;line-height:1.4}
-  .video-close{width:40px;height:40px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.16);
-               color:#fff;font-size:22px;line-height:1;cursor:pointer;font-family:inherit}
+  /* ── 頁籤 ── */
+  .tabbar{display:flex;gap:0;background:var(--card);border-bottom:1px solid var(--border);
+          position:sticky;top:0;z-index:50}
+  .tab{flex:1;padding:14px 8px;border:0;border-bottom:3px solid transparent;background:transparent;
+       color:var(--muted);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--gold-lt)}
+  .tab-badge:not(:empty){display:inline-block;min-width:19px;margin-left:6px;padding:1px 5px;border-radius:20px;
+       background:var(--gold);color:#1a1a1a;font-size:12px;font-weight:700;vertical-align:1px}
+  .pane{display:none}
+  .pane.on{display:block}
+  /* ── 學習頁籤：單元卡 ── */
+  .study-head{background:var(--gold-lt);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;
+              margin:14px 0;font-size:14.5px;line-height:1.7;color:var(--text);text-align:center}
+  .study-head b{color:var(--gold);font-size:17px}
+  .unit-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;
+             overflow:hidden;box-shadow:var(--shadow)}
+  .unit-card.today{border-color:var(--gold);border-width:2px}
+  .unit-hd{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border:0;background:transparent;
+           font-family:inherit;font-size:15.5px;font-weight:700;color:var(--text);text-align:left;cursor:pointer}
+  .unit-no{flex:none;width:26px;height:26px;border-radius:50%;background:var(--gold-lt);color:var(--gold);
+           font-size:13px;display:flex;align-items:center;justify-content:center}
+  .unit-card.today .unit-no{background:var(--gold);color:#1a1a1a}
+  .unit-name{flex:1;line-height:1.4}
+  .unit-today{flex:none;padding:2px 8px;border-radius:20px;background:var(--gold);color:#1a1a1a;font-size:11.5px}
+  .unit-arrow{flex:none;color:var(--muted);font-size:13px;transition:transform .2s}
+  .unit-card.open .unit-arrow{transform:rotate(180deg)}
+  .unit-body{display:none;padding:0 14px 16px}
+  .unit-card.open .unit-body{display:block}
+  .play-btn{display:block;width:100%;padding:15px;border-radius:10px;border:1px solid var(--gold);
+            background:var(--gold-lt);color:var(--gold);font-family:inherit;font-size:16px;font-weight:700;cursor:pointer}
+  .play-btn:active{background:rgba(212,175,55,.28)}
+  .unit-soon{padding:15px;border:1px dashed var(--border);border-radius:10px;text-align:center;
+             color:var(--muted);font-size:14px}
   .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden}
   .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   /* 作業題目：影片下方直接看得到，不用回舊站 */
-  .hw-box{margin-top:16px;padding-bottom:24px}
-  .hw-title{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:10px}
-  .hw-list{margin:0;padding-left:1.4em;color:#fff;font-size:15px;line-height:1.85}
-  .hw-list li{margin-bottom:9px}
+  .hw-title{font-size:14.5px;font-weight:700;color:var(--gold);margin:16px 0 8px}
+  .hw-list{margin:0;padding-left:1.4em;font-size:15px;line-height:1.85;color:var(--text)}
+  .hw-list li{margin-bottom:8px}
+  .hw-empty{font-size:14px;color:var(--muted)}
   .hw-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;font-size:11px;
           font-weight:600;vertical-align:1px;white-space:nowrap}
-  .hw-tag.t{background:rgba(255,255,255,.16);color:#e8e8e8}      /* 文字 */
-  .hw-tag.a{background:rgba(212,175,55,.24);color:var(--gold)}   /* 錄音 */
-  .hw-tag.v{background:rgba(230,120,90,.26);color:#ffb59e}       /* 錄影 */
-  .hw-note{margin-top:14px;padding:11px 13px;border-radius:9px;background:rgba(255,255,255,.08);
-           font-size:13.5px;color:rgba(255,255,255,.8);line-height:1.7;text-align:center}
+  .hw-tag.t{background:rgba(140,140,140,.2);color:var(--muted)}   /* 文字 */
+  .hw-tag.a{background:rgba(212,175,55,.22);color:var(--gold)}    /* 錄音 */
+  .hw-tag.v{background:rgba(214,110,80,.2);color:#c2603f}         /* 錄影 */
+  .hw-note{margin-top:12px;padding:10px 12px;border-radius:9px;background:var(--gold-lt);
+           font-size:13px;color:var(--muted);line-height:1.7;text-align:center}
   .hw-note b{color:var(--gold)}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
@@ -308,6 +320,16 @@
 </div>
 <div class="deadline-bar">⏰ 每日最晚 22:00 填寫回報</div>
 
+<!-- ── 頁籤 ── -->
+<div class="tabbar" id="tabbar">
+  <button class="tab" id="tabBtnStudy" onclick="switchTab('study')">📖 學習<span class="tab-badge" id="tabBadge"></span></button>
+  <button class="tab" id="tabBtnAction" onclick="switchTab('action')">🎯 行動</button>
+</div>
+
+<!-- ── 學習頁籤（17 單元固定列出，今天的浮到最上面） ── -->
+<div class="pane" id="studyPane"></div>
+
+<div class="pane" id="actionPane">
 <!-- ── 戰報儀表板 ── -->
 <div class="war-report" id="warReport" style="display:none">
   <div class="wr-card" id="wrCard">
@@ -526,6 +548,7 @@
     <button class="btn-edit" onclick="backToEdit()">修改回報</button>
   </div>
 </div>
+</div><!-- /actionPane -->
 
 <div class="ft">實戰班委員會</div>
 <div class="toast" id="toast"></div>
@@ -546,109 +569,127 @@ async function resolveBatchId() {
 // 培訓期每日影片進度（⚠️ course.html 也有一份 PLAN，改課表要兩處一起改）
 // v = Vimeo 影片 ID（來源：公司舊站 unpaplus.com，抓取 2026-08-03）
 // v:null = 公司尚未上傳（舊站放的是「培訓計畫敬請期待」佔位片），上傳後補 ID 即可
-// hw = 作業題目（原文照抄舊站，格式標記【文字】【錄音】【錄影】保留）
-const STUDY_PLAN = {
-  '2026-08-03': [
-    {n:'第1單元 前導', v:'1214847718', hw:[
-      '人生最光榮的時刻是？【文字】',
-      '第一次認識的綠佳利，最令您驚艷的是？【文字】',
-      '願意投入經營是因為？【文字】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-    {n:'第2單元 夢想版', v:'1214750453', hw:[
-      '寫出3個絕對要達成的夢想。【文字】',
-      '寫下「我為什麼一定要在綠佳利成功」的50個理由。【文字】',
-      '做完夢想版，拍照放在手機桌面。',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-    {n:'第3單元 確信行業', v:'1214920899', hw:[
-      '寫出3個傳直銷的優勢。【文字】',
-      '寫出傳直銷和老鼠會的不同。【文字】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-  ],
-  '2026-08-04': [
-    {n:'第4單元 確信公司', v:'1214752173', hw:[
-      '公司三大目標（熟背）【錄影1分鐘】',
-      '公司六大信條（熟背）【錄影1分鐘】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-    {n:'第5單元 確信商品', v:'1214766594', hw:[
-      '請說出綠佳利五大商品是哪些？【錄音10秒】',
-      '分別說出他們的優勢（每個商品2項）【錄音1分鐘】',
-      '五大商品同時使用又有什麼優勢呢？【錄音1分鐘】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-  ],
-  '2026-08-05': [
-    {n:'第6單元 確信制度', v:'1214752024', hw:[
-      '傳直銷為什麼不用打廣告、開店面，也能把商品賣出去？【文字】',
-      '一般傳直銷公司和綠佳利經營時的差異優勢是什麼？【文字】',
-      '推薦2人可以領多少錢？【文字】',
-      '懂得「佈局」跟不會佈局，獎金差幾倍？【文字】',
-      '小資、小金、大金，每個月最高可以領多少錢？【文字】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-    {n:'第7單元 確信系統', v:'1214752023', hw:[
-      '請寫下加入A+系統對自己的幫助？【文字】',
-      '學習心得【錄音1分鐘】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-  ],
-  '2026-08-06': [
-    {n:'第8單元 設定目標', v:'1214751908', hw:[
-      '請寫下你在環貫綠佳利完成直推2的日期。【文字】',
-      '請寫下你在環貫綠佳利完成直推10的日期。【文字】',
-      '設定好直推10的日期，請分成 月締結：＿人、週締結：＿人、每天見面：＿人、每天打電話邀約：＿人。【文字】',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-    {n:'第9單元 列名單作戰會議1', v:'1214751795', hw:[
-      '列出50個名單【文字】',
-      '與領袖進行作戰會議1，打電話邀約3位朋友。',
-      '這個單元對我的幫助？【錄音1分鐘】']},
-  ],
-  '2026-08-07': [{n:'第10單元 邀約',v:null,hw:[]},{n:'第11單元 自我定位',v:null,hw:[]}],
-  '2026-08-10': [{n:'第12單元 會場運作2',v:null,hw:[]}],
-  '2026-08-11': [{n:'第13單元 疑慮處理',v:null,hw:[]}],
-  '2026-08-12': [{n:'第14單元 作戰會議2',v:null,hw:[]},{n:'第15單元 跟進',v:null,hw:[]}],
-  '2026-08-13': [{n:'第16單元 專業形象',v:null,hw:[]},{n:'第17單元 實現夢想的開始',v:null,hw:[]}],
+// 17 單元固定清單。v = Vimeo 影片 ID（null = 公司尚未上傳，補上 ID 就自動開放）
+// hw = 作業題目（原文照抄公司舊站，格式標記【文字】【錄音】【錄影】保留）
+const UNITS = [
+  {no:1, n:'前導', v:'1214847718', hw:[
+    '人生最光榮的時刻是？【文字】',
+    '第一次認識的綠佳利，最令您驚艷的是？【文字】',
+    '願意投入經營是因為？【文字】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:2, n:'夢想版', v:'1214750453', hw:[
+    '寫出3個絕對要達成的夢想。【文字】',
+    '寫下「我為什麼一定要在綠佳利成功」的50個理由。【文字】',
+    '做完夢想版，拍照放在手機桌面。',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:3, n:'確信行業', v:'1214920899', hw:[
+    '寫出3個傳直銷的優勢。【文字】',
+    '寫出傳直銷和老鼠會的不同。【文字】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:4, n:'確信公司', v:'1214752173', hw:[
+    '公司三大目標（熟背）【錄影1分鐘】',
+    '公司六大信條（熟背）【錄影1分鐘】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:5, n:'確信商品', v:'1214766594', hw:[
+    '請說出綠佳利五大商品是哪些？【錄音10秒】',
+    '分別說出他們的優勢（每個商品2項）【錄音1分鐘】',
+    '五大商品同時使用又有什麼優勢呢？【錄音1分鐘】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:6, n:'確信制度', v:'1214752024', hw:[
+    '傳直銷為什麼不用打廣告、開店面，也能把商品賣出去？【文字】',
+    '一般傳直銷公司和綠佳利經營時的差異優勢是什麼？【文字】',
+    '推薦2人可以領多少錢？【文字】',
+    '懂得「佈局」跟不會佈局，獎金差幾倍？【文字】',
+    '小資、小金、大金，每個月最高可以領多少錢？【文字】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:7, n:'確信系統', v:'1214752023', hw:[
+    '請寫下加入A+系統對自己的幫助？【文字】',
+    '學習心得【錄音1分鐘】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:8, n:'設定目標', v:'1214751908', hw:[
+    '請寫下你在環貫綠佳利完成直推2的日期。【文字】',
+    '請寫下你在環貫綠佳利完成直推10的日期。【文字】',
+    '設定好直推10的日期，請分成 月締結：＿人、週締結：＿人、每天見面：＿人、每天打電話邀約：＿人。【文字】',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:9, n:'列名單＆作戰會議I', v:'1214751795', hw:[
+    '列出50個名單【文字】',
+    '與領袖進行作戰會議1，打電話邀約3位朋友。',
+    '這個單元對我的幫助？【錄音1分鐘】']},
+  {no:10, n:'邀約',           v:null, hw:[]},
+  {no:11, n:'自我定位',       v:null, hw:[]},
+  {no:12, n:'會場運作',       v:null, hw:[]},
+  {no:13, n:'疑慮處理',       v:null, hw:[]},
+  {no:14, n:'作戰會議Ⅱ',      v:null, hw:[]},
+  {no:15, n:'跟進',           v:null, hw:[]},
+  {no:16, n:'專業形象',       v:null, hw:[]},
+  {no:17, n:'實現夢想的開始', v:null, hw:[]},
+];
+// 排程：日期 → 今天指定的單元編號（只影響排序與標記，不影響其他單元能不能看）
+const SCHEDULE = {
+  '2026-08-03': [1,2,3], '2026-08-04': [4,5],  '2026-08-05': [6,7],
+  '2026-08-06': [8,9],   '2026-08-07': [10,11],'2026-08-10': [12],
+  '2026-08-11': [13],    '2026-08-12': [14,15],'2026-08-13': [16,17],
 };
-let todayUnits = [];
-function renderTodayPlan() {
-  const plan = STUDY_PLAN[today()];
-  if (!plan) return;                       // 非培訓日不顯示
-  const bar = document.querySelector('.deadline-bar');
-  if (!bar) return;
-  todayUnits = plan;
-  const rows = plan.map((u, i) => u.v
-    ? `<button class="unit-btn" onclick="playUnit(${i})">▶︎ ${u.n}<span>影片＋作業</span></button>`
-    : `<div class="unit-btn soon">${u.n}<span>影片準備中</span></div>`).join('');
-  bar.insertAdjacentHTML('afterend',
-    `<div class="today-plan">📖 <b>今天的影片進度</b><div class="unit-list">${rows}</div>
-     <a href="course.html" class="today-plan-link">看完整課表 ›</a></div>`);
-}
 
-// 影片播放（Vimeo 嵌入，串流走 Vimeo CDN 不佔本站流量）＋ 該單元作業題目
-function playUnit(i) {
-  const u = todayUnits[i];
-  if (!u) return;
-  document.getElementById('vTitle').textContent = u.n;
-  document.getElementById('vFrame').src =
-    `https://player.vimeo.com/video/${u.v}?title=0&byline=0&portrait=0&playsinline=1`;
-  document.getElementById('hwBox').innerHTML = renderHomework(u);
-  document.getElementById('videoModal').classList.add('show');
-  document.getElementById('videoModal').scrollTop = 0;
-  document.body.style.overflow = 'hidden';
-}
-// 【】裡的格式標記抽出來做成標籤，題目本身留原文
-function renderHomework(u) {
-  if (!u.hw || !u.hw.length) return '';
-  const li = u.hw.map(t => {
-    const m = t.match(/【(.+?)】/);
-    const tag = m ? m[1] : '';
-    const body = t.replace(/【.+?】/, '').trim();
-    const cls = /錄影/.test(tag) ? 'v' : /錄音/.test(tag) ? 'a' : 't';
-    return `<li>${body}${tag ? `<span class="hw-tag ${cls}">${tag}</span>` : ''}</li>`;
+// 學習頁籤：17 單元一律列出，今天指定的浮到最上面並自動展開；其餘收合，隨時可複習
+function renderStudy() {
+  const todayNos = SCHEDULE[today()] || [];
+  const sorted = [...UNITS].sort((a, b) => {
+    const at = todayNos.includes(a.no), bt = todayNos.includes(b.no);
+    return at === bt ? a.no - b.no : (at ? -1 : 1);
+  });
+  const cards = sorted.map(u => {
+    const isToday = todayNos.includes(u.no);
+    const hw = u.hw.length
+      ? `<ol class="hw-list">${u.hw.map(t => {
+          const m = t.match(/【(.+?)】/);
+          const tag = m ? m[1] : '';
+          const body = t.replace(/【.+?】/, '').trim();
+          const cls = /錄影/.test(tag) ? 'v' : /錄音/.test(tag) ? 'a' : 't';
+          return `<li>${body}${tag ? `<span class="hw-tag ${cls}">${tag}</span>` : ''}</li>`;
+        }).join('')}</ol>`
+      : `<div class="hw-empty">作業內容尚未公布</div>`;
+    const player = u.v
+      ? `<div class="unit-player" id="p-${u.no}">
+           <button class="play-btn" onclick="loadVideo(${u.no})">▶︎ 播放影片</button>
+         </div>`
+      : `<div class="unit-soon">影片準備中</div>`;
+    return `<div class="unit-card${isToday ? ' today' : ''}${isToday ? ' open' : ''}" id="u-${u.no}">
+      <button class="unit-hd" onclick="toggleUnit(${u.no})">
+        <span class="unit-no">${u.no}</span>
+        <span class="unit-name">${u.n}</span>
+        ${isToday ? '<span class="unit-today">今天</span>' : ''}
+        <span class="unit-arrow">▾</span>
+      </button>
+      <div class="unit-body">${player}
+        <div class="hw-title">📝 作業</div>${hw}
+        <div class="hw-note">今天的作業請在 <b>22:00 前</b>交到小組群，教練隔天回覆</div>
+      </div>
+    </div>`;
   }).join('');
-  return `<div class="hw-title">📝 ${u.n}　作業</div><ol class="hw-list">${li}</ol>
-    <div class="hw-note">今晚 <b>22:00 前</b>交到小組群，教練隔天回覆</div>`;
+  const head = todayNos.length
+    ? `<div class="study-head">📖 今天要看 <b>${todayNos.length}</b> 個單元，看完把作業交到小組群</div>`
+    : `<div class="study-head">📖 全部 17 個單元都在這裡，隨時可以複習</div>`;
+  document.getElementById('studyPane').innerHTML = head + cards;
+  const badge = document.getElementById('tabBadge');
+  if (badge && todayNos.length) badge.textContent = todayNos.length;
+  return todayNos.length;
 }
-function closeVideo() {
-  document.getElementById('vFrame').src = '';   // 清空才會真的停止播放
-  document.getElementById('videoModal').classList.remove('show');
-  document.body.style.overflow = '';
+function toggleUnit(no) { document.getElementById('u-' + no).classList.toggle('open'); }
+// 點了才載入 Vimeo：一次載入多個播放器會拖垮長輩的舊手機
+function loadVideo(no) {
+  const u = UNITS.find(x => x.no === no);
+  document.getElementById('p-' + no).innerHTML =
+    `<div class="video-wrap"><iframe src="https://player.vimeo.com/video/${u.v}?title=0&byline=0&portrait=0&playsinline=1"
+       allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
+}
+function switchTab(name) {
+  const study = name === 'study';
+  document.getElementById('studyPane').classList.toggle('on', study);
+  document.getElementById('actionPane').classList.toggle('on', !study);
+  document.getElementById('tabBtnStudy').classList.toggle('on', study);
+  document.getElementById('tabBtnAction').classList.toggle('on', !study);
+  window.scrollTo(0, 0);
 }
 
 function applyActionLock() {
@@ -668,8 +709,8 @@ function applyActionLock() {
     // 插在最後面（勾選框已隱藏，插它後面會跑到最左）
     gr.insertAdjacentHTML('beforeend', `<span class="act-lock">🔒 ${label}</span>`);
   }
-  const bar = document.querySelector('.deadline-bar');
-  if (bar) bar.insertAdjacentHTML('afterend',
+  const fa = document.getElementById('formArea');   // 提示放在行動頁籤最上面
+  if (fa) fa.insertAdjacentHTML('afterbegin',
     `<div class="lock-note">🔒 行動項目 <b>${label}</b><br>課程上到「列名單」單元後開啟，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`);
 }
 const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：god.html 帶 ?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF 以該學員身份檢視
@@ -746,7 +787,8 @@ function showBlock(msg) {
   document.getElementById('userName').textContent = '⚠️ 無法使用';
   document.getElementById('dayCount').style.display = 'none';
   // 沒資格的人不該看到班內資訊（截止時間、解鎖提示）→ 整頁只留擋頁
-  document.querySelectorAll('.deadline-bar, .lock-note, .today-plan').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.deadline-bar, .lock-note, .tabbar, #studyPane').forEach(el => el.style.display = 'none');
+  document.getElementById('actionPane').classList.add('on');   // 擋頁訊息在 actionPane 內，要讓它顯示
   const dt = document.getElementById('dateText');
   if (dt) dt.style.display = 'none';
   document.getElementById('resultArea').innerHTML = `
@@ -873,6 +915,7 @@ async function init() {
     document.getElementById('userName').textContent = '測試學員';
     document.getElementById('dayCount').textContent = '第 8 天';
     accumData = { meet:23, invite:15, present:8, seminar:3, ghosted:5, rejected:4, close_count:3, close_pts:590, sub_count:2, total_pts:712, report_days:7, streak:5 };
+    switchTab(renderStudy() > 0 ? 'study' : 'action');
     return;
   }
 
@@ -906,7 +949,8 @@ async function init() {
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
-    renderTodayPlan();   // 培訓期顯示今天要看哪幾單元
+    // 今天有指定單元 → 預設停在學習頁籤，否則直接進行動頁籤
+    switchTab(renderStudy() > 0 ? 'study' : 'action');
     memberName = member.name;
     document.getElementById('userName').textContent = member.name + (_isGodView ? ' 👁️' : '');
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
@@ -1303,14 +1347,5 @@ function backToEdit() {
 init();
 </script>
 
-<!-- 影片播放器（Vimeo 嵌入．串流走 Vimeo CDN，不佔本站流量） -->
-<div class="video-modal" id="videoModal">
-  <div class="video-head">
-    <h3 id="vTitle"></h3>
-    <button class="video-close" onclick="closeVideo()" aria-label="關閉">✕</button>
-  </div>
-  <div class="video-wrap"><iframe id="vFrame" src="" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>
-  <div class="hw-box" id="hwBox"></div>
-</div>
 </body>
 </html>
