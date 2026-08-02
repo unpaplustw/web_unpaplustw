@@ -44,6 +44,26 @@
   .today-plan{background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin:14px 0;font-size:15px;line-height:1.9;color:var(--text);text-align:center;box-shadow:var(--shadow)}
   .today-plan b{color:var(--gold);font-size:14px;letter-spacing:1px}
   .today-plan-link{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--gold);font-weight:600;text-decoration:none}
+  /* 單元播放鈕：長輩也好按，整條寬、字大 */
+  .unit-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .unit-btn{display:block;width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--gold);
+            background:rgba(212,175,55,.10);color:var(--gold);font-size:15px;font-weight:700;
+            font-family:inherit;text-align:center;cursor:pointer;line-height:1.4}
+  .unit-btn:active{background:rgba(212,175,55,.24)}
+  .unit-btn.soon{border-style:dashed;border-color:var(--border);background:transparent;color:var(--muted);
+                 font-weight:600;cursor:default}
+  .unit-btn.soon span{display:block;font-size:12px;font-weight:400;margin-top:3px;opacity:.75}
+  /* 影片播放器 */
+  .video-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);
+               flex-direction:column;justify-content:center;padding:16px}
+  .video-modal.show{display:flex}
+  .video-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;color:#fff}
+  .video-head h3{flex:1;font-size:16px;font-weight:700;margin:0;line-height:1.4}
+  .video-close{width:40px;height:40px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.16);
+               color:#fff;font-size:22px;line-height:1;cursor:pointer;font-family:inherit}
+  .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden}
+  .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video-tip{margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,.65);line-height:1.7}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -511,25 +531,44 @@ async function resolveBatchId() {
 
 // 課程還沒上到 → 七大行動鎖住，只開放締結。8/6（列名單單元）後自動全開
 // 培訓期每日影片進度（⚠️ course.html 也有一份 PLAN，改課表要兩處一起改）
+// v = Vimeo 影片 ID（來源：公司舊站 unpaplus.com，抓取 2026-08-03）
+// v:null = 公司尚未上傳（舊站放的是「培訓計畫敬請期待」佔位片），上傳後補 ID 即可
 const STUDY_PLAN = {
-  '2026-08-03': '第1單元 前導 · 第2單元 夢想版 · 第3單元 確信行業',
-  '2026-08-04': '第4單元 確信公司 · 第5單元 確信商品',
-  '2026-08-05': '第6單元 確信制度 · 第7單元 確信系統',
-  '2026-08-06': '第8單元 設定目標 · 第9單元 列名單作戰會議1',
-  '2026-08-07': '第10單元 邀約 · 第11單元 自我定位',
-  '2026-08-10': '第12單元 會場運作2',
-  '2026-08-11': '第13單元 疑慮處理',
-  '2026-08-12': '第14單元 作戰會議2 · 第15單元 跟進',
-  '2026-08-13': '第16單元 專業形象 · 第17單元 實現夢想的開始',
+  '2026-08-03': [{n:'第1單元 前導',v:'1214847718'},{n:'第2單元 夢想版',v:'1214750453'},{n:'第3單元 確信行業',v:'1214920899'}],
+  '2026-08-04': [{n:'第4單元 確信公司',v:'1214752173'},{n:'第5單元 確信商品',v:'1214766594'}],
+  '2026-08-05': [{n:'第6單元 確信制度',v:'1214752024'},{n:'第7單元 確信系統',v:'1214752023'}],
+  '2026-08-06': [{n:'第8單元 設定目標',v:'1214751908'},{n:'第9單元 列名單作戰會議1',v:'1214751795'}],
+  '2026-08-07': [{n:'第10單元 邀約',v:null},{n:'第11單元 自我定位',v:null}],
+  '2026-08-10': [{n:'第12單元 會場運作2',v:null}],
+  '2026-08-11': [{n:'第13單元 疑慮處理',v:null}],
+  '2026-08-12': [{n:'第14單元 作戰會議2',v:null},{n:'第15單元 跟進',v:null}],
+  '2026-08-13': [{n:'第16單元 專業形象',v:null},{n:'第17單元 實現夢想的開始',v:null}],
 };
 function renderTodayPlan() {
   const plan = STUDY_PLAN[today()];
   if (!plan) return;                       // 非培訓日不顯示
   const bar = document.querySelector('.deadline-bar');
   if (!bar) return;
+  const rows = plan.map(u => u.v
+    ? `<button class="unit-btn" onclick="playUnit('${u.v}','${u.n}')">▶︎ ${u.n}</button>`
+    : `<div class="unit-btn soon">${u.n}<span>影片準備中</span></div>`).join('');
   bar.insertAdjacentHTML('afterend',
-    `<div class="today-plan">📖 <b>今天的影片進度</b><br>${plan.replace(/ · /g, '<br>')}
+    `<div class="today-plan">📖 <b>今天的影片進度</b><div class="unit-list">${rows}</div>
      <a href="course.html" class="today-plan-link">看完整課表 ›</a></div>`);
+}
+
+// 影片播放（Vimeo 嵌入，串流走 Vimeo CDN 不佔本站流量）
+function playUnit(vid, name) {
+  document.getElementById('vTitle').textContent = name;
+  document.getElementById('vFrame').src =
+    `https://player.vimeo.com/video/${vid}?title=0&byline=0&portrait=0&playsinline=1`;
+  document.getElementById('videoModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeVideo() {
+  document.getElementById('vFrame').src = '';   // 清空才會真的停止播放
+  document.getElementById('videoModal').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 function applyActionLock() {
@@ -1183,5 +1222,15 @@ function backToEdit() {
 
 init();
 </script>
+
+<!-- 影片播放器（Vimeo 嵌入．串流走 Vimeo CDN，不佔本站流量） -->
+<div class="video-modal" id="videoModal">
+  <div class="video-head">
+    <h3 id="vTitle"></h3>
+    <button class="video-close" onclick="closeVideo()" aria-label="關閉">✕</button>
+  </div>
+  <div class="video-wrap"><iframe id="vFrame" src="" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>
+  <div class="video-tip">看完記得完成作業，今晚 22:00 前交到小組群</div>
+</div>
 </body>
 </html>
