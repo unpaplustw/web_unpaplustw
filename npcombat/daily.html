@@ -52,18 +52,31 @@
   .unit-btn:active{background:rgba(212,175,55,.24)}
   .unit-btn.soon{border-style:dashed;border-color:var(--border);background:transparent;color:var(--muted);
                  font-weight:600;cursor:default}
-  .unit-btn.soon span{display:block;font-size:12px;font-weight:400;margin-top:3px;opacity:.75}
+  .unit-btn span{display:block;font-size:12px;font-weight:400;margin-top:3px;opacity:.75}
   /* 影片播放器 */
-  .video-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);
-               flex-direction:column;justify-content:center;padding:16px}
-  .video-modal.show{display:flex}
-  .video-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;color:#fff}
+  .video-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);
+               flex-direction:column;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .video-modal.show{display:block}
+  .video-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;color:#fff;
+              position:sticky;top:-16px;padding:16px 0 10px;margin-top:-16px;background:rgba(0,0,0,.94);z-index:2}
   .video-head h3{flex:1;font-size:16px;font-weight:700;margin:0;line-height:1.4}
   .video-close{width:40px;height:40px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.16);
                color:#fff;font-size:22px;line-height:1;cursor:pointer;font-family:inherit}
   .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden}
   .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  .video-tip{margin-top:12px;text-align:center;font-size:13px;color:rgba(255,255,255,.65);line-height:1.7}
+  /* 作業題目：影片下方直接看得到，不用回舊站 */
+  .hw-box{margin-top:16px;padding-bottom:24px}
+  .hw-title{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:10px}
+  .hw-list{margin:0;padding-left:1.4em;color:#fff;font-size:15px;line-height:1.85}
+  .hw-list li{margin-bottom:9px}
+  .hw-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;font-size:11px;
+          font-weight:600;vertical-align:1px;white-space:nowrap}
+  .hw-tag.t{background:rgba(255,255,255,.16);color:#e8e8e8}      /* 文字 */
+  .hw-tag.a{background:rgba(212,175,55,.24);color:var(--gold)}   /* 錄音 */
+  .hw-tag.v{background:rgba(230,120,90,.26);color:#ffb59e}       /* 錄影 */
+  .hw-note{margin-top:14px;padding:11px 13px;border-radius:9px;background:rgba(255,255,255,.08);
+           font-size:13.5px;color:rgba(255,255,255,.8);line-height:1.7;text-align:center}
+  .hw-note b{color:var(--gold)}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -533,37 +546,104 @@ async function resolveBatchId() {
 // 培訓期每日影片進度（⚠️ course.html 也有一份 PLAN，改課表要兩處一起改）
 // v = Vimeo 影片 ID（來源：公司舊站 unpaplus.com，抓取 2026-08-03）
 // v:null = 公司尚未上傳（舊站放的是「培訓計畫敬請期待」佔位片），上傳後補 ID 即可
+// hw = 作業題目（原文照抄舊站，格式標記【文字】【錄音】【錄影】保留）
 const STUDY_PLAN = {
-  '2026-08-03': [{n:'第1單元 前導',v:'1214847718'},{n:'第2單元 夢想版',v:'1214750453'},{n:'第3單元 確信行業',v:'1214920899'}],
-  '2026-08-04': [{n:'第4單元 確信公司',v:'1214752173'},{n:'第5單元 確信商品',v:'1214766594'}],
-  '2026-08-05': [{n:'第6單元 確信制度',v:'1214752024'},{n:'第7單元 確信系統',v:'1214752023'}],
-  '2026-08-06': [{n:'第8單元 設定目標',v:'1214751908'},{n:'第9單元 列名單作戰會議1',v:'1214751795'}],
-  '2026-08-07': [{n:'第10單元 邀約',v:null},{n:'第11單元 自我定位',v:null}],
-  '2026-08-10': [{n:'第12單元 會場運作2',v:null}],
-  '2026-08-11': [{n:'第13單元 疑慮處理',v:null}],
-  '2026-08-12': [{n:'第14單元 作戰會議2',v:null},{n:'第15單元 跟進',v:null}],
-  '2026-08-13': [{n:'第16單元 專業形象',v:null},{n:'第17單元 實現夢想的開始',v:null}],
+  '2026-08-03': [
+    {n:'第1單元 前導', v:'1214847718', hw:[
+      '人生最光榮的時刻是？【文字】',
+      '第一次認識的綠佳利，最令您驚艷的是？【文字】',
+      '願意投入經營是因為？【文字】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+    {n:'第2單元 夢想版', v:'1214750453', hw:[
+      '寫出3個絕對要達成的夢想。【文字】',
+      '寫下「我為什麼一定要在綠佳利成功」的50個理由。【文字】',
+      '做完夢想版，拍照放在手機桌面。',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+    {n:'第3單元 確信行業', v:'1214920899', hw:[
+      '寫出3個傳直銷的優勢。【文字】',
+      '寫出傳直銷和老鼠會的不同。【文字】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+  ],
+  '2026-08-04': [
+    {n:'第4單元 確信公司', v:'1214752173', hw:[
+      '公司三大目標（熟背）【錄影1分鐘】',
+      '公司六大信條（熟背）【錄影1分鐘】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+    {n:'第5單元 確信商品', v:'1214766594', hw:[
+      '請說出綠佳利五大商品是哪些？【錄音10秒】',
+      '分別說出他們的優勢（每個商品2項）【錄音1分鐘】',
+      '五大商品同時使用又有什麼優勢呢？【錄音1分鐘】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+  ],
+  '2026-08-05': [
+    {n:'第6單元 確信制度', v:'1214752024', hw:[
+      '傳直銷為什麼不用打廣告、開店面，也能把商品賣出去？【文字】',
+      '一般傳直銷公司和綠佳利經營時的差異優勢是什麼？【文字】',
+      '推薦2人可以領多少錢？【文字】',
+      '懂得「佈局」跟不會佈局，獎金差幾倍？【文字】',
+      '小資、小金、大金，每個月最高可以領多少錢？【文字】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+    {n:'第7單元 確信系統', v:'1214752023', hw:[
+      '請寫下加入A+系統對自己的幫助？【文字】',
+      '學習心得【錄音1分鐘】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+  ],
+  '2026-08-06': [
+    {n:'第8單元 設定目標', v:'1214751908', hw:[
+      '請寫下你在環貫綠佳利完成直推2的日期。【文字】',
+      '請寫下你在環貫綠佳利完成直推10的日期。【文字】',
+      '設定好直推10的日期，請分成 月締結：＿人、週締結：＿人、每天見面：＿人、每天打電話邀約：＿人。【文字】',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+    {n:'第9單元 列名單作戰會議1', v:'1214751795', hw:[
+      '列出50個名單【文字】',
+      '與領袖進行作戰會議1，打電話邀約3位朋友。',
+      '這個單元對我的幫助？【錄音1分鐘】']},
+  ],
+  '2026-08-07': [{n:'第10單元 邀約',v:null,hw:[]},{n:'第11單元 自我定位',v:null,hw:[]}],
+  '2026-08-10': [{n:'第12單元 會場運作2',v:null,hw:[]}],
+  '2026-08-11': [{n:'第13單元 疑慮處理',v:null,hw:[]}],
+  '2026-08-12': [{n:'第14單元 作戰會議2',v:null,hw:[]},{n:'第15單元 跟進',v:null,hw:[]}],
+  '2026-08-13': [{n:'第16單元 專業形象',v:null,hw:[]},{n:'第17單元 實現夢想的開始',v:null,hw:[]}],
 };
+let todayUnits = [];
 function renderTodayPlan() {
   const plan = STUDY_PLAN[today()];
   if (!plan) return;                       // 非培訓日不顯示
   const bar = document.querySelector('.deadline-bar');
   if (!bar) return;
-  const rows = plan.map(u => u.v
-    ? `<button class="unit-btn" onclick="playUnit('${u.v}','${u.n}')">▶︎ ${u.n}</button>`
+  todayUnits = plan;
+  const rows = plan.map((u, i) => u.v
+    ? `<button class="unit-btn" onclick="playUnit(${i})">▶︎ ${u.n}<span>影片＋作業</span></button>`
     : `<div class="unit-btn soon">${u.n}<span>影片準備中</span></div>`).join('');
   bar.insertAdjacentHTML('afterend',
     `<div class="today-plan">📖 <b>今天的影片進度</b><div class="unit-list">${rows}</div>
      <a href="course.html" class="today-plan-link">看完整課表 ›</a></div>`);
 }
 
-// 影片播放（Vimeo 嵌入，串流走 Vimeo CDN 不佔本站流量）
-function playUnit(vid, name) {
-  document.getElementById('vTitle').textContent = name;
+// 影片播放（Vimeo 嵌入，串流走 Vimeo CDN 不佔本站流量）＋ 該單元作業題目
+function playUnit(i) {
+  const u = todayUnits[i];
+  if (!u) return;
+  document.getElementById('vTitle').textContent = u.n;
   document.getElementById('vFrame').src =
-    `https://player.vimeo.com/video/${vid}?title=0&byline=0&portrait=0&playsinline=1`;
+    `https://player.vimeo.com/video/${u.v}?title=0&byline=0&portrait=0&playsinline=1`;
+  document.getElementById('hwBox').innerHTML = renderHomework(u);
   document.getElementById('videoModal').classList.add('show');
+  document.getElementById('videoModal').scrollTop = 0;
   document.body.style.overflow = 'hidden';
+}
+// 【】裡的格式標記抽出來做成標籤，題目本身留原文
+function renderHomework(u) {
+  if (!u.hw || !u.hw.length) return '';
+  const li = u.hw.map(t => {
+    const m = t.match(/【(.+?)】/);
+    const tag = m ? m[1] : '';
+    const body = t.replace(/【.+?】/, '').trim();
+    const cls = /錄影/.test(tag) ? 'v' : /錄音/.test(tag) ? 'a' : 't';
+    return `<li>${body}${tag ? `<span class="hw-tag ${cls}">${tag}</span>` : ''}</li>`;
+  }).join('');
+  return `<div class="hw-title">📝 ${u.n}　作業</div><ol class="hw-list">${li}</ol>
+    <div class="hw-note">今晚 <b>22:00 前</b>交到小組群，教練隔天回覆</div>`;
 }
 function closeVideo() {
   document.getElementById('vFrame').src = '';   // 清空才會真的停止播放
@@ -1230,7 +1310,7 @@ init();
     <button class="video-close" onclick="closeVideo()" aria-label="關閉">✕</button>
   </div>
   <div class="video-wrap"><iframe id="vFrame" src="" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>
-  <div class="video-tip">看完記得完成作業，今晚 22:00 前交到小組群</div>
+  <div class="hw-box" id="hwBox"></div>
 </div>
 </body>
 </html>
