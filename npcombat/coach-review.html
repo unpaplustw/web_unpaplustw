@@ -123,8 +123,8 @@
   .eng-name .code{font-size:11px;color:var(--muted);margin-left:6px;font-weight:400}
   .eng-toggle{display:flex;gap:6px;flex-shrink:0}
   .eng-btn{padding:8px 15px;border-radius:22px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.12s}
-  .eng-btn.yes.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
-  .eng-btn.no.on{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+  .eng-btn.stu.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+  .eng-btn.coach.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
   .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
 
   /* ── 教練指南 ── */
@@ -593,9 +593,10 @@ let currentMode = 'my';
 let studentList = [];
 let currentIdx = -1;
 let currentDay = 'today';
-let batchDates = { start: null, end: null };    // 班期起訖（教練指南依此判斷當前階段）
+let batchDates = { start: null, end: null, studyStart: null, studyEnd: null }; // 班期起訖＋學習週
 let coachMode = 'simple';                       // full=審核制(26期) / simple=信任制+有回應(27期起)
-let engToday = {}, engYesterday = {};           // student_id -> engaged(bool)，簡單模式的每日「有回應」
+// student_id -> { engaged, homework }；學習週記作業、行動週記回應
+let engToday = {}, engYesterday = {};
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -632,13 +633,14 @@ async function init() {
 
   try {
     // 當期批次（換屆只改 DB）+ 教練模式
-    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date').eq('is_active', true).maybeSingle();
+    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date, study_start, study_end').eq('is_active', true).maybeSingle();
     if (!batchRow) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
     BATCH_ID = batchRow.id;
     coachMode = batchRow.coach_mode || 'simple';
-    batchDates = { start: batchRow.start_date, end: batchRow.end_date };
+    batchDates = { start: batchRow.start_date, end: batchRow.end_date,
+                   studyStart: batchRow.study_start, studyEnd: batchRow.study_end };
     initGuidePhase();
-    if (coachMode === 'simple') document.getElementById('tabReview').textContent = '小組關懷';
+    if (coachMode === 'simple') document.getElementById('tabReview').textContent = engModeFor(getDateStr('today')).title;
 
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
@@ -760,14 +762,16 @@ async function init() {
       };
     });
 
-    // 簡單模式：載入今天/昨天「有回應」紀錄
+    // 簡單模式：載入今天/昨天的「作業／回應」紀錄
     if (coachMode === 'simple' && coachId) {
       const { data: engRows } = await sb.from('coach_engagement')
-        .select('student_id, log_date, engaged')
+        .select('student_id, log_date, engaged, engaged_replied, homework, homework_replied')
         .eq('coach_id', coachId).in('log_date', [getDateStr('today'), getDateStr('yesterday')]);
       engToday = {}; engYesterday = {};
       (engRows || []).forEach(r => {
-        (r.log_date === getDateStr('today') ? engToday : engYesterday)[r.student_id] = r.engaged;
+        const map = (r.log_date === getDateStr('today')) ? engToday : engYesterday;
+        map[r.student_id] = { engaged: r.engaged, engaged_replied: r.engaged_replied,
+                              homework: r.homework, homework_replied: r.homework_replied };
       });
     }
 
@@ -1093,43 +1097,72 @@ function setDay(day) {
 // ── 簡單模式：小組關懷（每日「有回應」，純監控不計分） ──
 function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
 
+// 學習週看「交作業」、行動週看「有回應」；教練每天只點一種，負擔不變
+function isStudyWeek(dateStr) {
+  const { studyStart, studyEnd } = batchDates;
+  if (!studyStart || !studyEnd) return false;
+  return dateStr >= studyStart && dateStr <= studyEnd;
+}
+
+function engModeFor(dateStr) {
+  // 每天記兩件事：學員做了沒（stu）＋ 教練回了沒（coach），兩個勾各自獨立
+  return isStudyWeek(dateStr)
+    ? { title:'作業繳交',
+        hint:'學員交作業了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆作業）。',
+        stu:  { field:'homework',         label:'📝 已交', total:'已交' },
+        coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } }
+    : { title:'小組關懷',
+        hint:'學員在小組有回覆嗎？教練回應了嗎？兩個各點一下記錄。',
+        stu:  { field:'engaged',         label:'💬 有回覆', total:'有回覆' },
+        coach:{ field:'engaged_replied', label:'✅ 已回應', total:'已回應' } };
+}
+
 function renderEngagement() {
-  document.getElementById('summaryDate').textContent = formatDate(getDateStr(currentDay));
+  const dateStr = getDateStr(currentDay);
+  const M = engModeFor(dateStr);
+  document.getElementById('summaryDate').textContent = formatDate(dateStr);
   const hd = document.querySelector('#summaryView .summary-hd span');
-  if (hd) hd.textContent = '小組關懷';
+  if (hd) hd.textContent = M.title;
 
   const map = engMapFor(currentDay);
-  let yes = 0, marked = 0;
-  let h = `<div class="eng-hint">今天小組裡，每個人有沒有回應？點一下記錄，「沒回應」的就是要主動關心的人。</div>`;
+  let sYes = 0, cYes = 0;
+  let h = `<div class="eng-hint">${M.hint}</div>`;
 
   studentList.forEach(stu => {
-    const v = map[stu.id];            // true / false / undefined(未標記)
-    if (v === true) yes++;
-    if (v !== undefined) marked++;
+    const rec = map[stu.id] || {};
+    const sv = rec[M.stu.field], cv = rec[M.coach.field];   // true / false / undefined(未標記)
+    if (sv === true) sYes++;
+    if (cv === true) cYes++;
     h += `<div class="eng-row">
       <span class="eng-name">${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}</span>
       <span class="eng-toggle">
-        <button class="eng-btn yes ${v === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}', true)">有回應</button>
-        <button class="eng-btn no ${v === false ? 'on' : ''}" onclick="toggleEngage('${stu.id}', false)">沒回應</button>
+        <button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>
+        <button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>
       </span>
     </div>`;
   });
 
   const total = studentList.length;
-  h += `<div class="eng-total">✅ 有回應 ${yes} / ${total}　·　已標記 ${marked} / ${total}</div>`;
+  h += `<div class="eng-total">${M.stu.total} ${sYes}/${total}　·　${M.coach.total} ${cYes}/${total}</div>`;
   document.getElementById('summaryBody').innerHTML = h;
 }
 
-async function toggleEngage(studentId, engaged) {
+// 兩個勾各自獨立：點一下切 true/false
+async function toggleEngage(studentId, field) {
+  const dateStr = getDateStr(currentDay);
   const map = engMapFor(currentDay);
-  const prev = map[studentId];
-  map[studentId] = engaged;          // 樂觀更新
+  const prev = map[studentId] ? { ...map[studentId] } : undefined;
+  const val = !(map[studentId] || {})[field];      // 沒標記或 false → true；true → false
+  map[studentId] = { ...(map[studentId] || {}), [field]: val };   // 樂觀更新
   renderEngagement();
   const { error } = await sb.from('coach_engagement').upsert({
     batch_id: BATCH_ID, coach_id: coachId, student_id: studentId,
-    log_date: getDateStr(currentDay), engaged
+    log_date: dateStr, [field]: val
   }, { onConflict: 'batch_id,student_id,log_date' });
-  if (error) { map[studentId] = prev; renderEngagement(); toast('儲存失敗：' + error.message); }
+  if (error) {
+    if (prev) map[studentId] = prev; else delete map[studentId];
+    renderEngagement(); toast('儲存失敗：' + error.message);
+  }
 }
 
 // ── Summary ──

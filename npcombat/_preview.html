@@ -1,0 +1,650 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>教練端預覽（假資料）</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#f7f5f0; --card:#ffffff; --gold:#b8960c; --gold-lt:#f5ecd5;
+    --text:#2d2a24; --muted:#8c8577; --border:#e8e2d6;
+    --green:#4a9e6f; --green-bg:#eaf5ef;
+    --red:#c45c5c; --red-bg:#faeaea;
+    --blue:#4a7fbf; --blue-bg:#e8f0fa;
+    --shadow:0 2px 12px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 100px}
+
+  .hd{background:var(--card);padding:20px 20px 16px;border-bottom:1px solid var(--border);text-align:center}
+  .hd-name{font-size:20px;font-weight:700;color:var(--gold)}
+  .hd-date{font-size:14px;color:var(--muted);margin-top:4px}
+  .hd-badge{display:inline-block;background:var(--blue-bg);color:var(--blue);font-size:13px;font-weight:600;padding:4px 14px;border-radius:20px;margin-top:8px}
+  .hd-admin-link{display:inline-block;background:var(--gold-lt);color:var(--gold);font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin-top:8px;margin-left:6px;text-decoration:none;border:1px solid rgba(184,150,12,.3);transition:.15s}
+  .hd-admin-link:active{background:var(--gold);color:#fff}
+
+  /* ── Day Toggle ── */
+  .day-toggle{display:flex;gap:0;max-width:500px;margin:16px auto 0;padding:0 16px}
+  .day-btn{flex:1;padding:12px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .day-btn:first-child{border-radius:10px 0 0 10px}
+  .day-btn:last-child{border-radius:0 10px 10px 0}
+  .day-btn.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
+
+  /* ── Summary Table ── */
+  .summary-wrap{padding:12px 16px;max-width:500px;margin:0 auto}
+  .summary-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .summary-hd{padding:12px 16px;font-size:14px;font-weight:700;color:var(--gold);border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+  .summary-row{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;transition:.1s;-webkit-tap-highlight-color:transparent}
+  .summary-row:last-child{border:none}
+  .summary-row:active{background:var(--gold-lt)}
+  .summary-name{flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .summary-col{width:52px;text-align:center;font-weight:600;font-size:13px}
+  .summary-col.pts{color:var(--gold)}
+  .summary-col.close-pts{color:var(--green)}
+  .summary-icon{width:28px;text-align:center;font-size:14px}
+  .summary-total{display:flex;padding:10px 16px;background:var(--bg);font-size:13px;font-weight:600;color:var(--muted)}
+  .summary-total .summary-name{color:var(--muted)}
+  .summary-total .summary-col{color:var(--gold)}
+
+
+  /* ── Student Selector (hidden, use summary to navigate) ── */
+  .sec{padding:0 16px;max-width:500px;margin:0 auto}
+  .sec-hd{font-size:13px;font-weight:600;color:var(--muted);margin:20px 0 10px;padding-left:4px;letter-spacing:1px;display:flex;justify-content:space-between}
+
+  /* ── Status Bar ── */
+  .status-bar{max-width:500px;margin:0 auto;padding:12px 16px 0}
+  .status-chip{display:inline-block;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600}
+  .status-filled{background:var(--green-bg);color:var(--green)}
+  .status-empty{background:var(--red-bg);color:var(--red)}
+  .status-confirmed{background:var(--gold-lt);color:var(--gold)}
+
+  /* ── Editable student rows ── */
+  .stu-data-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:8px 16px;overflow:hidden}
+  .stu-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .stu-row:last-child{border:none}
+  /* 雙勾：證明 + 督導 */
+  .stu-act-row{padding:10px 0;border-bottom:1px solid var(--border)}
+  .stu-act-row:last-child{border:none}
+  .stu-act-top{display:flex;justify-content:space-between;align-items:center}
+  .stu-act-checks{display:flex;gap:8px;margin-top:8px}
+  .chk{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:7px 6px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:.15s;-webkit-tap-highlight-color:transparent}
+  .chk:active{transform:scale(.97)}
+  .chk:disabled{opacity:.5;cursor:not-allowed}
+  .chk-proof.on{color:var(--blue);border-color:var(--blue);background:rgba(91,141,239,.1)}
+  .chk-coach.on{color:var(--green);border-color:var(--green);background:rgba(76,175,130,.1)}
+  .stu-row-label{font-size:15px;color:var(--text);flex:1}
+  .stu-row-left{display:flex;flex-direction:column;flex:1;min-width:0}
+  .stu-row-check{font-size:11px;color:var(--muted);margin-top:2px}
+  .grp-toggle{background:none;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.2s}
+  .grp-on{color:var(--green);border-color:var(--green)}
+  .grp-off{color:var(--muted);border-color:rgba(255,255,255,.1)}
+  .stu-row-ctrl{display:flex;align-items:center;gap:8px}
+  .stu-adj{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:18px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .stu-adj:active{background:var(--gold-lt);border-color:var(--gold)}
+  .stu-adj.neg-btn{color:var(--red)}
+  .stu-adj.neg-btn:active{background:var(--red-bg);border-color:var(--red)}
+  .stu-adj:disabled{opacity:.3;cursor:not-allowed}
+  .stu-adj:disabled:active{background:var(--card);border-color:var(--border)}
+  .stu-val{font-size:20px;font-weight:700;color:var(--gold);min-width:32px;text-align:center}
+  .stu-val.zero{color:var(--muted)}
+  .stu-val.neg{color:var(--red)}
+
+  .data-close-detail{padding:4px 0 8px;font-size:13px;color:var(--muted);line-height:1.8}
+  .data-sub-row{padding:8px 0;font-size:14px;color:var(--muted)}
+  .stu-empty{padding:24px;text-align:center;color:var(--muted);font-size:14px;background:var(--card);border-radius:12px;box-shadow:var(--shadow)}
+
+
+  /* ── Buttons ── */
+  .submit-wrap{padding:20px 16px;max-width:500px;margin:0 auto;display:flex;gap:10px}
+  .btn-submit{flex:1;padding:18px;background:var(--blue);color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(74,127,191,.3);transition:.2s;-webkit-tap-highlight-color:transparent}
+  .btn-submit:active{transform:scale(.97)}
+  .btn-submit:disabled{background:var(--muted);box-shadow:none;cursor:not-allowed}
+  .btn-undo{padding:18px 24px;background:var(--card);color:var(--red);border:2px solid var(--red);border-radius:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;display:none}
+  .btn-undo:active{background:var(--red-bg)}
+  .btn-undo.show{display:block}
+
+  .btn-back{display:block;max-width:500px;margin:12px auto 0;padding:12px 20px;background:var(--card);border:2px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .btn-back:active{background:var(--gold-lt);border-color:var(--gold)}
+
+  /* ── Nav ── */
+  .nav-wrap{display:flex;justify-content:space-between;align-items:center;padding:0 16px;max-width:500px;margin:12px auto 0}
+  .nav-btn{padding:10px 20px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;color:var(--text);cursor:pointer;font-family:inherit;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .nav-btn:active{background:var(--gold-lt);border-color:var(--gold)}
+  .nav-btn:disabled{opacity:.3;cursor:not-allowed}
+  .nav-info{font-size:13px;color:var(--muted)}
+
+  /* ── 簡單模式：小組關懷「有回應」 ── */
+  .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
+  .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
+  .eng-name{flex:1;font-size:16px;font-weight:600;color:var(--text)}
+  .eng-name .code{font-size:11px;color:var(--muted);margin-left:6px;font-weight:400}
+  .eng-toggle{display:flex;gap:6px;flex-shrink:0}
+  .eng-btn{padding:8px 15px;border-radius:22px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.12s}
+  .eng-btn.stu.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+  .eng-btn.coach.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
+  .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
+
+  /* ── 教練指南 ── */
+  .guide-wrap{max-width:500px;margin:0 auto;padding:16px}
+  .guide-intro{font-size:14px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:14px}
+  .guide-nav{display:flex;gap:7px;margin-bottom:16px}
+  .guide-nav-btn{flex:1;padding:11px 4px;border:1.5px solid var(--border);border-radius:22px;background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.15s}
+  .guide-nav-btn.on{background:var(--gold);border-color:var(--gold);color:#fff}
+  .guide-nav-btn .now{display:block;font-size:10px;font-weight:500;opacity:.85;margin-top:1px}
+  .guide-phase{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
+  .guide-phase-hd{font-size:18px;font-weight:700;color:var(--text)}
+  .guide-phase-sub{font-size:12px;color:var(--muted);margin:2px 0 12px}
+  .guide-body{font-size:15px;line-height:1.9;color:var(--text)}
+  .guide-body ul{margin:0;padding-left:4px;list-style:none}
+  .guide-body li{position:relative;padding-left:26px;margin-bottom:10px}
+  .guide-body li::before{content:'✔';position:absolute;left:0;top:1px;color:var(--gold);font-weight:700}
+  .guide-body b{color:var(--gold3)}
+  .guide-body .g-note{font-size:13px;color:var(--muted);background:var(--gold-lt);border-radius:10px;padding:10px 12px;margin-top:8px;line-height:1.7}
+  .guide-placeholder{font-size:14px;color:var(--muted);text-align:center;padding:18px 0;font-style:italic}
+  .g-sec{margin-bottom:22px}
+  .g-sec:last-child{margin-bottom:0}
+  .g-sec-t{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gold-lt)}
+  /* 步驟式流程（銀髮友善：大字、白話、照順序走） */
+  .g-step{margin-bottom:26px}
+  .g-step:last-child{margin-bottom:0}
+  .g-step-hd{display:flex;align-items:center;gap:11px;margin-bottom:7px}
+  .g-step-n{width:34px;height:34px;flex-shrink:0;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
+  .g-step-t{font-size:19px;font-weight:900;color:var(--text);line-height:1.3}
+  .g-step-when{font-size:15px;color:var(--text);background:var(--gold-lt);border-radius:10px;padding:10px 13px;margin-bottom:11px;line-height:1.7}
+  .g-step-body{padding-left:2px}
+  .g-do{font-size:15px;color:var(--text);line-height:1.8;margin-bottom:9px}
+  .g-do b{color:var(--gold3)}
+  .g-link{display:flex;align-items:center;gap:8px;padding:11px 13px;margin-bottom:7px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;color:var(--gold);text-decoration:none;-webkit-tap-highlight-color:transparent}
+  .g-link:active{background:var(--gold-lt)}
+  .g-copybox{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .g-text{margin:0;padding:13px 14px;font-family:inherit;font-size:14px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:290px;overflow-y:auto}
+  .g-copy{width:100%;padding:12px;border:none;border-top:1px solid var(--border);background:var(--gold-lt);color:var(--gold);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .g-copy:active{opacity:.7}
+  .g-copy.done{background:var(--green-bg);color:var(--green)}
+  .g-todo{display:flex;gap:10px;padding:13px 14px;margin-bottom:9px;background:var(--gold-lt);border-radius:12px}
+  .g-todo:last-child{margin-bottom:0}
+  .g-todo-ic{font-size:17px;line-height:1.5;flex-shrink:0}
+  .g-todo-t{font-size:15px;font-weight:700;color:var(--text);line-height:1.5}
+  .g-todo-d{font-size:13px;color:var(--muted);line-height:1.75;margin-top:3px}
+  .g-eg{display:inline-block;margin-top:5px;padding:4px 10px;background:var(--card);border:1px dashed var(--gold);border-radius:8px;font-size:12px;color:var(--gold);font-weight:600}
+  /* 兩張比例差很大（16:9 vs 9:16）→ 上下排；直式縮小置中，避免佔掉整個螢幕 */
+  .g-imgs{display:flex;flex-direction:column;gap:12px}
+  .g-img{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .g-img img{width:100%;display:block}
+  .g-img.portrait img{max-width:190px;margin:0 auto}
+  .g-img-cap{padding:9px 6px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);border-top:1px solid var(--border)}
+  .g-img-cap span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:1px}
+  .g-savetip{margin-top:9px;text-align:center;font-size:13px;color:var(--muted);background:var(--gold-lt);border-radius:10px;padding:9px}
+  .g-bgtitle{font-size:15px;font-weight:700;color:var(--gold3);margin-bottom:8px;padding-left:2px}
+  .g-warn{margin-top:10px;background:var(--red-bg);border:1.5px solid var(--red);border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.8;color:var(--text)}
+  .g-warn b{color:var(--red)}
+  .g-list{margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:var(--text)}
+  .g-list li{margin-bottom:7px}
+  .g-list li::marker{color:var(--gold);font-weight:700}
+
+  /* ── Mode Tabs ── */
+  .mode-tabs{display:flex;gap:0;max-width:500px;margin:0 auto;padding:12px 16px 0}
+  .mode-tab{flex:1;padding:12px;border:none;border-bottom:3px solid transparent;background:none;font-size:15px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .mode-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+
+  /* ── My Report ── */
+  .my-report{max-width:500px;margin:0 auto;padding:16px}
+  .my-report .stu-data-card{margin-bottom:16px}
+  .my-status{text-align:center;padding:12px;font-size:14px;font-weight:600}
+  .my-status.saved{color:var(--green)}
+  .my-status.unsaved{color:var(--muted)}
+
+  /* ── My Close Section ── */
+  .my-close-sec{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px;transition:border-color .2s}
+  .my-close-sec.has-value{border-color:var(--green)}
+  .my-close-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .my-close-hd-emoji{font-size:28px}
+  .my-close-hd-title{font-size:17px;font-weight:700;color:var(--text)}
+  .my-close-hd-count{font-size:13px;color:var(--muted);margin-left:auto}
+  .my-close-entry{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;position:relative}
+  .my-close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
+  .my-close-row{display:flex;gap:8px;flex-wrap:nowrap}
+  .my-close-pill{padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0;word-break:break-all}
+  .my-close-pill.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
+  .my-close-half-row{display:flex;gap:8px;margin-top:8px}
+  .my-close-half{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .my-close-half.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
+  .my-close-badge-row{display:flex;gap:8px;margin-top:8px}
+  .my-close-badge{flex:1;padding:8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent;color:var(--muted)}
+  .my-close-badge.sel{border-color:#d4a017;background:#fef9e7;color:#b8960c;font-weight:700}
+  .my-close-pts{text-align:right;margin-top:8px;font-size:14px;font-weight:700;color:var(--green)}
+  .btn-del-my-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;-webkit-tap-highlight-color:transparent}
+  .btn-del-my-close:active{color:var(--red)}
+  .btn-add-my-close{width:100%;padding:14px;border:2px dashed var(--border);border-radius:12px;background:transparent;font-size:15px;font-weight:600;color:var(--gold);cursor:pointer;font-family:inherit;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .btn-add-my-close:active{background:var(--gold-lt);border-color:var(--gold)}
+
+  .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.pv-bar{position:sticky;top:0;z-index:99;background:#c45c5c;color:#fff;padding:10px 14px;font-size:13px;font-weight:700;text-align:center;line-height:1.6}
+.pv-ctl{max-width:500px;margin:12px auto;padding:0 16px;display:flex;gap:8px;flex-wrap:wrap}
+.pv-ctl button{flex:1;min-width:120px;padding:10px;border:1.5px solid var(--gold);border-radius:10px;background:var(--card);color:var(--gold);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.pv-ctl button.on{background:var(--gold);color:#fff}
+</style></head><body>
+<div class="pv-bar">🔒 預覽版・假資料<br>隨便點都不會影響真實資料</div>
+<div class="pv-ctl">
+  <button id="b1" class="on" onclick="setDay2('2026-08-05')">📝 學習週（8/5）</button>
+  <button id="b2" onclick="setDay2('2026-08-20')">💬 行動週（8/20）</button>
+  <button id="b3" onclick="showGuide()">📖 教練指南</button>
+</div>
+<div id="wrapEng"><!-- Summary View -->
+<div id="summaryView" >
+  <div class="summary-wrap">
+    <div class="summary-card">
+      <div class="summary-hd">
+        <span>日總表</span>
+        <span id="summaryDate"></span>
+      </div>
+      <div id="summaryBody"></div>
+    </div>
+  </div>
+</div></div>
+<div id="wrapGuide" style="display:none"><!-- Guide View：教練指南（開班前/中/後）內容陸續填入 -->
+<div id="guideView" >
+  <div class="guide-wrap">
+    <div class="guide-intro">教練帶班手冊 —— 照著做，帶好你的小組 💪</div>
+
+    <div class="guide-nav">
+      <button class="guide-nav-btn" id="gnavBefore" onclick="showGuidePhase('before')">開班前</button>
+      <button class="guide-nav-btn" id="gnavDuring" onclick="showGuidePhase('during')">開班中</button>
+      <button class="guide-nav-btn" id="gnavAfter"  onclick="showGuidePhase('after')">開班後</button>
+    </div>
+
+    <div class="guide-phase" data-phase="before">
+      <div class="guide-phase-hd">🟢 開班前</div>
+      <div class="guide-phase-sub">報名 ～ 8/2 開班</div>
+      <div class="guide-body" id="guideBefore">
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">1</span><span class="g-step-t">建立小組群、回報連結</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>總培訓師建立群組時。<br>👉 <b>怎麼做：</b>❶ 產生自己小組的群組連結　❷ 填好下面範本，貼到 LINE「<b>實戰班回報</b>」群組。</div>
+          <div class="g-step-body">
+            <div class="g-do">不知道怎麼產生連結？看這支 👇</div>
+            <a class="g-link" href="https://youtu.be/7VARzHYF7XE" target="_blank" rel="noopener">▶️ 如何產生群組連結</a>
+            <div class="g-do" style="margin-top:14px">複製範本，填上組別、名字、連結後貼出去 👇</div>
+            <div class="g-copybox">
+<pre class="g-text" id="cpInvite">⚠️實戰班邀請⚠️
+第XX期/第X組
+教練：XXX
+連結：</pre>
+              <button class="g-copy" onclick="copyGuide('cpInvite',this)">📋 一鍵複製</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">2</span><span class="g-step-t">背景圖放進小組相簿</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>貼通知給學員<b>之前</b>先做好，學員才拿得到。<br>👉 <b>怎麼做：</b>長按下面圖片存到手機 → 上傳到<b>小組群的相簿</b>，學員要用時自己去拿。</div>
+          <div class="g-step-body">
+            <!-- 圖片未上傳前自動隱藏（onerror），避免破圖 -->
+            <div id="secZoomBg" style="display:none">
+              <div class="g-bgtitle">👤 教練用（你自己）</div>
+              <div class="g-imgs">
+                <div class="g-img">
+                  <img src="assets/zoom-bg-desktop.jpg" alt="教練版 電腦 Zoom 背景"
+                       onload="document.getElementById('secZoomBg').style.display=''"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
+                </div>
+                <div class="g-img portrait">
+                  <img src="assets/zoom-bg-mobile.jpg" alt="教練版 手機 Zoom 背景"
+                       onload="document.getElementById('secZoomBg').style.display=''"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
+                </div>
+              </div>
+              <div class="g-bgtitle" style="margin-top:18px">🎓 學員用（放進小組相簿）</div>
+              <div class="g-imgs">
+                <div class="g-img">
+                  <img src="assets/student-bg-desktop.jpg" alt="學員版 電腦 Zoom 背景"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">💻 電腦 / 平板<span>16:9 橫式</span></div>
+                </div>
+                <div class="g-img portrait">
+                  <img src="assets/student-bg-mobile.jpg" alt="學員版 手機 Zoom 背景"
+                       onerror="this.closest('.g-img').style.display='none'">
+                  <div class="g-img-cap">📱 手機<span>9:16 直式</span></div>
+                </div>
+              </div>
+              <div class="g-savetip">👆 <b>長按圖片</b> →「儲存影像」，再上傳到小組相簿</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">3</span><span class="g-step-t">貼一則通知給學員</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>相簿準備好之後。<br>👉 <b>怎麼做：</b>複製下面這一則貼到小組，<b>社群、改名、Zoom 設定全部包在裡面</b>，貼一次就好。</div>
+          <div class="g-step-body">
+            <div class="g-copybox">
+<pre class="g-text" id="cpBigGroup">⚠️開班前請完成以下設定⚠️
+
+【1】加入實戰班社群
+https://ppt.cc/fJAcix
+進去後請完成：
+①名稱改為（27初/組別/學/姓名）
+②放上【本人照片】
+不會改👉 https://youtu.be/pRwtfxqY0gk
+照片要正方形👉 https://youtu.be/msFXvX3kYKo
+
+【2】設定 Zoom（每週日實戰班之夜都要用）
+①改姓名👉 https://youtu.be/4x1NaPCqXoE
+②換背景👉 https://youtu.be/fZ3s98IGY2w
+※ 背景圖已放在本群「相簿」，請自行下載使用</pre>
+              <button class="g-copy" onclick="copyGuide('cpBigGroup',this)">📋 一鍵複製</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">4</span><span class="g-step-t">貼接龍，確認大家都完成</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>開班前一定要全部完成。<br>👉 <b>怎麼做：</b>這一則<b>三件事合在一起</b>，貼一次就好。學員完成哪項，就在那項的編號後面寫自己的名字，<b>沒寫的就是還沒好，要去關心</b>。</div>
+          <div class="g-step-body">
+            <div class="g-copybox">
+<pre class="g-text" id="cpRollAll">📋實戰班開班前確認📋
+完成的請在該項編號後面填上名字
+
+①自我介紹
+格式：姓名/實戰班成就領袖/工作/經營時間＆區域/參加實戰班次數
+範例：王小美/林O霖/美髮師/1個月台北/2次
+1.
+2.
+3.
+4.
+5.
+
+②已註冊A+官網，可以觀看培訓影片
+1.
+2.
+3.
+4.
+5.
+
+③已加入實戰班社群，改好姓名＋大頭照
+1.
+2.
+3.
+4.
+5.</pre>
+              <button class="g-copy" onclick="copyGuide('cpRollAll',this)">📋 一鍵複製</button>
+            </div>
+            <div class="g-note" style="margin-top:10px">⚠️ 後面才加進來的學員看不到接龍，記得<b>再貼一次</b>給他們填。</div>
+          </div>
+        </div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">開班典禮前，發提醒文案</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前。<b>不用等全員到齊</b>——人陸續進來就可以先發 A，等大家都到齊了再發 B。<br>👉 <b>怎麼做：</b>複製文案，<b>先改成自己的組別和名字</b>，再貼到小組。</div>
+          <div class="g-step-body">
+            <div class="g-do"><b>A. 平常發</b>（人還在陸續加入時）</div>
+            <div class="g-copybox">
+<pre class="g-text" id="cpAllHere">🎉歡迎大家加入實戰班🎉
+我是第____組的教練_________ 以下有幾件事情請大家留意一下：
+
+1️⃣開班典禮記得換上實戰班的zoom背景唷！背景圖放在本群「相簿」裡，自己去下載😊
+
+2️⃣【最重要】開班典禮結束後，請一定要回到小組，我將用Line會議室進行我們第0次的定聚唷!😁
+
+3️⃣請大家加我的line方便未來聯絡唷～
+
+非常開心接下來的一個月能和大家一起互助成長、往理想的人生邁進🔅🔅🔅🔅🔅</pre>
+              <button class="g-copy" onclick="copyGuide('cpAllHere',this)">📋 一鍵複製</button>
+            </div>
+            <div class="g-do" style="margin-top:16px"><b>B. 全員到齊時發</b>（短短一則，最後提醒就好）</div>
+            <div class="g-copybox">
+<pre class="g-text" id="cpAllDone">🎉我們全員到齊了🎉
+
+開班典禮前再提醒大家兩件事：
+1️⃣記得換上實戰班的zoom背景（相簿裡有）
+2️⃣典禮結束後請回到小組，我們要進行第0次定聚
+
+期待跟大家一起開始這一個月🔥</pre>
+              <button class="g-copy" onclick="copyGuide('cpAllDone',this)">📋 一鍵複製</button>
+            </div>
+            <div class="g-note" style="margin-top:10px">
+              <b>⚠️ 貼出去前，這 5 點先確認：</b>
+              <ol class="g-list" style="margin-top:6px">
+                <li>開頭空白處填入自己的<b>組別與名字</b></li>
+                <li>還有人沒進社群？把<b>步驟 3 那一則</b>再貼一次（裡面已含教學影片）</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-sec">
+          <div class="g-sec-t">⭐ 開班典禮（8/2 週日）</div>
+
+          <div class="g-do"><b>① 轉傳開班典禮連結到小組</b></div>
+          <div class="g-copybox">
+<pre class="g-text" id="cpCeremony">📢開班典禮提醒📢
+
+⏰ 時間： 8/2（日） 20:50
+🏠 房號： 6718 168 888
+🔑 密碼： 6718
+🔗 會議連結： https://us02web.zoom.us/j/6718168888
+
+✅ 找一個安全、不會被打擾的環境
+✅ 記得開啟鏡頭
+✅ 全程專注參加
+
+我們一起準時開始🔥</pre>
+            <button class="g-copy" onclick="copyGuide('cpCeremony',this)">📋 一鍵複製</button>
+          </div>
+
+          <div class="g-warn" style="margin-top:16px">🔥 <b>典禮結束後，一定要立刻帶大家回小組</b><br>用 LINE 會議室開<b>第 0 次定聚</b>，當場把下面三件事確認完。</div>
+
+          <div class="g-do" style="margin-top:16px"><b>② 第 0 次定聚小抄</b>（照著念就好）</div>
+          <div class="g-todo">
+            <div class="g-todo-ic">1️⃣</div>
+            <div>
+              <div class="g-todo-t">確定小組定聚時間</div>
+              <div class="g-todo-d">只能排在<b>週一～週五</b>，線上定聚<b>最多一小時</b>。<br>確定後可設成小組公告。</div>
+            </div>
+          </div>
+          <div class="g-todo">
+            <div class="g-todo-ic">2️⃣</div>
+            <div>
+              <div class="g-todo-t">告知作業與心得的繳交規則</div>
+              <div class="g-todo-d">學習作業、行動心得請在<b>當天 22:00 前</b>回覆到小組群組。<br>⚠️ <b>教練隔日才能回覆作業</b>，不要當天回。</div>
+            </div>
+          </div>
+          <div class="g-todo">
+            <div class="g-todo-ic">3️⃣</div>
+            <div>
+              <div class="g-todo-t">小組合照</div>
+              <div class="g-todo-d">大家一起在鏡頭前合照，留下第一張紀錄 📸</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-sec">
+          <div class="g-sec-t">🛠 其他教練工具</div>
+          <div class="g-do">想知道學員最近有沒有在動？用官方 LINE 查 👇</div>
+          <a class="g-link" href="https://youtu.be/-uA6uKWPWgI" target="_blank" rel="noopener">▶️ 藉由官方 LINE 了解學員狀況</a>
+          <div class="g-warn">⚠️ <b>只能看，不能回！</b><br>官方 LINE 僅供查看學員狀況，<b>不可在裡面回覆學員</b>。<br>若有回應，<b>罰 500 元</b>。</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="guide-phase" data-phase="during">
+      <div class="guide-phase-hd">🔵 開班中</div>
+      <div class="guide-phase-sub">8/3 ～ 8/31</div>
+      <div class="guide-body" id="guideDuring">
+        <div class="guide-placeholder">內容整理中，敬請期待 ✍️</div>
+      </div>
+    </div>
+
+    <div class="guide-phase" data-phase="after">
+      <div class="guide-phase-hd">🟡 開班後</div>
+      <div class="guide-phase-sub">9/1 結業 ～</div>
+      <div class="guide-body" id="guideAfter">
+        <div class="guide-placeholder">內容整理中，敬請期待 ✍️</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let batchDates={start:'2026-08-02',end:'2026-09-01',studyStart:'2026-08-03',studyEnd:'2026-08-13'};
+let FAKE_TODAY='2026-08-05', currentDay='today';
+let studentList=[{id:'s1',name:'王大明',code:'1234567'},{id:'s2',name:'李小華',code:'2345678'},{id:'s3',name:'陳美美',code:'3456789'}];
+let engToday={}, engYesterday={};
+function getDateStr(){return FAKE_TODAY;}
+function formatDate(s){const[y,m,d]=s.split('-');return `${+m}/${+d}`;}
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1500);}
+function currentGuidePhase() {
+  const today = getDateStr('today');
+  if (!batchDates.start) return 'before';
+  if (today < batchDates.start) return 'before';   // 開班日之前
+  if (today > batchDates.end)   return 'after';    // 結業之後
+  return 'during';                                  // 開班期間
+}function showGuidePhase(phase) {
+  const now = currentGuidePhase();
+  ['before','during','after'].forEach(p => {
+    const sec = document.querySelector(`.guide-phase[data-phase="${p}"]`);
+    if (sec) sec.style.display = (p === phase) ? '' : 'none';
+    const btn = document.getElementById('gnav' + p.charAt(0).toUpperCase() + p.slice(1));
+    if (btn) {
+      btn.classList.toggle('on', p === phase);
+      // 當前階段標記「現在」，教練一眼知道自己在哪個時期
+      const label = { before:'開班前', during:'開班中', after:'開班後' }[p];
+      btn.innerHTML = label + (p === now ? '<span class="now">● 現在</span>' : '');
+    }
+  });
+}function initGuidePhase() { showGuidePhase(currentGuidePhase()); }
+
+// ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
+function copyGuide(id, btn) {
+  const text = document.getElementById(id).textContent;
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = '✅ 已複製';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); }, 1600);
+  };
+  // 備援：iOS/LINE webview 的 textarea.select() 常失效，改用 contentEditable + Range
+  const fallback = () => {
+    const box = document.createElement('div');
+    box.textContent = text;
+    box.contentEditable = 'true';
+    box.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap;user-select:text;-webkit-user-select:text';
+    document.body.appendChild(box);
+    const range = document.createRange();
+    range.selectNodeContents(box);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    sel.removeAllRanges();
+    document.body.removeChild(box);
+    ok ? done() : toast('複製失敗，請長按上方文字手動複製');
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else fallback();
+}function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
+
+// 學習週看「交作業」、行動週看「有回應」；教練每天只點一種，負擔不變
+function isStudyWeek(dateStr) {
+  const { studyStart, studyEnd } = batchDates;
+  if (!studyStart || !studyEnd) return false;
+  return dateStr >= studyStart && dateStr <= studyEnd;
+}function engModeFor(dateStr) {
+  // 每天記兩件事：學員做了沒（stu）＋ 教練回了沒（coach），兩個勾各自獨立
+  return isStudyWeek(dateStr)
+    ? { title:'作業繳交',
+        hint:'學員交作業了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆作業）。',
+        stu:  { field:'homework',         label:'📝 已交', total:'已交' },
+        coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } }
+    : { title:'小組關懷',
+        hint:'學員在小組有回覆嗎？教練回應了嗎？兩個各點一下記錄。',
+        stu:  { field:'engaged',         label:'💬 有回覆', total:'有回覆' },
+        coach:{ field:'engaged_replied', label:'✅ 已回應', total:'已回應' } };
+}function renderEngagement() {
+  const dateStr = getDateStr(currentDay);
+  const M = engModeFor(dateStr);
+  document.getElementById('summaryDate').textContent = formatDate(dateStr);
+  const hd = document.querySelector('#summaryView .summary-hd span');
+  if (hd) hd.textContent = M.title;
+
+  const map = engMapFor(currentDay);
+  let sYes = 0, cYes = 0;
+  let h = `<div class="eng-hint">${M.hint}</div>`;
+
+  studentList.forEach(stu => {
+    const rec = map[stu.id] || {};
+    const sv = rec[M.stu.field], cv = rec[M.coach.field];   // true / false / undefined(未標記)
+    if (sv === true) sYes++;
+    if (cv === true) cYes++;
+    h += `<div class="eng-row">
+      <span class="eng-name">${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}</span>
+      <span class="eng-toggle">
+        <button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>
+        <button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>
+      </span>
+    </div>`;
+  });
+
+  const total = studentList.length;
+  h += `<div class="eng-total">${M.stu.total} ${sYes}/${total}　·　${M.coach.total} ${cYes}/${total}</div>`;
+  document.getElementById('summaryBody').innerHTML = h;
+}
+function copyGuide(id, btn) {
+  const text = document.getElementById(id).textContent;
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = '✅ 已複製';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); }, 1600);
+  };
+  // 備援：iOS/LINE webview 的 textarea.select() 常失效，改用 contentEditable + Range
+  const fallback = () => {
+    const box = document.createElement('div');
+    box.textContent = text;
+    box.contentEditable = 'true';
+    box.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap;user-select:text;-webkit-user-select:text';
+    document.body.appendChild(box);
+    const range = document.createRange();
+    range.selectNodeContents(box);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    sel.removeAllRanges();
+    document.body.removeChild(box);
+    ok ? done() : toast('複製失敗，請長按上方文字手動複製');
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else fallback();
+}
+
+async function toggleEngage(sid,field){
+  const val=!(engToday[sid]||{})[field];
+  engToday[sid]={...(engToday[sid]||{}),[field]:val};
+  renderEngagement();
+}
+function setDay2(d){
+  FAKE_TODAY=d; engToday={};
+  document.getElementById('b1').classList.toggle('on',d==='2026-08-05');
+  document.getElementById('b2').classList.toggle('on',d==='2026-08-20');
+  document.getElementById('b3').classList.remove('on');
+  document.getElementById('wrapEng').style.display='';
+  document.getElementById('wrapGuide').style.display='none';
+  renderEngagement();
+}
+function showGuide(){
+  ['b1','b2'].forEach(i=>document.getElementById(i).classList.remove('on'));
+  document.getElementById('b3').classList.add('on');
+  document.getElementById('wrapEng').style.display='none';
+  document.getElementById('wrapGuide').style.display='';
+  initGuidePhase();
+}
+renderEngagement();
+</script></body></html>

@@ -426,7 +426,7 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported, decl_read, checkin_at, buddy_left, buddy_right, proof_checks, coach_checks')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported, decl_read, proof_checks, coach_checks')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
@@ -487,7 +487,7 @@ function calcStats(startDate, endDate) {
       meet:0, invite:0, present:0, seminar:0,
       ghosted:0, rejected:0, name_list:0,
       close_pts:0, action_pts:0, total:0, slots:0,
-      buddies:0, buddyLeft:0, buddyRight:0, balance:0, supervise:0,
+      supervise:0,
       filled:false, filledItems:0, verifiedItems:0,
       downlinePts:0, downlineCount:0, downlineAvg:0, downlineNames:[]
     };
@@ -519,11 +519,6 @@ function calcStats(startDate, endDate) {
     if (log.group_reported && (isSimpleMode() || !verify || proof.group)) s.action_pts += 5;
     // 📖朗讀宣言 +2（學員自己拿）
     if (log.decl_read) s.action_pts += 2;
-    // 🏢公司打卡 +10（GPS 自動，有 checkin_at 即給）
-    if (log.checkin_at) s.action_pts += 10;
-    // 🌳 個人動員：帶夥伴左/右（雙軌分開）
-    s.buddyLeft += (log.buddy_left || 0);
-    s.buddyRight += (log.buddy_right || 0);
     // 📋 有填報（任一筆 log 即算填報）
     s.filled = true;
     // ✅ 驗證率素材：填了幾項(value>0) / 其中幾項有證明勾
@@ -552,8 +547,6 @@ function calcStats(startDate, endDate) {
   arr.forEach(s => {
     s.action_pts = Math.round(s.action_pts); // 折扣可能產生 .5，四捨五入
     s.total = s.action_pts + s.close_pts;
-    s.buddies = s.buddyLeft + s.buddyRight;        // 🌳 動員總數
-    s.balance = Math.min(s.buddyLeft, s.buddyRight); // ⚖️ 雙軌平衡（取較弱那邊）
   });
   // 👑 領袖王：下線(sponsor)實戰班總分平均，歸給該上線教練 + 收集下線名字
   const sidToSponsor = {};
@@ -722,8 +715,6 @@ function loadWeek(idx) {
     html += renderLeaderKing(rank('downlineAvg'));
     // 督導王靠逐項審核，簡單模式不審核 → 隱藏
     if (!isSimpleMode()) html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
-    html += renderAwardCard({ key:'buddies', emoji:'🚌', name:'動員王', desc:'帶最多夥伴到公司（左+右）', unit:'人' }, rank('buddies'));
-    html += renderAwardCard({ key:'balance', emoji:'⚖️', name:'雙軌平衡王', desc:'左右區發展最均衡', unit:'人' }, rank('balance'));
     html += '</div>';
   }
 

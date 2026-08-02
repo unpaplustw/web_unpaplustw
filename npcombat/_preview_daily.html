@@ -238,6 +238,11 @@
 </style>
 </head>
 <body>
+<div style="position:sticky;top:0;z-index:99;background:#c45c5c;color:#fff;padding:10px 14px;font-size:13px;font-weight:700;text-align:center;line-height:1.6">🔒 學員端預覽・假資料<br>下方可切換「鎖住 / 開放」兩種狀態</div>
+<div style="max-width:500px;margin:12px auto;padding:0 16px;display:flex;gap:8px">
+  <button id="pvA" onclick="pvSet('2026-08-06')" style="flex:1;padding:10px;border:1.5px solid #b8960c;border-radius:10px;background:#b8960c;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">🔒 8/2 開班日（鎖住）</button>
+  <button id="pvB" onclick="pvSet(null)" style="flex:1;padding:10px;border:1.5px solid #b8960c;border-radius:10px;background:#fff;color:#b8960c;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">✅ 8/6 後（全開）</button>
+</div>
 
 <!-- ── 宣言彈窗 ── -->
 <div class="decl-overlay" id="declOverlay">
@@ -494,7 +499,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const DEMO_MODE = false;
+const DEMO_MODE = true;
 const LIFF_ID = '2009692859-IGJ1xPLd';
 // 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
 let BATCH_ID = null;
@@ -721,7 +726,9 @@ async function init() {
   document.getElementById('dateText').textContent = formatDate(d);
 
   if (DEMO_MODE) {
-    document.getElementById('userName').textContent = '測試學員';
+    actionOpenDate = '2026-08-06';
+    applyActionLock();
+    document.getElementById('userName').textContent = '游育杰';
     document.getElementById('dayCount').textContent = '第 8 天';
     accumData = { meet:23, invite:15, present:8, seminar:3, ghosted:5, rejected:4, close_count:3, close_pts:590, sub_count:2, total_pts:712, report_days:7, streak:5 };
     return;
@@ -1152,5 +1159,19 @@ function backToEdit() {
 
 init();
 </script>
-</body>
+<script>
+function pvSet(d){
+  actionOpenDate = d;
+  document.querySelectorAll('.act-lock, .lock-note').forEach(e=>e.remove());
+  document.querySelectorAll('.locked').forEach(e=>e.classList.remove('locked'));
+  const gr=document.getElementById('groupReport');
+  if(gr && !gr.getAttribute('onclick')) gr.setAttribute('onclick','toggleGroupReport()');
+  if(d) applyActionLock();
+  document.getElementById('pvA').style.background = d?'#b8960c':'#fff';
+  document.getElementById('pvA').style.color = d?'#fff':'#b8960c';
+  document.getElementById('pvB').style.background = d?'#fff':'#b8960c';
+  document.getElementById('pvB').style.color = d?'#b8960c':'#fff';
+  window.scrollTo(0,document.body.scrollHeight);
+}
+</script></body>
 </html>
