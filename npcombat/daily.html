@@ -567,7 +567,7 @@ async function resolveBatchId() {
   return data ? data.id : null;
 }
 
-// 課程還沒上到 → 七大行動鎖住，只開放締結。8/8（第9單元 列名單）後自動全開（日期讀 DB action_open_date）
+// 課程還沒上到 → 七大行動鎖住，只開放締結。8/10（週一）後自動全開（日期讀 DB action_open_date）
 // 培訓期每日影片進度（⚠️ course.html 也有一份 PLAN，改課表要兩處一起改）
 // v = Vimeo 影片 ID（來源：公司舊站 unpaplus.com，抓取 2026-08-03）
 // v:null = 公司尚未上傳（舊站放的是「培訓計畫敬請期待」佔位片），上傳後補 ID 即可
@@ -735,7 +735,7 @@ const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 
 const nextDay = ymd => { const t = new Date(ymd + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
 
 // 兩道鎖各走各的日期，互不影響：
-//   七大行動 → action_open_date（27期 8/8，課程上到「列名單」）
+//   七大行動 → action_open_date（27期 8/10，週一起跑，週末不催行動）
 //   小組回報行動心得 → 學習週結束隔天（study_end + 1，27期 8/18）＝ 有行動可分享才需要
 function applyActionLock() {
   const t = today();
