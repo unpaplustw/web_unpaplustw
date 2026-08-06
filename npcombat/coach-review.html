@@ -6,6 +6,7 @@
 <title>教練回報｜實戰班</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="units.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
   :root {
@@ -526,11 +527,25 @@ https://ppt.cc/fJAcix
 
     <div class="guide-phase" data-phase="during">
       <div class="guide-phase-hd">🔵 開班中</div>
-      <div class="guide-phase-sub">8/3 ～ 8/31</div>
+      <div class="guide-phase-sub">8/3 ～ 9/1 結業</div>
       <div class="guide-body" id="guideDuring">
-        <div class="guide-placeholder">內容整理中，敬請期待 ✍️</div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">1</span><span class="g-step-t">每天貼作業接龍到小組群</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>每天早上或中午，讓學員知道今天要交什麼。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群，學員在自己名字後面打 ✅ 接龍。</div>
+          <div class="g-step-body">
+            <div class="g-do">日期、單元、你的組員名單都幫你帶好了 👇</div>
+            <div class="g-copybox">
+<pre class="g-text" id="cpRollcall">載入中…</pre>
+              <button class="g-copy" onclick="copyGuide('cpRollcall',this)">📋 一鍵複製</button>
+            </div>
+            <div class="g-do" style="margin-top:12px">學員回覆後，記得到「<b>作業繳交</b>」分頁把交了的人點一下 ✅</div>
+          </div>
+        </div>
+
       </div>
     </div>
+
 
     <div class="guide-phase" data-phase="after">
       <div class="guide-phase-hd">🟡 開班後</div>
@@ -783,6 +798,7 @@ async function init() {
 
   renderMyReport();
   renderReview();
+  renderRollcall();   // 這裡才有 studentList，接龍名單要等到現在才生得出來
   setMode('my');
 }
 
@@ -840,9 +856,29 @@ function showGuidePhase(phase) {
   });
 }
 
-function initGuidePhase() { showGuidePhase(currentGuidePhase()); }
+function initGuidePhase() { renderRollcall(); showGuidePhase(currentGuidePhase()); }
 
 // ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
+// 作業接龍範本：當天單元 × 這位教練的組員，一鍵複製貼到小組群
+// 課表來源是共用檔 units.js，改課表不必動這裡
+function renderRollcall() {
+  const box = document.getElementById('cpRollcall');
+  if (!box || typeof unitsOfDay !== 'function') return;
+  const d = getDateStr('today');
+  const units = unitsOfDay(d);
+  const [, m, day] = d.split('-');
+  if (!units.length) {
+    box.textContent = `今天（${+m}/${+day}）沒有排定單元，不用貼接龍 🎉`;
+    return;
+  }
+  if (!studentList.length) { box.textContent = '你的小組還沒有學員資料'; return; }
+  const names = studentList.map((s, i) => `${i + 1}.${s.name}`).join('\n');
+  const blocks = units.map(u =>
+    `《${String(u.no).padStart(2, '0')}${u.n}》\n${names}`).join('\n\n');
+  box.textContent = `${+m}/${+day}作業完成請打✅\n\n${blocks}`;
+}
+
+
 function copyGuide(id, btn) {
   const text = document.getElementById(id).textContent;
   const done = () => {
