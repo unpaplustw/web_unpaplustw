@@ -28,6 +28,11 @@
   .hd-admin-link:active{background:var(--gold);color:#fff}
 
   /* ── Day Toggle ── */
+  .g-rollday{display:flex;gap:0;margin:0 0 14px}
+  .g-rollday-btn{flex:1;padding:11px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .g-rollday-btn:first-child{border-radius:10px 0 0 10px}
+  .g-rollday-btn:last-child{border-radius:0 10px 10px 0;border-left:0}
+  .g-rollday-btn.on{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
   .day-toggle{display:flex;gap:0;max-width:500px;margin:16px auto 0;padding:0 16px}
   .day-btn{flex:1;padding:12px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
   .day-btn:first-child{border-radius:10px 0 0 10px}
@@ -530,11 +535,27 @@ https://ppt.cc/fJAcix
       <div class="guide-phase-sub">8/3 ～ 9/1 結業</div>
       <div class="guide-body" id="guideDuring">
 
+        <div class="g-rollday">
+          <button class="g-rollday-btn on" id="grdToday" onclick="setRollDay('today')">今天的</button>
+          <button class="g-rollday-btn" id="grdTomorrow" onclick="setRollDay('tomorrow')">明天的</button>
+        </div>
+
         <div class="g-step">
-          <div class="g-step-hd"><span class="g-step-n">1</span><span class="g-step-t">每天貼作業接龍到小組群</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>每天早上或中午，讓學員知道今天要交什麼。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群，學員在自己名字後面打 ✅ 接龍。</div>
+          <div class="g-step-hd"><span class="g-step-n">1</span><span class="g-step-t">貼作業內容到小組群</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>前一晚或當天早上，讓學員知道要交什麼。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群。</div>
           <div class="g-step-body">
-            <div class="g-do">日期、單元、你的組員名單都幫你帶好了 👇</div>
+            <div class="g-copybox">
+<pre class="g-text" id="cpHomework">載入中…</pre>
+              <button class="g-copy" onclick="copyGuide('cpHomework',this)">📋 一鍵複製</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-step">
+          <div class="g-step-hd"><span class="g-step-n">2</span><span class="g-step-t">貼作業接龍，讓學員打勾</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>接在上一則後面貼。<br>👉 <b>怎麼做：</b>學員在自己名字後面打 ✅ 接龍，你一眼看得出誰還沒交。</div>
+          <div class="g-step-body">
+            <div class="g-do">你的組員名單已經幫你帶好了 👇</div>
             <div class="g-copybox">
 <pre class="g-text" id="cpRollcall">載入中…</pre>
               <button class="g-copy" onclick="copyGuide('cpRollcall',this)">📋 一鍵複製</button>
@@ -859,23 +880,79 @@ function showGuidePhase(phase) {
 function initGuidePhase() { renderRollcall(); showGuidePhase(currentGuidePhase()); }
 
 // ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
-// 作業接龍範本：當天單元 × 這位教練的組員，一鍵複製貼到小組群
-// 課表來源是共用檔 units.js，改課表不必動這裡
+// ── 開班中：作業文案＋接龍範本，教練一鍵複製貼群（課表來源 units.js，改課表不必動這裡）──
+let rollDay = 'today';
+const WD_TW = ['日','一','二','三','四','五','六'];
+
+function setRollDay(d) {
+  rollDay = d;
+  document.getElementById('grdToday').classList.toggle('on', d === 'today');
+  document.getElementById('grdTomorrow').classList.toggle('on', d === 'tomorrow');
+  renderRollcall();
+}
+
+// 把【錄音1分鐘】這種標記轉成好讀的「🎙 錄音 1 分鐘」
+function fmtTag(tag) {
+  const icon = /錄影/.test(tag) ? '🎥' : /錄音/.test(tag) ? '🎙' : '✏️';
+  return `${icon} ${tag.replace(/(\d+)/g, ' $1 ').replace(/\s+/g, ' ').trim()}`;
+}
+
 function renderRollcall() {
-  const box = document.getElementById('cpRollcall');
-  if (!box || typeof unitsOfDay !== 'function') return;
-  const d = getDateStr('today');
+  const hwBox = document.getElementById('cpHomework');
+  const rcBox = document.getElementById('cpRollcall');
+  if (!hwBox || !rcBox || typeof unitsOfDay !== 'function') return;
+
+  const base = new Date();
+  if (rollDay === 'tomorrow') base.setDate(base.getDate() + 1);
+  const d = base.getFullYear() + '-' + String(base.getMonth()+1).padStart(2,'0') + '-' + String(base.getDate()).padStart(2,'0');
+  const md = `${base.getMonth()+1}/${base.getDate()}（${WD_TW[base.getDay()]}）`;
   const units = unitsOfDay(d);
-  const [, m, day] = d.split('-');
+
   if (!units.length) {
-    box.textContent = `今天（${+m}/${+day}）沒有排定單元，不用貼接龍 🎉`;
+    const msg = `${md} 沒有排定單元，不用貼作業 🎉`;
+    hwBox.textContent = msg; rcBox.textContent = msg;
     return;
   }
-  if (!studentList.length) { box.textContent = '你的小組還沒有學員資料'; return; }
-  const names = studentList.map((s, i) => `${i + 1}.${s.name}`).join('\n');
-  const blocks = units.map(u =>
-    `《${String(u.no).padStart(2, '0')}${u.n}》\n${names}`).join('\n\n');
-  box.textContent = `${+m}/${+day}作業完成請打✅\n\n${blocks}`;
+
+  // ① 作業文案
+  const nQ = units.reduce((s, u) => s + u.hw.length, 0);
+  const allTags = units.flatMap(u => u.hw.map(x => (x.match(/【(.+?)】/) || [])[1] || ''));
+  const hasVideo = allTags.some(x => /錄影/.test(x));
+  const allText  = allTags.every(x => !x || /文字/.test(x));
+  const tip = hasVideo ? '👉 有錄影題，先背熟再錄比較輕鬆'
+            : allText  ? '👉 全部都是文字題，一次回覆完整比較好確認'
+                       : '👉 一次回覆完整，方便教練確認';
+
+  const blocks = units.map((u, i) => {
+    const head = units.length > 1 ? `${'①②③'[i] || (i+1)}【${String(u.no).padStart(2,'0')} ${u.n}】`
+                                  : `【${String(u.no).padStart(2,'0')} ${u.n}】`;
+    const qs = u.hw.map((x, k) => {
+      const tag = (x.match(/【(.+?)】/) || [])[1];
+      const body = x.replace(/【.+?】/, '').trim();
+      return `${k+1}. ${body}${tag ? ' ' + fmtTag(tag) : ''}`;
+    }).join('\n\n');
+    return `━━━━━━━━━━\n${head}\n\n${qs}`;
+  }).join('\n\n');
+
+  hwBox.textContent =
+`📚 ${md}作業 📚
+
+${units.length === 1 ? '這天 1 個單元' : `這天 ${units.length} 個單元`}，共 ${nQ} 題，請在 ${md}22:00 前回覆在群組裡 👇
+
+${blocks}
+
+━━━━━━━━━━
+🎦 答案影片裡都有講，認真看完就寫得出來
+${tip}
+
+⏰ ${md}22:00 前交齊
+💪 一天一步，我們一起完成`;
+
+  // ② 作業接龍
+  if (!studentList.length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
+  const names = studentList.map((s, i) => `${i+1}.${s.name}`).join('\n');
+  rcBox.textContent = `${base.getMonth()+1}/${base.getDate()}作業完成請打✅\n\n`
+    + units.map(u => `《${String(u.no).padStart(2,'0')}${u.n}》\n${names}`).join('\n\n');
 }
 
 
