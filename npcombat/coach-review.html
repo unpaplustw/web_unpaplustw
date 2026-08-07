@@ -33,6 +33,10 @@
   .g-rollday-btn:first-child{border-radius:10px 0 0 10px}
   .g-rollday-btn:last-child{border-radius:0 10px 10px 0;border-left:0}
   .g-rollday-btn.on{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
+  .my-lock-note{background:var(--gold-lt);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:13.5px;line-height:1.8;color:var(--muted);text-align:center}
+  .my-lock-note b{color:var(--gold)}
+  .stu-row.locked{opacity:.45}
+  .stu-row.locked .stu-adj{cursor:not-allowed}
   .day-toggle{display:flex;gap:0;max-width:500px;margin:16px auto 0;padding:0 16px}
   .day-btn{flex:1;padding:12px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
   .day-btn:first-child{border-radius:10px 0 0 10px}
@@ -669,12 +673,13 @@ async function init() {
 
   try {
     // 當期批次（換屆只改 DB）+ 教練模式
-    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date, study_start, study_end').eq('is_active', true).maybeSingle();
+    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date, study_start, study_end, action_open_date').eq('is_active', true).maybeSingle();
     if (!batchRow) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
     BATCH_ID = batchRow.id;
     coachMode = batchRow.coach_mode || 'simple';
     batchDates = { start: batchRow.start_date, end: batchRow.end_date,
-                   studyStart: batchRow.study_start, studyEnd: batchRow.study_end };
+                   studyStart: batchRow.study_start, studyEnd: batchRow.study_end,
+                   actionOpen: batchRow.action_open_date };
     initGuidePhase();
     if (coachMode === 'simple') document.getElementById('tabReview').textContent = engModeFor(getDateStr('today')).title;
 
@@ -1013,17 +1018,26 @@ function renderMyReport() {
     MY_FIELDS.forEach(f => { myVals[f.key] = 0; });
   }
 
-  let h = '<div class="stu-data-card">';
+  // 七大行動與學員端同一道鎖：action_open_date 之前只能填締結
+  const actLocked = isActionLocked();
+  let h = '';
+  if (actLocked) {
+    const [, lm, ld] = batchDates.actionOpen.split('-');
+    h += `<div class="my-lock-note">🔒 行動項目 <b>${+lm}/${+ld} 開放</b><br>
+          與學員同步，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`;
+  }
+  h += '<div class="stu-data-card">';
   MY_FIELDS.forEach(f => {
     const v = myVals[f.key];
     const valCls = v === 0 ? 'zero' : (f.neg ? 'neg' : '');
     const btnCls = f.neg ? 'neg-btn' : '';
-    h += `<div class="stu-row">
+    const dis = actLocked ? ' disabled' : '';
+    h += `<div class="stu-row${actLocked ? ' locked' : ''}">
       <span class="stu-row-label">${f.emoji} ${f.label}</span>
       <div class="stu-row-ctrl">
-        <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',-1)">−</button>
+        <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',-1)"${dis}>−</button>
         <div class="stu-val ${valCls}" id="my-${f.key}">${v}</div>
-        <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',1)">＋</button>
+        <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',1)"${dis}>＋</button>
       </div>
     </div>`;
   });
@@ -1041,7 +1055,13 @@ function renderMyReport() {
   btn.disabled = !myStudentId;
 }
 
+// 教練的七大行動與學員端共用同一個開放日（DB batches.action_open_date）
+function isActionLocked() {
+  return !!batchDates.actionOpen && getDateStr('today') < batchDates.actionOpen;
+}
+
 function adjMy(key, delta) {
+  if (isActionLocked()) { toast('行動項目尚未開放'); return; }   // 防呆：擋掉直接呼叫
   myVals[key] = Math.max(0, (myVals[key]||0) + delta);
   const el = document.getElementById('my-' + key);
   const f = STU_FIELDS.find(f => f.key === key);
