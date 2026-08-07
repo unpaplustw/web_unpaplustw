@@ -37,6 +37,7 @@
   .my-lock-note b{color:var(--gold)}
   .stu-row.locked{opacity:.45}
   .stu-row.locked .stu-adj{cursor:not-allowed}
+  .eng-auto{display:inline-block;margin-top:6px;color:var(--gold);font-size:13px}
   .day-toggle{display:flex;gap:0;max-width:500px;margin:16px auto 0;padding:0 16px}
   .day-btn{flex:1;padding:12px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
   .day-btn:first-child{border-radius:10px 0 0 10px}
@@ -1259,7 +1260,7 @@ function renderEngagement() {
 
   const map = engMapFor(currentDay);
   let sYes = 0, cYes = 0;
-  let h = `<div class="eng-hint">${M.hint}</div>`;
+  let h = `<div class="eng-hint">${M.hint}<br><b class="eng-auto">✅ 點一下就自動儲存，不需要再按送出</b></div>`;
 
   studentList.forEach(stu => {
     const rec = map[stu.id] || {};
@@ -1295,6 +1296,8 @@ async function toggleEngage(studentId, field) {
   if (error) {
     if (prev) map[studentId] = prev; else delete map[studentId];
     renderEngagement(); toast('儲存失敗：' + error.message);
+  } else {
+    toast(val ? '已儲存 ✅' : '已取消');   // 成功也要回饋，否則教練會以為沒存到而去找送出鈕
   }
 }
 
