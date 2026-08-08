@@ -561,7 +561,7 @@ const LIFF_ID = '2009692859-IGJ1xPLd';
 // 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
 let BATCH_ID = null;
 let actionOpenDate = null;   // 七大行動的開放日；此日之前鎖住（締結不受影響）
-let studyEnd = null;         // 學習週最後一天；小組回報行動心得要等學習週結束才開放
+let studyEnd = null;         // 保留備用（教練端切「作業繳交／小組關懷」用；學員端目前不靠它鎖）
 async function resolveBatchId() {
   const { data } = await sb.from('batches').select('id, action_open_date, study_end').eq('is_active', true).maybeSingle();
   if (data) { actionOpenDate = data.action_open_date; studyEnd = data.study_end; }
@@ -642,37 +642,31 @@ function switchTab(name) {
 }
 
 const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 開放`; };
-const nextDay = ymd => { const t = new Date(ymd + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
 
-// 兩道鎖各走各的日期，互不影響：
-//   七大行動 → action_open_date（27期 8/10，週一起跑，週末不催行動）
-//   小組回報行動心得 → 學習週結束隔天（study_end + 1，27期 8/18）＝ 有行動可分享才需要
+// 七大行動與「小組回報行動心得」同一個開放日（DB batches.action_open_date，27期 8/10）
+// 2026-08-08 定案：行動心得要到行動日才能按——有行動才有心得可分享
+// 締結與宣言不受此鎖影響，全期開放
 function applyActionLock() {
-  const t = today();
+  if (!actionOpenDate || today() >= actionOpenDate) return;
+  const label = openLabel(actionOpenDate);
 
-  // ① 七大行動
-  if (actionOpenDate && t < actionOpenDate) {
-    const label = openLabel(actionOpenDate);
-    document.querySelectorAll('.act[data-key]').forEach(card => {
-      card.classList.add('locked');
-      const ctrl = card.querySelector('.act-ctrl');
-      if (ctrl) ctrl.insertAdjacentHTML('afterend', `<span class="act-lock">🔒 ${label}</span>`);
-    });
-    const fa = document.getElementById('formArea');   // 提示放在行動頁籤最上面
-    if (fa) fa.insertAdjacentHTML('afterbegin',
-      `<div class="lock-note">🔒 行動項目 <b>${label}</b><br>課程上到「列名單」單元後開啟，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`);
+  document.querySelectorAll('.act[data-key]').forEach(card => {
+    card.classList.add('locked');
+    const ctrl = card.querySelector('.act-ctrl');
+    if (ctrl) ctrl.insertAdjacentHTML('afterend', `<span class="act-lock">🔒 ${label}</span>`);
+  });
+
+  const gr = document.getElementById('groupReport');
+  if (gr) {
+    gr.classList.add('locked');
+    gr.removeAttribute('onclick');
+    // 插在最後面（勾選框已隱藏，插它後面會跑到最左）
+    gr.insertAdjacentHTML('beforeend', `<span class="act-lock">🔒 ${label}</span>`);
   }
 
-  // ② 小組回報行動心得：學習週還沒結束 → 鎖（此時學員交的是作業，不是行動心得）
-  if (studyEnd && t <= studyEnd) {
-    const gr = document.getElementById('groupReport');
-    if (gr) {
-      gr.classList.add('locked');
-      gr.removeAttribute('onclick');
-      // 插在最後面（勾選框已隱藏，插它後面會跑到最左）
-      gr.insertAdjacentHTML('beforeend', `<span class="act-lock">🔒 ${openLabel(nextDay(studyEnd))}</span>`);
-    }
-  }
+  const fa = document.getElementById('formArea');   // 提示放在行動頁籤最上面
+  if (fa) fa.insertAdjacentHTML('afterbegin',
+    `<div class="lock-note">🔒 行動項目 <b>${label}</b><br>課程上到「列名單」單元後開啟，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`);
 }
 const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：god.html 帶 ?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF 以該學員身份檢視
 
