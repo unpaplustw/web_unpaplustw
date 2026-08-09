@@ -629,12 +629,19 @@
 const LIFF_ID      = '2009692859-1LNWRlIq';
 const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-// 當期批次：讀 batches.is_active（換屆只改 DB，不改碼）
+// 報名要寫進哪一期（換屆只改 DB，不改碼）
+// 2026-08-09 加入預先報名：優先讀 registration_open，沒有才退回 is_active。
+// 為什麼不直接切 is_active：is_active 有 8 個檔在讀，班期中途切換會讓當期學員的
+// daily／coach-review／排行榜全部當場指向新一期。registration_open 只有本檔會讀。
 let BATCH_ID = null;
 let BATCH = null;
 async function resolveBatch() {
+  const cols = 'id, name, event_name, start_date';
+  const { data: pre } = await sb.from('batches')
+    .select(cols).eq('registration_open', true).maybeSingle();
+  if (pre) return pre;
   const { data } = await sb.from('batches')
-    .select('id, name, event_name, start_date').eq('is_active', true).maybeSingle();
+    .select(cols).eq('is_active', true).maybeSingle();
   return data || null;
 }
 

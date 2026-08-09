@@ -134,7 +134,9 @@ async function loadCertData() {
     .eq('batch_id', BATCH_ID);
   const all = logs || [];
   const mine = all.filter(l => l.student_id === studentId);
-  const { data: closes } = await sb.from('closing_records').select('points, close_date').eq('member_id', memberId);
+  // ⚠️ 必須帶 batch_id，否則證書會把其他期的締結算進來（2026-08-09 修）
+  // 此處 BATCH_ID ＝ 該學員最近參加的一期，語意正確
+  const { data: closes } = await sb.from('closing_records').select('points, close_date').eq('member_id', memberId).eq('batch_id', BATCH_ID);
   const myCloses = closes || [];
   const { data: bsRow } = await sb.from('batch_students').select('cert_comment, cert_award, coach_id, cert_by_coach, cert_ai_insight').eq('id', studentId).single();
   const customComment = bsRow && bsRow.cert_comment;
