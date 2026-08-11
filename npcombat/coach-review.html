@@ -129,7 +129,8 @@
 
   /* ── 簡單模式：小組關懷「有回應」 ── */
   .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
-  .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
+  .eng-item{border-bottom:1px solid var(--border)}
+  .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px}
   .eng-name{flex:1;font-size:16px;font-weight:600;color:var(--text)}
   .eng-name .code{font-size:11px;color:var(--muted);margin-left:6px;font-weight:400}
   .eng-toggle{display:flex;gap:6px;flex-shrink:0}
@@ -137,6 +138,23 @@
   .eng-btn.stu.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
   .eng-btn.coach.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
   .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
+  /* 學員填報狀況：純顯示、不可點、不影響分數（2026-08-09 加，教練反映看不到誰填了） */
+  /* 點姓名展開「行動填寫」明細（2026-08-12 定案）：符號沿用日總表的 📝／⬜ */
+  .eng-name.tap{display:flex;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .eng-name .sym{flex-shrink:0;width:24px;font-size:15px;line-height:1}
+  .eng-name .sym.no{opacity:.45}
+  .eng-name .caret{color:var(--gold);font-weight:400;margin-left:5px;opacity:.65}
+  .eng-det{display:none;padding:0 16px 13px}
+  .eng-det.open{display:block}
+  .eng-det-in{background:var(--bg);border-radius:11px;padding:12px 14px}
+  .eng-det-t{font-size:12.5px;color:var(--muted);margin-bottom:9px}
+  .eng-dgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px}
+  .eng-ditem{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
+  .eng-ditem span:last-child{font-weight:900;color:var(--gold)}
+  .eng-ditem.z span:last-child{color:#c9c2b4}
+  .eng-dclose{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;font-size:14px;font-weight:700}
+  .eng-dclose span:last-child{color:var(--green)}
+  .eng-nofill{font-size:15px;font-weight:700;color:var(--muted);padding:4px 0 2px}
 
   /* ── 教練指南 ── */
   .guide-wrap{max-width:500px;margin:0 auto;padding:16px}
@@ -1251,6 +1269,32 @@ function engModeFor(dateStr) {
         coach:{ field:'engaged_replied', label:'✅ 已回應', total:'已回應' } };
 }
 
+// 學員當天在 daily 的填報狀況（純顯示，不影響任何計分）
+// 資料來源就是 init 已經抓好的 studentList.today／yesterday，不必額外查 DB
+// 2026-08-12 定案：📝／⬜ 小符號標示有無填寫，點姓名展開明細
+const engOpen = new Set();   // 展開中的學員 id，重繪後要保持展開
+
+function fillDetailHtml(stu) {
+  const d = getStuData(stu);
+  if (!d) {
+    return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))}</div>
+      <div class="eng-nofill">今天還沒填</div>`;
+  }
+  const items = STU_FIELDS.filter(f => !f.special).map(f => {
+    const v = d[f.key] || 0;
+    return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}</span><span>${v}</span></div>`;
+  }).join('');
+  const closes = (d.close_entries || []).length;
+  return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))} 填的內容</div>
+    <div class="eng-dgrid">${items}</div>
+    <div class="eng-dclose"><span>✅ 締結成功</span><span>${closes} 筆</span></div>`;
+}
+
+function toggleEngDetail(studentId) {
+  if (engOpen.has(studentId)) engOpen.delete(studentId); else engOpen.add(studentId);
+  renderEngagement();
+}
+
 function renderEngagement() {
   const dateStr = getDateStr(currentDay);
   const M = engModeFor(dateStr);
@@ -1259,7 +1303,7 @@ function renderEngagement() {
   if (hd) hd.textContent = M.title;
 
   const map = engMapFor(currentDay);
-  let sYes = 0, cYes = 0;
+  let sYes = 0, cYes = 0, filledCount = 0;
   let h = `<div class="eng-hint">${M.hint}<br><b class="eng-auto">✅ 點一下就自動儲存，不需要再按送出</b></div>`;
 
   studentList.forEach(stu => {
@@ -1267,17 +1311,24 @@ function renderEngagement() {
     const sv = rec[M.stu.field], cv = rec[M.coach.field];   // true / false / undefined(未標記)
     if (sv === true) sYes++;
     if (cv === true) cYes++;
-    h += `<div class="eng-row">
-      <span class="eng-name">${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}</span>
-      <span class="eng-toggle">
-        <button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>
-        <button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>
-      </span>
+    const filled = !!getStuData(stu);
+    if (filled) filledCount++;
+    h += `<div class="eng-item">
+      <div class="eng-row">
+        <span class="eng-name tap" onclick="toggleEngDetail('${stu.id}')">
+          <span class="sym ${filled ? '' : 'no'}">${filled ? '📝' : '⬜'}</span>${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}<span class="caret">›</span>
+        </span>
+        <span class="eng-toggle">
+          <button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>
+          <button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>
+        </span>
+      </div>
+      <div class="eng-det ${engOpen.has(stu.id) ? 'open' : ''}"><div class="eng-det-in">${fillDetailHtml(stu)}</div></div>
     </div>`;
   });
 
   const total = studentList.length;
-  h += `<div class="eng-total">${M.stu.total} ${sYes}/${total}　·　${M.coach.total} ${cYes}/${total}</div>`;
+  h += `<div class="eng-total">📝 已填報 ${filledCount}/${total}　·　${M.stu.total} ${sYes}/${total}　·　${M.coach.total} ${cYes}/${total}</div>`;
   document.getElementById('summaryBody').innerHTML = h;
 }
 
