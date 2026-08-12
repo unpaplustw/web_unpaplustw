@@ -503,19 +503,8 @@
       <div id="closeEntries"></div>
       <button class="btn-add-close" onclick="addCloseEntry()">＋ 新增一筆締結</button>
 
-      <div class="sub-toggle" onclick="toggleSub()">
-        <div class="sub-check" id="subCheck"></div>
-        <div>
-          <div class="sub-label">📦 今日有訂閱客戶</div>
-          <div class="sub-note">月月購，不算獎勵積分但值得記錄</div>
-        </div>
-      </div>
-      <div id="subCountWrap" style="display:none;margin-top:8px;padding:0 12px">
-        <div style="display:flex;align-items:center;gap:12px;justify-content:center">
-          <button class="act-btn" onclick="adjSub(-1)" style="width:40px;height:40px;font-size:20px">−</button>
-          <div class="act-num zero" id="n-sub" style="font-size:28px">0</div>
-          <button class="act-btn" onclick="adjSub(1)" style="width:40px;height:40px;font-size:20px">＋</button>
-        </div>
+      <div class="sub-note" style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg);text-align:center">
+        📦 訂閱（月月購）也在上面填 —— 新增一筆締結後選「訂閱」即可
       </div>
     </div>
   </div>
@@ -690,10 +679,16 @@ const COUNT_FIELDS = [
 ];
 
 // ── Close plans ──
+// sub＝訂閱（月月購），2026-08-12 併進締結那一排，與一套／半套並列為第三個選項
 const PLANS = [
-  { key:'20k', label:'2萬PV', full:260, half:130 },
-  { key:'15k', label:'1.5萬PV', full:200, half:100 },
-  { key:'10k', label:'1萬PV', full:120, half:60 },
+  { key:'20k', label:'2萬PV', full:260, half:130, sub:20 },
+  { key:'15k', label:'1.5萬PV', full:200, half:100, sub:15 },
+  { key:'10k', label:'1萬PV', full:120, half:60, sub:10 },
+];
+const SIZES = [
+  { key:'full', label:'一套' },
+  { key:'half', label:'半套' },
+  { key:'sub',  label:'訂閱' },
 ];
 const BADGES = [
   { key:'small_gold', label:'🏅 小金（3單位）' },
@@ -702,7 +697,6 @@ const BADGES = [
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
 let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
-let subOn = false, subCount = 0;
 let groupReported = false;
 let declRead = false;
 
@@ -784,19 +778,8 @@ function adj(key, delta) {
 }
 
 // ── Subscription ──
-function toggleSub() {
-  subOn = !subOn;
-  document.getElementById('subCheck').classList.toggle('on', subOn);
-  document.getElementById('subCheck').textContent = subOn ? '✓' : '';
-  document.getElementById('subCountWrap').style.display = subOn ? '' : 'none';
-  if (!subOn) { subCount = 0; document.getElementById('n-sub').textContent = '0'; document.getElementById('n-sub').classList.add('zero'); }
-}
-function adjSub(delta) {
-  subCount = Math.max(0, subCount + delta);
-  const el = document.getElementById('n-sub');
-  el.textContent = subCount;
-  el.classList.toggle('zero', subCount === 0);
-}
+// 2026-08-12 訂閱併進締結那一排（size='sub'），原本的獨立勾與計數器已移除
+// —— 那個勾從來沒有被寫進資料庫，勾了送出後數字就消失，等於學員做白工
 
 // ── Close entries ──
 function addCloseEntry() {
@@ -828,7 +811,7 @@ function toggleBadge(i, badge) {
 function getEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
-  return e.size === 'full' ? p.full : p.half;
+  return p ? (p[e.size] || 0) : 0;   // full／half／sub 直接查表，新增類型不必再改這裡
 }
 
 function renderCloseEntries() {
@@ -845,8 +828,7 @@ function renderCloseEntries() {
         </div>`).join('')}
       </div>
       ${e.plan ? `<div class="close-half-row">
-        <div class="close-half ${e.size==='full'?'sel':''}" onclick="setSize(${i},'full')">一套</div>
-        <div class="close-half ${e.size==='half'?'sel':''}" onclick="setSize(${i},'half')">半套</div>
+        ${SIZES.map(s => `<div class="close-half ${e.size===s.key?'sel':''}" onclick="setSize(${i},'${s.key}')">${s.label}</div>`).join('')}
       </div>` : ''}
       ${e.plan && e.size ? `<div class="close-badge-row">
         ${BADGES.map(b => `<div class="close-badge ${e.badge===b.key?'sel':''}" onclick="toggleBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
@@ -921,6 +903,27 @@ async function init() {
       COUNT_FIELDS.forEach(f => { vals[f.key] = existing[f.key] || 0; document.getElementById('n-'+f.key).textContent = vals[f.key]; });
       groupReported = existing.group_reported || false;
       toast('今天已回報過，可修改重送');
+    }
+
+    // 帶回今天已填的締結（2026-08-12 修）
+    // 為什麼必要：送出時是「先刪今天的 daily 締結再重建」，如果重開頁面沒把舊的載回來，
+    // 學員晚上補填行動再送一次，早上填的締結就會被刪掉而且補不回來。
+    // 以前做不到是因為只存 points（方案反推不出來），有了 plan／size 才能精確還原。
+    const { data: todayCloses } = await sb.from('closing_records')
+      .select('plan, size, points')
+      .eq('member_id', memberId).eq('batch_id', BATCH_ID)
+      .eq('close_date', d).eq('source', 'daily');
+    if (todayCloses && todayCloses.length) {
+      closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: null }));
+      // 舊資料沒有 plan／size（欄位是 2026-08-12 才加的）→ 用 points 反查，查不到就留空讓學員重選
+      closeEntries.forEach((e, i) => {
+        if (e.plan && e.size) return;
+        const pts = todayCloses[i].points;
+        for (const p of PLANS) for (const s of SIZES) {
+          if (p[s.key] === pts) { e.plan = p.key; e.size = s.key; return; }
+        }
+      });
+      renderCloseEntries();
     }
 
     // 載入累積資料
@@ -1155,8 +1158,11 @@ async function submit() {
         .eq('member_id', memberId).eq('close_date', today()).eq('source', 'daily');
       if (delCloseErr) throw delCloseErr;
       if (closeEntries.length > 0) {
+        // ⚠️ batch_id 一定要帶：不帶會存成 NULL 期別，學員自己的累積畫面撈不到（2026-08-12 修）
+        // plan／size 也要存：只存 points 的話方案反推不出來，重開頁面也還原不了
         const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => ({
-          member_id: memberId, close_date: today(),
+          member_id: memberId, batch_id: BATCH_ID, close_date: today(),
+          plan: e.plan, size: e.size,
           points: getEntryPts(e), source: 'daily'
         }));
         if (closeRows.length) {
@@ -1217,7 +1223,7 @@ function showResult() {
       const p = PLANS.find(p => p.key === e.plan);
       const pts = getEntryPts(e);
       closePts += pts;
-      const sizeLabel = e.size === 'full' ? '一套' : '半套';
+      const sizeLabel = (SIZES.find(s => s.key === e.size) || {}).label || '';
       const badgeLabel = e.badge ? (e.badge === 'small_gold' ? ' 🏅小金' : ' 🏆大金') : '';
       details.push(`${p.label} ${sizeLabel}${badgeLabel} → ${pts}分`);
     });
@@ -1229,13 +1235,6 @@ function showResult() {
     html += `<div class="result-close-detail">${details.join('<br>')}</div>`;
   }
 
-  // subscription
-  if (subCount > 0) {
-    html += `<div class="result-row">
-      <span class="result-row-label">📦 訂閱客戶</span>
-      <span class="result-row-val" style="color:var(--muted)">${subCount} 人（不計分，但超棒！）</span>
-    </div>`;
-  }
 
   document.getElementById('resSummary').innerHTML = html;
   document.getElementById('resTotalPts').textContent = totalPts;
