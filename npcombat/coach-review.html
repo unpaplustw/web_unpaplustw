@@ -632,10 +632,16 @@ const STU_FIELDS = [
   { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
 ];
 
+// sub＝訂閱（月月購），2026-08-12 與 daily 同步：一套／半套／訂閱三選項
 const PLANS = [
-  { key:'20k', label:'2萬PV', full:260, half:130 },
-  { key:'15k', label:'1.5萬PV', full:200, half:100 },
-  { key:'10k', label:'1萬PV', full:120, half:60 },
+  { key:'20k', label:'2萬PV', full:260, half:130, sub:20 },
+  { key:'15k', label:'1.5萬PV', full:200, half:100, sub:15 },
+  { key:'10k', label:'1萬PV', full:120, half:60, sub:10 },
+];
+const SIZES = [
+  { key:'full', label:'一套' },
+  { key:'half', label:'半套' },
+  { key:'sub',  label:'訂閱' },
 ];
 const BADGES = [
   { key:'small_gold', label:'🏅 小金（3單位）' },
@@ -797,8 +803,8 @@ async function init() {
           buddy_left: log.buddy_left || 0, buddy_right: log.buddy_right || 0,
           proof_checks: log.proof_checks || {},
           coach_checks: log.coach_checks || {},
-          close_entries: dayCloses.map(c => ({ pts: c.points })),
-          sub_count: 0
+          // 帶上 plan／size，教練才看得出是一套／半套／訂閱（2026-08-12）
+          close_entries: dayCloses.map(c => ({ pts: c.points, plan: c.plan, size: c.size }))
         };
       }
 
@@ -1064,7 +1070,8 @@ function renderMyReport() {
 
   // 締結區
   const dayCloses = currentDay === 'today' ? myCloseData.today : myCloseData.yesterday;
-  myCloseEntries = dayCloses.map(c => ({ plan: null, size: null, badge: null, pts: c.points, saved: true }));
+  // 帶回 plan／size（2026-08-12 起有存），舊資料仍是 null，教練重選即可
+  myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: null, pts: c.points, saved: true }));
   h += renderMyCloseSection();
 
   document.getElementById('myDataArea').innerHTML = h;
@@ -1092,7 +1099,7 @@ function adjMy(key, delta) {
 function getMyEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
-  return e.size === 'full' ? p.full : p.half;
+  return p ? (p[e.size] || 0) : 0;   // full／half／sub 查表
 }
 
 function renderMyCloseSection() {
@@ -1120,8 +1127,7 @@ function renderMyCloseSection() {
           ${PLANS.map(p => `<div class="my-close-pill ${e.plan===p.key?'sel':''}" onclick="setMyPlan(${i},'${p.key}')">${p.label}</div>`).join('')}
         </div>
         ${e.plan ? `<div class="my-close-half-row">
-          <div class="my-close-half ${e.size==='full'?'sel':''}" onclick="setMySize(${i},'full')">一套</div>
-          <div class="my-close-half ${e.size==='half'?'sel':''}" onclick="setMySize(${i},'half')">半套</div>
+          ${SIZES.map(s => `<div class="my-close-half ${e.size===s.key?'sel':''}" onclick="setMySize(${i},'${s.key}')">${s.label}</div>`).join('')}
         </div>` : ''}
         ${e.plan && e.size ? `<div class="my-close-badge-row">
           ${BADGES.map(b => `<div class="my-close-badge ${e.badge===b.key?'sel':''}" onclick="toggleMyBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
@@ -1210,8 +1216,10 @@ async function submitMyReport() {
     if (delErr) throw delErr;
     // 插入全部（saved 的用原始 pts，新的用計算 pts）
     if (hasCloseEntries) {
+      // ⚠️ batch_id 一定要帶：不帶會存成 NULL 期別，帶 batch_id 的查詢就撈不到（2026-08-12 修）
       const allRows = myCloseEntries.map(e => ({
-        member_id: coachMemberId, close_date: dateStr,
+        member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
+        plan: e.plan, size: e.size,
         points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
       }));
       const { error: insErr } = await sb.from('closing_records').insert(allRows);
@@ -1491,7 +1499,12 @@ function renderStudent() {
   if (td.close_entries && td.close_entries.length > 0) {
     const totalPts = td.close_entries.reduce((s,e) => s + e.pts, 0);
     const cCoachOn = td.coach_checks?.close ? 'on' : '';
-    const details = td.close_entries.map((e,i) => `第${i+1}筆 → ${e.pts}分`).join('<br>');
+    const details = td.close_entries.map((e,i) => {
+      const pl = (PLANS.find(p => p.key === e.plan) || {}).label || '';
+      const sz = (SIZES.find(s => s.key === e.size) || {}).label || '';
+      const tag = (pl || sz) ? `${pl} ${sz}　` : '';   // 舊資料沒存 plan／size 就只顯示分數
+      return `第${i+1}筆　${tag}→ ${e.pts}分`;
+    }).join('<br>');
     dataHtml += `<div class="stu-act-row">
       <div class="stu-act-top">
         <span class="stu-row-label">✅ 締結成功</span>
@@ -1509,9 +1522,6 @@ function renderStudent() {
     </div>`;
   }
 
-  if (td.sub_count > 0) {
-    dataHtml += `<div class="data-sub-row">📦 訂閱客戶 ${td.sub_count} 人</div>`;
-  }
 
   // 🎙️ 小組回報（+5）：學員聲明 + 雙勾（證明=有發3分鐘心得→+5、督導=教練審→+1）
   const grpClaim = td.group_reported ? '🟢 學員聲明已回報' : '⬜ 學員未聲明';
