@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<!--
+  環球致富學院 — 學院本體（LIFF + Supabase）
+  ⚠️ LIFF_ID 需在 LINE Developers Console 新建一支，Endpoint = https://unpaplus.com.tw/academy/app.html
+  資料一律走 RPC（academy schema RLS 全開、零 policy，anon 直查全擋）
+  預覽（免 LINE 登入）：app.html#preview
+-->
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>環球致富學院</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif}
+:root{
+  --bg:#f7f5f0;--bg2:#ffffff;
+  --gold:#b8960c;--gold2:#d4af37;--gold3:#96790a;
+  --gold-lt:rgba(184,150,12,.10);
+  --card:#ffffff;--border:rgba(0,0,0,0.07);--border-hl:rgba(0,0,0,0.12);
+  --txt:#1a1a2e;--txt2:#6b7280;
+  --green:#16a34a;--green-bg:rgba(22,163,74,.10);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.08);
+  --yellow:#d97706;--yellow-bg:rgba(217,119,6,.10);
+  --shadow:0 2px 12px rgba(0,0,0,0.06);
+}
+body{background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.75;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 30% 8%,rgba(184,150,12,.08) 0%,transparent 52%),
+             radial-gradient(ellipse at 72% 92%,rgba(184,150,12,.05) 0%,transparent 42%)}
+.wrap{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:18px 16px 90px}
+
+.hd{text-align:center;padding:14px 0 18px}
+.hd-icon{font-size:38px}
+.hd-title{font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--gold3),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hd-sub{font-size:16px;color:var(--txt2);margin-top:4px}
+.chip{display:inline-block;font-size:14px;padding:5px 13px;border-radius:14px;margin-top:9px;font-weight:800}
+.chip.ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(22,163,74,.25)}
+.chip.wait{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(217,119,6,.25)}
+.chip.stop{background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,.22)}
+.chip.admin{background:var(--gold-lt);color:var(--gold3);border:1px solid rgba(184,150,12,.28)}
+
+.screen{display:none}.screen.active{display:block}
+.center{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:75vh;text-align:center;padding:30px 20px}
+.center.active{display:flex}
+.center .big{font-size:54px;margin-bottom:14px}
+.center h2{font-size:24px;font-weight:900;margin-bottom:10px}
+.center p{font-size:18px;color:var(--txt2);max-width:390px}
+.center p b{color:var(--gold3)}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:13px;box-shadow:var(--shadow)}
+.card.tap{cursor:pointer;transition:all .2s}
+.card.tap:active{transform:scale(.99)}
+.card.tap:hover{border-color:rgba(184,150,12,.25);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.c-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.c-nm{font-size:21px;font-weight:900}
+.c-ct{font-size:16px;color:var(--gold3);font-weight:800;white-space:nowrap}
+.c-ds{font-size:16px;color:var(--txt2);margin-top:6px}
+
+.sec-title{font-size:16px;color:var(--txt2);font-weight:700;margin:22px 0 10px}
+
+.lrow{display:flex;align-items:center;gap:13px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow);transition:all .2s}
+.lrow:active{transform:scale(.99)}
+.lrow:hover{border-color:rgba(184,150,12,.25);transform:translateX(3px)}
+.lrow .no{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--gold-lt);border:1px solid rgba(184,150,12,.28);color:var(--gold3);font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.lrow .tx{flex:1;font-size:18px;font-weight:700;line-height:1.45}
+.lrow .go{font-size:20px;color:var(--txt2)}
+.lrow.novideo .no{background:rgba(0,0,0,.04);border-color:var(--border);color:var(--txt2)}
+
+.btn{display:block;width:100%;padding:18px;margin-top:14px;border-radius:15px;border:none;background:linear-gradient(135deg,var(--gold3),var(--gold2));color:#fff;font-size:20px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none;box-shadow:0 6px 18px rgba(184,150,12,.30)}
+.btn:active{transform:scale(.98)}
+.btn.sec{background:var(--card);border:1px solid var(--border-hl);color:var(--txt);box-shadow:var(--shadow);font-size:18px;font-weight:800}
+.btn.danger{background:var(--red-bg);border:1px solid rgba(220,38,38,.28);color:var(--red);box-shadow:none;font-size:17px}
+.btn:disabled{opacity:.5}
+
+textarea{width:100%;min-height:110px;padding:14px;border-radius:14px;border:1px solid var(--border-hl);background:var(--card);color:var(--txt);font-size:18px;resize:vertical;box-shadow:var(--shadow)}
+textarea:focus{outline:none;border-color:var(--gold2)}
+
+.back{display:inline-flex;align-items:center;gap:7px;font-size:17px;color:var(--gold3);font-weight:800;padding:8px 0;cursor:pointer}
+
+/* 播放器 + 浮水印 */
+.player{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;margin-bottom:14px;box-shadow:var(--shadow)}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.mark{position:absolute;right:10px;bottom:10px;z-index:5;pointer-events:none;font-size:13px;font-weight:700;color:rgba(255,255,255,.45);text-shadow:0 1px 3px rgba(0,0,0,.85);letter-spacing:.5px}
+.noplay{display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.7);font-size:17px;text-align:center;padding:20px}
+
+.hw{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.hw h3{font-size:19px;font-weight:900;margin-bottom:12px}
+.hw ol{padding-left:20px}
+.hw li{font-size:18px;color:var(--txt);margin-bottom:12px;line-height:1.65}
+.hw .none{font-size:17px;color:var(--txt2)}
+
+/* 管理 */
+.arow{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:10px;box-shadow:var(--shadow)}
+.arow .nm{font-size:19px;font-weight:800}
+.arow .meta{font-size:15px;color:var(--txt2);margin-top:3px}
+.arow .why{font-size:16px;color:var(--txt);margin-top:8px;padding:10px;background:#faf8f2;border:1px solid var(--border);border-radius:10px}
+.arow .acts{display:flex;gap:9px;margin-top:11px}
+.arow .acts button{flex:1;padding:13px;border-radius:11px;border:none;font-size:16px;font-weight:800;cursor:pointer}
+.ap{background:var(--green);color:#fff}
+.rj{background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,.28)!important}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1;padding:11px;border-radius:11px;border:1px solid var(--border);background:var(--card);color:var(--txt2);font-size:16px;font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
+.tabs button.on{background:linear-gradient(135deg,#fff8e6,#fdeecb);border-color:var(--gold2);color:var(--gold3)}
+
+.fab{position:fixed;right:16px;bottom:20px;z-index:20;padding:13px 18px;border-radius:26px;border:1px solid var(--gold2);background:#fff;color:var(--gold3);font-size:16px;font-weight:900;cursor:pointer;display:none;box-shadow:0 4px 16px rgba(184,150,12,.25)}
+.fab.on{display:block}
+
+#toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:13px 20px;border-radius:12px;font-size:16px;z-index:99;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+#toast.show{opacity:1}
+.spin{width:44px;height:44px;border:4px solid rgba(0,0,0,.08);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="screen-loading" class="center active"><div class="spin"></div><p style="margin-top:16px">載入中…</p></div>
+
+<div class="wrap">
+
+  <!-- 不在會員名單 -->
+  <div id="screen-nomember" class="center">
+    <div class="big">👋</div>
+    <h2>還沒有你的資料</h2>
+    <p>請先加入團隊的 LINE 官方帳號，加入後再回到這裡申請入場。</p>
+    <div id="oa-list" style="width:100%;max-width:380px;margin-top:20px"></div>
+  </div>
+
+  <!-- 申請入場 -->
+  <div id="screen-apply" class="screen">
+    <div class="hd">
+      <div class="hd-icon">🎓</div>
+      <div class="hd-title">環球致富學院</div>
+      <div class="hd-sub">46 堂課，等你進來</div>
+    </div>
+    <div class="card">
+      <div class="c-nm">申請入場</div>
+      <div class="c-ds" style="margin-top:8px">課程影片是團隊自己拍的教材，需要審核才能觀看。<br>寫一段話讓我們認識你，通常 1～2 天回覆。</div>
+    </div>
+    <div class="sec-title">你想學什麼？（選填）</div>
+    <textarea id="apply-reason" placeholder="例：想把自我定位練熟、想學怎麼邀約不尷尬…"></textarea>
+    <button class="btn" id="apply-btn" onclick="submitApply()">送出申請</button>
+  </div>
+
+  <!-- 審核中 -->
+  <div id="screen-pending" class="center">
+    <div class="big">⏳</div>
+    <h2>申請審核中</h2>
+    <p id="pending-when">我們收到你的申請了，通常 1～2 天內完成審核。<br>通過後這頁就會直接開課。</p>
+  </div>
+
+  <!-- 停權 -->
+  <div id="screen-revoked" class="center">
+    <div class="big">🔒</div>
+    <h2>目前無法觀看</h2>
+    <p id="revoked-why">你的學院權限已被暫停。若有疑問請聯繫你的推薦人或團隊負責人。</p>
+  </div>
+
+  <!-- 到期 -->
+  <div id="screen-expired" class="center">
+    <div class="big">📅</div>
+    <h2>觀看期限已到</h2>
+    <p>你的學習紀錄和集點<b>全部保留著</b>，續期後就會接回原本的進度。<br>請聯繫團隊負責人辦理續期。</p>
+  </div>
+
+  <!-- 學院首頁：課程列表 -->
+  <div id="screen-home" class="screen">
+    <div class="hd">
+      <div class="hd-icon">🎓</div>
+      <div class="hd-title">環球致富學院</div>
+      <div class="hd-sub" id="home-sub">歡迎回來</div>
+      <div><span class="chip ok">✅ 已入場</span> <span class="chip admin" id="admin-chip" style="display:none">🛡️ 學院管理員</span></div>
+    </div>
+    <div id="course-list"></div>
+  </div>
+
+  <!-- 課程 → 課列表 -->
+  <div id="screen-course" class="screen">
+    <div class="back" onclick="go('home')">← 回課程列表</div>
+    <div class="hd" style="padding-top:6px">
+      <div class="hd-title" id="course-name" style="font-size:23px"></div>
+      <div class="hd-sub" id="course-count"></div>
+    </div>
+    <div id="lesson-list"></div>
+  </div>
+
+  <!-- 單課 -->
+  <div id="screen-lesson" class="screen">
+    <div class="back" id="lesson-back">← 回課列表</div>
+    <div class="hd" style="padding:8px 0 14px">
+      <div class="hd-title" id="lesson-title" style="font-size:21px;line-height:1.4"></div>
+    </div>
+    <div class="player" id="player"></div>
+    <div class="hw">
+      <h3>📝 這一課的作業</h3>
+      <div id="homework"></div>
+    </div>
+  </div>
+
+  <!-- 管理員 -->
+  <div id="screen-admin" class="screen">
+    <div class="back" onclick="go('home')">← 回學院</div>
+    <div class="hd" style="padding-top:6px">
+      <div class="hd-title" style="font-size:23px">入場審核</div>
+    </div>
+    <div class="tabs">
+      <button class="on" id="tab-pending" onclick="loadAdmin('pending')">⏳ 待審</button>
+      <button id="tab-active" onclick="loadAdmin('active')">✅ 已入場</button>
+      <button id="tab-revoked" onclick="loadAdmin('revoked')">🔒 已停權</button>
+    </div>
+    <div id="admin-list"></div>
+  </div>
+
+</div>
+
+<button class="fab" id="fab-admin" onclick="go('admin');loadAdmin('pending')">🛡️ 審核</button>
+<div id="toast"></div>
+
+<script>
+// ⚠️ 換成 LINE Developers Console 新建的 LIFF ID（Endpoint = /academy/app.html）
+const LIFF_ID = '2009692859-wevHkClh';
+const SB_URL  = 'https://nsgqsopqlkhayuefdout.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+let lineUserId = null, ctx = null, curCourse = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mmss = s => s ? Math.round(s/60) + ' 分' : '';
+
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2600);}
+
+function show(id){
+  document.querySelectorAll('.screen,.center').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById(id); if(el) el.classList.add('active');
+  window.scrollTo(0,0);
+}
+function go(name){
+  const map={home:'screen-home',course:'screen-course',lesson:'screen-lesson',admin:'screen-admin'};
+  show(map[name]||name);
+}
+
+// ========== INIT ==========
+async function init(){
+  try{
+    await liff.init({liffId: LIFF_ID});
+    if(!liff.isLoggedIn()){ liff.login({redirectUri: window.location.href}); return; }
+    const p = await liff.getProfile();
+    lineUserId = p.userId;
+    await loadContext();
+  }catch(e){
+    console.error('init error:', e);
+    show('screen-nomember');
+    document.querySelector('#screen-nomember h2').textContent='開啟失敗';
+    document.querySelector('#screen-nomember p').textContent='請從 LINE 開啟這個頁面。若持續失敗，請聯繫團隊負責人。';
+  }
+}
+
+async function loadContext(){
+  const {data, error} = await sb.rpc('get_academy_context', {p_line_user_id: lineUserId});
+  if(error){ console.error(error); toast('連線失敗，請稍後再試'); return; }
+  ctx = data;
+  route();
+}
+
+function route(){
+  const st = ctx.state;
+  if(st === 'no_member'){ show('screen-nomember'); loadOaList(); return; }
+  if(ctx.access){ renderHome(); return; }
+  if(st === 'pending'){
+    const at = ctx.enrollment?.applied_at;
+    if(at) document.getElementById('pending-when').innerHTML =
+      '送出時間：<b>'+fmt(at)+'</b><br>通常 1～2 天內完成審核，通過後這頁就會直接開課。';
+    show('screen-pending'); return;
+  }
+  if(st === 'revoked'){
+    const why = ctx.enrollment?.revoke_reason;
+    if(why) document.getElementById('revoked-why').textContent = why;
+    show('screen-revoked'); return;
+  }
+  if(st === 'expired'){ show('screen-expired'); return; }
+  show('screen-apply');   // state = none
+}
+
+function fmt(iso){ if(!iso) return '-'; const d=new Date(iso); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
+
+// 沒有會員資料 → 列出可加入的團隊 OA
+async function loadOaList(){
+  const {data} = await sb.from('tenants').select('owner_name,line_handle').eq('is_active',true);
+  if(!data || !data.length) return;
+  document.getElementById('oa-list').innerHTML = data.map(t =>
+    `<a class="btn sec" href="https://line.me/R/ti/p/${encodeURIComponent(t.line_handle)}" target="_blank">${esc(t.owner_name)} ${esc(t.line_handle)}</a>`
+  ).join('');
+}
+
+// ========== 申請 ==========
+async function submitApply(){
+  const btn = document.getElementById('apply-btn');
+  btn.disabled = true; btn.textContent = '送出中…';
+  const reason = document.getElementById('apply-reason').value.trim() || null;
+  const oa = new URLSearchParams(location.search).get('oa');
+  const {data, error} = await sb.rpc('apply_academy',
+    {p_line_user_id: lineUserId, p_reason: reason, p_referrer_handle: oa});
+  btn.disabled = false; btn.textContent = '送出申請';
+  if(error || !data?.ok){ console.error(error||data); toast('送出失敗，請稍後再試'); return; }
+  toast('已送出，等候審核');
+  await loadContext();
+}
+
+// ========== 學院首頁 ==========
+function renderHome(){
+  document.getElementById('home-sub').textContent = ctx.member?.name ? ctx.member.name + '，歡迎回來' : '歡迎回來';
+  const isAdmin = ctx.is_admin;
+  document.getElementById('admin-chip').style.display = isAdmin ? '' : 'none';
+  document.getElementById('fab-admin').classList.toggle('on', !!isAdmin);
+
+  const list = (ctx.courses||[]).map(c => {
+    const n = c.lesson_count || 0;
+    const dis = n === 0;
+    return `<div class="card ${dis?'':'tap'}" ${dis?'':`onclick="openCourse('${c.id}')"`} style="${dis?'opacity:.55':''}">
+      <div class="c-top"><span class="c-nm">${esc(c.title)}</span>
+        <span class="c-ct">${dis ? '準備中' : n + ' 堂'}</span></div>
+      <div class="c-ds">${dis ? '內容整理中，開放後會通知你' : esc(c.description||'')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('course-list').innerHTML = list || '<div class="card">課程準備中</div>';
+  go('home');
+}
+
+function openCourse(id){
+  const c = (ctx.courses||[]).find(x => x.id === id);
+  if(!c) return;
+  curCourse = c;
+  document.getElementById('course-name').textContent = c.title;
+  document.getElementById('course-count').textContent = (c.lesson_count||0) + ' 堂課';
+  document.getElementById('lesson-list').innerHTML = (c.lessons||[]).map(l =>
+    `<div class="lrow ${l.has_video?'':'novideo'}" onclick="openLesson('${l.id}')">
+       <div class="no">${String(l.seq).padStart(2,'0')}</div>
+       <div class="tx">${esc(stripNo(l.title))}${l.duration_sec?`<br><span style="font-size:14px;color:var(--txt2)">${mmss(l.duration_sec)}</span>`:''}</div>
+       <div class="go">›</div>
+     </div>`).join('');
+  go('course');
+}
+// 課名前面已有編號，左側圓圈也顯示編號 → 去掉重複的 "09."
+function stripNo(t){ return String(t).replace(/^\d+\.\s*/, ''); }
+
+// ========== 單課（video_id 只有這裡拿得到）==========
+async function openLesson(id){
+  document.getElementById('lesson-back').onclick = () => openCourse(curCourse.id);
+  document.getElementById('player').innerHTML = '<div class="noplay">載入中…</div>';
+  document.getElementById('homework').innerHTML = '';
+  go('lesson');
+
+  const {data, error} = await sb.rpc('get_academy_lesson', {p_line_user_id: lineUserId, p_lesson_id: id});
+  if(error || !data?.ok){
+    document.getElementById('player').innerHTML = '<div class="noplay">無法載入這一課，請重新整理</div>';
+    return;
+  }
+  const l = data.lesson;
+  document.getElementById('lesson-title').textContent = l.title;
+
+  const code = ctx.member?.np_member_code || ctx.member?.name || '';
+  if(l.video_id && l.video_platform === 'vimeo'){
+    document.getElementById('player').innerHTML =
+      `<iframe src="https://player.vimeo.com/video/${encodeURIComponent(l.video_id)}?title=0&byline=0&portrait=0"
+         allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+       <div class="mark">${esc(code)}</div>`;
+  }else if(l.video_id && l.video_platform === 'youtube'){
+    document.getElementById('player').innerHTML =
+      `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(l.video_id)}" allowfullscreen></iframe>
+       <div class="mark">${esc(code)}</div>`;
+  }else{
+    document.getElementById('player').innerHTML = '<div class="noplay">這一課沒有影片，請直接完成下方作業</div>';
+  }
+
+  const hw = Array.isArray(l.homework) ? l.homework : [];
+  document.getElementById('homework').innerHTML = hw.length
+    ? '<ol>' + hw.map(h => `<li>${esc(stripNo(h))}</li>`).join('') + '</ol>'
+    : '<div class="none">這一課沒有指定作業。</div>';
+}
+
+// ========== 管理員 ==========
+async function loadAdmin(status){
+  ['pending','active','revoked'].forEach(s =>
+    document.getElementById('tab-'+s).classList.toggle('on', s===status));
+  document.getElementById('admin-list').innerHTML = '<div class="card">載入中…</div>';
+
+  const {data, error} = await sb.rpc('list_academy_enrollments',
+    {p_admin_line_id: lineUserId, p_status: status});
+  if(error || !data?.ok){ document.getElementById('admin-list').innerHTML = '<div class="card">讀取失敗</div>'; return; }
+
+  const rows = data.rows || [];
+  if(!rows.length){ document.getElementById('admin-list').innerHTML = '<div class="card">目前沒有資料</div>'; return; }
+
+  document.getElementById('admin-list').innerHTML = rows.map(r => `
+    <div class="arow">
+      <div class="nm">${esc(r.name || '未填姓名')}</div>
+      <div class="meta">${esc(r.np_member_code||'無編號')}　${esc(r.tenant||'未分團隊')}　申請 ${fmt(r.applied_at)}</div>
+      ${r.apply_reason ? `<div class="why">${esc(r.apply_reason)}</div>` : ''}
+      <div class="acts">
+        ${status !== 'active' ? `<button class="ap" onclick="doApprove('${r.member_id}')">✅ 核准入場</button>` : ''}
+        ${status !== 'revoked' ? `<button class="rj" onclick="doRevoke('${r.member_id}')">🔒 停權</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function doApprove(memberId){
+  const {data, error} = await sb.rpc('approve_academy',
+    {p_admin_line_id: lineUserId, p_member_id: memberId, p_plan: 'comp', p_expires_at: null});
+  if(error || !data?.ok){ toast('核准失敗'); return; }
+  toast('已核准入場'); loadAdmin('pending');
+}
+async function doRevoke(memberId){
+  const why = prompt('停權原因（會顯示給對方，可留空）') ?? null;
+  const {data, error} = await sb.rpc('revoke_academy',
+    {p_admin_line_id: lineUserId, p_member_id: memberId, p_reason: why || null});
+  if(error || !data?.ok){ toast('停權失敗'); return; }
+  toast('已停權'); loadAdmin('pending');
+}
+
+// ========== 預覽模式（免 LINE 登入）==========
+function isPreview(){ return location.hash === '#preview' || new URLSearchParams(location.search).has('preview'); }
+function previewInit(){
+  ctx = {state:'active', access:true, is_admin:true,
+    member:{name:'預覽帳號', np_member_code:'NP000000'},
+    courses:[
+      {id:'p1', title:'初階課程', description:'舊官網 unpaplus.com 轉入', lesson_count:2,
+       lessons:[{id:'l1',seq:1,title:'01.初階-前導',has_video:true},{id:'l2',seq:2,title:'02.初階-夢想版',has_video:true}]},
+      {id:'p2', title:'高階課程', description:'', lesson_count:0, lessons:[]}
+    ]};
+  renderHome();
+  window.openLesson = (id) => {
+    document.getElementById('lesson-back').onclick = () => openCourse(curCourse.id);
+    document.getElementById('lesson-title').textContent = '01.初階-前導';
+    document.getElementById('player').innerHTML =
+      '<div class="noplay">預覽模式不載入影片</div><div class="mark">NP000000</div>';
+    document.getElementById('homework').innerHTML =
+      '<ol><li>人生最光榮的時刻是？【文字】</li><li>這個單元對我的幫助？【錄音1分鐘】</li></ol>';
+    go('lesson');
+  };
+}
+
+if(isPreview()) previewInit(); else init();
+</script>
+</body>
+</html>
