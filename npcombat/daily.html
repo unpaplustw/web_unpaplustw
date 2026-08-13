@@ -690,10 +690,13 @@ const SIZES = [
   { key:'half', label:'半套' },
   { key:'sub',  label:'訂閱' },
 ];
+// 2026-08-13 定案：小金／大金是「單位數」，與方案 PV 相乘，所以用倍率不是固定加分
+// （此前這兩顆按鈕按了會亮但完全沒作用：不進分數、也沒存進 DB）
 const BADGES = [
-  { key:'small_gold', label:'🏅 小金（3單位）' },
-  { key:'big_gold',   label:'🏆 大金（7單位）' },
+  { key:'small_gold', label:'🏅 小金（3單位）', mult:3 },
+  { key:'big_gold',   label:'🏆 大金（7單位）', mult:7 },
 ];
+const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
 let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
@@ -811,7 +814,8 @@ function toggleBadge(i, badge) {
 function getEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
-  return p ? (p[e.size] || 0) : 0;   // full／half／sub 直接查表，新增類型不必再改這裡
+  if (!p) return 0;
+  return (p[e.size] || 0) * badgeMult(e.badge);   // 方案×類型 再乘小金／大金單位倍率
 }
 
 function renderCloseEntries() {
@@ -910,11 +914,11 @@ async function init() {
     // 學員晚上補填行動再送一次，早上填的締結就會被刪掉而且補不回來。
     // 以前做不到是因為只存 points（方案反推不出來），有了 plan／size 才能精確還原。
     const { data: todayCloses } = await sb.from('closing_records')
-      .select('plan, size, points')
+      .select('plan, size, badge, points')
       .eq('member_id', memberId).eq('batch_id', BATCH_ID)
       .eq('close_date', d).eq('source', 'daily');
     if (todayCloses && todayCloses.length) {
-      closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: null }));
+      closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: c.badge || null }));
       // 舊資料沒有 plan／size（欄位是 2026-08-12 才加的）→ 用 points 反查，查不到就留空讓學員重選
       closeEntries.forEach((e, i) => {
         if (e.plan && e.size) return;
@@ -1162,7 +1166,7 @@ async function submit() {
         // plan／size 也要存：只存 points 的話方案反推不出來，重開頁面也還原不了
         const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => ({
           member_id: memberId, batch_id: BATCH_ID, close_date: today(),
-          plan: e.plan, size: e.size,
+          plan: e.plan, size: e.size, badge: e.badge,
           points: getEntryPts(e), source: 'daily'
         }));
         if (closeRows.length) {

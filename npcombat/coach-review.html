@@ -643,10 +643,12 @@ const SIZES = [
   { key:'half', label:'半套' },
   { key:'sub',  label:'訂閱' },
 ];
+// 2026-08-13 定案：小金／大金是單位數，與方案 PV 相乘 → 用倍率（與 daily 同步）
 const BADGES = [
-  { key:'small_gold', label:'🏅 小金（3單位）' },
-  { key:'big_gold',   label:'🏆 大金（7單位）' },
+  { key:'small_gold', label:'🏅 小金（3單位）', mult:3 },
+  { key:'big_gold',   label:'🏆 大金（7單位）', mult:7 },
 ];
+const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let coachId = null;
 let myStudentId = null;
@@ -804,7 +806,7 @@ async function init() {
           proof_checks: log.proof_checks || {},
           coach_checks: log.coach_checks || {},
           // 帶上 plan／size，教練才看得出是一套／半套／訂閱（2026-08-12）
-          close_entries: dayCloses.map(c => ({ pts: c.points, plan: c.plan, size: c.size }))
+          close_entries: dayCloses.map(c => ({ pts: c.points, plan: c.plan, size: c.size, badge: c.badge }))
         };
       }
 
@@ -1071,7 +1073,7 @@ function renderMyReport() {
   // 締結區
   const dayCloses = currentDay === 'today' ? myCloseData.today : myCloseData.yesterday;
   // 帶回 plan／size（2026-08-12 起有存），舊資料仍是 null，教練重選即可
-  myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: null, pts: c.points, saved: true }));
+  myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: c.badge || null, pts: c.points, saved: true }));
   h += renderMyCloseSection();
 
   document.getElementById('myDataArea').innerHTML = h;
@@ -1099,7 +1101,8 @@ function adjMy(key, delta) {
 function getMyEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
-  return p ? (p[e.size] || 0) : 0;   // full／half／sub 查表
+  if (!p) return 0;
+  return (p[e.size] || 0) * badgeMult(e.badge);   // 方案×類型 再乘小金／大金倍率
 }
 
 function renderMyCloseSection() {
@@ -1219,7 +1222,7 @@ async function submitMyReport() {
       // ⚠️ batch_id 一定要帶：不帶會存成 NULL 期別，帶 batch_id 的查詢就撈不到（2026-08-12 修）
       const allRows = myCloseEntries.map(e => ({
         member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
-        plan: e.plan, size: e.size,
+        plan: e.plan, size: e.size, badge: e.badge,
         points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
       }));
       const { error: insErr } = await sb.from('closing_records').insert(allRows);
@@ -1493,7 +1496,8 @@ function renderStudent() {
     const details = td.close_entries.map((e,i) => {
       const pl = (PLANS.find(p => p.key === e.plan) || {}).label || '';
       const sz = (SIZES.find(s => s.key === e.size) || {}).label || '';
-      const tag = (pl || sz) ? `${pl} ${sz}　` : '';   // 舊資料沒存 plan／size 就只顯示分數
+      const bd = e.badge === 'small_gold' ? ' 🏅小金' : e.badge === 'big_gold' ? ' 🏆大金' : '';
+      const tag = (pl || sz) ? `${pl} ${sz}${bd}　` : '';   // 舊資料沒存 plan／size 就只顯示分數
       return `第${i+1}筆　${tag}→ ${e.pts}分`;
     }).join('<br>');
     dataHtml += `<div class="stu-act-row">
