@@ -191,6 +191,16 @@
   .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
   .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
+  /* 教練回報總覽（simple 模式，2026-08-13） */
+  .cov-tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .cov-tbl th{text-align:right;padding:8px 6px;font-size:11px;color:var(--muted);font-weight:400;border-bottom:1px solid rgba(255,255,255,.08)}
+  .cov-tbl th:first-child{text-align:left}
+  .cov-tbl td{padding:9px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);color:var(--white)}
+  .cov-tbl td:first-child{text-align:left;font-weight:600}
+  .cov-pct{font-weight:700}
+  .cov-g{color:#4ade80} .cov-y{color:#fbbf24} .cov-r{color:#f87171} .cov-d{color:var(--muted)}
+  .cov-sub{font-size:11px;color:var(--muted);font-weight:400}
+  .cov-note{font-size:12px;color:var(--muted);line-height:1.7;background:var(--navy2);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:10px}
   .track-stulist{flex-basis:100%;margin-top:8px;display:flex;flex-direction:column;gap:4px}
   .track-stu{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;color:var(--white);padding:4px 0;border-top:1px solid rgba(255,255,255,.04)}
   .track-stu>span:first-child{flex-shrink:0}
@@ -302,6 +312,7 @@ const sb = window.supabase.createClient(
 
 const LIFF_ID = '2009692859-DepTDosN';
 let bid = null, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
+let allBatches = [], engRows = [];   // engRows = coach_engagement（simple 模式的教練標記）
 let myAllowedTabs = [];
 let isReadonly = false;
 
@@ -371,6 +382,7 @@ async function init() {
   const sel = document.getElementById('selBatch');
   sel.innerHTML = (batches || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('');
   // 預設選當期（is_active），沒有才退回最新一期。下拉可自由切換看歷屆
+  allBatches = batches || [];
   if (batches?.length) {
     const active = batches.find(b => b.is_active);
     bid = (active || batches[0]).id;
@@ -420,6 +432,11 @@ async function load() {
     .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, confirmed, proof_checks')
     .eq('batch_id', bid);
   allLogs = full || [];
+  // 教練標記（simple 模式）：教練回報總覽用
+  const { data: eng } = await sb.from('coach_engagement')
+    .select('coach_id, student_id, log_date, homework, homework_replied')
+    .eq('batch_id', bid);
+  engRows = eng || [];
   render();
 }
 
@@ -455,6 +472,67 @@ function render() {
 // ════════════════════════════════════════════
 // Tab: 追蹤分析（需要關注名單）
 // ════════════════════════════════════════════
+// ── 教練回報總覽（只在 simple 模式顯示；full 模式的 26 期沿用下方原有區塊）──
+// 定義（2026-08-13 與 Randoph 定案）：教練要做兩件事——標「學員交了」＋標「自己回了」。
+//   看了 ＝ homework 有值（true 或 false，代表教練有進來做判斷）／分母＝組員數 × 應標天數
+//   交件 ＝ homework=true　　　　　　　　　　　　　　　／分母＝看了（沒看過的不算漏交）
+//   已回 ＝ homework_replied=true　　　　　　　　　　　／分母＝交件（學員沒交，教練不可能回）
+//   組員填報 ＝ 組員自己在 daily 填過的人數／組員數（唯一不經過教練的客觀資料）
+// 應標天數＝開班日到今天的平日數（週六日不排作業，不該算漏標）。不綁 study_end，
+// 因為未來啟動班／行動班會同時存在，用期間切換是錯的框架。
+function renderCoachOverview(realStudents, logsByStu) {
+  const batch = allBatches.find(b => b.id === bid);
+  if (!batch || (batch.coach_mode || 'simple') !== 'simple') return '';
+
+  const today = localDateStr(new Date());
+  let markDays = 0;
+  for (let d = new Date(batch.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
+    const w = d.getDay();
+    if (w >= 1 && w <= 5) markDays++;
+  }
+
+  const stuByCoach = {};
+  realStudents.forEach(s => { if (s.coach_id) (stuByCoach[s.coach_id] = stuByCoach[s.coach_id] || []).push(s); });
+
+  const rows = coaches.filter(c => (stuByCoach[c.id] || []).length).map(c => {
+    const stu = stuByCoach[c.id];
+    const mine = engRows.filter(r => r.coach_id === c.id);
+    const looked  = mine.filter(r => r.homework !== null && r.homework !== undefined).length;
+    const handed  = mine.filter(r => r.homework === true).length;
+    const replied = mine.filter(r => r.homework_replied === true).length;
+    const filled  = stu.filter(s => (logsByStu[s.id] || []).length > 0).length;
+    return { name: nm(c), n: stu.length, due: stu.length * markDays, looked, handed, replied, filled };
+  });
+  if (!rows.length) return '';
+  rows.sort((a, b) => (b.looked / (b.due || 1)) - (a.looked / (a.due || 1)));
+
+  const pct = (a, b) => b ? Math.round(a / b * 100) : null;
+  const cls = p => p === null ? 'cov-d' : p >= 70 ? 'cov-g' : p >= 40 ? 'cov-y' : 'cov-r';
+  const cell = (a, b) => {
+    const p = pct(a, b);
+    return `<td><span class="cov-pct ${cls(p)}">${p === null ? '—' : p + '%'}</span><br><span class="cov-sub">${a}/${b}</span></td>`;
+  };
+
+  const zero = rows.filter(r => r.looked === 0);
+  let h = `<div class="sec-title"><span>📋 教練回報總覽</span><span class="sec-count">應標天數 ${markDays} 天（平日）</span></div>`;
+  h += `<div class="cov-note">
+    <b>看了</b>＝教練有進來判斷（分母：組員×應標天數）　<b>交件</b>＝看過的裡面學員真的交了（分母：看了）
+    <b>已回</b>＝交了的裡面教練回了（分母：交件）<br>
+    ⚠️ <b>「看了 0%」不代表學員沒交，代表教練沒進來標。</b>學員實際狀況看最右欄「組員填報」，那一欄不經過教練。
+  </div>`;
+  h += `<table class="cov-tbl"><tr><th>教練</th><th>看了</th><th>交件</th><th>已回</th><th>組員填報</th></tr>`;
+  rows.forEach(r => {
+    h += `<tr><td>${r.name}<br><span class="cov-sub">${r.n} 位組員</span></td>
+      ${cell(r.looked, r.due)}${cell(r.handed, r.looked)}${cell(r.replied, r.handed)}
+      <td><span class="cov-pct ${cls(pct(r.filled, r.n))}">${r.filled}/${r.n}</span><br><span class="cov-sub">有填過</span></td></tr>`;
+  });
+  h += `</table>`;
+  if (zero.length) h += `<div class="cov-note" style="border-left-color:#f87171;margin-top:10px">
+    🔴 <b>完全沒進來標記：${zero.map(r => r.name).join('、')}</b>
+    這幾組的「交件」看不出來，但「組員填報」那欄仍然有效。</div>`;
+  return h;
+}
+
 function renderTrack() {
   const el = document.getElementById('p-track');
   if (!el) return;
@@ -528,6 +606,7 @@ function renderTrack() {
 
   // ── 渲染 ──
   let h = '';
+  h += renderCoachOverview(realStudents, logsByStu);
   h += `<div class="sec-title"><span>🔴 連續沒填（教練快關心）</span><span class="sec-count">${silent.length} 人</span></div>`;
   if (!silent.length) h += `<div class="dash-empty">太棒了，沒人失聯 🎉</div>`;
   else h += '<div>' + silent.map(x =>

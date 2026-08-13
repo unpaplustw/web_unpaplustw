@@ -660,7 +660,7 @@ let currentIdx = -1;
 let currentDay = 'today';
 let batchDates = { start: null, end: null, studyStart: null, studyEnd: null }; // 班期起訖＋學習週
 let coachMode = 'simple';                       // full=審核制(26期) / simple=信任制+有回應(27期起)
-// student_id -> { engaged, homework }；學習週記作業、行動週記回應
+// student_id -> { homework, homework_replied }；2026-08-13 起只用這一組（engaged 兩欄已停用）
 let engToday = {}, engYesterday = {};
 
 function toast(msg) {
@@ -1254,27 +1254,18 @@ function setDay(day) {
   renderSummary();
 }
 
-// ── 簡單模式：小組關懷（每日「有回應」，純監控不計分） ──
+// ── 簡單模式：小組回報（純監控不計分） ──
 function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
 
-// 學習週看「交作業」、行動週看「有回應」；教練每天只點一種，負擔不變
-function isStudyWeek(dateStr) {
-  const { studyStart, studyEnd } = batchDates;
-  if (!studyStart || !studyEnd) return false;
-  return dateStr >= studyStart && dateStr <= studyEnd;
-}
-
+// 2026-08-13 定案：不再依日期切換兩組旗標，永遠用同一組。
+// 理由（Randoph）：未來啟動班與行動班會同時存在，用日期切本來就是錯的框架；
+// 而且「已交／已回」這組字對作業和行動心得都通，教練不會被搞混。
+// 原本的 engaged／engaged_replied 已停用（6 筆舊資料併進 homework），欄位保留不刪。
 function engModeFor(dateStr) {
-  // 每天記兩件事：學員做了沒（stu）＋ 教練回了沒（coach），兩個勾各自獨立
-  return isStudyWeek(dateStr)
-    ? { title:'作業繳交',
-        hint:'學員交作業了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆作業）。',
-        stu:  { field:'homework',         label:'📝 已交', total:'已交' },
-        coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } }
-    : { title:'小組關懷',
-        hint:'學員在小組有回覆嗎？教練回應了嗎？兩個各點一下記錄。',
-        stu:  { field:'engaged',         label:'💬 有回覆', total:'有回覆' },
-        coach:{ field:'engaged_replied', label:'✅ 已回應', total:'已回應' } };
+  return { title:'小組回報',
+           hint:'學員交了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆）。',
+           stu:  { field:'homework',         label:'📝 已交', total:'已交' },
+           coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } };
 }
 
 // 學員當天在 daily 的填報狀況（純顯示，不影響任何計分）
