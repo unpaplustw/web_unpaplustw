@@ -3,7 +3,7 @@
   環球致富學院 — 公開簡介頁（純靜態，無 LIFF、無資料庫）
   ⚠️ 課程目錄是寫死的文字，與 Supabase academy.lessons 是兩份。
      新增或改課名時，**這一頁要手動同步**（一年動不了幾次，故意不做動態渲染）。
-     最後同步：2026-08-13（初階 17／進階 13／溝通本 16 = 46 課）
+     最後同步：2026-08-14（開放：初階 17＋溝通本 16＝33 堂；上鎖：進階 13、高階準備中）
   申請入場按鈕 → LIFF：把 LIFF_ID 換成 LINE Developers Console 新建的那支。
 -->
 <html lang="zh-TW">
@@ -11,7 +11,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>環球致富學院 — A Plus 系統培訓中心</title>
-<meta name="description" content="環球致富學院：46 堂系統培訓課程，從確信、邀約到締結，一步一步走完。">
+<meta name="description" content="環球致富學院：33 堂系統培訓課程，從確信、邀約到締結，一步一步走完。">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif}
 :root{
@@ -59,6 +59,8 @@ p{font-size:18px;color:var(--txt2);margin-bottom:13px}
 .course li{font-size:17px;color:var(--txt2);padding:8px 0;border-bottom:1px dashed rgba(0,0,0,.06)}
 .course li:last-child{border-bottom:none}
 .course .soon{padding:18px 20px;font-size:17px;color:var(--txt2)}
+.course.lock{opacity:.72}
+.course.lock .course-hd{background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
 
 /* CTA */
 .cta-box{margin-top:42px;background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);border-radius:20px;padding:28px 22px;text-align:center;box-shadow:0 4px 18px rgba(184,150,12,.18)}
@@ -84,7 +86,7 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
   <div class="hero">
     <div class="badge">A Plus 系統 · 培訓中心</div>
     <h1>環球致富學院</h1>
-    <p class="lead">把「不知道下一步該做什麼」<br>變成 <b>46 堂照著走就會的課</b></p>
+    <p class="lead">把「不知道下一步該做什麼」<br>變成 <b>33 堂照著走就會的課</b></p>
   </div>
 
   <section>
@@ -110,7 +112,7 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
 
   <section>
     <h2><span class="ic">📖</span>課程目錄</h2>
-    <p style="font-size:17px;color:var(--txt2)">共 <b>46 堂</b>，全部附影片與作業。</p>
+    <p style="font-size:17px;color:var(--txt2)">目前開放 <b>33 堂</b>，全部附影片與作業。進階與高階陸續開放。</p>
 
     <div class="course">
       <div class="course-hd"><span class="nm">初階課程</span><span class="ct">17 堂</span></div>
@@ -120,16 +122,6 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
         <li>09. 列名單 &amp; 作戰會議 I</li><li>10. 邀約</li><li>11. 自我定位</li><li>12. 會場運作</li>
         <li>13. 疑慮處理</li><li>14. 作戰會議 II</li><li>15. 跟進</li><li>16. 專業形象</li>
         <li>17. 實現夢想的開始</li>
-      </ol>
-    </div>
-
-    <div class="course">
-      <div class="course-hd"><span class="nm">進階課程</span><span class="ct">13 堂</span></div>
-      <ol>
-        <li>01. 確信制度</li><li>02. 夢想版</li><li>03. 目標設定</li><li>04. 會場介紹</li>
-        <li>05. 跟進</li><li>06. 進階商品</li><li>07. 列名單</li><li>08. 自動名單系統</li>
-        <li>09. 進階推薦</li><li>10. KC 使用大全</li><li>11. 疑慮處理</li><li>12. 締結</li>
-        <li>13. 作戰會議</li>
       </ol>
     </div>
 
@@ -145,8 +137,13 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
       </ol>
     </div>
 
-    <div class="course">
-      <div class="course-hd"><span class="nm">高階課程</span><span class="ct">準備中</span></div>
+    <div class="course lock">
+      <div class="course-hd"><span class="nm">進階課程</span><span class="ct">🔒 尚未開放</span></div>
+      <div class="soon">13 堂，開放後會通知已入場的同學。</div>
+    </div>
+
+    <div class="course lock">
+      <div class="course-hd"><span class="nm">高階課程</span><span class="ct">🔒 準備中</span></div>
       <div class="soon">內容整理中，開放後會通知已入場的同學。</div>
     </div>
   </section>
@@ -157,7 +154,7 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
       <div class="step"><div class="no"></div><div class="tx">用 <b>LINE</b> 點下方按鈕</div></div>
       <div class="step"><div class="no"></div><div class="tx">填一段話，說明你想學什麼</div></div>
       <div class="step"><div class="no"></div><div class="tx">我們審核（通常 1～2 天）</div></div>
-      <div class="step"><div class="no"></div><div class="tx">通過後，<b>46 堂課全部打開</b></div></div>
+      <div class="step"><div class="no"></div><div class="tx">通過後，<b>33 堂課全部打開</b></div></div>
     </div>
     <p style="font-size:16px;color:var(--txt2)">課程影片是團隊自己拍攝的教材，<b>需要審核才能觀看</b>，感謝理解。</p>
   </section>

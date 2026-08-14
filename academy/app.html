@@ -53,6 +53,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .card.tap{cursor:pointer;transition:all .2s}
 .card.tap:active{transform:scale(.99)}
 .card.tap:hover{border-color:rgba(184,150,12,.25);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.card.locked{opacity:.6;background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
+.card.locked .c-nm{color:var(--txt2)}
+.card.locked .c-ct{color:var(--txt2)}
 .c-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .c-nm{font-size:21px;font-weight:900}
 .c-ct{font-size:16px;color:var(--gold3);font-weight:800;white-space:nowrap}
@@ -450,11 +453,14 @@ function renderHome(){
 
   const list = (ctx.courses||[]).map(c => {
     const n = c.lesson_count || 0;
-    const dis = n === 0;
-    return `<div class="card ${dis?'':'tap'}" ${dis?'':`onclick="openCourse('${c.id}')"`} style="${dis?'opacity:.55':''}">
-      <div class="c-top"><span class="c-nm">${esc(c.title)}</span>
-        <span class="c-ct">${dis ? '準備中' : n + ' 堂'}</span></div>
-      <div class="c-ds">${dis ? '內容整理中，開放後會通知你' : esc(c.description||'')}</div>
+    const locked = !!c.is_locked || n === 0;     // 上鎖或無內容 → 看得到、點不進去
+    const note = c.locked_note || (n === 0 ? '內容準備中' : '尚未開放');
+    return `<div class="card ${locked?'locked':'tap'}" ${locked?'':`onclick="openCourse('${c.id}')"`}>
+      <div class="c-top"><span class="c-nm">${locked?'🔒 ':''}${esc(c.title)}</span>
+        <span class="c-ct">${locked ? esc(note) : n + ' 堂'}</span></div>
+      <div class="c-ds">${locked
+        ? (n > 0 ? n + ' 堂，開放後會通知已入場的同學' : '內容整理中，開放後會通知你')
+        : esc(c.description||'')}</div>
     </div>`;
   }).join('');
   document.getElementById('course-list').innerHTML = list || '<div class="card">課程準備中</div>';
@@ -487,7 +493,10 @@ async function openLesson(id){
 
   const {data, error} = await sb.rpc('get_academy_lesson', {p_line_user_id: lineUserId, p_lesson_id: id});
   if(error || !data?.ok){
-    document.getElementById('player').innerHTML = '<div class="noplay">無法載入這一課，請重新整理</div>';
+    const msg = data?.error === 'course_locked' ? '這門課尚未開放'
+              : data?.error === 'no_access'     ? '你的入場資格尚未生效'
+              : '無法載入這一課，請重新整理';
+    document.getElementById('player').innerHTML = `<div class="noplay">${msg}</div>`;
     return;
   }
   const l = data.lesson;
