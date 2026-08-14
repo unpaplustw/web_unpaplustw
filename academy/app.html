@@ -77,6 +77,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 textarea{width:100%;min-height:110px;padding:14px;border-radius:14px;border:1px solid var(--border-hl);background:var(--card);color:var(--txt);font-size:18px;resize:vertical;box-shadow:var(--shadow)}
 textarea:focus{outline:none;border-color:var(--gold2)}
 
+.field{margin-bottom:16px}
+.field label{display:block;font-size:17px;font-weight:800;margin-bottom:8px}
+.field label .req{color:var(--red);font-size:15px}
+.field input[type=text],.field input[type=tel]{width:100%;padding:15px;border-radius:14px;border:1px solid var(--border-hl);background:var(--card);color:var(--txt);font-size:19px;box-shadow:var(--shadow)}
+.field input:focus{outline:none;border-color:var(--gold2)}
+.field .hint{font-size:15px;color:var(--txt2);margin-top:6px}
+.cfc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.cfc-opt{padding:14px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-size:16px;font-weight:700;text-align:center;cursor:pointer;box-shadow:var(--shadow);line-height:1.35}
+.cfc-opt.on{background:linear-gradient(135deg,#fff8e6,#fdeecb);border-color:var(--gold2);color:var(--gold3)}
+.err{display:none;background:var(--red-bg);border:1px solid rgba(220,38,38,.28);color:var(--red);border-radius:12px;padding:13px 15px;font-size:16px;font-weight:700;margin-bottom:14px;line-height:1.7}
+.err.show{display:block}
+.badge-alum{display:inline-block;font-size:14px;font-weight:800;padding:3px 10px;border-radius:10px;background:var(--green-bg);color:var(--green);border:1px solid rgba(22,163,74,.25);margin-left:6px}
 .back{display:inline-flex;align-items:center;gap:7px;font-size:17px;color:var(--gold3);font-weight:800;padding:8px 0;cursor:pointer}
 
 /* 播放器 + 浮水印 */
@@ -119,12 +131,14 @@ textarea:focus{outline:none;border-color:var(--gold2)}
 
 <div class="wrap">
 
-  <!-- 不在會員名單 -->
+  <!-- 不在會員名單：加好友 → 自動偵測 → 續接申請 -->
   <div id="screen-nomember" class="center">
     <div class="big">👋</div>
-    <h2>還沒有你的資料</h2>
-    <p>請先加入團隊的 LINE 官方帳號，加入後再回到這裡申請入場。</p>
-    <div id="oa-list" style="width:100%;max-width:380px;margin-top:20px"></div>
+    <h2>差一步就好</h2>
+    <p id="nomember-hint">先加入下方的 LINE 官方帳號，<b>加完直接滑回來</b>，這一頁會自動接上。</p>
+    <div id="oa-list" style="width:100%;max-width:400px;margin-top:18px"></div>
+    <button class="btn sec" id="recheck-btn" style="max-width:400px" onclick="recheckMember()">✅ 我加好了，繼續申請</button>
+    <div id="recheck-msg" style="font-size:16px;color:var(--txt2);margin-top:10px;min-height:24px"></div>
   </div>
 
   <!-- 申請入場 -->
@@ -136,10 +150,38 @@ textarea:focus{outline:none;border-color:var(--gold2)}
     </div>
     <div class="card">
       <div class="c-nm">申請入場</div>
-      <div class="c-ds" style="margin-top:8px">課程影片是團隊自己拍的教材，需要審核才能觀看。<br>寫一段話讓我們認識你，通常 1～2 天回覆。</div>
+      <div class="c-ds" style="margin-top:8px">課程影片是團隊自己拍的教材，需要審核才能觀看。<br>填好送出，通常 1～2 天回覆。</div>
     </div>
-    <div class="sec-title">你想學什麼？（選填）</div>
-    <textarea id="apply-reason" placeholder="例：想把自我定位練熟、想學怎麼邀約不尷尬…"></textarea>
+
+    <div class="err" id="apply-err"></div>
+
+    <div class="field">
+      <label>會員編號 <span class="req">*</span></label>
+      <input type="text" id="f-code" inputmode="numeric" maxlength="7" placeholder="7 位數字，不含英文或空白">
+      <p class="hint">綠佳利的會員編號。一個編號只能綁一個 LINE 帳號。</p>
+    </div>
+
+    <div class="field">
+      <label>姓名 <span class="req">*</span></label>
+      <input type="text" id="f-name" maxlength="20" placeholder="請填真實姓名">
+    </div>
+
+    <div class="field">
+      <label>手機 <span class="req">*</span></label>
+      <input type="tel" id="f-phone" inputmode="tel" maxlength="20" placeholder="09xxxxxxxx">
+    </div>
+
+    <div class="field">
+      <label>直屬 CFC 領袖 <span class="req">*</span></label>
+      <div class="cfc-grid" id="cfc-grid"></div>
+      <input type="text" id="f-cfc-other" placeholder="請填直屬 CFC 姓名" style="display:none;margin-top:10px">
+    </div>
+
+    <div class="field">
+      <label>想學什麼？<span style="font-size:15px;color:var(--txt2);font-weight:400">（選填）</span></label>
+      <textarea id="apply-reason" placeholder="例：想把自我定位練熟、想學怎麼邀約不尷尬…"></textarea>
+    </div>
+
     <button class="btn" id="apply-btn" onclick="submitApply()">送出申請</button>
   </div>
 
@@ -280,30 +322,113 @@ function route(){
     show('screen-revoked'); return;
   }
   if(st === 'expired'){ show('screen-expired'); return; }
-  show('screen-apply');   // state = none
+  show('screen-apply'); prefillApply();   // state = none
 }
 
 function fmt(iso){ if(!iso) return '-'; const d=new Date(iso); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
 
-// 沒有會員資料 → 列出可加入的團隊 OA
+// 沒有會員資料 → 列出可加入的團隊 OA（帶 ?oa= 時只列那一個，變成一鍵）
 async function loadOaList(){
-  const {data} = await sb.from('tenants').select('owner_name,line_handle').eq('is_active',true);
+  const want = new URLSearchParams(location.search).get('oa');
+  let q = sb.from('tenants').select('owner_name,line_handle').eq('is_active', true);
+  if (want) q = q.eq('line_handle', want);
+  let {data} = await q;
+  if((!data || !data.length) && want){
+    ({data} = await sb.from('tenants').select('owner_name,line_handle').eq('is_active', true));
+  }
   if(!data || !data.length) return;
+  if(data.length === 1){
+    document.getElementById('nomember-hint').innerHTML =
+      '先加入 <b>' + esc(data[0].owner_name) + '</b> 的 LINE 官方帳號，<b>加完直接滑回來</b>，這一頁會自動接上。';
+  }
   document.getElementById('oa-list').innerHTML = data.map(t =>
-    `<a class="btn sec" href="https://line.me/R/ti/p/${encodeURIComponent(t.line_handle)}" target="_blank">${esc(t.owner_name)} ${esc(t.line_handle)}</a>`
+    `<a class="btn sec" style="margin-top:9px" href="https://line.me/R/ti/p/${encodeURIComponent(t.line_handle)}" target="_blank">➕ ${esc(t.owner_name)}　<span style="font-size:15px;color:var(--txt2)">${esc(t.line_handle)}</span></a>`
   ).join('');
 }
 
+// 加完好友滑回來 → 自動重查，不用他自己想要按哪裡
+let recheckBusy = false;
+async function recheckMember(silent){
+  if(recheckBusy) return; recheckBusy = true;
+  const msg = document.getElementById('recheck-msg');
+  if(!silent && msg) msg.textContent = '檢查中…';
+  try{
+    const {data} = await sb.rpc('get_academy_context', {p_line_user_id: lineUserId});
+    if(data && data.state !== 'no_member'){ ctx = data; route(); return; }
+    if(!silent && msg) msg.textContent = '還沒偵測到，加好友後再按一次';
+  } finally { recheckBusy = false; }
+}
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && lineUserId &&
+     document.getElementById('screen-nomember').classList.contains('active')){
+    recheckMember(true);
+  }
+});
+
 // ========== 申請 ==========
+const CFC_LIST = ['李美潤','顏麗玉、游天貴','李芊嬅','張隆熙',
+                  '林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合','其他'];
+let cfcPicked = null;
+
+function renderCfc(){
+  const g = document.getElementById('cfc-grid');
+  if(!g || g.dataset.done) return;
+  g.innerHTML = CFC_LIST.map(n => `<div class="cfc-opt" onclick="pickCfc(this,'${n}')">${n}</div>`).join('');
+  g.dataset.done = '1';
+}
+function pickCfc(el, name){
+  document.querySelectorAll('.cfc-opt').forEach(x => x.classList.remove('on'));
+  el.classList.add('on');
+  cfcPicked = name;
+  document.getElementById('f-cfc-other').style.display = (name === '其他') ? 'block' : 'none';
+}
+function prefillApply(){
+  renderCfc();
+  const m = ctx.member || {};
+  if(m.np_member_code) document.getElementById('f-code').value  = m.np_member_code;
+  if(m.name)           document.getElementById('f-name').value  = m.name;
+  if(m.phone)          document.getElementById('f-phone').value = m.phone;
+}
+
+const toHalf = s => String(s||'').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+
 async function submitApply(){
+  const errEl = document.getElementById('apply-err');
+  const code  = toHalf(document.getElementById('f-code').value).replace(/[^0-9]/g,'');
+  const name  = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const other = document.getElementById('f-cfc-other').value.trim();
+  const cfc   = (cfcPicked === '其他') ? other : cfcPicked;
+  const reason= document.getElementById('apply-reason').value.trim() || null;
+
+  const errs = [];
+  if(!/^[0-9]{7}$/.test(code)) errs.push('會員編號必須是 7 位數字');
+  if(!name)  errs.push('請填姓名');
+  if(!phone) errs.push('請填手機');
+  if(!cfcPicked) errs.push('請選直屬 CFC 領袖');
+  if(cfcPicked === '其他' && !other) errs.push('請填寫直屬 CFC 姓名');
+  if(errs.length){
+    errEl.innerHTML = errs.join('<br>'); errEl.classList.add('show');
+    errEl.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  errEl.classList.remove('show');
+
   const btn = document.getElementById('apply-btn');
   btn.disabled = true; btn.textContent = '送出中…';
-  const reason = document.getElementById('apply-reason').value.trim() || null;
-  const oa = new URLSearchParams(location.search).get('oa');
-  const {data, error} = await sb.rpc('apply_academy',
-    {p_line_user_id: lineUserId, p_reason: reason, p_referrer_handle: oa});
+  const {data, error} = await sb.rpc('apply_academy', {
+    p_line_user_id: lineUserId, p_np_member_code: code,
+    p_name: name, p_phone: phone, p_cfc_leader: cfc, p_reason: reason });
   btn.disabled = false; btn.textContent = '送出申請';
-  if(error || !data?.ok){ console.error(error||data); toast('送出失敗，請稍後再試'); return; }
+
+  if(error || !data?.ok){
+    const msg = { bad_code:'會員編號格式不對，請填 7 位數字',
+                  code_taken:'這個會員編號已經綁定其他 LINE 帳號。若是誤填請重填；確定是你本人請聯繫團隊負責人。',
+                  no_member:'找不到你的資料，請重新開啟頁面' }[data?.error] || '送出失敗，請稍後再試';
+    errEl.innerHTML = msg; errEl.classList.add('show');
+    errEl.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
   toast('已送出，等候審核');
   await loadContext();
 }
@@ -395,8 +520,9 @@ async function loadAdmin(status){
 
   document.getElementById('admin-list').innerHTML = rows.map(r => `
     <div class="arow">
-      <div class="nm">${esc(r.name || '未填姓名')}</div>
-      <div class="meta">${esc(r.np_member_code||'無編號')}　${esc(r.tenant||'未分團隊')}　申請 ${fmt(r.applied_at)}</div>
+      <div class="nm">${esc(r.name || '未填姓名')}${r.combat_alumni ? '<span class="badge-alum">✅ 實戰班學員</span>' : ''}</div>
+      <div class="meta">${esc(r.np_member_code||'無編號')}　${esc(r.phone||'')}　申請 ${fmt(r.applied_at)}</div>
+      <div class="meta">CFC：${esc(r.cfc_leader||'未填')}　OA：${esc(r.tenant||'未分團隊')}</div>
       ${r.apply_reason ? `<div class="why">${esc(r.apply_reason)}</div>` : ''}
       <div class="acts">
         ${status !== 'active' ? `<button class="ap" onclick="doApprove('${r.member_id}')">✅ 核准入場</button>` : ''}
