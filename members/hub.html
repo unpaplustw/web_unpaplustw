@@ -423,10 +423,14 @@ async function init() {
     const updates = {};
     if (lineProfile.pictureUrl) updates.picture_url = lineProfile.pictureUrl;
 
+    // ⚠️ 不可直接 select tenants：該表 RLS 只開 authenticated，anon 永遠拿到 null
+    //    → 舊寫法讓「level=0 自動改綁 OA」靜默失效（2026-08-14 查出，疑為林珊合綁錯團隊主因）
+    //    改由 bind_member_tenant RPC 在 DB 端完成，level>=1 鎖定歸屬不被改走
     const oaParam = new URLSearchParams(window.location.search).get('oa');
-    if (oaParam && ctx.member && ctx.member.level === 0) {
-      const { data: tenant } = await sb.from('tenants').select('id').eq('line_handle', oaParam).single();
-      if (tenant) updates.tenant_id = tenant.id;
+    if (oaParam) {
+      const { data: bind } = await sb.rpc('bind_member_tenant',
+        { p_line_user_id: lineUserId, p_oa_handle: oaParam });
+      if (bind?.changed) { ctx = (await sb.rpc('get_hub_context', { p_line_user_id: lineUserId })).data || ctx; }
     }
 
     if (Object.keys(updates).length) {
