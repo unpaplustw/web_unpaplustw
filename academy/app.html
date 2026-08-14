@@ -242,7 +242,7 @@ textarea:focus{outline:none;border-color:var(--gold2)}
 
   <!-- 管理員 -->
   <div id="screen-admin" class="screen">
-    <div class="back" onclick="go('home')">← 回學院</div>
+    <div class="back" onclick="loadContext()">← 回學院</div>
     <div class="hd" style="padding-top:6px">
       <div class="hd-title" style="font-size:23px">入場審核</div>
     </div>
@@ -308,12 +308,17 @@ async function loadContext(){
 
 function route(){
   const st = ctx.state;
+  // 🔴 學院管理員的審核鈕必須在「任何狀態」都看得到。
+  //    否則第一個管理員自己還是 pending 時，看不到審核台 → 誰也審不了，包括他自己（死鎖）
+  document.getElementById('fab-admin').classList.toggle('on', !!ctx.is_admin);
   if(st === 'no_member'){ show('screen-nomember'); loadOaList(); return; }
   if(ctx.access){ renderHome(); return; }
   if(st === 'pending'){
     const at = ctx.enrollment?.applied_at;
-    if(at) document.getElementById('pending-when').innerHTML =
-      '送出時間：<b>'+fmt(at)+'</b><br>通常 1～2 天內完成審核，通過後這頁就會直接開課。';
+    let html = at ? '送出時間：<b>'+fmt(at)+'</b><br>通常 1～2 天內完成審核，通過後這頁就會直接開課。'
+                  : '我們收到你的申請了，通常 1～2 天內完成審核。';
+    if(ctx.is_admin) html += '<br><br><b>你是學院管理員</b>：可從右下角 🛡️ 審核直接處理（含你自己這筆）。';
+    document.getElementById('pending-when').innerHTML = html;
     show('screen-pending'); return;
   }
   if(st === 'revoked'){
