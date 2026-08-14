@@ -330,13 +330,16 @@ function fmt(iso){ if(!iso) return '-'; const d=new Date(iso); return `${d.getFu
 // 沒有會員資料 → 列出可加入的團隊 OA（帶 ?oa= 時只列那一個，變成一鍵）
 async function loadOaList(){
   const want = new URLSearchParams(location.search).get('oa');
-  let q = sb.from('tenants').select('owner_name,line_handle').eq('is_active', true);
-  if (want) q = q.eq('line_handle', want);
-  let {data} = await q;
+  // ⚠️ 不可直接 select tenants：該表 RLS 只開給 authenticated，anon 會撈到空的（2026-08-14 踩過）
+  let {data} = await sb.rpc('list_join_oas', {p_handle: want});
   if((!data || !data.length) && want){
-    ({data} = await sb.from('tenants').select('owner_name,line_handle').eq('is_active', true));
+    ({data} = await sb.rpc('list_join_oas', {p_handle: null}));
   }
-  if(!data || !data.length) return;
+  if(!data || !data.length){
+    document.getElementById('oa-list').innerHTML =
+      '<div class="card" style="font-size:17px">目前查不到可加入的官方帳號，請聯繫你的推薦人索取連結。</div>';
+    return;
+  }
   if(data.length === 1){
     document.getElementById('nomember-hint').innerHTML =
       '先加入 <b>' + esc(data[0].owner_name) + '</b> 的 LINE 官方帳號，<b>加完直接滑回來</b>，這一頁會自動接上。';
