@@ -562,10 +562,17 @@ function renderTrack() {
   silent.sort((a, b) => b.gap - a.gap);
 
   // 待審分兩種：今日必審（昨天填，今天是deadline）vs 已失職（跨日改不了）
+  // 「有沒有處理」依模式判定：full＝confirmed（26期逐項審核）；simple＝coach_engagement 有標記
+  // （27期起教練的動作寫在那張表，confirmed 永遠 false——2026-08-13 前這裡只看 confirmed，
+  //   把每個填報的學員都列成未審：該亮的沒亮、不該亮的全亮）
+  const isSimple = ((allBatches.find(b => b.id === bid) || {}).coach_mode || 'simple') === 'simple';
+  const engMarked = new Set(engRows.filter(r => r.homework !== null && r.homework !== undefined)
+                                   .map(r => r.student_id + '|' + r.log_date));
+  const handled = l => isSimple ? engMarked.has(l.student_id + '|' + l.log_date) : l.confirmed;
   const dueByCoach = {};    // 🟠 log_date === 昨天 → Set(學員名)
   const failedByCoach = {}; // ⚫ log_date < 昨天 → {學員名: 漏審次數}
   allLogs.forEach(l => {
-    if (l.confirmed || l.log_date >= today) return; // 今天填的明天才審，跳過
+    if (handled(l) || l.log_date >= today) return; // 今天填的明天才處理，跳過
     if (actScore(l) === 0) return;
     const s = approved.find(x => x.id === l.student_id);
     if (!s || coachMemberIds.has(s.member_id)) return;
@@ -613,24 +620,25 @@ function renderTrack() {
     `<div class="track-row track-red"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.txt}</span></div>`
   ).join('') + '</div>';
 
-  h += `<div class="sec-title"><span>🟠 今日必審（昨天填，今天是 deadline）</span><span class="sec-count">${due.length} 位教練</span></div>`;
-  if (!due.length) h += `<div class="dash-empty">今天該審的都審完了 👍</div>`;
+  const vb = isSimple ? '標' : '審';   // simple 模式教練的動作是「標記」不是「審核」
+  h += `<div class="sec-title"><span>🟠 今日必${vb}（昨天填，今天是 deadline）</span><span class="sec-count">${due.length} 位教練</span></div>`;
+  if (!due.length) h += `<div class="dash-empty">今天該${vb}的都${vb}完了 👍</div>`;
   else h += '<div>' + due.map(x =>
     `<div class="track-row track-orange">
       <span class="track-name">教練：${x.coach}</span>
-      <span class="track-tag">${x.items.length} 筆待審</span>
+      <span class="track-tag">${x.items.length} 筆待${vb}</span>
       <div class="track-chips">${x.items.map(i => `<span class="track-chip">${i}</span>`).join('')}</div>
     </div>`
   ).join('') + '</div>';
 
-  h += `<div class="sec-title"><span>⚫ 未審天數（跨日未審，改不了了）</span><span class="sec-count">${failed.length} 位教練</span></div>`;
-  if (!failed.length) h += `<div class="dash-empty">沒有漏審記錄 ✨</div>`;
+  h += `<div class="sec-title"><span>⚫ 未${vb}天數（跨日未${vb}，改不了了）</span><span class="sec-count">${failed.length} 位教練</span></div>`;
+  if (!failed.length) h += `<div class="dash-empty">沒有漏${vb}記錄 ✨</div>`;
   else h += '<div>' + failed.map(x =>
     `<div class="track-row track-black">
       <span class="track-name">教練：${x.coach}</span>
-      <span class="track-tag">共 ${x.total} 天未審</span>
+      <span class="track-tag">共 ${x.total} 天未${vb}</span>
       <div class="track-stulist">${x.stus.map(st =>
-        `<div class="track-stu"><span>${st.name}</span><span class="track-dots">${'🔴'.repeat(st.cnt)}<b>未審 ${st.cnt} 天</b></span></div>`
+        `<div class="track-stu"><span>${st.name}</span><span class="track-dots">${'🔴'.repeat(st.cnt)}<b>未${vb} ${st.cnt} 天</b></span></div>`
       ).join('')}</div>
     </div>`
   ).join('') + '</div>';
@@ -666,15 +674,22 @@ function renderDashboard() {
 
   function pct(n, d) { return d ? Math.round(n / d * 100) : 0; }
 
+  // 「教練有沒有處理」依模式：full＝confirmed／simple＝coach_engagement 有標記
+  // （27期起 confirmed 永遠 false——之前這三張卡的「教練確認率」因此永遠 0%）
+  const dashSimple = ((allBatches.find(b => b.id === bid) || {}).coach_mode || 'simple') === 'simple';
+  const dashMarked = new Set(engRows.filter(r => r.homework !== null && r.homework !== undefined)
+                                    .map(r => r.student_id + '|' + r.log_date));
+  const dashHandled = (s, date, log) => dashSimple ? dashMarked.has(s.id + '|' + date) : !!log?.confirmed;
+
   // 昨日統計
   const yStuFill = realStudents.filter(s => yesterdayMap[s.id]).length;
   const yCoachFill = coachStudents.filter(s => yesterdayMap[s.id]).length;
-  const yConfirmed = approvedStudents.filter(s => yesterdayMap[s.id]?.confirmed).length;
+  const yConfirmed = approvedStudents.filter(s => yesterdayMap[s.id] && dashHandled(s, yesterday, yesterdayMap[s.id])).length;
 
   // 今日統計
   const tStuFill = realStudents.filter(s => todayMap[s.id]).length;
   const tCoachFill = coachStudents.filter(s => todayMap[s.id]).length;
-  const tConfirmed = approvedStudents.filter(s => todayMap[s.id]?.confirmed).length;
+  const tConfirmed = approvedStudents.filter(s => todayMap[s.id] && dashHandled(s, today, todayMap[s.id])).length;
 
   let h = '';
 
@@ -693,7 +708,7 @@ function renderDashboard() {
       </div>
       <div class="dash-prog-card">
         <div class="dash-prog-n">${confirmed} / ${filledTotal}</div>
-        <div class="dash-prog-l">教練確認率 ${ap}%</div>
+        <div class="dash-prog-l">教練${dashSimple ? '標記' : '確認'}率 ${ap}%</div>
         <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${ap}%"></div></div>
       </div>
     </div>`;
@@ -735,9 +750,10 @@ function renderDashboard() {
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
 
+    const dashVb = dashSimple ? '標記' : '確認';
     h += `<div class="sec-title"><span>教練回報總覽</span></div>`;
     h += `<div class="dash-legend">
-      <span><span class="dot dot-done"></span>已確認</span>
+      <span><span class="dot dot-done"></span>已${dashVb}</span>
       <span><span class="dot dot-filled"></span>已填寫</span>
       <span><span class="dot dot-none"></span>未填寫</span>
     </div>`;
@@ -755,22 +771,22 @@ function renderDashboard() {
         return log ? '<span class="dot dot-done"></span>' : '<span class="dot dot-none"></span>';
       }
 
-      function makeDots(logMap, stuList) {
+      function makeDots(logMap, stuList, date) {
         return stuList.map(s => {
           const log = logMap[s.id];
           if (!log) return `<span class="dot dot-none" title="${nm(s)}：未填寫"></span>`;
-          if (log.confirmed) return `<span class="dot dot-done" title="${nm(s)}：已確認"></span>`;
-          return `<span class="dot dot-filled" title="${nm(s)}：已填寫待確認"></span>`;
+          if (dashHandled(s, date, log)) return `<span class="dot dot-done" title="${nm(s)}：已${dashVb}"></span>`;
+          return `<span class="dot dot-filled" title="${nm(s)}：已填寫待${dashVb}"></span>`;
         }).join('');
       }
 
-      const yDots = makeDots(yesterdayMap, g.students);
-      const tDots = makeDots(todayMap, g.students);
+      const yDots = makeDots(yesterdayMap, g.students, yesterday);
+      const tDots = makeDots(todayMap, g.students, today);
 
       const yF = g.students.filter(s => yesterdayMap[s.id]).length;
-      const yC = g.students.filter(s => yesterdayMap[s.id]?.confirmed).length;
+      const yC = g.students.filter(s => yesterdayMap[s.id] && dashHandled(s, yesterday, yesterdayMap[s.id])).length;
       const tF = g.students.filter(s => todayMap[s.id]).length;
-      const tC = g.students.filter(s => todayMap[s.id]?.confirmed).length;
+      const tC = g.students.filter(s => todayMap[s.id] && dashHandled(s, today, todayMap[s.id])).length;
 
       const yFillPctC = pct(yF, total), yConfPctC = pct(yC, yF);
       const tFillPctC = pct(tF, total), tConfPctC = pct(tC, tF);
@@ -786,7 +802,7 @@ function renderDashboard() {
           </div>
           <div class="dash-coach-stats">
             <span class="dash-day-block ${lvl(yFillPctC)}">學員填寫 <span class="dash-pct">${yFillPctC}%</span></span>
-            <span class="dash-day-block ${lvl(yConfPctC)}">教練審核 <span class="dash-pct">${yConfPctC}%</span></span>
+            <span class="dash-day-block ${lvl(yConfPctC)}">教練${dashVb} <span class="dash-pct">${yConfPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
@@ -794,15 +810,15 @@ function renderDashboard() {
           ${g.students.map(s => {
             const yLog = yesterdayMap[s.id];
             const tLog = todayMap[s.id];
-            function chipFor(log) {
+            function chipFor(log, date) {
               if (!log) return '<span class="dash-chip dash-chip-empty">未填</span>';
-              if (log.confirmed) return '<span class="dash-chip dash-chip-confirmed">已確認</span>';
+              if (dashHandled(s, date, log)) return `<span class="dash-chip dash-chip-confirmed">已${dashVb}</span>`;
               return '<span class="dash-chip dash-chip-filled">已填寫</span>';
             }
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
               <div class="dash-stu-status">
-                ${chipFor(yLog)}
+                ${chipFor(yLog, yesterday)}
               </div>
             </div>`;
           }).join('')}
