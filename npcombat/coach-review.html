@@ -233,6 +233,11 @@
   .hw-cell.locked{opacity:.35;cursor:default}
   .hw-missing{margin:6px 12px 14px;background:var(--card);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9}
   .hw-missing b{color:var(--gold)}
+  .hw-missing-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .hw-missing-hd span{font-weight:700;color:var(--gold);font-size:14px}
+  .hw-copy{border:none;background:var(--gold-lt);color:var(--gold);border-radius:20px;padding:7px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .hw-copy.done{background:var(--green-bg);color:var(--green)}
+  .hw-copy-src{white-space:pre-wrap;line-height:1.9}
   .hw-det{margin:0 12px 14px;background:var(--card);border-radius:14px;padding:14px 16px;border:2px solid var(--gold)}
   .hw-det-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .hw-det-hd b{font-size:15px}
@@ -375,6 +380,7 @@
   </div>
   <div id="hwGrid"></div>
   <div id="hwDetail" style="display:none"></div>
+  <div id="hwMissing"></div>
 </div>
 
 <div id="guideView" style="display:none">
@@ -1003,13 +1009,22 @@ function renderHw() {
   });
   h += '</table></div>';
 
-  // 缺件清單：這才是教練要拿去催的東西
-  h += '<div class="hw-missing">';
-  if (!missing.length) h += '🎉 目前上過的單元，每位學員都全繳了';
-  else missing.forEach(m => h += `<div><b>${m.name}</b>　缺：${m.miss.map(x => 'U' + x).join('、')}</div>`);
-  h += '<div style="margin-top:6px;font-size:11.5px;color:var(--muted)">沒有標示的＝你還沒檢核，不代表他沒交。</div></div>';
   grid.innerHTML = h;
   renderHwDetail();
+
+  // 缺件清單放最下面：這才是教練要拿去催的東西；一鍵複製直接貼小組群
+  const mbox = document.getElementById('hwMissing');
+  if (!missing.length) {
+    mbox.innerHTML = '<div class="hw-missing">🎉 目前上過的單元，每位學員都全繳了</div>';
+    return;
+  }
+  const lines = missing.map(m => `${m.name}：缺 ${m.miss.map(x => 'U' + x).join('、')}`);
+  const copyText = `📋 作業缺件提醒（${getDateStr('today').slice(5).replace('-', '/')}）\n` + lines.join('\n') + '\n請於今晚 22:00 前補交到小組群 🙏';
+  mbox.innerHTML = `<div class="hw-missing">
+    <div class="hw-missing-hd"><span>📣 缺件清單（${missing.length} 人）</span><button class="hw-copy" onclick="copyGuide('hwCopySrc', this)">📋 一鍵複製</button></div>
+    <div id="hwCopySrc" class="hw-copy-src">${copyText.replace(/</g,'&lt;')}</div>
+    <div style="margin-top:8px;font-size:11.5px;color:var(--muted)">沒有標示的＝你還沒檢核，不代表他沒交。複製前先把灰格點掉，清單才準。</div>
+  </div>`;
 }
 
 function openHw(sid, unit) {
