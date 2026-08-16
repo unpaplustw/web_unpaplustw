@@ -1019,7 +1019,13 @@ function renderHw() {
     return;
   }
   const lines = missing.map(m => `${m.name}：缺 ${m.miss.map(x => 'U' + x).join('、')}`);
-  const copyText = `📋 作業缺件提醒（${getDateStr('today').slice(5).replace('-', '/')}）\n` + lines.join('\n') + '\n請於今晚 22:00 前補交到小組群 🙏';
+  // 文案：敘述＋鼓勵，不壓截止時間（Randoph 2026-08-16：作業是為了在事業上專業呈現，補上就好）
+  const copyText =
+    '📋 作業進度小提醒\n\n' +
+    '課程作業是把每一堂學到的東西練成自己的話。有一些單元還沒完成，' +
+    '沒有真正落實學習，未來在事業上就很難專業呈現——這也是我們一起來上課的初衷。\n\n' +
+    lines.join('\n') + '\n\n' +
+    '缺哪個就補哪個，補上就好，不用趕、也不用一次全部。有卡住的地方隨時在群裡說，我陪你一起看 💪';
   mbox.innerHTML = `<div class="hw-missing">
     <div class="hw-missing-hd"><span>📣 缺件清單（${missing.length} 人）</span><button class="hw-copy" onclick="copyGuide('hwCopySrc', this)">📋 一鍵複製</button></div>
     <div id="hwCopySrc" class="hw-copy-src">${copyText.replace(/</g,'&lt;')}</div>
