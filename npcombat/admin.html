@@ -6,6 +6,7 @@
 <title>實戰班主系統管理</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="units.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
   :root {
@@ -191,6 +192,17 @@
   .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
   .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
+  /* 作業矩陣（2026-08-14） */
+  .hwm-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .hwm{border-collapse:separate;border-spacing:2px;font-size:11px}
+  .hwm th{color:var(--muted);font-weight:400;padding:3px 2px;text-align:center;white-space:nowrap}
+  .hwm th.nm,.hwm td.nm{text-align:left;position:sticky;left:0;background:var(--navy);z-index:1;padding-right:8px;white-space:nowrap}
+  .hwm td.nm{color:var(--white);font-weight:600;font-size:12px}
+  .hwm td.nm .c{color:var(--muted);font-weight:400;font-size:10px;margin-left:4px}
+  .hwm-c{width:26px;height:24px;border-radius:5px;text-align:center;font-weight:700;color:#fff;font-size:10px}
+  .hwm-c.full{background:#22a05a} .hwm-c.part{background:#e0a020} .hwm-c.none{background:#d9534f} .hwm-c.na{background:rgba(255,255,255,.07)} .hwm-c.lock{background:transparent}
+  .hwm-sum{padding:8px 4px;font-size:12px;color:var(--white)}
+  .hwm-sum b{color:#f87171}
   /* 教練回報總覽（simple 模式，2026-08-13） */
   .cov-tbl{width:100%;border-collapse:collapse;font-size:13px}
   .cov-tbl th{text-align:right;padding:8px 6px;font-size:11px;color:var(--muted);font-weight:400;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -312,7 +324,7 @@ const sb = window.supabase.createClient(
 
 const LIFF_ID = '2009692859-DepTDosN';
 let bid = null, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
-let allBatches = [], engRows = [];   // engRows = coach_engagement（simple 模式的教練標記）
+let allBatches = [], engRows = [], hwRows = [];   // hwRows = homework_checks（作業檢核）   // engRows = coach_engagement（simple 模式的教練標記）
 let myAllowedTabs = [];
 let isReadonly = false;
 
@@ -437,6 +449,9 @@ async function load() {
     .select('coach_id, student_id, log_date, homework, homework_replied')
     .eq('batch_id', bid);
   engRows = eng || [];
+  const { data: hw } = await sb.from('homework_checks')
+    .select('student_id, unit_no, done, total').eq('batch_id', bid);
+  hwRows = hw || [];
   render();
 }
 
@@ -533,6 +548,47 @@ function renderCoachOverview(realStudents, logsByStu) {
   return h;
 }
 
+// ── 全班作業矩陣（2026-08-14）：資料來自教練在 coach-review「📋 作業」的檢核（homework_checks）
+//   格子：全繳／部分／沒繳／未檢核（教練沒點過，不代表沒交）；未來單元空白
+//   用途：記點退班（未交作業記 1 點）的依據；缺件排行讓管理者知道該催誰、該催哪位教練去檢核
+function renderHwMatrix(realStudents, coachById) {
+  if (typeof UNITS === 'undefined' || !realStudents.length) return '';
+  const today = localDateStr(new Date());
+  const taught = new Set();
+  Object.entries(SCHEDULE || {}).forEach(([d, arr]) => { if (d <= today) arr.forEach(n => taught.add(n)); });
+  const map = {}; hwRows.forEach(r => map[r.student_id + '|' + r.unit_no] = r);
+  const st = (sid, u) => { const r = map[sid + '|' + u]; if (!r) return 'na'; if (r.total > 0 && r.done >= r.total) return 'full'; return r.done > 0 ? 'part' : 'none'; };
+
+  const rows = realStudents.map(s => {
+    let full = 0, part = 0, none = 0, na = 0;
+    UNITS.forEach(u => { if (!taught.has(u.no)) return; const k = st(s.id, u.no); if (k === 'full') full++; else if (k === 'part') part++; else if (k === 'none') none++; else na++; });
+    return { s, full, part, none, na, missing: part + none };
+  }).sort((a, b) => (b.missing - a.missing) || (b.na - a.na));
+
+  const taughtN = taught.size;
+  const checkedAll = rows.filter(r => r.na === 0).length;
+  const zeroChecked = rows.filter(r => r.na === taughtN).length;
+
+  let h = `<div class="sec-title"><span>📋 全班作業檢核矩陣</span><span class="sec-count">已上 ${taughtN} 單元 · 教練檢核完 ${checkedAll}/${rows.length} 人</span></div>`;
+  h += `<div class="cov-note">綠=全繳　橘=部分（數字=已交/題數）　紅=沒繳　灰=<b>教練還沒檢核（不代表沒交）</b>　空=尚未上到<br>
+    排序：缺件多的在前。⚠️ 有 <b>${zeroChecked} 人</b>整排全灰＝教練完全沒檢核，先催教練不是催學員。</div>`;
+  h += `<div class="hwm-wrap"><table class="hwm"><tr><th class="nm">學員</th>`;
+  UNITS.forEach(u => h += `<th title="${u.n}">${u.no}</th>`);
+  h += `<th>缺</th></tr>`;
+  rows.forEach(r => {
+    h += `<tr><td class="nm">${nm(r.s)}<span class="c">${coachById[r.s.coach_id] || ''}</span></td>`;
+    UNITS.forEach(u => {
+      if (!taught.has(u.no)) { h += `<td class="hwm-c lock"></td>`; return; }
+      const k = st(r.s.id, u.no); const rec = map[r.s.id + '|' + u.no];
+      const t = k === 'full' ? '✓' : k === 'part' ? `${rec.done}/${rec.total}` : k === 'none' ? '✕' : '';
+      h += `<td class="hwm-c ${k}" title="U${u.no} ${u.n}">${t}</td>`;
+    });
+    h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${r.na ? `<span style="color:var(--muted)">（未檢 ${r.na}）</span>` : ''}</td></tr>`;
+  });
+  h += `</table></div>`;
+  return h;
+}
+
 function renderTrack() {
   const el = document.getElementById('p-track');
   if (!el) return;
@@ -614,6 +670,7 @@ function renderTrack() {
   // ── 渲染 ──
   let h = '';
   h += renderCoachOverview(realStudents, logsByStu);
+  h += renderHwMatrix(realStudents, coachById);
   h += `<div class="sec-title"><span>🔴 連續沒填（教練快關心）</span><span class="sec-count">${silent.length} 人</span></div>`;
   if (!silent.length) h += `<div class="dash-empty">太棒了，沒人失聯 🎉</div>`;
   else h += '<div>' + silent.map(x =>
