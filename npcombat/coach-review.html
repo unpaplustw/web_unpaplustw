@@ -1002,7 +1002,14 @@ function renderHw() {
       const label = st === 'part' ? `${r.done}/${r.total}` : st === 'full' ? '✓' : st === 'none' ? '✕' : '';
       h += `<td class="hw-cell hw-${st} ${isOpen ? 'on' : ''} ${locked ? 'locked' : ''}"
                ${locked ? '' : `onclick="openHw('${stu.id}',${u.no})"`} title="${u.n}${locked ? '（尚未上到）' : ''}">${label}</td>`;
-      if (!locked && st !== 'full') miss.push(u.no + (st === 'part' ? `(${r.done}/${r.total})` : st === 'none' ? '(沒繳)' : ''));
+      if (!locked && st !== 'full') {
+        // 部分繳：直接列缺哪幾題，教練不必再點開確認
+        if (st === 'part') {
+          const lack = u.hw.map((_, i) => i + 1).filter(q => (r.items || {})[String(q)] !== true);
+          miss.push(`U${u.no} 缺第 ${lack.join('、')} 題`);
+        } else if (st === 'none') miss.push(`U${u.no} 沒繳`);
+        else miss.push(`U${u.no}`);
+      }
     });
     h += '</tr>';
     if (miss.length) missing.push({ name: stu.name, miss });
@@ -1018,7 +1025,7 @@ function renderHw() {
     mbox.innerHTML = '<div class="hw-missing">🎉 目前上過的單元，每位學員都全繳了</div>';
     return;
   }
-  const lines = missing.map(m => `${m.name}：缺 ${m.miss.map(x => 'U' + x).join('、')}`);
+  const lines = missing.map(m => `${m.name}：${m.miss.join('、')}`);
   // 文案：敘述＋鼓勵，不壓截止時間（Randoph 2026-08-16：作業是為了在事業上專業呈現，補上就好）
   const copyText =
     '📋 作業進度小提醒\n\n' +
