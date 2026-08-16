@@ -311,8 +311,8 @@
 
 <!-- Mode Tabs -->
 <div class="mode-tabs">
-  <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">自己回報</button>
-  <button class="mode-tab" id="tabReview" onclick="setMode('review')">學員審查</button>
+  <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">✍️ 回報</button>
+  <button class="mode-tab" id="tabReview" onclick="setMode('review')">🤝 小組</button>
   <button class="mode-tab" id="tabHw" onclick="setMode('hw')">📋 作業</button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
@@ -765,7 +765,7 @@ async function init() {
                    studyStart: batchRow.study_start, studyEnd: batchRow.study_end,
                    actionOpen: batchRow.action_open_date };
     initGuidePhase();
-    if (coachMode === 'simple') document.getElementById('tabReview').textContent = engModeFor(getDateStr('today')).title;
+    if (coachMode === 'simple') document.getElementById('tabReview').textContent = '🤝 小組';
 
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
