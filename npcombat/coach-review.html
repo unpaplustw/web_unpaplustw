@@ -216,6 +216,35 @@
 
   /* ── Mode Tabs ── */
   .mode-tabs{display:flex;gap:0;max-width:500px;margin:0 auto;padding:12px 16px 0}
+  .hw-hint{font-size:13px;color:var(--muted);line-height:1.7;padding:12px 16px 8px}
+  .hw-hint b{color:var(--gold)}
+  .hw-lg{display:inline-flex;gap:12px;margin-top:6px;font-size:12px;align-items:center}
+  .hw-c{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .hw-full{background:var(--green)} .hw-part{background:#e0a020} .hw-none{background:#d9534f} .hw-na{background:var(--border)}
+  .hw-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 12px 12px}
+  .hw-tbl{border-collapse:separate;border-spacing:3px;font-size:12px}
+  .hw-tbl th{font-weight:600;color:var(--muted);padding:4px 2px;text-align:center;font-size:11px;white-space:nowrap}
+  .hw-tbl th.hw-nm{text-align:left;padding-right:8px;position:sticky;left:0;background:var(--bg);z-index:1}
+  .hw-tbl td.hw-nm{font-weight:600;font-size:14px;white-space:nowrap;padding-right:8px;position:sticky;left:0;background:var(--bg);z-index:1}
+  .hw-cell{width:34px;height:34px;border-radius:7px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff;transition:.12s}
+  .hw-cell.hw-na{background:var(--border);color:var(--muted);font-weight:400}
+  .hw-cell.hw-full{background:var(--green)} .hw-cell.hw-part{background:#e0a020} .hw-cell.hw-none{background:#d9534f}
+  .hw-cell.on{outline:3px solid var(--gold);outline-offset:1px}
+  .hw-cell.locked{opacity:.35;cursor:default}
+  .hw-missing{margin:6px 12px 14px;background:var(--card);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9}
+  .hw-missing b{color:var(--gold)}
+  .hw-det{margin:0 12px 14px;background:var(--card);border-radius:14px;padding:14px 16px;border:2px solid var(--gold)}
+  .hw-det-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .hw-det-hd b{font-size:15px}
+  .hw-det-close{border:none;background:var(--bg);border-radius:20px;padding:6px 14px;font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer}
+  .hw-q{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .hw-q:last-of-type{border-bottom:none}
+  .hw-q .hw-box{flex-shrink:0;width:24px;height:24px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;margin-top:1px}
+  .hw-q.on .hw-box{background:var(--green);border-color:var(--green);color:#fff}
+  .hw-q .hw-qt{font-size:14px;line-height:1.55}
+  .hw-det-sum{margin-top:10px;text-align:center;font-weight:700;color:var(--gold);font-size:14px}
+  .hw-det-actions{display:flex;gap:8px;margin-top:10px}
+  .hw-det-actions button{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--text)}
   .mode-tab{flex:1;padding:12px;border:none;border-bottom:3px solid transparent;background:none;font-size:15px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
   .mode-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
 
@@ -279,6 +308,7 @@
 <div class="mode-tabs">
   <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">自己回報</button>
   <button class="mode-tab" id="tabReview" onclick="setMode('review')">學員審查</button>
+  <button class="mode-tab" id="tabHw" onclick="setMode('hw')">📋 作業</button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
 
@@ -338,6 +368,15 @@
 </div>
 
 <!-- Guide View：教練指南（開班前/中/後）內容陸續填入 -->
+<div id="hwView" style="display:none">
+  <div class="hw-hint">
+    只問「完成了沒」，<b>不壓日期</b>——任何時候都可以回頭補。點格子展開該單元題目逐題勾，勾幾題系統自己算。<br>
+    <span class="hw-lg"><i class="hw-c hw-full"></i>全繳　<i class="hw-c hw-part"></i>部分　<i class="hw-c hw-none"></i>沒繳　<i class="hw-c hw-na"></i>還沒檢核</span>
+  </div>
+  <div id="hwGrid"></div>
+  <div id="hwDetail" style="display:none"></div>
+</div>
+
 <div id="guideView" style="display:none">
   <div class="guide-wrap">
     <div class="guide-intro">教練帶班手冊 —— 照著做，帶好你的小組 💪</div>
@@ -880,9 +919,11 @@ function setMode(mode) {
   document.getElementById('tabMyReport').classList.toggle('on', mode === 'my');
   document.getElementById('tabReview').classList.toggle('on', mode === 'review');
   document.getElementById('tabGuide').classList.toggle('on', mode === 'guide');
+  document.getElementById('tabHw').classList.toggle('on', mode === 'hw');
   document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
   document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
   document.getElementById('guideView').style.display = mode === 'guide' ? '' : 'none';
+  document.getElementById('hwView').style.display = mode === 'hw' ? '' : 'none';
   document.getElementById('detailView').style.display = 'none';
   if (mode === 'my') {
     currentDay = 'today';
@@ -892,10 +933,140 @@ function setMode(mode) {
     renderMyReport();
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
+  } else if (mode === 'hw') {
+    document.querySelector('.day-toggle').style.display = 'none';   // 作業檢核不壓日期
+    loadHwChecks().then(renderHw);
   } else {
     document.querySelector('.day-toggle').style.display = '';
     renderReview();
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// 📋 作業檢核（2026-08-14 開會定案）
+//   不壓日期，只問「這個學員的這個單元完成了沒」。教練任何時候可回頭補。
+//   格子三態由題目勾選數推導：全繳／部分／沒繳；沒有紀錄＝還沒檢核（不是沒交）。
+//   資料表 npcombat.homework_checks（batch,student,unit 唯一），items={"題號":true/false}
+// ══════════════════════════════════════════════════════════
+let hwMap = {};          // `${student_id}|${unit_no}` -> row
+let hwOpen = null;       // 展開中的 {sid, unit}
+
+async function loadHwChecks() {
+  hwMap = {};
+  if (!coachId || !studentList.length) return;
+  const { data } = await sb.from('homework_checks')
+    .select('student_id, unit_no, items, done, total')
+    .eq('batch_id', BATCH_ID).in('student_id', studentList.map(s => s.id));
+  (data || []).forEach(r => { hwMap[r.student_id + '|' + r.unit_no] = r; });
+}
+
+function hwState(sid, unit) {
+  const r = hwMap[sid + '|' + unit];
+  if (!r) return 'na';
+  if (r.total > 0 && r.done >= r.total) return 'full';
+  if (r.done > 0) return 'part';
+  return 'none';
+}
+
+// 到今天為止「已經上過」的單元（依 units.js 的 SCHEDULE）；未來的單元灰掉不給點
+function unitsUpToToday() {
+  const today = getDateStr('today');
+  const set = new Set();
+  Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) arr.forEach(n => set.add(n)); });
+  return set;
+}
+
+function renderHw() {
+  const grid = document.getElementById('hwGrid');
+  if (!studentList.length) { grid.innerHTML = '<div class="hw-hint">目前沒有配對到你的學員</div>'; return; }
+  const taught = unitsUpToToday();
+
+  let h = '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
+  UNITS.forEach(u => h += `<th title="${u.n}">${u.no}</th>`);
+  h += '</tr>';
+  const missing = [];
+  studentList.forEach(stu => {
+    h += `<tr><td class="hw-nm">${stu.name}</td>`;
+    const miss = [];
+    UNITS.forEach(u => {
+      const st = hwState(stu.id, u.no);
+      const r = hwMap[stu.id + '|' + u.no];
+      const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.unit === u.no;
+      const locked = !taught.has(u.no);
+      const label = st === 'part' ? `${r.done}/${r.total}` : st === 'full' ? '✓' : st === 'none' ? '✕' : '';
+      h += `<td class="hw-cell hw-${st} ${isOpen ? 'on' : ''} ${locked ? 'locked' : ''}"
+               ${locked ? '' : `onclick="openHw('${stu.id}',${u.no})"`} title="${u.n}${locked ? '（尚未上到）' : ''}">${label}</td>`;
+      if (!locked && st !== 'full') miss.push(u.no + (st === 'part' ? `(${r.done}/${r.total})` : st === 'none' ? '(沒繳)' : ''));
+    });
+    h += '</tr>';
+    if (miss.length) missing.push({ name: stu.name, miss });
+  });
+  h += '</table></div>';
+
+  // 缺件清單：這才是教練要拿去催的東西
+  h += '<div class="hw-missing">';
+  if (!missing.length) h += '🎉 目前上過的單元，每位學員都全繳了';
+  else missing.forEach(m => h += `<div><b>${m.name}</b>　缺：${m.miss.map(x => 'U' + x).join('、')}</div>`);
+  h += '<div style="margin-top:6px;font-size:11.5px;color:var(--muted)">沒有標示的＝你還沒檢核，不代表他沒交。</div></div>';
+  grid.innerHTML = h;
+  renderHwDetail();
+}
+
+function openHw(sid, unit) {
+  hwOpen = (hwOpen && hwOpen.sid === sid && hwOpen.unit === unit) ? null : { sid, unit };
+  renderHw();
+  if (hwOpen) setTimeout(() => document.getElementById('hwDetail')?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
+}
+
+function renderHwDetail() {
+  const box = document.getElementById('hwDetail');
+  if (!hwOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const stu = studentList.find(s => s.id === hwOpen.sid);
+  const u = UNITS.find(x => x.no === hwOpen.unit);
+  if (!stu || !u) { box.style.display = 'none'; return; }
+  const r = hwMap[stu.id + '|' + u.no];
+  const items = (r && r.items) || {};
+  const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
+  let h = `<div class="hw-det">
+    <div class="hw-det-hd"><b>${stu.name} · 第 ${u.no} 單元 ${u.n}</b><button class="hw-det-close" onclick="openHw('${stu.id}',${u.no})">收起</button></div>`;
+  u.hw.forEach((q, i) => {
+    const on = items[String(i + 1)] === true;
+    h += `<div class="hw-q ${on ? 'on' : ''}" onclick="toggleHwItem('${stu.id}',${u.no},${i + 1})">
+      <div class="hw-box">${on ? '✓' : ''}</div><div class="hw-qt">${i + 1}. ${q}</div></div>`;
+  });
+  h += `<div class="hw-det-sum">${done}/${u.hw.length}　${done === u.hw.length ? '✅ 全繳' : done > 0 ? '🔶 部分繳' : r ? '❌ 沒繳' : '⬜ 還沒檢核'}</div>
+    <div class="hw-det-actions">
+      <button onclick="setHwAll('${stu.id}',${u.no},true)">全部勾（全繳）</button>
+      <button onclick="setHwAll('${stu.id}',${u.no},false)">全部取消（沒繳）</button>
+    </div></div>`;
+  box.innerHTML = h; box.style.display = '';
+}
+
+async function saveHw(sid, unit, items) {
+  const u = UNITS.find(x => x.no === unit);
+  const total = u.hw.length;
+  const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
+  const prev = hwMap[sid + '|' + unit];
+  hwMap[sid + '|' + unit] = { student_id: sid, unit_no: unit, items, done, total };   // 樂觀更新
+  renderHw();
+  const { error } = await sb.from('homework_checks').upsert({
+    batch_id: BATCH_ID, student_id: sid, coach_id: coachId, unit_no: unit,
+    items, done, total, updated_at: new Date().toISOString()
+  }, { onConflict: 'batch_id,student_id,unit_no' });
+  if (error) {
+    if (prev) hwMap[sid + '|' + unit] = prev; else delete hwMap[sid + '|' + unit];
+    renderHw(); toast('儲存失敗：' + error.message);
+  }
+}
+function toggleHwItem(sid, unit, qno) {
+  const cur = { ...((hwMap[sid + '|' + unit] || {}).items || {}) };
+  cur[String(qno)] = !cur[String(qno)];
+  saveHw(sid, unit, cur);
+}
+function setHwAll(sid, unit, val) {
+  const u = UNITS.find(x => x.no === unit);
+  const items = {}; u.hw.forEach((_, i) => items[String(i + 1)] = val);
+  saveHw(sid, unit, items);
 }
 
 // ── 教練指南：依今天日期自動落在當前階段（開班前/中/後），避免看到不相干的雜訊 ──
