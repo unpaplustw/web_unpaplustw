@@ -236,6 +236,17 @@
   .my-close-entry{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;position:relative}
   .my-close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
   .my-close-row{display:flex;gap:8px;flex-wrap:nowrap}
+  .my-close-who{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+  .my-close-who input{border:2px solid var(--border);border-radius:10px;padding:10px 8px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);min-width:0;-webkit-appearance:none}
+  .my-close-who input:focus{outline:none;border-color:var(--gold)}
+  .my-close-who .w-code{flex:0 0 96px;text-align:center;letter-spacing:1px}
+  .my-close-who .w-dash{color:var(--muted);font-weight:700}
+  .my-close-who .w-sub{flex:0 0 52px;text-align:center}
+  .my-close-who .w-name{flex:1}
+  .my-close-verdict{margin-bottom:8px;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:8px;display:inline-block}
+  .my-close-verdict.new{background:var(--green-bg);color:var(--green)}
+  .my-close-verdict.branch{background:var(--gold-lt);color:var(--gold)}
+  .my-close-verdict.pending{background:var(--bg);color:var(--muted);font-weight:500}
   .my-close-pill{padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0;word-break:break-all}
   .my-close-pill.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
   .my-close-half-row{display:flex;gap:8px;margin-top:8px}
@@ -620,6 +631,7 @@ const sb = window.supabase.createClient(
 );
 
 let coachMemberId = null;
+let myCode = null;   // 自己的主編號 7 碼（判定締結對象是新人還是自己分店）
 
 const STU_FIELDS = [
   { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1, check:'請檢查名單簿是否發群組' },
@@ -716,10 +728,11 @@ async function init() {
     const profile = await liff.getProfile();
 
     // 查會員
-    const { data: member } = await sb.from('members_master').select('id, name')
+    const { data: member } = await sb.from('members_master').select('id, name, member_code')
       .eq('line_user_id', profile.userId).single();
     if (!member) { document.getElementById('coachName').textContent = '非會員'; toast('查無會員資料'); return; }
     coachMemberId = member.id;
+    myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
 
     // 查本期教練身份
     const { data: coach } = await sb.from('batch_coaches').select('id, status')
@@ -1073,7 +1086,8 @@ function renderMyReport() {
   // 締結區
   const dayCloses = currentDay === 'today' ? myCloseData.today : myCloseData.yesterday;
   // 帶回 plan／size（2026-08-12 起有存），舊資料仍是 null，教練重選即可
-  myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: c.badge || null, pts: c.points, saved: true }));
+  myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: c.badge || null, pts: c.points, saved: true,
+    tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '' }));
   h += renderMyCloseSection();
 
   document.getElementById('myDataArea').innerHTML = h;
@@ -1098,6 +1112,21 @@ function adjMy(key, delta) {
 }
 
 // ── My Close Entries ──
+// 締結對象判定（與 daily 同步，2026-08-14）：主編號≠自己→推薦新人／＝自己→分店
+function verdictOfMy(e) {
+  const code = (e.tcode || '').replace(/\D/g, '');
+  if (code.length < 7 || !(e.tname || '').trim()) return { k:'pending', t:'請填對方主編號 7 碼＋姓名' };
+  if (!myCode) return { k:'pending', t:'（無法判定：你的會員編號未登錄）' };
+  return code === myCode
+    ? { k:'branch', t:'🏪 自己開分店（獎勵活動計分，不算推薦人數）' }
+    : { k:'new',    t:'🌱 推薦新人 001（推薦人數 +1）' };
+}
+function setMyWho(i, field, val) {
+  myCloseEntries[i][field] = val; myCloseEntries[i].saved = false;
+  const el = document.getElementById('my-verdict-' + i);
+  if (el) { const v = verdictOfMy(myCloseEntries[i]); el.className = 'my-close-verdict ' + v.k; el.textContent = v.t; }
+}
+
 function getMyEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
@@ -1118,7 +1147,7 @@ function renderMyCloseSection() {
     if (e.saved) {
       h += `<div class="my-close-entry">
         <button class="btn-del-my-close" onclick="delMyClose(${i})">✕</button>
-        <div class="my-close-entry-num">第 ${i+1} 筆（已儲存）</div>
+        <div class="my-close-entry-num">第 ${i+1} 筆（已儲存）${e.tname ? '　' + (e.tcode||'') + '-' + (e.tsub||'') + ' ' + e.tname : ''}</div>
         <div class="my-close-pts">＋${e.pts} 分</div>
       </div>`;
     } else {
@@ -1126,6 +1155,13 @@ function renderMyCloseSection() {
       h += `<div class="my-close-entry">
         <button class="btn-del-my-close" onclick="delMyClose(${i})">✕</button>
         <div class="my-close-entry-num">第 ${i+1} 筆</div>
+        <div class="my-close-who">
+          <input class="w-code" inputmode="numeric" maxlength="7" placeholder="主編號" value="${e.tcode||''}" oninput="setMyWho(${i},'tcode',this.value)">
+          <span class="w-dash">−</span>
+          <input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||''}" oninput="setMyWho(${i},'tsub',this.value)">
+          <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setMyWho(${i},'tname',this.value)">
+        </div>
+        <div class="my-close-verdict ${verdictOfMy(e).k}" id="my-verdict-${i}">${verdictOfMy(e).t}</div>
         <div class="my-close-row">
           ${PLANS.map(p => `<div class="my-close-pill ${e.plan===p.key?'sel':''}" onclick="setMyPlan(${i},'${p.key}')">${p.label}</div>`).join('')}
         </div>
@@ -1220,11 +1256,19 @@ async function submitMyReport() {
     // 插入全部（saved 的用原始 pts，新的用計算 pts）
     if (hasCloseEntries) {
       // ⚠️ batch_id 一定要帶：不帶會存成 NULL 期別，帶 batch_id 的查詢就撈不到（2026-08-12 修）
-      const allRows = myCloseEntries.map(e => ({
-        member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
-        plan: e.plan, size: e.size, badge: e.badge,
-        points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
-      }));
+      const incomplete = myCloseEntries.filter(e => !e.saved && verdictOfMy(e).k === 'pending');
+      if (incomplete.length) throw new Error('締結要填對方主編號 7 碼＋姓名，還有 ' + incomplete.length + ' 筆沒填');
+      const allRows = myCloseEntries.map(e => {
+        const code = (e.tcode || '').replace(/\D/g, '').slice(0, 7);
+        const sub  = ((e.tsub || '').replace(/\D/g, '') || '001').padStart(3, '0').slice(-3);
+        return {
+          member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
+          plan: e.plan, size: e.size, badge: e.badge,
+          target_code: code || null, target_sub: code ? sub : null, target_name: (e.tname || '').trim() || null,
+          is_new: code ? code !== myCode : null,
+          points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
+        };
+      });
       const { error: insErr } = await sb.from('closing_records').insert(allRows);
       if (insErr) throw insErr;
     }

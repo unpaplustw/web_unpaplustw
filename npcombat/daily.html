@@ -124,6 +124,18 @@
   .close-entry{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;position:relative}
   .close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
   .close-entry-row{display:flex;gap:8px;flex-wrap:nowrap}
+  /* 締結對象（2026-08-14）：主編號 7 碼＋分號 3 碼＋姓名，主編號=自己→分店、≠自己→推薦新人 */
+  .close-who{display:flex;gap:6px;margin-top:8px;align-items:center}
+  .close-who input{border:2px solid var(--border);border-radius:10px;padding:10px 8px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);min-width:0;-webkit-appearance:none}
+  .close-who input:focus{outline:none;border-color:var(--gold)}
+  .close-who .w-code{flex:0 0 96px;text-align:center;letter-spacing:1px;font-variant-numeric:tabular-nums}
+  .close-who .w-dash{color:var(--muted);font-weight:700}
+  .close-who .w-sub{flex:0 0 52px;text-align:center;letter-spacing:1px}
+  .close-who .w-name{flex:1}
+  .close-verdict{margin-top:6px;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:8px;display:inline-block}
+  .close-verdict.new{background:var(--green-bg);color:var(--green)}
+  .close-verdict.branch{background:var(--gold-lt);color:var(--gold)}
+  .close-verdict.pending{background:var(--bg);color:var(--muted);font-weight:500}
   .close-pill{padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;text-align:center;flex:1;min-width:0;word-break:break-all}
   .close-pill.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
   .close-pill-sub{font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
@@ -666,6 +678,7 @@ const sb = window.supabase.createClient(
 );
 
 let memberId = null; // members_master.id
+let myCode = null;   // 自己的主編號 7 碼（判定締結對象是新人還是自己分店）
 
 // ── Counter fields ──
 const COUNT_FIELDS = [
@@ -818,14 +831,41 @@ function getEntryPts(e) {
   return (p[e.size] || 0) * badgeMult(e.badge);   // 方案×類型 再乘小金／大金單位倍率
 }
 
+// 締結對象判定（2026-08-14 開會定案）：
+//   主編號 ≠ 自己 → 推薦新人（實戰班推薦統計 +1 人；小金大金也是同 1 人）
+//   主編號 ＝ 自己 → 自己開分店（推薦統計不算；獎勵活動照算）
+// 用編號本身當分類，學員不必自我申報「新人／分店」，沒有報錯空間。
+function verdictOf(e) {
+  const code = (e.tcode || '').replace(/\D/g, '');
+  if (code.length < 7 || !(e.tname || '').trim()) return { k:'pending', t:'請填對方主編號 7 碼＋姓名' };
+  if (!myCode) return { k:'pending', t:'（無法判定：你的會員編號未登錄）' };
+  return code === myCode
+    ? { k:'branch', t:'🏪 自己開分店（獎勵活動計分，不算推薦人數）' }
+    : { k:'new',    t:'🌱 推薦新人 001（推薦人數 +1）' };
+}
+function setWho(i, field, val) {
+  closeEntries[i][field] = val;
+  // 只更新判定列，不重畫整筆（重畫會讓輸入框失焦）
+  const el = document.getElementById('verdict-' + i);
+  if (el) { const v = verdictOf(closeEntries[i]); el.className = 'close-verdict ' + v.k; el.textContent = v.t; }
+}
+
 function renderCloseEntries() {
   const wrap = document.getElementById('closeEntries');
   let h = '';
   closeEntries.forEach((e, i) => {
     const pts = getEntryPts(e);
+    const v = verdictOf(e);
     h += `<div class="close-entry">
       <button class="btn-del-entry" onclick="delCloseEntry(${i})">✕</button>
       <div class="close-entry-num">第 ${i+1} 筆</div>
+      <div class="close-who">
+        <input class="w-code" inputmode="numeric" maxlength="7" placeholder="主編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
+        <span class="w-dash">−</span>
+        <input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||''}" oninput="setWho(${i},'tsub',this.value)">
+        <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
+      </div>
+      <div class="close-verdict ${v.k}" id="verdict-${i}">${v.t}</div>
       <div class="close-entry-row">
         ${PLANS.map(p => `<div class="close-pill ${e.plan===p.key?'sel':''}" onclick="setPlan(${i},'${p.key}')">
           ${p.label}
@@ -871,13 +911,13 @@ async function init() {
     const _isGodView = _godAs && _godKey === GOD_KEY;
     let member;
     if (_isGodView) {
-      const { data } = await sb.from('members_master').select('id, name').eq('id', _godAs).single();
+      const { data } = await sb.from('members_master').select('id, name, member_code').eq('id', _godAs).single();
       member = data;
     } else {
       await liff.init({ liffId: LIFF_ID });
       if (!liff.isLoggedIn()) { liff.login(); return; }
       const profile = await liff.getProfile();
-      const { data } = await sb.from('members_master').select('id, name')
+      const { data } = await sb.from('members_master').select('id, name, member_code')
         .eq('line_user_id', profile.userId).single();
       member = data;
     }
@@ -893,6 +933,7 @@ async function init() {
     // 今天有指定單元 → 預設停在學習頁籤，否則直接進行動頁籤
     switchTab(renderStudy() > 0 ? 'study' : 'action');
     memberName = member.name;
+    myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
     document.getElementById('userName').textContent = member.name + (_isGodView ? ' 👁️' : '');
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
     document.getElementById('declName2').textContent = ' ' + member.name + ' ';
@@ -914,11 +955,12 @@ async function init() {
     // 學員晚上補填行動再送一次，早上填的締結就會被刪掉而且補不回來。
     // 以前做不到是因為只存 points（方案反推不出來），有了 plan／size 才能精確還原。
     const { data: todayCloses } = await sb.from('closing_records')
-      .select('plan, size, badge, points')
+      .select('plan, size, badge, points, target_code, target_sub, target_name')
       .eq('member_id', memberId).eq('batch_id', BATCH_ID)
       .eq('close_date', d).eq('source', 'daily');
     if (todayCloses && todayCloses.length) {
-      closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: c.badge || null }));
+      closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: c.badge || null,
+        tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '' }));
       // 舊資料沒有 plan／size（欄位是 2026-08-12 才加的）→ 用 points 反查，查不到就留空讓學員重選
       closeEntries.forEach((e, i) => {
         if (e.plan && e.size) return;
@@ -1164,11 +1206,23 @@ async function submit() {
       if (closeEntries.length > 0) {
         // ⚠️ batch_id 一定要帶：不帶會存成 NULL 期別，學員自己的累積畫面撈不到（2026-08-12 修）
         // plan／size 也要存：只存 points 的話方案反推不出來，重開頁面也還原不了
-        const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => ({
-          member_id: memberId, batch_id: BATCH_ID, close_date: today(),
-          plan: e.plan, size: e.size, badge: e.badge,
-          points: getEntryPts(e), source: 'daily'
-        }));
+        // 主編號 7 碼＋姓名必填，缺了整筆不收（避免存進無法判定新人／分店的紀錄）
+        const incomplete = closeEntries.filter(e => e.plan && e.size && verdictOf(e).k === 'pending');
+        if (incomplete.length) {
+          btn.disabled = false; btn.textContent = '送出今日回報';
+          toast('締結要填對方主編號 7 碼＋姓名，還有 ' + incomplete.length + ' 筆沒填'); return;
+        }
+        const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => {
+          const code = (e.tcode || '').replace(/\D/g, '').slice(0, 7);
+          const sub  = ((e.tsub || '').replace(/\D/g, '') || '001').padStart(3, '0').slice(-3);
+          return {
+            member_id: memberId, batch_id: BATCH_ID, close_date: today(),
+            plan: e.plan, size: e.size, badge: e.badge,
+            target_code: code, target_sub: sub, target_name: (e.tname || '').trim(),
+            is_new: code !== myCode,
+            points: getEntryPts(e), source: 'daily'
+          };
+        });
         if (closeRows.length) {
           const { error: insCloseErr } = await sb.from('closing_records').insert(closeRows);
           if (insCloseErr) throw insCloseErr;

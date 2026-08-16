@@ -248,7 +248,10 @@ const sb = supabase.createClient(
 // ── 獎項定義（對齊新 DB 欄位）──
 const AWARDS = [
   { key:'action_pts', emoji:'🏅', name:'行動王',    desc:'純行動積分（不含締結）',    unit:'分', fun:false },
-  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'締結積分最高',             unit:'分', fun:false },
+  // 2026-08-14 開會定案三套統計：實戰班推薦人數（只算新人 001、小金大金同 1 人、分店不算）／
+  // 之夜嘉許（推薦新人的締結分，含小金大金倍率）／獎勵活動（新人＋分店全算，見 total）
+  { key:'referrals', emoji:'🌱', name:'推薦王',    desc:'推薦新人 001 人數（開分店不算）', unit:'人', fun:false },
+  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'推薦新人的締結分（含小金大金）', unit:'分', fun:false },
   { key:'slots',     emoji:'🎫', name:'獎勵達人',  desc:'達成挑戰門檻名額最多（全期累積）', unit:'位', fun:false, cumulative:true },
   { key:'name_list', emoji:'📋', name:'滿門抄斬',  desc:'狂列名單筆數最多',         unit:'筆', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
@@ -431,7 +434,7 @@ async function reloadData() {
   allLogs = logData || [];
 
   const { data: closeData } = await sb.from('closing_records')
-    .select('member_id, points, close_date, source').in('member_id', memberIds);
+    .select('member_id, points, close_date, source, is_new, target_code').in('member_id', memberIds);
   allCloses = closeData || [];
 
   const { data: bonusData } = await sb.from('bonus_rules')
@@ -486,7 +489,7 @@ function calcStats(startDate, endDate) {
       sid: s.id, name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
       ghosted:0, rejected:0, name_list:0,
-      close_pts:0, action_pts:0, total:0, slots:0,
+      close_pts:0, action_pts:0, total:0, slots:0, referrals:0, branch_pts:0, _refCodes:new Set(),
       supervise:0,
       filled:false, filledItems:0, verifiedItems:0,
       downlinePts:0, downlineCount:0, downlineAvg:0, downlineNames:[]
@@ -541,12 +544,21 @@ function calcStats(startDate, endDate) {
   closes.forEach(c => {
     const sid = memberToStu[c.member_id];
     if (!sid || !students[sid]) return;
-    if (closeCounts(c)) students[sid].close_pts += c.points || 0;
+    if (!closeCounts(c)) return;
+    const st = students[sid];
+    if (c.is_new === false) {                       // 自己開分店：只進獎勵活動總分
+      st.branch_pts += c.points || 0;
+    } else {                                        // 推薦新人（或舊資料無判定）
+      st.close_pts += c.points || 0;
+      if (c.is_new === true && c.target_code && !st._refCodes.has(c.target_code)) {
+        st._refCodes.add(c.target_code); st.referrals += 1;   // 同一新人開小金大金＝1 人
+      }
+    }
   });
   const arr = Object.values(students);
   arr.forEach(s => {
     s.action_pts = Math.round(s.action_pts); // 折扣可能產生 .5，四捨五入
-    s.total = s.action_pts + s.close_pts;
+    s.total = s.action_pts + s.close_pts + s.branch_pts;   // 獎勵活動：新人＋分店全算
   });
   // 👑 領袖王：下線(sponsor)實戰班總分平均，歸給該上線教練 + 收集下線名字
   const sidToSponsor = {};
@@ -592,7 +604,7 @@ function loadWeek(idx) {
     const prevEnd = fmtDateISO(weeks[idx - 1].end);
     const { students: cumStudents } = calcStats(null, cumEnd);
     const { students: prevStudents } = calcStats(null, prevEnd);
-    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total','buddies','supervise'];
+    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total','buddies','supervise','referrals','branch_pts'];
     arr.forEach(s => {
       const cum = cumStudents[s.sid];
       const prev = prevStudents[s.sid];
