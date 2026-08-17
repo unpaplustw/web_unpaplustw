@@ -192,6 +192,16 @@
   .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
   .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
+  /* 記點（2026-08-17）：全部用算的，不存欄位；退不退班人工決定 */
+  .dm-tbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px}
+  .dm-tbl th{text-align:right;padding:7px 6px;font-size:11px;color:var(--muted);font-weight:400;border-bottom:1px solid rgba(255,255,255,.08)}
+  .dm-tbl th:first-child{text-align:left}
+  .dm-tbl td{padding:9px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);color:var(--white)}
+  .dm-tbl td:first-child{text-align:left;font-weight:600}
+  .dm-tbl td .c{color:var(--muted);font-weight:400;font-size:11px;margin-left:5px}
+  .dm-pt{font-weight:700;font-size:15px}
+  .dm-0{color:#4ade80} .dm-1{color:#fbbf24} .dm-3{color:#f87171}
+  .dm-pend{color:var(--muted);font-weight:400;font-size:11.5px}
   /* 階段列／子區塊列（2026-08-17 重整） */
   .phase-bar,.sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .phase-chip{padding:7px 16px;border-radius:20px;border:1px solid var(--gold-bd);background:var(--navy2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -475,11 +485,11 @@ async function load() {
   allLogs = full || [];
   // 教練標記（simple 模式）：教練回報總覽用
   const { data: eng } = await sb.from('coach_engagement')
-    .select('coach_id, student_id, log_date, homework, homework_replied')
+    .select('coach_id, student_id, log_date, homework, homework_replied, created_at')
     .eq('batch_id', bid);
   engRows = eng || [];
   const { data: hw } = await sb.from('homework_checks')
-    .select('student_id, unit_no, done, total').eq('batch_id', bid);
+    .select('student_id, unit_no, done, total, coach_id').eq('batch_id', bid);
   hwRows = hw || [];
   render();
 }
@@ -802,7 +812,106 @@ function renderNow() {
   const el = document.getElementById('nowArea');
   if (cur === 'before') el.innerHTML = phaseBefore();
   else if (cur === 'after') el.innerHTML = phaseAfter();
-  else { el.innerHTML = ''; renderDashboard(el); renderTrack(el); }
+  else { el.innerHTML = ''; renderDashboard(el); renderDemerits(el); renderTrack(el); }
+}
+
+// ── 記點（2026-08-17 定案）──────────────────────────────
+//   兩套規則、兩種性質，不是雙軌而是兩個尺度：
+//     小組回報＝防怠惰（每天的節奏）：學員當天 22:00 貼、教練隔天 22:00 前回
+//     課程作業＝防落後（總完成度）：17 堂課上完前補齊即可
+//   全部用算的、不存欄位；退不退班人工決定，儀表板只負責讓它看得見。
+//   ⚠️ 灰格（教練沒檢核）一律記在教練頭上，不記學員——
+//      否則「不檢核」會變成保護學員的手段，混的教練帶出的組反而最漂亮。
+function calcDemerits() {
+  const b = allBatches.find(x => x.id === bid) || {};
+  const today = localDateStr(new Date());
+  const stu = students.filter(s => s.status === 'approved' && s.coach_id);
+  const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
+
+  // 應標日：開班日到今天的平日（週六日不排作業）
+  const days = [];
+  if (b.start_date) {
+    for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
+      const w = d.getDay(); if (w >= 1 && w <= 5) days.push(localDateStr(d));
+    }
+  }
+  // 教練隔天 22:00 前要回 → 只計已過期限的日子
+  const dueDays = days.filter(d => { const x = new Date(d + 'T22:00:00'); x.setDate(x.getDate() + 1); return x <= new Date(); });
+
+  const engBy = {};   // student|date -> row
+  engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
+  const late = r => {
+    if (!r || !r.created_at) return false;
+    const dl = new Date(r.log_date + 'T22:00:00'); dl.setDate(dl.getDate() + 1);
+    return new Date(r.created_at) > dl;     // created_at 已驗證為首次寫入，upsert 不覆蓋
+  };
+
+  // 作業：已上過的單元
+  const taught = new Set();
+  if (typeof SCHEDULE !== 'undefined')
+    Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) arr.forEach(n => taught.add(n)); });
+  const hwBy = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
+  const graceOn = b.hw_grace_until && today <= b.hw_grace_until;   // 寬限期內只提醒不計點
+
+  const stuRows = stu.map(s => {
+    let miss = 0;                                   // 小組回報：教練標「沒交」的天數
+    dueDays.forEach(d => { const r = engBy[s.id + '|' + d]; if (r && r.homework === false) miss++; });
+    let hwMiss = 0;                                 // 作業：已檢核且未完成的單元
+    taught.forEach(u => { const r = hwBy[s.id + '|' + u]; if (r && r.done < r.total) hwMiss++; });
+    return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss,
+             pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
+  }).filter(r => r.pts > 0 || r.pend > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
+
+  const coachRows = coaches.filter(c => stu.some(s => s.coach_id === c.id)).map(c => {
+    const mine = stu.filter(s => s.coach_id === c.id);
+    let noMark = 0, lateMark = 0;
+    dueDays.forEach(d => {
+      const rows = mine.map(s => engBy[s.id + '|' + d]).filter(Boolean);
+      if (!rows.length) { noMark++; return; }                  // 那天完全沒進來 → 1 點
+      if (rows.every(late)) lateMark++;                        // 那天標的全部逾時 → 1 點
+    });
+    let hwNo = 0;
+    mine.forEach(s => taught.forEach(u => { if (!hwBy[s.id + '|' + u]) hwNo++; }));
+    return { name: nm(c), n: mine.length, noMark, lateMark, hwNo,
+             pts: noMark + lateMark };
+  }).filter(r => r.pts > 0 || r.hwNo > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
+
+  return { stuRows, coachRows, dueDays, taughtN: taught.size, graceOn, grace: b.hw_grace_until };
+}
+
+function renderDemerits(target) {
+  const { stuRows, coachRows, dueDays, taughtN, graceOn, grace } = calcDemerits();
+  const cls = p => p >= 3 ? 'dm-3' : p >= 1 ? 'dm-1' : 'dm-0';
+  let h = `<div class="sec-title"><span>⚠️ 記點（自動計算，不寫入資料庫）</span><span class="sec-count">已過期限 ${dueDays.length} 天 · 已上 ${taughtN} 單元</span></div>`;
+  h += `<div class="cov-note">
+    <b>小組回報</b>＝防怠惰：學員當天 22:00 貼、<b>教練隔天 22:00 前回</b>（逾時計點）<br>
+    <b>課程作業</b>＝防落後：17 堂課上完前補齊即可${grace ? `　🟡 <b>本期寬限至 ${grace}</b>，之前只顯示「將計」不計點` : ''}<br>
+    🔴 <b>教練沒檢核的格子記在教練頭上，不記學員</b>——否則不檢核會變成保護學員的手段。<br>
+    退不退班由人決定，系統只負責讓它看得見。</div>`;
+
+  h += `<div class="sec-title"><span>👤 學員</span><span class="sec-count">${stuRows.length} 人有點數</span></div>`;
+  if (!stuRows.length) h += `<div class="dash-empty">目前沒有人被記點 🎉</div>`;
+  else {
+    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th></tr>`;
+    stuRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.coach}</span></td>
+      <td>${r.miss || '—'}</td>
+      <td>${r.hwMiss || '—'}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
+      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-pend"> +${r.pend} 將計</span>` : ''}</td></tr>`);
+    h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。</div>`;
+  }
+
+  h += `<div class="sec-title"><span>🎓 教練</span><span class="sec-count">${coachRows.length} 位有點數</span></div>`;
+  if (!coachRows.length) h += `<div class="dash-empty">教練全部準時 👏</div>`;
+  else {
+    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒進來</th><th>逾時才標</th><th>作業未檢核</th><th>合計</th></tr>`;
+    coachRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.n} 位組員</span></td>
+      <td>${r.noMark || '—'}</td><td>${r.lateMark || '—'}</td>
+      <td>${r.hwNo ? r.hwNo + ' 格' : '—'}</td>
+      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td></tr>`);
+    h += `</table><div class="cov-note" style="margin-top:0">教練的點以「天」計：那天完全沒進來、或標的全部逾時，各記 1 點。<br>
+      作業未檢核以「格」計（單元×組員），不併入點數，但那是下一期評估適任的依據。</div>`;
+  }
+  target.insertAdjacentHTML('beforeend', h);
 }
 
 // ── 開班前：全綠才能開班 ──────────────────────────────
