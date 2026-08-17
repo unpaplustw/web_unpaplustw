@@ -1124,10 +1124,12 @@ function renderDashboard(target) {
     const dashVb = dashSimple ? '標記' : '確認';
     h += `<div class="sec-title"><span>教練回報總覽</span></div>`;
     h += `<div class="dash-legend">
-      <span><span class="dot dot-done"></span>已${dashVb}</span>
-      <span><span class="dot dot-filled"></span>已填寫</span>
-      <span><span class="dot dot-none"></span>未填寫</span>
+      <span><span class="dot dot-done"></span>教練已標記</span>
+      <span><span class="dot dot-filled"></span>學員已填行動</span>
+      <span><span class="dot dot-none"></span>都沒有</span>
     </div>`;
+    h += `<div class="cov-note">「作業」與「行動紀錄」是學員的實際狀態；<b>「LINE繳交／LINE回覆」是教練標的</b>。<br>
+      ⚠️ 教練沒進來 → 後兩欄與作業都會是 0，那是<b>沒人看</b>，不是沒人做——看「行動紀錄」才知道學員有沒有在動。</div>`;
 
     sorted.forEach(g => {
       const cName = g.coach ? nm(g.coach) : '未配對教練';
@@ -1156,22 +1158,26 @@ function renderDashboard(target) {
       const yDots = makeDots(yesterdayMap, g.students, yesterday);
       const tDots = makeDots(todayMap, g.students, today);
 
-      // 兩個指標的宇宙不同，分母不能共用（2026-08-17 修）：
-      //   學員填寫＝在 daily 填七大行動（系統內）／分母＝組員數
-      //   教練標記＝標「學員有沒有在賴群貼、教練回了沒」（系統外的事，教練代填）
-      //             → 對象是**全部組員**，跟他有沒有填 daily 無關／分母也是組員數
-      // 舊版寫成 filter(有填daily && 教練標了) / 有填daily 的人數 →
-      //   組員沒人填 daily 時分母為 0，認真檢核的教練被顯示成 0%（林珊合檢核34單元卻顯示0%）
+      // 四個獨立訊號（2026-08-17 定案）——各自的分母都是組員數，互不干擾。
+      // 未來開行動組（無作業）也不會衝突：study_start 為 NULL 就自動不顯示「作業」。
+      //   作業      homework_checks 完成單元／教練檢核產生
+      //   行動紀錄  action_logs／**學員自己在 daily 填，唯一不經過教練的訊號**
+      //   LINE繳交  coach_engagement.homework=true／教練代標（學員貼賴群）
+      //   LINE回覆  coach_engagement.homework_replied=true／教練標自己回了
+      // ⚠️ 後三者都是教練產生：教練沒進來就全變 0，那是「沒人看」不是「沒人做」。
+      const engOf = (sid, d) => engRows.find(r => r.student_id === sid && r.log_date === d);
       const yF = g.students.filter(s => yesterdayMap[s.id]).length;
-      const yC = g.students.filter(s => dashHandled(s, yesterday, yesterdayMap[s.id])).length;
-      const tF = g.students.filter(s => todayMap[s.id]).length;
-      const tC = g.students.filter(s => dashHandled(s, today, todayMap[s.id])).length;
+      const ySent = g.students.filter(s => engOf(s.id, yesterday)?.homework === true).length;
+      const yRep  = g.students.filter(s => engOf(s.id, yesterday)?.homework_replied === true).length;
+      const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
+      const hwAll  = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id).length, 0);
+      const hasCourse = !!(allBatches.find(x => x.id === bid) || {}).study_start;   // 行動組無課表
 
-      const yFillPctC = pct(yF, total), yConfPctC = pct(yC, total);   // 兩者分母都是組員數
-      const tFillPctC = pct(tF, total), tConfPctC = pct(tC, tF);
+      const yFillPctC = pct(yF, total), yConfPctC = pct(ySent, total);
+      const yRepPctC = pct(yRep, total);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
-      const allDone = yFillPctC === 100 && yConfPctC === 100 && yCoachSelf;
+      const allDone = yFillPctC === 100 && yConfPctC === 100 && yRepPctC === 100 && yCoachSelf;
       h += `<div class="dash-coach-row${allDone ? ' dash-complete' : ''}">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
           <div class="dash-coach-left">
@@ -1180,8 +1186,10 @@ function renderDashboard(target) {
             <span class="dash-self">教練${selfDot(yCoachSelf)}</span>
           </div>
           <div class="dash-coach-stats">
-            <span class="dash-day-block ${lvl(yFillPctC)}">學員填寫 <span class="dash-pct">${yFillPctC}%</span></span>
-            <span class="dash-day-block ${lvl(yConfPctC)}">教練${dashVb} <span class="dash-pct">${yConfPctC}%</span></span>
+            ${hasCourse ? `<span class="dash-day-block ${hwAll && hwFull >= hwAll ? 'dash-perfect' : hwFull ? 'dash-warn' : 'dash-zero'}">作業 <span class="dash-pct">${hwFull}</span></span>` : ''}
+            <span class="dash-day-block ${lvl(yFillPctC)}">行動紀錄 <span class="dash-pct">${yFillPctC}%</span></span>
+            <span class="dash-day-block ${lvl(yConfPctC)}">LINE繳交 <span class="dash-pct">${yConfPctC}%</span></span>
+            <span class="dash-day-block ${lvl(yRepPctC)}">LINE回覆 <span class="dash-pct">${yRepPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
