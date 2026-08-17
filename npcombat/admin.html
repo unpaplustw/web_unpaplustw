@@ -203,13 +203,10 @@
   .dm-0{color:#4ade80} .dm-1{color:#fbbf24} .dm-3{color:#f87171}
   .dm-pend{color:var(--muted);font-weight:400;font-size:11.5px}
   /* 階段列／子區塊列（2026-08-17 重整） */
-  .phase-bar,.sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .ana-sec{border:1px solid var(--gold-bd);border-radius:14px;padding:14px 16px 18px;margin-bottom:18px;background:rgba(255,255,255,.015)}
   .ana-hd{font-size:16px;font-weight:700;color:var(--gold);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--gold-bd);display:flex;justify-content:space-between;align-items:baseline}
   .ana-hd span{font-size:11.5px;font-weight:400;color:var(--muted)}
-  .phase-chip{padding:7px 16px;border-radius:20px;border:1px solid var(--gold-bd);background:var(--navy2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .phase-chip.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
-  .phase-auto{font-size:11.5px;color:var(--muted);margin-left:auto}
   .sub-anchor{padding:6px 14px;border-radius:18px;background:var(--navy2);border:1px solid rgba(255,255,255,.07);color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none}
   .sub-anchor:hover{color:var(--gold);border-color:var(--gold-bd)}
   /* 開班前檢查清單 */
@@ -333,9 +330,10 @@
     <button class="tab" data-t="perm">🔐 權限</button>
   </div>
 
-  <!-- 🎯 現在：依 batches 日期自動切開班前／中／後，可手動覆蓋 -->
+  <!-- 📊 分析：固定四節，不再多一層階段導覽（2026-08-17 第 4 次改版）
+       開班前檢查清單 → 移入 ⚙️設定（它檢查的就是設定有沒有做完）
+       開班後結案報表 → 變成第 ⑤ 節，只在該期 end_date 已過時自動出現 -->
   <div class="panel on" id="p-now">
-    <div class="phase-bar" id="phaseBar"></div>
     <div id="nowArea" class="loading">載入中…</div>
   </div>
 
@@ -546,7 +544,8 @@ function renderSetup() {
   if (!el) return;
   if (!b) { el.innerHTML = '<div class="empty"><div class="empty-text">請先選擇班期</div></div>'; return; }
   const row = (k, v, note) => `<div class="ck ${v ? 'ok' : 'warn'}"><div class="ck-ico">${v ? '✅' : '🟡'}</div><div class="ck-b"><div class="ck-t">${k}　<span style="color:var(--gold)">${v || '（未設）'}</span></div>${note ? `<div class="ck-d">${note}</div>` : ''}</div></div>`;
-  let h = `<div class="sec-title"><span>⚙️ 班期設定</span><span class="sec-count">${b.name}</span></div>`;
+  let h = phaseBefore();   // 開班前檢查清單：它檢查的就是「設定有沒有做完」，同一件事放同一頁
+  h += `<div class="sec-title"><span>⚙️ 班期設定</span><span class="sec-count">${b.name}</span></div>`;
   h += row('期間', b.start_date && b.end_date ? `${b.start_date} ～ ${b.end_date}` : '', '倒數、週次、階段判定都看這個');
   h += row('學習週 study_start / study_end', b.study_start && b.study_end ? `${b.study_start} ～ ${b.study_end}` : '', '⚠️ 課表共四處副本，改這裡也要改 units.js／course.html／brochure.html');
   h += row('行動開放日 action_open_date', b.action_open_date, 'NULL＝不鎖，開班第一天就能填七大行動與小組回報心得');
@@ -790,32 +789,14 @@ function renderTrack(target) {
 //   開班後＝結案報表
 //   設計原則：管理者的問題是「現在該處理什麼」，不是「我要去哪個 Tab」。
 // ══════════════════════════════════════════════════════════
-let phaseOverride = null;
 
-function autoPhase() {
+// 該期是否已結業（決定要不要出 ⑤ 結案報表）
+function batchEnded() {
   const b = allBatches.find(x => x.id === bid);
-  if (!b || !b.start_date) return 'before';
-  const t = localDateStr(new Date());
-  if (t < b.start_date) return 'before';
-  if (b.end_date && t > b.end_date) return 'after';
-  return 'during';
+  return !!(b && b.end_date && localDateStr(new Date()) > b.end_date);
 }
-function curPhase() { return phaseOverride || autoPhase(); }
-function setPhase(p) { phaseOverride = (p === autoPhase()) ? null : p; renderNow(); }
 
-function renderNow() {
-  const bar = document.getElementById('phaseBar');
-  const auto = autoPhase(), cur = curPhase();
-  const NAMES = { before:'開班前', during:'開班中', after:'開班後' };
-  bar.innerHTML = ['before','during','after'].map(p =>
-    `<button class="phase-chip ${p === cur ? 'on' : ''}" onclick="setPhase('${p}')">${NAMES[p]}</button>`
-  ).join('') + `<span class="phase-auto">依日期自動判定：${NAMES[auto]}${phaseOverride ? '（目前為手動檢視）' : ''}</span>`;
-
-  const el = document.getElementById('nowArea');
-  if (cur === 'before') el.innerHTML = phaseBefore();
-  else if (cur === 'after') el.innerHTML = phaseAfter();
-  else renderAnalysis(el);
-}
+function renderNow() { renderAnalysis(document.getElementById('nowArea')); }
 
 // ── 記點（2026-08-17 定案）──────────────────────────────
 //   兩套規則、兩種性質，不是雙軌而是兩個尺度：
@@ -928,6 +909,10 @@ const ANA = [
   { k:'hw',     t:'③ 作業追蹤彙整',   d:'17 單元累積' },
   { k:'rank',   t:'④ 狀態排序',       d:'需要注意的排行' },
 ];
+// ⑤ 只在該期已結業時併進來——沒結業就不存在，不佔位、也不用切換
+const anaSections = () => batchEnded()
+  ? ANA.concat([{ k:'after', t:'⑤ 結案報表', d:'全期封存' }])
+  : ANA;
 // 開班日到今天的平日數（週一～週五）＝ 累積率的分母基準
 function weekdaysSoFar() {
   const b = allBatches.find(x => x.id === bid) || {};
@@ -940,9 +925,9 @@ function weekdaysSoFar() {
   return n;
 }
 function renderAnalysis(el) {
-  el.innerHTML = `<div class="sub-bar">` + ANA.map(a =>
+  el.innerHTML = `<div class="sub-bar">` + anaSections().map(a =>
     `<a class="sub-anchor" onclick="document.getElementById('ana-${a.k}').scrollIntoView({behavior:'smooth',block:'start'})">${a.t}</a>`
-  ).join('') + `</div>` + ANA.map(a =>
+  ).join('') + `</div>` + anaSections().map(a =>
     `<div class="ana-sec" id="ana-${a.k}"><div class="ana-hd">${a.t}<span>${typeof a.d === 'function' ? a.d() : a.d}</span></div><div id="ana-body-${a.k}"></div></div>`
   ).join('');
   renderDashboard(document.getElementById('ana-body-daily'), 'daily');
@@ -952,6 +937,7 @@ function renderAnalysis(el) {
   renderHwSection(document.getElementById('ana-body-hw'));
   const rank = document.getElementById('ana-body-rank');
   renderDemerits(rank); renderTrack(rank);
+  if (batchEnded()) document.getElementById('ana-body-after').innerHTML = phaseAfter();
 }
 
 // ② 的下半：教練回報總覽（看了／交件／已回／組員填報）
