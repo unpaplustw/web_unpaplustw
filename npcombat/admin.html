@@ -204,6 +204,9 @@
   .dm-pend{color:var(--muted);font-weight:400;font-size:11.5px}
   /* 階段列／子區塊列（2026-08-17 重整） */
   .phase-bar,.sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .ana-sec{border:1px solid var(--gold-bd);border-radius:14px;padding:14px 16px 18px;margin-bottom:18px;background:rgba(255,255,255,.015)}
+  .ana-hd{font-size:16px;font-weight:700;color:var(--gold);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--gold-bd);display:flex;justify-content:space-between;align-items:baseline}
+  .ana-hd span{font-size:11.5px;font-weight:400;color:var(--muted)}
   .phase-chip{padding:7px 16px;border-radius:20px;border:1px solid var(--gold-bd);background:var(--navy2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .phase-chip.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
   .phase-auto{font-size:11.5px;color:var(--muted);margin-left:auto}
@@ -323,7 +326,7 @@
   </div>
 
   <div class="tabs">
-    <button class="tab on" data-t="now">🎯 現在</button>
+    <button class="tab on" data-t="now">📊 分析</button>
     <button class="tab" data-t="roster">👥 名冊</button>
     <button class="tab" data-t="coach">🎓 教練</button>
     <button class="tab" data-t="setup">⚙️ 設定</button>
@@ -739,8 +742,6 @@ function renderTrack(target) {
 
   // ── 渲染 ──
   let h = '';
-  h += renderCoachOverview(realStudents, logsByStu);
-  h += renderHwMatrix(realStudents, coachById);
   h += `<div class="sec-title"><span>🔴 連續沒填（教練快關心）</span><span class="sec-count">${silent.length} 人</span></div>`;
   if (!silent.length) h += `<div class="dash-empty">太棒了，沒人失聯 🎉</div>`;
   else h += '<div>' + silent.map(x =>
@@ -813,7 +814,7 @@ function renderNow() {
   const el = document.getElementById('nowArea');
   if (cur === 'before') el.innerHTML = phaseBefore();
   else if (cur === 'after') el.innerHTML = phaseAfter();
-  else { el.innerHTML = ''; renderDashboard(el); renderDemerits(el); renderTrack(el); }
+  else renderAnalysis(el);
 }
 
 // ── 記點（2026-08-17 定案）──────────────────────────────
@@ -913,6 +914,62 @@ function renderDemerits(target) {
       作業未檢核以「格」計（單元×組員），不併入點數，但那是下一期評估適任的依據。</div>`;
   }
   target.insertAdjacentHTML('beforeend', h);
+}
+
+// ── 開班中＝分析頁：四節各自獨立，時間尺度不混（2026-08-17 定案）──────────
+//   ① 昨日回報即時報：昨天發生什麼（單日快照）
+//   ② 整體組別回報率：開班到現在各環節進度（累積率）
+//   ③ 作業追蹤彙整：17 單元 × 學員的完成矩陣（累積）
+//   ④ 狀態排序：需要注意的人與組（排行）
+//   Randoph：不要把日報、整體報全部混在一起——混了就分不出「昨天沒事」和「整期都沒事」。
+const ANA = [
+  { k:'daily',  t:'① 昨日回報即時報', d:'單日快照' },
+  { k:'groups', t:'② 整體組別回報率', d:() => `開班至今累積 · 平日 ${weekdaysSoFar()} 天` },
+  { k:'hw',     t:'③ 作業追蹤彙整',   d:'17 單元累積' },
+  { k:'rank',   t:'④ 狀態排序',       d:'需要注意的排行' },
+];
+// 開班日到今天的平日數（週一～週五）＝ 累積率的分母基準
+function weekdaysSoFar() {
+  const b = allBatches.find(x => x.id === bid) || {};
+  const today = localDateStr(new Date());
+  let n = 0;
+  if (b.start_date)
+    for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
+      const w = d.getDay(); if (w >= 1 && w <= 5) n++;
+    }
+  return n;
+}
+function renderAnalysis(el) {
+  el.innerHTML = `<div class="sub-bar">` + ANA.map(a =>
+    `<a class="sub-anchor" onclick="document.getElementById('ana-${a.k}').scrollIntoView({behavior:'smooth',block:'start'})">${a.t}</a>`
+  ).join('') + `</div>` + ANA.map(a =>
+    `<div class="ana-sec" id="ana-${a.k}"><div class="ana-hd">${a.t}<span>${typeof a.d === 'function' ? a.d() : a.d}</span></div><div id="ana-body-${a.k}"></div></div>`
+  ).join('');
+  renderDashboard(document.getElementById('ana-body-daily'), 'daily');
+  const gEl = document.getElementById('ana-body-groups');
+  renderDashboard(gEl, 'groups');
+  renderCoverageSection(gEl);
+  renderHwSection(document.getElementById('ana-body-hw'));
+  const rank = document.getElementById('ana-body-rank');
+  renderDemerits(rank); renderTrack(rank);
+}
+
+// ② 的下半：教練回報總覽（看了／交件／已回／組員填報）
+//    原本掛在 renderTrack（④）裡，但它是「開班至今累積率」，跟 ② 同一時間尺度，所以歸 ②。
+function renderCoverageSection(target) {
+  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
+  const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
+  const logsByStu = {};
+  allLogs.forEach(l => { (logsByStu[l.student_id] = logsByStu[l.student_id] || []).push(l); });
+  target.insertAdjacentHTML('beforeend', renderCoachOverview(realStudents, logsByStu));
+}
+
+// ③ 作業追蹤彙整（原本掛在 renderTrack 裡，拆出來獨立一節）
+function renderHwSection(target) {
+  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
+  const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
+  const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
+  target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById) || '<div class="dash-empty">尚無作業檢核紀錄</div>');
 }
 
 // ── 開班前：全綠才能開班 ──────────────────────────────
@@ -1028,7 +1085,7 @@ function phaseAfter() {
   return h;
 }
 
-function renderDashboard(target) {
+function renderDashboard(target, part) {
   const today = localDateStr(new Date());
   const yesterday = localDateStr(new Date(Date.now() - 86400000));
   const approvedStudents = students.filter(s => s.status === 'approved');
@@ -1091,6 +1148,7 @@ function renderDashboard(target) {
 
   // ── 電池能量條（今日 LIVE）──
   const batteryPct = pct(tStuFill, totalReal);
+  if (part !== 'groups') {
   h += `<div class="battery">
     <div class="battery-fill" style="width:${batteryPct}%"></div>
     <div class="battery-text">今日填報 LIVE ${batteryPct}%（${tStuFill}/${totalReal}）</div>
@@ -1099,6 +1157,7 @@ function renderDashboard(target) {
   // ── 昨日進度 ──
   h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
   h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, totalReal);
+  }   // ← 關閉 if (part !== 'groups')：② 整體組別回報率 不需要電池與昨日三卡
 
   // ── 教練回報總覽 ──
   if (!totalAll) {
@@ -1123,7 +1182,11 @@ function renderDashboard(target) {
     });
 
     const dashVb = dashSimple ? '標記' : '確認';
-    h += `<div class="sec-title"><span>各組完成度（開班至今累積）</span><span class="sec-count">平日 ${(() => { const b2=allBatches.find(x=>x.id===bid)||{}; let n=0; if(b2.start_date) for(let d=new Date(b2.start_date+'T00:00:00'); localDateStr(d)<=today; d.setDate(d.getDate()+1)){const w=d.getDay(); if(w>=1&&w<=5)n++;} return n; })()} 天</span></div>`;
+
+    // 拆點：daily 只要上面的電池＋昨日三卡；groups 只要下面的累積矩陣。
+    // 必須留在 else 區塊內，因為下面用到 sorted / groups / dashVb。
+    if (part === 'daily') { if (target) target.insertAdjacentHTML('beforeend', h); return; }
+    h = '';
     h += `<div class="dash-legend">
       <span><span class="dot dot-done"></span>教練已標記</span>
       <span><span class="dot dot-filled"></span>學員已填行動</span>
