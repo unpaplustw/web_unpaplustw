@@ -240,6 +240,7 @@
   .cov-pct{font-weight:700}
   .cov-g{color:#4ade80} .cov-y{color:#fbbf24} .cov-r{color:#f87171} .cov-d{color:var(--muted)}
   .cov-sub{font-size:11px;color:var(--muted);font-weight:400}
+  .dash-sep{font-size:10.5px;color:var(--muted);margin:0 2px 0 6px;align-self:center}
   .cov-note{font-size:12px;color:var(--muted);line-height:1.7;background:var(--navy2);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:10px}
   .track-stulist{flex-basis:100%;margin-top:8px;display:flex;flex-direction:column;gap:4px}
   .track-stu{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;color:var(--white);padding:4px 0;border-top:1px solid rgba(255,255,255,.04)}
@@ -1128,8 +1129,10 @@ function renderDashboard(target) {
       <span><span class="dot dot-filled"></span>學員已填行動</span>
       <span><span class="dot dot-none"></span>都沒有</span>
     </div>`;
-    h += `<div class="cov-note">「作業」與「行動紀錄」是學員的實際狀態；<b>「LINE繳交／LINE回覆」是教練標的</b>。<br>
-      ⚠️ 教練沒進來 → 後兩欄與作業都會是 0，那是<b>沒人看</b>，不是沒人做——看「行動紀錄」才知道學員有沒有在動。</div>`;
+    h += `<div class="cov-note">這張表看的是<b>學員完成度</b>，教練只是分組方式。<br>
+      前三欄＝<b>學員做到多少</b>（作業／行動紀錄／在 LINE 繳交）｜最後一欄＝<b>教練有沒有回</b><br>
+      ⚠️ 作業與 LINE 兩欄由教練標記產生：教練沒進來就會是 0，那是<b>沒人看</b>不是沒人做——
+      「行動紀錄」是學員自己填的，不受教練影響，可以當對照。</div>`;
 
     sorted.forEach(g => {
       const cName = g.coach ? nm(g.coach) : '未配對教練';
@@ -1170,8 +1173,12 @@ function renderDashboard(target) {
       const ySent = g.students.filter(s => engOf(s.id, yesterday)?.homework === true).length;
       const yRep  = g.students.filter(s => engOf(s.id, yesterday)?.homework_replied === true).length;
       const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
-      const hwAll  = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id).length, 0);
       const hasCourse = !!(allBatches.find(x => x.id === bid) || {}).study_start;   // 行動組無課表
+      // 作業要用「完成率」才能跟其他欄並排比較：已上單元 × 組員數 當分母
+      let taughtN = 0;
+      if (typeof SCHEDULE !== 'undefined')
+        Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) taughtN += arr.length; });
+      const hwPct = pct(hwFull, taughtN * total);
 
       const yFillPctC = pct(yF, total), yConfPctC = pct(ySent, total);
       const yRepPctC = pct(yRep, total);
@@ -1186,10 +1193,11 @@ function renderDashboard(target) {
             <span class="dash-self">教練${selfDot(yCoachSelf)}</span>
           </div>
           <div class="dash-coach-stats">
-            ${hasCourse ? `<span class="dash-day-block ${hwAll && hwFull >= hwAll ? 'dash-perfect' : hwFull ? 'dash-warn' : 'dash-zero'}">作業 <span class="dash-pct">${hwFull}</span></span>` : ''}
+            ${hasCourse ? `<span class="dash-day-block ${lvl(hwPct)}">作業 <span class="dash-pct">${hwPct}%</span></span>` : ''}
             <span class="dash-day-block ${lvl(yFillPctC)}">行動紀錄 <span class="dash-pct">${yFillPctC}%</span></span>
             <span class="dash-day-block ${lvl(yConfPctC)}">LINE繳交 <span class="dash-pct">${yConfPctC}%</span></span>
-            <span class="dash-day-block ${lvl(yRepPctC)}">LINE回覆 <span class="dash-pct">${yRepPctC}%</span></span>
+            <span class="dash-sep">教練</span>
+            <span class="dash-day-block ${lvl(yRepPctC)}">回覆 <span class="dash-pct">${yRepPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
