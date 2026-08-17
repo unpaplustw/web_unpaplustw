@@ -944,6 +944,17 @@ const anaSections = () => {
 //    學習班 study：study_start 有值＝前段上課、後段行動（27 期）
 //    行動班 action：study_start NULL＝一開始就一直行動（26 期那種）
 //    以後加第三種班型也只改這一區，不要在各處各判一次。
+// 🔴 教練「處理完成」的定義（2026-08-17，Randoph 發現的邏輯漏洞）
+//    「學員沒有繳，教練就沒辦法回，所以有看沒辦法回也是一種回」。
+//    只算 homework_replied===true 的話，教練會因為「學員沒交」而被扣分——
+//    他明明進來看了、也判斷了，那天該做的就做完了。
+//    ⚠️ 放寬的是分子，分母維持「組員數 × 天數」固定不變；
+//       絕不可以改成用交件數當分母，那又回到「怠惰的人自己決定自己的成績」。
+//    也不要讓教練在學員沒交時去點「已回」——那會把「沒東西可回」和「真的回了」
+//    壓成同一個值，以後就查不出「交了但沒回」這種真怠惰（coach-review 已擋）。
+const coachDone = r => !!r && r.homework !== null && r.homework !== undefined
+  && (r.homework === false || r.homework_replied === true);
+
 function batchRow() { return allBatches.find(x => x.id === bid) || {}; }
 function batchKind() { return batchRow().study_start ? 'study' : 'action'; }
 function hasHomework() { return batchKind() === 'study'; }
@@ -1189,7 +1200,7 @@ function renderDashboard(target, part) {
       const t = g.students.length;
       const fill = g.students.filter(s => yesterdayMap[s.id]).length;
       const sent = g.students.filter(s => engOf(s.id).homework === true).length;
-      const rep  = g.students.filter(s => engOf(s.id).homework_replied === true).length;
+      const rep  = g.students.filter(s => coachDone(engOf(s.id))).length;
       const selfRec = g.coach ? coachStudents.find(s => s.member_id === g.coach.member_id) : null;
       return { g, t, fill, sent, rep, self: selfRec ? !!yesterdayMap[selfRec.id] : null,
                miss: (t - fill) + (t - sent) + (t - rep) };
@@ -1207,7 +1218,8 @@ function renderDashboard(target, part) {
     let out = `<div class="cov-note">這一節只看 <b>${refDay}（週${refWd}）</b>一天，處理完就結束——
       要看整期累積請往下到 <b>② 整體組別回報率</b>。<b>問題最多的組排在最上面。</b><br>
       ⚠️ 學員當天 22:00 前貼${hasHomework() ? '作業' : '行動心得'}、教練隔天 22:00 前回；
-      「未標」＝教練還沒進來看，不是學員沒交。</div>`;
+      「未標」＝教練還沒進來看，不是學員沒交。<br>
+      🔴 學員沒交時顯示<b>「✅ 無需回」</b>——沒東西可回也算教練處理完，不扣他。</div>`;
     rows.forEach(r => {
       out += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
@@ -1233,7 +1245,13 @@ function renderDashboard(target, part) {
               <div class="dash-stu-status">
                 ${log ? `<span class="stu-b dash-perfect">✍️ 已填<i>${pts} 分</i></span>` : `<span class="stu-b dash-zero">✍️ 未填</span>`}
                 ${flag(e.homework === true ? true : (e.homework === false ? false : null), '📤 交了', '📤 沒交', '📤 未標')}
-                ${flag(e.homework_replied === true ? true : (e.homework_replied === false ? false : null), '↩️ 回了', '↩️ 沒回', '↩️ 未標')}
+                ${e.homework === false
+                    ? `<span class="stu-b dash-perfect" title="學員沒交，教練沒東西可回——標了就算處理完">✅ 無需回</span>`
+                    : e.homework === true
+                      ? (e.homework_replied === true
+                          ? `<span class="stu-b dash-perfect">↩️ 回了</span>`
+                          : `<span class="stu-b dash-zero">↩️ 沒回</span>`)
+                      : `<span class="stu-b stu-na" title="教練還沒判斷學員交了沒">↩️ 未標</span>`}
                 <span class="stu-arrow-gap"></span>
               </div>
             </div>`;
@@ -1294,7 +1312,9 @@ function renderDashboard(target, part) {
       分母：${hw2 ? '作業＝已上單元×組員數；' : ''}<b>行動紀錄＝行動開放日（${actionStartDate() || '—'}）起的平日數</b>×組員數；
       LINE 兩欄＝開班日起的平日數×組員數。週末不排${hw2 ? '作業' : '進度'}也不要求 LINE，不計入分母。<br>
       ⚠️ ${hw2 ? '作業與 LINE 三欄' : 'LINE 兩欄'}由教練標記產生：教練沒進來就會是 0，那是<b>沒人看</b>不是沒人做——
-      「行動紀錄」是學員自己填的，不受教練影響，可以當對照。</div>`;
+      「行動紀錄」是學員自己填的，不受教練影響，可以當對照。<br>
+      🔴 <b>LINE回覆的分子＝已回 ＋ 標了「沒交」</b>：學員沒交，教練沒東西可回，
+      那天標了就算處理完，不該因為學員沒交而扣教練。<b>沒回</b>只算「學員交了、教練沒回」。</div>`;
 
     sorted.forEach(g => {
       const cName = g.coach ? nm(g.coach) : '未配對教練';
@@ -1326,7 +1346,7 @@ function renderDashboard(target, part) {
       // 行動紀錄的分子分母都要從行動開放日起算，否則學習週會把率稀釋掉
       const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date) && l.log_date >= aStart).length;
       const ySent = engRows.filter(r => sids.has(r.student_id) && r.homework === true && isWd(r.log_date)).length;
-      const yRep  = engRows.filter(r => sids.has(r.student_id) && r.homework_replied === true && isWd(r.log_date)).length;
+      const yRep  = engRows.filter(r => sids.has(r.student_id) && isWd(r.log_date) && coachDone(r)).length;
       const denom = wd * total;
       const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
       const hasCourse = hasHomework();   // 行動班無課表 → 作業欄整欄不出現
@@ -1365,7 +1385,7 @@ function renderDashboard(target, part) {
             const sPts    = sLogs.reduce((a, l) => a + stuAct(l), 0);
             const sEng    = engRows.filter(r => r.student_id === s.id && isWd(r.log_date));
             const sSent   = sEng.filter(r => r.homework === true).length;
-            const sRep    = sEng.filter(r => r.homework_replied === true).length;
+            const sRep    = sEng.filter(coachDone).length;
             const sJudged = sEng.filter(r => r.homework !== null && r.homework !== undefined).length;
             // 繳交／回覆是教練「點」出來的，只有點過才有數字 → 沒點就是未標，不是 0%
             const mark = (icon, n, label) => sJudged

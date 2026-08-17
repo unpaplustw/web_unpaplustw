@@ -137,6 +137,9 @@
   .eng-btn{padding:8px 15px;border-radius:22px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.12s}
   .eng-btn.stu.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
   .eng-btn.coach.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
+  /* 學員沒交 → 「－ 無需回」不可點；不是灰掉懲罰，而是「這一格你已經做完了」 */
+  .eng-btn[disabled]{cursor:default;opacity:.55}
+  .eng-btn.coach.done[disabled]{opacity:1;background:var(--green-bg);border-color:var(--green);color:var(--green)}
   .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
   /* 學員填報狀況：純顯示、不可點、不影響分數（2026-08-09 加，教練反映看不到誰填了） */
   /* 點姓名展開「行動填寫」明細（2026-08-12 定案）：符號沿用日總表的 📝／⬜ */
@@ -1510,7 +1513,7 @@ function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
 // 原本的 engaged／engaged_replied 已停用（6 筆舊資料併進 homework），欄位保留不刪。
 function engModeFor(dateStr) {
   return { title:'小組回報',
-           hint:'學員交了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆）。',
+           hint:'學員交了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆）。學員沒交時「已回」會變成「－ 無需回」，不會扣你。',
            stu:  { field:'homework',         label:'📝 已交', total:'已交' },
            coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } };
 }
@@ -1556,7 +1559,8 @@ function renderEngagement() {
     const rec = map[stu.id] || {};
     const sv = rec[M.stu.field], cv = rec[M.coach.field];   // true / false / undefined(未標記)
     if (sv === true) sYes++;
-    if (cv === true) cYes++;
+    // 教練那一顆算「處理完成」：標了沒交＝沒東西可回，也算做完（與 admin 的 coachDone 同一條規則）
+    if (sv === false || cv === true) cYes++;
     const filled = !!getStuData(stu);
     if (filled) filledCount++;
     h += `<div class="eng-item">
@@ -1566,7 +1570,11 @@ function renderEngagement() {
         </span>
         <span class="eng-toggle">
           <button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>
-          <button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>
+          ${sv === true
+            ? `<button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>`
+            : sv === false
+              ? `<button class="eng-btn coach done" disabled title="學員沒交，沒東西可回——你標了「沒交」就算處理完，不會扣你">－ 無需回</button>`
+              : `<button class="eng-btn coach" disabled title="先點左邊判斷學員交了沒">${M.coach.label}</button>`}
         </span>
       </div>
       <div class="eng-det ${engOpen.has(stu.id) ? 'open' : ''}"><div class="eng-det-in">${fillDetailHtml(stu)}</div></div>
@@ -1584,11 +1592,14 @@ async function toggleEngage(studentId, field) {
   const map = engMapFor(currentDay);
   const prev = map[studentId] ? { ...map[studentId] } : undefined;
   const val = !(map[studentId] || {})[field];      // 沒標記或 false → true；true → false
-  map[studentId] = { ...(map[studentId] || {}), [field]: val };   // 樂觀更新
+  // 把「已交」取消時，「已回」必須一起清掉——否則會留下「沒交卻已回」的假資料，
+  // 而那正是唯一能分辨「教練真的沒回」的訊號（2026-08-17）
+  const extra = (field === 'homework' && val === false) ? { homework_replied: null } : {};
+  map[studentId] = { ...(map[studentId] || {}), [field]: val, ...extra };   // 樂觀更新
   renderEngagement();
   const { error } = await sb.from('coach_engagement').upsert({
     batch_id: BATCH_ID, coach_id: coachId, student_id: studentId,
-    log_date: dateStr, [field]: val
+    log_date: dateStr, [field]: val, ...extra
   }, { onConflict: 'batch_id,student_id,log_date' });
   if (error) {
     if (prev) map[studentId] = prev; else delete map[studentId];
