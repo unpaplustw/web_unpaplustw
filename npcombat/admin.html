@@ -192,6 +192,24 @@
   .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
   .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
+  /* 階段列／子區塊列（2026-08-17 重整） */
+  .phase-bar,.sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .phase-chip{padding:7px 16px;border-radius:20px;border:1px solid var(--gold-bd);background:var(--navy2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .phase-chip.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
+  .phase-auto{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .sub-anchor{padding:6px 14px;border-radius:18px;background:var(--navy2);border:1px solid rgba(255,255,255,.07);color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none}
+  .sub-anchor:hover{color:var(--gold);border-color:var(--gold-bd)}
+  /* 開班前檢查清單 */
+  .ck{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border-radius:10px;background:var(--navy2);border-left:3px solid var(--muted);margin-bottom:8px}
+  .ck.ok{border-left-color:#22a05a} .ck.warn{border-left-color:#e0a020} .ck.bad{border-left-color:#d9534f}
+  .ck-ico{font-size:17px;line-height:1.3;flex-shrink:0}
+  .ck-b{flex:1}
+  .ck-t{font-size:14px;font-weight:600;color:var(--white)}
+  .ck-d{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:3px}
+  .ck-d b{color:#f87171}
+  .ck-sum{padding:14px 16px;border-radius:12px;font-size:14px;font-weight:700;margin-bottom:14px;text-align:center}
+  .ck-sum.go{background:rgba(34,160,90,.14);color:#4ade80}
+  .ck-sum.no{background:rgba(217,83,79,.14);color:#f87171}
   /* 作業矩陣（2026-08-14） */
   .hwm-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .hwm{border-collapse:separate;border-spacing:2px;font-size:11px}
@@ -294,23 +312,29 @@
   </div>
 
   <div class="tabs">
-    <button class="tab on" data-t="dashboard">資訊版</button>
-    <button class="tab" data-t="track">追蹤分析</button>
-    <button class="tab" data-t="review">審核名冊</button>
-    <button class="tab" data-t="org">教練組織</button>
-    <button class="tab" data-t="pairing">配對管理</button>
-    <button class="tab" data-t="bonus">加權設定</button>
-    <button class="tab" data-t="finance">帳務管理</button>
-    <button class="tab" data-t="perm">權限管理</button>
+    <button class="tab on" data-t="now">🎯 現在</button>
+    <button class="tab" data-t="roster">👥 名冊</button>
+    <button class="tab" data-t="coach">🎓 教練</button>
+    <button class="tab" data-t="setup">⚙️ 設定</button>
+    <button class="tab" data-t="perm">🔐 權限</button>
   </div>
 
-  <div class="panel on" id="p-dashboard"><div class="loading">載入中…</div></div>
-  <div class="panel" id="p-track"><div id="trackArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-review"><div id="reviewArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-org"><div id="orgArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-pairing"><div id="pairArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-bonus"><div id="bonusArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-finance"><div id="financeArea" class="loading">載入中…</div></div>
+  <!-- 🎯 現在：依 batches 日期自動切開班前／中／後，可手動覆蓋 -->
+  <div class="panel on" id="p-now">
+    <div class="phase-bar" id="phaseBar"></div>
+    <div id="nowArea" class="loading">載入中…</div>
+  </div>
+
+  <!-- 👥 名冊：同一個學員的審核／分組／上線／繳費合在一頁（原本要跑三個 Tab） -->
+  <div class="panel" id="p-roster">
+    <div class="sub-bar" id="rosterBar"></div>
+    <div id="reviewArea"></div>
+    <div id="pairArea"></div>
+    <div id="financeArea"></div>
+  </div>
+
+  <div class="panel" id="p-coach"><div id="orgArea" class="loading">載入中…</div></div>
+  <div class="panel" id="p-setup"><div id="setupArea" class="loading">載入中…</div><div id="bonusArea"></div></div>
   <div class="panel" id="p-perm"><div id="permArea" class="loading">載入中…</div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -356,14 +380,19 @@ async function init() {
     const { data: admin } = await sb.from('admin_users').select('allowed_tabs')
       .eq('member_id', member.id).single();
     if (admin) {
-      myAllowedTabs = admin.allowed_tabs || [];
+      // 舊 allowed_tabs（dashboard/track/review/org/pairing/bonus/finance/perm）→ 新五 Tab 對映，
+      // 免得改版後既有管理員被鎖在外面（2026-08-17 重整）
+      const OLD2NEW = { dashboard:'now', track:'now', review:'roster', pairing:'roster',
+                        finance:'roster', org:'coach', bonus:'setup', perm:'perm' };
+      const raw = admin.allowed_tabs || [];
+      myAllowedTabs = [...new Set(raw.map(t => OLD2NEW[t] || t))];
       isReadonly = false;
     } else {
       // 非管理員 → 檢查是否為教練 → 唯讀模式
       const { data: coachCheck } = await sb.from('batch_coaches').select('id')
         .eq('member_id', member.id).limit(1);
       if (!coachCheck?.length) { document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-text">無管理權限</div></div>'; return; }
-      myAllowedTabs = ['dashboard','track','review','org','pairing','bonus'];
+      myAllowedTabs = ['now','roster','coach','setup'];   // 教練唯讀：看得到現況與名冊，設定唯讀、無權限管理
       isReadonly = true;
     }
 
@@ -481,7 +510,37 @@ function matchSearch(item) {
 }
 
 function render() {
-  renderDashboard(); renderTrack(); renderReview(); renderOrg(); renderPairing(); renderBonus(); renderFinance(); renderPerm();
+  renderNow();                                   // 🎯 現在（依階段自動）
+  renderReview(); renderPairing(); renderFinance();   // 👥 名冊（三段同頁）
+  renderOrg();                                   // 🎓 教練
+  renderSetup(); renderBonus();                  // ⚙️ 設定
+  renderPerm();                                  // 🔐 權限
+  renderRosterBar();
+}
+
+// 名冊頁的三段快速跳轉（審核／分組／繳費原本是三個 Tab）
+function renderRosterBar() {
+  const bar = document.getElementById('rosterBar');
+  if (bar) bar.innerHTML = ['審核','分組配對','繳費'].map((t, i) =>
+    `<a class="sub-anchor" onclick="document.querySelectorAll('#p-roster>div')[${i+1}].scrollIntoView({behavior:'smooth'})">${t}</a>`).join('');
+}
+
+// ⚙️ 設定：班期欄位一覽（唯讀顯示，改值仍走 Supabase；先讓人看得到全貌）
+function renderSetup() {
+  const b = allBatches.find(x => x.id === bid);
+  const el = document.getElementById('setupArea');
+  if (!el) return;
+  if (!b) { el.innerHTML = '<div class="empty"><div class="empty-text">請先選擇班期</div></div>'; return; }
+  const row = (k, v, note) => `<div class="ck ${v ? 'ok' : 'warn'}"><div class="ck-ico">${v ? '✅' : '🟡'}</div><div class="ck-b"><div class="ck-t">${k}　<span style="color:var(--gold)">${v || '（未設）'}</span></div>${note ? `<div class="ck-d">${note}</div>` : ''}</div></div>`;
+  let h = `<div class="sec-title"><span>⚙️ 班期設定</span><span class="sec-count">${b.name}</span></div>`;
+  h += row('期間', b.start_date && b.end_date ? `${b.start_date} ～ ${b.end_date}` : '', '倒數、週次、階段判定都看這個');
+  h += row('學習週 study_start / study_end', b.study_start && b.study_end ? `${b.study_start} ～ ${b.study_end}` : '', '⚠️ 課表共四處副本，改這裡也要改 units.js／course.html／brochure.html');
+  h += row('行動開放日 action_open_date', b.action_open_date, 'NULL＝不鎖，開班第一天就能填七大行動與小組回報心得');
+  h += row('教練模式 coach_mode', b.coach_mode, 'simple＝信任制一鍵勾（27 期起）／full＝逐項審核（26 期）');
+  h += row('獎勵活動 event_name', b.event_name, '留空＝無活動，相關 UI 自動隱藏');
+  h += row('當期 is_active', b.is_active ? '🟢 是' : '否', '唯一索引擋雙開；學員端 8 個檔都讀它，班期中途不可切換');
+  h += row('開放報名 registration_open', b.registration_open ? '🟢 開放中' : '關閉', '與 is_active 分開——可在前一期還在跑時就開放下一期報名');
+  return el.innerHTML = h;
 }
 
 // ════════════════════════════════════════════
@@ -589,8 +648,8 @@ function renderHwMatrix(realStudents, coachById) {
   return h;
 }
 
-function renderTrack() {
-  const el = document.getElementById('p-track');
+function renderTrack(target) {
+  const el = target || document.getElementById('p-track');
   if (!el) return;
   const today = localDateStr(new Date());
   const yesterday = localDateStr(new Date(Date.now() - 86400000));
@@ -706,13 +765,160 @@ function renderTrack() {
     `<div class="track-row track-blue"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.lastW} → ${x.thisW} 分</span></div>`
   ).join('') + '</div>';
 
-  el.innerHTML = h;
+  if (target) el.insertAdjacentHTML('beforeend', h); else el.innerHTML = h;
 }
 
 // ════════════════════════════════════════════
 // Tab 0: 資訊版
 // ════════════════════════════════════════════
-function renderDashboard() {
+// ══════════════════════════════════════════════════════════
+// 🎯 現在：依 batches 日期自動判斷階段（可手動覆蓋），2026-08-17 重整
+//   開班前＝準備檢查清單（把 wiki 的「開新班期檢查清單」變成系統會自己檢查的東西）
+//   開班中＝戰情＋需要關注
+//   開班後＝結案報表
+//   設計原則：管理者的問題是「現在該處理什麼」，不是「我要去哪個 Tab」。
+// ══════════════════════════════════════════════════════════
+let phaseOverride = null;
+
+function autoPhase() {
+  const b = allBatches.find(x => x.id === bid);
+  if (!b || !b.start_date) return 'before';
+  const t = localDateStr(new Date());
+  if (t < b.start_date) return 'before';
+  if (b.end_date && t > b.end_date) return 'after';
+  return 'during';
+}
+function curPhase() { return phaseOverride || autoPhase(); }
+function setPhase(p) { phaseOverride = (p === autoPhase()) ? null : p; renderNow(); }
+
+function renderNow() {
+  const bar = document.getElementById('phaseBar');
+  const auto = autoPhase(), cur = curPhase();
+  const NAMES = { before:'開班前', during:'開班中', after:'開班後' };
+  bar.innerHTML = ['before','during','after'].map(p =>
+    `<button class="phase-chip ${p === cur ? 'on' : ''}" onclick="setPhase('${p}')">${NAMES[p]}</button>`
+  ).join('') + `<span class="phase-auto">依日期自動判定：${NAMES[auto]}${phaseOverride ? '（目前為手動檢視）' : ''}</span>`;
+
+  const el = document.getElementById('nowArea');
+  if (cur === 'before') el.innerHTML = phaseBefore();
+  else if (cur === 'after') el.innerHTML = phaseAfter();
+  else { el.innerHTML = ''; renderDashboard(el); renderTrack(el); }
+}
+
+// ── 開班前：全綠才能開班 ──────────────────────────────
+function phaseBefore() {
+  const b = allBatches.find(x => x.id === bid) || {};
+  const appr = students.filter(s => s.status === 'approved');
+  const coachMids = new Set(coaches.filter(c => c.status === 'approved').map(c => c.member_id));
+  const stu = appr.filter(s => s.coach_id);                       // 真學員
+  const coachAsStu = appr.filter(s => !s.coach_id);               // 教練的學員身分
+  const apprCoaches = coaches.filter(c => c.status === 'approved');
+  const ck = [];
+  const add = (lvl, t, d) => ck.push({ lvl, t, d });
+
+  // 1) 教練是否都有學員身分（27 期踩過：漏掉 → 教練六天存不了回報）
+  const noIdentity = apprCoaches.filter(c => !coachAsStu.some(s => s.member_id === c.member_id));
+  add(noIdentity.length ? 'bad' : 'ok', '教練的學員身分',
+    noIdentity.length ? `<b>${noIdentity.length} 位教練沒有 batch_students 紀錄</b>：${noIdentity.map(nm).join('、')}<br>→ 他們的「儲存我的回報」會是灰的，開班就存不了。見 wiki「開新班期檢查清單」第 1 步`
+      : `${apprCoaches.length} 位教練都有`);
+
+  // 2) 學員分組
+  const noGroup = stu.filter(s => !s.coach_id);
+  const pending = students.filter(s => s.status === 'pending');
+  add(pending.length ? 'warn' : 'ok', '報名審核',
+    pending.length ? `<b>${pending.length} 人待審</b>，到「名冊」處理` : `已批准 ${appr.length} 人（含教練身分 ${coachAsStu.length}）`);
+  add('ok', '學員分組', `${stu.length} 位學員已分組`);
+
+  // 3) 上線
+  const noSp = stu.filter(s => !s.sponsor_id);
+  add(noSp.length ? 'warn' : 'ok', '上線（sponsor）',
+    noSp.length ? `${noSp.length} 人未設上線：${noSp.slice(0,6).map(nm).join('、')}${noSp.length>6?'…':''}` : '全部已設');
+
+  // 4) 教練組別
+  const noGrp = apprCoaches.filter(c => !c.group_name);
+  add(noGrp.length ? 'warn' : 'ok', '教練組別',
+    noGrp.length ? `${noGrp.length} 位未設組別：${noGrp.map(nm).join('、')}（不帶組者屬正常）` : '全部已設');
+
+  // 5) 繳費（排除教練——教練不用繳，算進去只會製造雜訊）
+  const unpaid = stu.filter(s => !s.payment_confirmed);
+  add(unpaid.length ? 'warn' : 'ok', '繳費確認（不含教練）',
+    unpaid.length ? `<b>${unpaid.length} 位學員未確認</b>：${unpaid.slice(0,6).map(nm).join('、')}${unpaid.length>6?'…':''}` : `${stu.length} 位學員全部確認`);
+
+  // 6) DB 設定
+  const miss = [];
+  if (!b.start_date) miss.push('start_date');
+  if (!b.end_date) miss.push('end_date');
+  if (!b.study_start) miss.push('study_start');
+  if (!b.study_end) miss.push('study_end');
+  if (!b.coach_mode) miss.push('coach_mode');
+  add(miss.length ? 'bad' : 'ok', '班期設定',
+    miss.length ? `<b>缺：${miss.join('、')}</b>`
+      : `${b.start_date} ～ ${b.end_date}｜學習 ${b.study_start}～${b.study_end}｜${b.coach_mode}｜行動開放 ${b.action_open_date || '不鎖'}｜活動「${b.event_name || '無'}」`);
+
+  // 7) 課表對齊（units.js 的 SCHEDULE 首日 vs 班期）——27/28 期都踩過
+  let sd = null, ed = null;
+  if (typeof SCHEDULE !== 'undefined') { const ks = Object.keys(SCHEDULE).sort(); sd = ks[0]; ed = ks[ks.length-1]; }
+  const okSched = sd && b.study_start && sd === b.study_start && ed === b.study_end;
+  add(okSched ? 'ok' : 'bad', '課表四處對齊',
+    !sd ? 'units.js 未載入'
+      : okSched ? `units.js ${sd} ～ ${ed}，與 study_start/end 一致`
+      : `<b>不一致</b>：units.js 排到 ${sd} ～ ${ed}，DB study 是 ${b.study_start} ～ ${b.study_end}<br>→ 課表共四處副本（units.js／course.html 的 PLAN＋靜態表／brochure.html），要一起改`);
+
+  // 8) 報名開關
+  add('ok', '報名狀態', b.registration_open ? '🟢 開放中——新報名會寫進這一期' : '🔴 關閉');
+
+  const bad = ck.filter(c => c.lvl === 'bad').length, warn = ck.filter(c => c.lvl === 'warn').length;
+  let h = `<div class="ck-sum ${bad ? 'no' : 'go'}">${bad ? `🔴 有 ${bad} 項必須處理才能開班` : warn ? `🟡 可以開班，但有 ${warn} 項建議先確認` : '🟢 全部就緒，可以開班'}</div>`;
+  h += `<div class="sec-title"><span>📋 開班前檢查清單</span><span class="sec-count">${b.name || ''}</span></div>`;
+  const ICO = { ok:'✅', warn:'🟡', bad:'🔴' };
+  ck.forEach(c => h += `<div class="ck ${c.lvl}"><div class="ck-ico">${ICO[c.lvl]}</div><div class="ck-b"><div class="ck-t">${c.t}</div><div class="ck-d">${c.d}</div></div></div>`);
+  return h;
+}
+
+// ── 開班後：結案報表 ──────────────────────────────
+function phaseAfter() {
+  const b = allBatches.find(x => x.id === bid) || {};
+  const coachMids = new Set(coaches.map(c => c.member_id));
+  const stu = students.filter(s => s.status === 'approved' && s.coach_id);
+  const byStu = {}; allLogs.forEach(l => (byStu[l.student_id] = byStu[l.student_id] || []).push(l));
+  const act = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0);
+  const talk = l => (l.present||0)+(l.seminar||0);
+
+  // 分診四群（沿用 26 期結案的漏斗判定，見 [[26期結案反思]]）
+  let g1=0,g2=0,g3=0,g4=0;
+  const closeByMid = {};
+  stu.forEach(s => {
+    const ls = byStu[s.id] || [];
+    const hits = ls.reduce((a,l)=>a+act(l),0);
+    const talks = ls.reduce((a,l)=>a+talk(l),0);
+    const closes = 0; // 締結需另查，這裡以行動漏斗為主
+    if (!hits) g1++; else if (!talks) g2++; else g3++;
+  });
+  const filled = stu.filter(s => (byStu[s.id]||[]).length).length;
+  const hwDone = new Set(hwRows.filter(r => r.total>0 && r.done>=r.total).map(r => r.student_id)).size;
+  const certDone = stu.filter(s => s.cert_comment).length;
+
+  let h = `<div class="sec-title"><span>📊 結案報表</span><span class="sec-count">${b.name||''}　${b.start_date}～${b.end_date}</span></div>`;
+  h += `<div class="dash-progress">
+    <div class="dash-prog-card"><div class="dash-prog-n">${filled} / ${stu.length}</div><div class="dash-prog-l">曾填報學員</div></div>
+    <div class="dash-prog-card"><div class="dash-prog-n">${allLogs.length}</div><div class="dash-prog-l">回報總筆數</div></div>
+    <div class="dash-prog-card"><div class="dash-prog-n">${certDone} / ${stu.length}</div><div class="dash-prog-l">證書評語已寫</div></div>
+  </div>`;
+  h += `<div class="cov-note">分診（依 [[26期結案反思]] 的漏斗，順序不可顛倒）：<br>
+    ① 整期沒出手 <b>${g1}</b> 人　② 有出手沒進到溝通 <b>${g2}</b> 人　③ 溝通過 <b>${g3}</b> 人<br>
+    ⚠️ ③ 裡面「溝通過但零締結」才是最該救的那群——他們通常比 ② 更努力。溝通場次是締結的真門檻。</div>`;
+  h += `<div class="sec-title"><span>✅ 結案待辦</span></div>`;
+  const todo = [
+    [certDone >= stu.length, `結業證書評語：已寫 ${certDone}／${stu.length}`],
+    [hwRows.length > 0, `作業檢核紀錄：${hwRows.length} 筆（0 筆代表教練整期沒用過）`],
+    [!b.is_active, `封存：把 is_active 切給下一期（目前${b.is_active ? '🔴 仍是當期' : '已封存'}）`],
+    [false, `全期數據寫進 wiki 結案反思，並更新 [[資料架構規劃]]`],
+  ];
+  todo.forEach(([ok, t]) => h += `<div class="ck ${ok?'ok':'warn'}"><div class="ck-ico">${ok?'✅':'🟡'}</div><div class="ck-b"><div class="ck-t">${t}</div></div></div>`);
+  return h;
+}
+
+function renderDashboard(target) {
   const today = localDateStr(new Date());
   const yesterday = localDateStr(new Date(Date.now() - 86400000));
   const approvedStudents = students.filter(s => s.status === 'approved');
@@ -883,7 +1089,8 @@ function renderDashboard() {
       </div>`;
     });
   }
-  document.getElementById('p-dashboard').innerHTML = h;
+  if (target) target.insertAdjacentHTML('beforeend', h);
+  else { const d = document.getElementById('p-dashboard'); if (d) d.innerHTML = h; }
 }
 
 // ════════════════════════════════════════════
