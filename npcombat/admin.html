@@ -505,8 +505,8 @@ async function load() {
 }
 
 // 「昨日」在星期一會指向星期日——那天不排作業、不要求 LINE，整頁會全 0。
-// 日報一律看「上一個上課日」＝今天之前最近的平日（週一～週五）。
-function lastClassDay() {
+// 日報一律看今天之前最近的平日（週一～週五）。行動班沒有「上課日」，所以函式名用平日。
+function lastWeekday() {
   const d = new Date(); d.setDate(d.getDate() - 1);
   for (let i = 0; i < 7; i++) {
     const w = d.getDay();
@@ -516,6 +516,7 @@ function lastClassDay() {
   return localDateStr(d);
 }
 const WDAY = ['日','一','二','三','四','五','六'];
+const refDayLabel = () => hasHomework() ? '上一個上課日' : '上一個平日';
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'拉近關係', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
 const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組'];
@@ -924,26 +925,47 @@ function renderDemerits(target) {
 //   ④ 狀態排序：需要注意的人與組（排行）
 //   Randoph：不要把日報、整體報全部混在一起——混了就分不出「昨天沒事」和「整期都沒事」。
 const ANA = [
-  { k:'daily',  t:'① 昨日回報即時報', d:() => { const r = lastClassDay(); return `單日快照 · ${r.slice(5).replace('-','/')}（週${WDAY[new Date(r+'T00:00:00').getDay()]}）`; } },
-  { k:'groups', t:'② 整體組別回報率', d:() => `開班至今累積 · 平日 ${weekdaysSoFar()} 天` },
-  { k:'hw',     t:'③ 作業追蹤彙整',   d:'17 單元累積' },
+  { k:'daily',  t:'① 昨日回報即時報', d:() => { const r = lastWeekday(); return `單日快照 · ${r.slice(5).replace('-','/')}（週${WDAY[new Date(r+'T00:00:00').getDay()]}）`; } },
+  { k:'groups', t:'② 整體組別回報率', d:() => {
+      // 兩個分母不一樣就兩個都寫出來——只寫一個，另一欄就變成看不出尺度的數字
+      const w = weekdaysSoFar(), a = actionWeekdays();
+      return a === w ? `開班至今累積 · 平日 ${w} 天`
+                     : `開班至今累積 · 作業與 LINE ${w} 天 · 行動 ${a} 天`;
+    } },
+  { k:'hw',     t:'③ 作業追蹤彙整',   d:'17 單元累積', only:'study' },   // 行動班無作業 → 整節不出現
   { k:'rank',   t:'④ 狀態排序',       d:'需要注意的排行' },
 ];
 // ⑤ 只在該期已結業時併進來——沒結業就不存在，不佔位、也不用切換
-const anaSections = () => batchEnded()
-  ? ANA.concat([{ k:'after', t:'⑤ 結案報表', d:'全期封存' }])
-  : ANA;
-// 開班日到今天的平日數（週一～週五）＝ 累積率的分母基準
-function weekdaysSoFar() {
-  const b = allBatches.find(x => x.id === bid) || {};
+const anaSections = () => {
+  const list = ANA.filter(a => !a.only || a.only === batchKind());
+  return batchEnded() ? list.concat([{ k:'after', t:'⑤ 結案報表', d:'全期封存' }]) : list;
+};
+// ── 班型：所有「這一期有沒有作業／行動從哪天算」的判斷都從這裡推導 ──────────
+//    學習班 study：study_start 有值＝前段上課、後段行動（27 期）
+//    行動班 action：study_start NULL＝一開始就一直行動（26 期那種）
+//    以後加第三種班型也只改這一區，不要在各處各判一次。
+function batchRow() { return allBatches.find(x => x.id === bid) || {}; }
+function batchKind() { return batchRow().study_start ? 'study' : 'action'; }
+function hasHomework() { return batchKind() === 'study'; }
+
+// 🔴 行動紀錄的起算日＝行動開放日，不是開班日。
+//    學習班在 action_open_date 之前，七大行動是鎖住的（三層防護：CSS 灰掉＋移除 onclick＋函式內 return），
+//    把那幾天算進分母＝罰學員沒做我們不讓他做的事。實測 27 期：19% → 30%。
+//    行動班 action_open_date 為 NULL → 自動退回 start_date，同一條規則兩種班都對。
+function actionStartDate() { const b = batchRow(); return b.action_open_date || b.start_date; }
+
+// 某日到今天的平日數（週一～週五）＝ 累積率的分母基準
+function weekdaysFrom(from) {
+  if (!from) return 0;
   const today = localDateStr(new Date());
   let n = 0;
-  if (b.start_date)
-    for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
-      const w = d.getDay(); if (w >= 1 && w <= 5) n++;
-    }
+  for (let d = new Date(from + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
+    const w = d.getDay(); if (w >= 1 && w <= 5) n++;
+  }
   return n;
 }
+function weekdaysSoFar()  { return weekdaysFrom(batchRow().start_date); }   // 作業／LINE：開班第一天就要求
+function actionWeekdays() { return weekdaysFrom(actionStartDate()); }       // 行動紀錄：行動開放後才要求
 function renderAnalysis(el) {
   el.innerHTML = `<div class="sub-bar">` + anaSections().map(a =>
     `<a class="sub-anchor" onclick="document.getElementById('ana-${a.k}').scrollIntoView({behavior:'smooth',block:'start'})">${a.t}</a>`
@@ -954,7 +976,7 @@ function renderAnalysis(el) {
   const gEl = document.getElementById('ana-body-groups');
   renderDashboard(gEl, 'groups');
   renderCoverageSection(gEl);
-  renderHwSection(document.getElementById('ana-body-hw'));
+  if (hasHomework()) renderHwSection(document.getElementById('ana-body-hw'));
   const rank = document.getElementById('ana-body-rank');
   renderDemerits(rank); renderTrack(rank);
   if (batchEnded()) document.getElementById('ana-body-after').innerHTML = phaseAfter();
@@ -1101,8 +1123,8 @@ function renderDashboard(target, part) {
 
   const todayMap = {};
   todayLogs.forEach(l => { todayMap[l.student_id] = l; });
-  // 日報基準日＝上一個上課日（不是字面上的昨天，見 lastClassDay()）
-  const refDay = lastClassDay();
+  // 日報基準日＝上一個上課日（不是字面上的昨天，見 lastWeekday()）
+  const refDay = lastWeekday();
   const refWd  = WDAY[new Date(refDay + 'T00:00:00').getDay()];
   const yesterdayMap = {};
   allLogs.filter(l => l.log_date === refDay).forEach(l => { yesterdayMap[l.student_id] = l; });
@@ -1184,7 +1206,8 @@ function renderDashboard(target, part) {
                     : `<span class="stu-b stu-na" title="教練還沒進來標記">${na}</span>`;
     let out = `<div class="cov-note">這一節只看 <b>${refDay}（週${refWd}）</b>一天，處理完就結束——
       要看整期累積請往下到 <b>② 整體組別回報率</b>。<b>問題最多的組排在最上面。</b><br>
-      ⚠️ 學員當天 22:00 前貼、教練隔天 22:00 前回；「未標」＝教練還沒進來看，不是學員沒交。</div>`;
+      ⚠️ 學員當天 22:00 前貼${hasHomework() ? '作業' : '行動心得'}、教練隔天 22:00 前回；
+      「未標」＝教練還沒進來看，不是學員沒交。</div>`;
     rows.forEach(r => {
       out += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
@@ -1232,7 +1255,7 @@ function renderDashboard(target, part) {
   </div>`;
 
   // ── 昨日進度 ──
-  h += `<div class="sec-title"><span>📊 上一個上課日回報</span><span class="sec-count">${refDay.replace(/-/g,' / ')}（週${refWd}）</span></div>`;
+  h += `<div class="sec-title"><span>📊 ${refDayLabel()}回報</span><span class="sec-count">${refDay.replace(/-/g,' / ')}（週${refWd}）</span></div>`;
   h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, totalReal);
   h += dailyGroups();
   }   // ← 關閉 if (part !== 'groups')：② 整體組別回報率 不需要電池與昨日三卡
@@ -1265,10 +1288,12 @@ function renderDashboard(target, part) {
     // 必須留在 else 區塊內，因為下面用到 sorted / groups / dashVb。
     if (part === 'daily') { if (target) target.insertAdjacentHTML('beforeend', h); return; }
     h = '';
-    h += `<div class="cov-note">這張表看的是<b>學員完成度</b>，教練只是分組方式。<b>四欄都是開班至今的累積率</b>（不是單日）。<br>
-      前三欄＝<b>學員做到多少</b>（作業／行動紀錄／在 LINE 繳交）｜最後一欄＝<b>教練有沒有回</b><br>
-      分母：作業＝已上單元×組員數，其餘＝平日數×組員數（週末不排作業也不要求 LINE，不計入分母）。<br>
-      ⚠️ 作業與 LINE 兩欄由教練標記產生：教練沒進來就會是 0，那是<b>沒人看</b>不是沒人做——
+    const hw2 = hasHomework();
+    h += `<div class="cov-note">這張表看的是<b>學員完成度</b>，教練只是分組方式。<b>每一欄都是開班至今的累積率</b>（不是單日）。<br>
+      ${hw2 ? '前三欄' : '前兩欄'}＝<b>學員做到多少</b>（${hw2 ? '作業／' : ''}行動紀錄／在 LINE 繳交）｜最後一欄＝<b>教練有沒有回</b><br>
+      分母：${hw2 ? '作業＝已上單元×組員數；' : ''}<b>行動紀錄＝行動開放日（${actionStartDate() || '—'}）起的平日數</b>×組員數；
+      LINE 兩欄＝開班日起的平日數×組員數。週末不排${hw2 ? '作業' : '進度'}也不要求 LINE，不計入分母。<br>
+      ⚠️ ${hw2 ? '作業與 LINE 三欄' : 'LINE 兩欄'}由教練標記產生：教練沒進來就會是 0，那是<b>沒人看</b>不是沒人做——
       「行動紀錄」是學員自己填的，不受教練影響，可以當對照。</div>`;
 
     sorted.forEach(g => {
@@ -1297,12 +1322,14 @@ function renderDashboard(target, part) {
         }
       const sids = new Set(g.students.map(s => s.id));
       const isWd = ds => { const w = new Date(ds + 'T00:00:00').getDay(); return w >= 1 && w <= 5; };
-      const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date)).length;
+      const aStart = actionStartDate(), awd = actionWeekdays();
+      // 行動紀錄的分子分母都要從行動開放日起算，否則學習週會把率稀釋掉
+      const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date) && l.log_date >= aStart).length;
       const ySent = engRows.filter(r => sids.has(r.student_id) && r.homework === true && isWd(r.log_date)).length;
       const yRep  = engRows.filter(r => sids.has(r.student_id) && r.homework_replied === true && isWd(r.log_date)).length;
       const denom = wd * total;
       const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
-      const hasCourse = !!(allBatches.find(x => x.id === bid) || {}).study_start;   // 行動組無課表
+      const hasCourse = hasHomework();   // 行動班無課表 → 作業欄整欄不出現
       // 作業要用「完成率」才能跟其他欄並排比較：已上單元 × 組員數 當分母
       let taughtN = 0;
       if (typeof SCHEDULE !== 'undefined')
@@ -1310,7 +1337,7 @@ function renderDashboard(target, part) {
       const hwPct = pct(hwFull, taughtN * total);
 
       const stuAct = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0);
-      const yFillPctC = pct(yF, denom), yConfPctC = pct(ySent, denom);
+      const yFillPctC = pct(yF, awd * total), yConfPctC = pct(ySent, denom);
       const yRepPctC = pct(yRep, denom);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
@@ -1334,7 +1361,7 @@ function renderDashboard(target, part) {
             // 學員列＝表頭四欄的個人版，全部累積（原本只顯示昨天一天，在累積區塊裡是混尺度）
             const sHwFull = hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length;
             const sHwPct  = pct(sHwFull, taughtN);
-            const sLogs   = allLogs.filter(l => l.student_id === s.id && isWd(l.log_date));
+            const sLogs   = allLogs.filter(l => l.student_id === s.id && isWd(l.log_date) && l.log_date >= aStart);
             const sPts    = sLogs.reduce((a, l) => a + stuAct(l), 0);
             const sEng    = engRows.filter(r => r.student_id === s.id && isWd(r.log_date));
             const sSent   = sEng.filter(r => r.homework === true).length;
@@ -1349,7 +1376,7 @@ function renderDashboard(target, part) {
               <div class="dash-stu-status">
                 ${hasCourse ? `<span class="stu-b ${lvl(sHwPct)}" title="全繳單元數／已上單元數">作業 <span class="dash-pct">${sHwPct}%</span><i>${sHwFull}/${taughtN}</i></span>` : ''}
                 ${sLogs.length
-                  ? `<span class="stu-b ${lvl(pct(sLogs.length, wd))}" title="有填天數／平日數 · 累積行動分數">✍️ <span class="dash-pct">${sLogs.length}</span><i>/${wd} 天 · ${sPts} 分</i></span>`
+                  ? `<span class="stu-b ${lvl(pct(sLogs.length, awd))}" title="有填天數／行動開放後的平日數 · 累積行動分數">✍️ <span class="dash-pct">${sLogs.length}</span><i>/${awd} 天 · ${sPts} 分</i></span>`
                   : `<span class="stu-b stu-na">✍️ 未填</span>`}
                 ${mark('📤', sSent)}
                 ${mark('↩️', sRep)}
