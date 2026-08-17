@@ -839,14 +839,21 @@ function calcDemerits() {
       const w = d.getDay(); if (w >= 1 && w <= 5) days.push(localDateStr(d));
     }
   }
-  // 教練隔天 22:00 前要回 → 只計已過期限的日子
-  const dueDays = days.filter(d => { const x = new Date(d + 'T22:00:00'); x.setDate(x.getDate() + 1); return x <= new Date(); });
+  // 🔴 兩條死線（2026-08-17 Randoph 定案）
+  //    學員：當天 22:00 貼。過了就是「沒交」——事後補交不改這一天的紀錄，
+  //          否則 22:00 只是建議、遲交零成本，紀律就歸零。補交要被看見的地方是
+  //          homework_checks（作業總完成度，本來就不壓日期）。
+  //    教練：隔天 12:00 前處理完（標記＋該回的回完）。訂 12:00 的理由是班主下午要能
+  //          追蹤賴群，而 12:00 後畫面上每一格都必須有明確歸屬，不必自己去翻群組。
+  //          實測 27 期：80.5% 的標記本來就在 12:00 前完成，這條線是達得到的。
+  const COACH_DL = 'T12:00:00';
+  const dueDays = days.filter(d => { const x = new Date(d + COACH_DL); x.setDate(x.getDate() + 1); return x <= new Date(); });
 
   const engBy = {};   // student|date -> row
   engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
   const late = r => {
     if (!r || !r.created_at) return false;
-    const dl = new Date(r.log_date + 'T22:00:00'); dl.setDate(dl.getDate() + 1);
+    const dl = new Date(r.log_date + COACH_DL); dl.setDate(dl.getDate() + 1);
     return new Date(r.created_at) > dl;     // created_at 已驗證為首次寫入，upsert 不覆蓋
   };
 
@@ -1194,6 +1201,9 @@ function renderDashboard(target, part) {
     const gs = {};
     ac.forEach(c => { gs[c.id] = { coach: c, students: [] }; });
     approvedStudents.forEach(s => { if (s.coach_id && gs[s.coach_id]) gs[s.coach_id].students.push(s); });
+    // 12:00 過了嗎？過了之後「未標」就不是「還沒輪到」，而是「教練沒進來看」
+    const coachDl = new Date(refDay + 'T12:00:00'); coachDl.setDate(coachDl.getDate() + 1);
+    const overdue = new Date() > coachDl;
     const engDay = engRows.filter(r => r.log_date === refDay);
     const engOf  = sid => engDay.find(r => r.student_id === sid) || {};
     const rows = Object.values(gs).filter(g => g.students.length).map(g => {
@@ -1211,15 +1221,22 @@ function renderDashboard(target, part) {
       const c = p === 100 ? 'dash-perfect' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero';
       return `<span class="stu-b ${c}">${label} <span class="dash-pct">${n}</span><i>/${t}</i></span>`;
     };
+    // 未標記的格子：期限內＝還沒輪到（灰）；期限後＝教練沒進來看（紅，責任歸教練）
+    const naBlk = txt => overdue
+      ? `<span class="stu-b dash-zero" title="隔天 12:00 已過，教練還沒進來標——這一格歸教練">⚠️ 教練沒看</span>`
+      : `<span class="stu-b stu-na" title="教練還沒進來標記（隔天 12:00 前）">${txt}</span>`;
     const flag = (v, yes, no, na) => v === true
       ? `<span class="stu-b dash-perfect">${yes}</span>`
       : v === false ? `<span class="stu-b dash-zero">${no}</span>`
-                    : `<span class="stu-b stu-na" title="教練還沒進來標記">${na}</span>`;
+                    : naBlk(na);
     let out = `<div class="cov-note">這一節只看 <b>${refDay}（週${refWd}）</b>一天，處理完就結束——
       要看整期累積請往下到 <b>② 整體組別回報率</b>。<b>問題最多的組排在最上面。</b><br>
-      ⚠️ 學員當天 22:00 前貼${hasHomework() ? '作業' : '行動心得'}、教練隔天 22:00 前回；
-      「未標」＝教練還沒進來看，不是學員沒交。<br>
-      🔴 學員沒交時顯示<b>「✅ 無需回」</b>——沒東西可回也算教練處理完，不扣他。</div>`;
+      ⚠️ <b>兩條死線</b>：學員當天 <b>22:00</b> 前貼${hasHomework() ? '作業' : '行動心得'}；
+      教練<b>隔天 12:00</b> 前處理完（標記＋該回的回完）。<br>
+      🔴 12:00 過後空白格顯示<b>「⚠️ 教練沒看」</b>——責任歸教練，不必再去翻賴群分辨。
+      學員沒交時顯示<b>「✅ 無需回」</b>——沒東西可回也算教練處理完，不扣他。<br>
+      📌 事後補交<b>不會改掉這一天的紀錄</b>（那衡量的是當天的節奏）；補交要看的是
+      <b>③ 作業追蹤彙整</b>的總完成度，那邊不壓日期、隨時可補。</div>`;
     rows.forEach(r => {
       out += `<div class="dash-coach-row">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
@@ -1251,7 +1268,7 @@ function renderDashboard(target, part) {
                       ? (e.homework_replied === true
                           ? `<span class="stu-b dash-perfect">↩️ 回了</span>`
                           : `<span class="stu-b dash-zero">↩️ 沒回</span>`)
-                      : `<span class="stu-b stu-na" title="教練還沒判斷學員交了沒">↩️ 未標</span>`}
+                      : naBlk('↩️ 未標')}
                 <span class="stu-arrow-gap"></span>
               </div>
             </div>`;

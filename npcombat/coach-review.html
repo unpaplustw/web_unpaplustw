@@ -1513,7 +1513,8 @@ function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
 // 原本的 engaged／engaged_replied 已停用（6 筆舊資料併進 homework），欄位保留不刪。
 function engModeFor(dateStr) {
   return { title:'小組回報',
-           hint:'學員交了嗎？教練回了嗎？兩個各點一下記錄（教練隔日回覆）。學員沒交時「已回」會變成「－ 無需回」，不會扣你。',
+           hint:'🔴 <b>學員當天 22:00 前貼＝已交</b>，過了才貼就是沒交（事後補交請到「📋 作業」補勾，不改這一天）。<br>' +
+                '🔴 <b>你隔天 12:00 前</b>標完＋該回的回完。學員沒交時「已回」會變「－ 無需回」，不扣你。',
            stu:  { field:'homework',         label:'📝 已交', total:'已交' },
            coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } };
 }
