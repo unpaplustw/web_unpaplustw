@@ -1056,12 +1056,12 @@ function renderDashboard(target) {
   // 昨日統計
   const yStuFill = realStudents.filter(s => yesterdayMap[s.id]).length;
   const yCoachFill = coachStudents.filter(s => yesterdayMap[s.id]).length;
-  const yConfirmed = approvedStudents.filter(s => yesterdayMap[s.id] && dashHandled(s, yesterday, yesterdayMap[s.id])).length;
+  const yConfirmed = approvedStudents.filter(s => dashHandled(s, yesterday, yesterdayMap[s.id])).length;
 
   // 今日統計
   const tStuFill = realStudents.filter(s => todayMap[s.id]).length;
   const tCoachFill = coachStudents.filter(s => todayMap[s.id]).length;
-  const tConfirmed = approvedStudents.filter(s => todayMap[s.id] && dashHandled(s, today, todayMap[s.id])).length;
+  const tConfirmed = approvedStudents.filter(s => dashHandled(s, today, todayMap[s.id])).length;
 
   let h = '';
 
@@ -1086,8 +1086,7 @@ function renderDashboard(target) {
     </div>`;
   }
 
-  const yFilledAll = yStuFill + yCoachFill;
-  const tFilledAll = tStuFill + tCoachFill;
+  // 教練標記率的分母＝真學員數（教練要標全部組員，不是只標有填 daily 的）
 
   // ── 電池能量條（今日 LIVE）──
   const batteryPct = pct(tStuFill, totalReal);
@@ -1098,7 +1097,7 @@ function renderDashboard(target) {
 
   // ── 昨日進度 ──
   h += `<div class="sec-title"><span>📊 昨日回報</span><span class="sec-count">${yesterday.replace(/-/g,' / ')}</span></div>`;
-  h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, yFilledAll);
+  h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, totalReal);
 
   // ── 教練回報總覽 ──
   if (!totalAll) {
@@ -1146,21 +1145,29 @@ function renderDashboard(target) {
       function makeDots(logMap, stuList, date) {
         return stuList.map(s => {
           const log = logMap[s.id];
-          if (!log) return `<span class="dot dot-none" title="${nm(s)}：未填寫"></span>`;
-          if (dashHandled(s, date, log)) return `<span class="dot dot-done" title="${nm(s)}：已${dashVb}"></span>`;
-          return `<span class="dot dot-filled" title="${nm(s)}：已填寫待${dashVb}"></span>`;
+          // 教練標記與學員填 daily 是兩件事，各自獨立判斷
+          const marked = dashHandled(s, date, log);
+          if (marked) return `<span class="dot dot-done" title="${nm(s)}：教練已${dashVb}${log ? '' : '（該生未填 daily）'}"></span>`;
+          if (!log) return `<span class="dot dot-none" title="${nm(s)}：未填 daily、教練也未${dashVb}"></span>`;
+          return `<span class="dot dot-filled" title="${nm(s)}：已填 daily，待教練${dashVb}"></span>`;
         }).join('');
       }
 
       const yDots = makeDots(yesterdayMap, g.students, yesterday);
       const tDots = makeDots(todayMap, g.students, today);
 
+      // 兩個指標的宇宙不同，分母不能共用（2026-08-17 修）：
+      //   學員填寫＝在 daily 填七大行動（系統內）／分母＝組員數
+      //   教練標記＝標「學員有沒有在賴群貼、教練回了沒」（系統外的事，教練代填）
+      //             → 對象是**全部組員**，跟他有沒有填 daily 無關／分母也是組員數
+      // 舊版寫成 filter(有填daily && 教練標了) / 有填daily 的人數 →
+      //   組員沒人填 daily 時分母為 0，認真檢核的教練被顯示成 0%（林珊合檢核34單元卻顯示0%）
       const yF = g.students.filter(s => yesterdayMap[s.id]).length;
-      const yC = g.students.filter(s => yesterdayMap[s.id] && dashHandled(s, yesterday, yesterdayMap[s.id])).length;
+      const yC = g.students.filter(s => dashHandled(s, yesterday, yesterdayMap[s.id])).length;
       const tF = g.students.filter(s => todayMap[s.id]).length;
-      const tC = g.students.filter(s => todayMap[s.id] && dashHandled(s, today, todayMap[s.id])).length;
+      const tC = g.students.filter(s => dashHandled(s, today, todayMap[s.id])).length;
 
-      const yFillPctC = pct(yF, total), yConfPctC = pct(yC, yF);
+      const yFillPctC = pct(yF, total), yConfPctC = pct(yC, total);   // 兩者分母都是組員數
       const tFillPctC = pct(tF, total), tConfPctC = pct(tC, tF);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
@@ -1183,9 +1190,12 @@ function renderDashboard(target) {
             const yLog = yesterdayMap[s.id];
             const tLog = todayMap[s.id];
             function chipFor(log, date) {
-              if (!log) return '<span class="dash-chip dash-chip-empty">未填</span>';
-              if (dashHandled(s, date, log)) return `<span class="dash-chip dash-chip-confirmed">已${dashVb}</span>`;
-              return '<span class="dash-chip dash-chip-filled">已填寫</span>';
+              const marked = dashHandled(s, date, log);
+              // 兩個訊號分開顯示：daily 填了沒／教練標了沒
+              const a = log ? '已填' : '未填';
+              const bb = marked ? `教練已${dashVb}` : `待教練${dashVb}`;
+              const cls = marked ? 'dash-chip-confirmed' : (log ? 'dash-chip-filled' : 'dash-chip-empty');
+              return `<span class="dash-chip ${cls}">${a}·${bb}</span>`;
             }
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
