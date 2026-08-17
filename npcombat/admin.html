@@ -240,7 +240,6 @@
   .cov-pct{font-weight:700}
   .cov-g{color:#4ade80} .cov-y{color:#fbbf24} .cov-r{color:#f87171} .cov-d{color:var(--muted)}
   .cov-sub{font-size:11px;color:var(--muted);font-weight:400}
-  .dash-sep{font-size:10.5px;color:var(--muted);margin:0 2px 0 6px;align-self:center}
   .cov-note{font-size:12px;color:var(--muted);line-height:1.7;background:var(--navy2);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:10px}
   .track-stulist{flex-basis:100%;margin-top:8px;display:flex;flex-direction:column;gap:4px}
   .track-stu{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;color:var(--white);padding:4px 0;border-top:1px solid rgba(255,255,255,.04)}
@@ -1197,8 +1196,7 @@ function renderDashboard(target, part) {
           <div class="dash-coach-stats">
             ${blk('行動紀錄', r.fill, r.t)}
             ${blk('LINE繳交', r.sent, r.t)}
-            <span class="dash-sep">教練</span>
-            ${blk('回覆', r.rep, r.t)}
+            ${blk('LINE回覆', r.rep, r.t)}
           </div>
           <span class="coach-arrow">▼</span>
         </div>
@@ -1212,7 +1210,6 @@ function renderDashboard(target, part) {
               <div class="dash-stu-status">
                 ${log ? `<span class="stu-b dash-perfect">✍️ 已填<i>${pts} 分</i></span>` : `<span class="stu-b dash-zero">✍️ 未填</span>`}
                 ${flag(e.homework === true ? true : (e.homework === false ? false : null), '📤 交了', '📤 沒交', '📤 未標')}
-                <span class="dash-sep">教練</span>
                 ${flag(e.homework_replied === true ? true : (e.homework_replied === false ? false : null), '↩️ 回了', '↩️ 沒回', '↩️ 未標')}
                 <span class="stu-arrow-gap"></span>
               </div>
@@ -1328,8 +1325,7 @@ function renderDashboard(target, part) {
             ${hasCourse ? `<span class="dash-day-block ${lvl(hwPct)}">作業 <span class="dash-pct">${hwPct}%</span></span>` : ''}
             <span class="dash-day-block ${lvl(yFillPctC)}">行動紀錄 <span class="dash-pct">${yFillPctC}%</span></span>
             <span class="dash-day-block ${lvl(yConfPctC)}">LINE繳交 <span class="dash-pct">${yConfPctC}%</span></span>
-            <span class="dash-sep">教練</span>
-            <span class="dash-day-block ${lvl(yRepPctC)}">回覆 <span class="dash-pct">${yRepPctC}%</span></span>
+            <span class="dash-day-block ${lvl(yRepPctC)}">LINE回覆 <span class="dash-pct">${yRepPctC}%</span></span>
           </div>
           <span class="coach-arrow">▼</span>
         </div>
@@ -1356,7 +1352,6 @@ function renderDashboard(target, part) {
                   ? `<span class="stu-b ${lvl(pct(sLogs.length, wd))}" title="有填天數／平日數 · 累積行動分數">✍️ <span class="dash-pct">${sLogs.length}</span><i>/${wd} 天 · ${sPts} 分</i></span>`
                   : `<span class="stu-b stu-na">✍️ 未填</span>`}
                 ${mark('📤', sSent)}
-                <span class="dash-sep">教練</span>
                 ${mark('↩️', sRep)}
                 <span class="stu-arrow-gap"></span>
               </div>
