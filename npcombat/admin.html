@@ -1123,14 +1123,15 @@ function renderDashboard(target) {
     });
 
     const dashVb = dashSimple ? '標記' : '確認';
-    h += `<div class="sec-title"><span>教練回報總覽</span></div>`;
+    h += `<div class="sec-title"><span>各組完成度（開班至今累積）</span><span class="sec-count">平日 ${(() => { const b2=allBatches.find(x=>x.id===bid)||{}; let n=0; if(b2.start_date) for(let d=new Date(b2.start_date+'T00:00:00'); localDateStr(d)<=today; d.setDate(d.getDate()+1)){const w=d.getDay(); if(w>=1&&w<=5)n++;} return n; })()} 天</span></div>`;
     h += `<div class="dash-legend">
       <span><span class="dot dot-done"></span>教練已標記</span>
       <span><span class="dot dot-filled"></span>學員已填行動</span>
       <span><span class="dot dot-none"></span>都沒有</span>
     </div>`;
-    h += `<div class="cov-note">這張表看的是<b>學員完成度</b>，教練只是分組方式。<br>
+    h += `<div class="cov-note">這張表看的是<b>學員完成度</b>，教練只是分組方式。<b>四欄都是開班至今的累積率</b>（不是單日）。<br>
       前三欄＝<b>學員做到多少</b>（作業／行動紀錄／在 LINE 繳交）｜最後一欄＝<b>教練有沒有回</b><br>
+      分母：作業＝已上單元×組員數，其餘＝平日數×組員數（週末不排作業也不要求 LINE，不計入分母）。<br>
       ⚠️ 作業與 LINE 兩欄由教練標記產生：教練沒進來就會是 0，那是<b>沒人看</b>不是沒人做——
       「行動紀錄」是學員自己填的，不受教練影響，可以當對照。</div>`;
 
@@ -1168,10 +1169,22 @@ function renderDashboard(target) {
       //   LINE繳交  coach_engagement.homework=true／教練代標（學員貼賴群）
       //   LINE回覆  coach_engagement.homework_replied=true／教練標自己回了
       // ⚠️ 後三者都是教練產生：教練沒進來就全變 0，那是「沒人看」不是「沒人做」。
-      const engOf = (sid, d) => engRows.find(r => r.student_id === sid && r.log_date === d);
-      const yF = g.students.filter(s => yesterdayMap[s.id]).length;
-      const ySent = g.students.filter(s => engOf(s.id, yesterday)?.homework === true).length;
-      const yRep  = g.students.filter(s => engOf(s.id, yesterday)?.homework_replied === true).length;
+      // 四欄統一為「開班至今的累積完成率」（2026-08-17 修）。
+      // 原本作業是累積、其餘三欄只算昨天一天 → 尺度不一致；而昨天是週日（不排作業、教練不標），
+      // 三欄全 0% 看起來像狀況差，實際那天本來就沒事。用單一代表日整張表都會誤導。
+      // 分母一律「平日數 × 組員數」（週末不排作業也不要求 LINE，不計入分母）。
+      const bRow = allBatches.find(x => x.id === bid) || {};
+      let wd = 0;
+      if (bRow.start_date)
+        for (let d = new Date(bRow.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
+          const w = d.getDay(); if (w >= 1 && w <= 5) wd++;
+        }
+      const sids = new Set(g.students.map(s => s.id));
+      const isWd = ds => { const w = new Date(ds + 'T00:00:00').getDay(); return w >= 1 && w <= 5; };
+      const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date)).length;
+      const ySent = engRows.filter(r => sids.has(r.student_id) && r.homework === true && isWd(r.log_date)).length;
+      const yRep  = engRows.filter(r => sids.has(r.student_id) && r.homework_replied === true && isWd(r.log_date)).length;
+      const denom = wd * total;
       const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
       const hasCourse = !!(allBatches.find(x => x.id === bid) || {}).study_start;   // 行動組無課表
       // 作業要用「完成率」才能跟其他欄並排比較：已上單元 × 組員數 當分母
@@ -1180,8 +1193,8 @@ function renderDashboard(target) {
         Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) taughtN += arr.length; });
       const hwPct = pct(hwFull, taughtN * total);
 
-      const yFillPctC = pct(yF, total), yConfPctC = pct(ySent, total);
-      const yRepPctC = pct(yRep, total);
+      const yFillPctC = pct(yF, denom), yConfPctC = pct(ySent, denom);
+      const yRepPctC = pct(yRep, denom);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
       const allDone = yFillPctC === 100 && yConfPctC === 100 && yRepPctC === 100 && yCoachSelf;
