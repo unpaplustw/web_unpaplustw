@@ -267,7 +267,7 @@
   .dash-coach-hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;user-select:none}
   .dash-coach-hd:hover{background:var(--navy3)}
   .dash-stu-row{display:flex;justify-content:space-between;align-items:center;padding:8px 16px 8px 32px;border-top:1px solid rgba(255,255,255,.04);font-size:13px}
-  .dash-stu-status{display:flex;gap:6px;align-items:center}
+  .dash-stu-status{display:flex;gap:6px;align-items:center;flex-shrink:0}
   .dash-chip{padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500}
   .dash-chip-filled{background:var(--green-bg);color:var(--green)}
   .dash-chip-confirmed{background:var(--gold-lt);color:var(--gold)}
@@ -294,6 +294,15 @@
   .dash-day-block.dash-warn{background:var(--yellow-bg)}
   .dash-day-block.dash-danger{background:var(--red-bg)}
   .dash-day-block.dash-zero{background:rgba(224,92,92,.25)}
+  .stu-b{font-size:11.5px;color:var(--white);background:var(--navy3);padding:3px 10px;border-radius:5px;white-space:nowrap;min-width:130px;text-align:center;box-sizing:border-box}
+  .stu-arrow-gap{width:12px;margin-left:8px;flex-shrink:0}
+  .stu-b i{font-style:normal;font-weight:400;font-size:10.5px;color:var(--muted);margin-left:4px}
+  .stu-b.dash-perfect{background:rgba(91,141,239,.15)}
+  .stu-b.dash-pass{background:var(--green-bg)}
+  .stu-b.dash-warn{background:var(--yellow-bg)}
+  .stu-b.dash-danger{background:var(--red-bg)}
+  .stu-b.dash-zero{background:rgba(224,92,92,.25)}
+  .stu-b.stu-na{background:rgba(255,255,255,.05);color:var(--muted)}
   .dash-perfect .dash-pct{color:var(--blue)}
   .dash-pass .dash-pct{color:var(--green)}
   .dash-warn .dash-pct{color:var(--yellow)}
@@ -1242,6 +1251,7 @@ function renderDashboard(target, part) {
         Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) taughtN += arr.length; });
       const hwPct = pct(hwFull, taughtN * total);
 
+      const stuAct = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0);
       const yFillPctC = pct(yF, denom), yConfPctC = pct(ySent, denom);
       const yRepPctC = pct(yRep, denom);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
@@ -1265,20 +1275,30 @@ function renderDashboard(target, part) {
         </div>
         <div class="coach-body">
           ${g.students.map(s => {
-            const yLog = yesterdayMap[s.id];
-            const tLog = todayMap[s.id];
-            function chipFor(log, date) {
-              const marked = dashHandled(s, date, log);
-              // 兩個訊號分開顯示：daily 填了沒／教練標了沒
-              const a = log ? '已填' : '未填';
-              const bb = marked ? `教練已${dashVb}` : `待教練${dashVb}`;
-              const cls = marked ? 'dash-chip-confirmed' : (log ? 'dash-chip-filled' : 'dash-chip-empty');
-              return `<span class="dash-chip ${cls}">${a}·${bb}</span>`;
-            }
+            // 學員列＝表頭四欄的個人版，全部累積（原本只顯示昨天一天，在累積區塊裡是混尺度）
+            const sHwFull = hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length;
+            const sHwPct  = pct(sHwFull, taughtN);
+            const sLogs   = allLogs.filter(l => l.student_id === s.id && isWd(l.log_date));
+            const sPts    = sLogs.reduce((a, l) => a + stuAct(l), 0);
+            const sEng    = engRows.filter(r => r.student_id === s.id && isWd(r.log_date));
+            const sSent   = sEng.filter(r => r.homework === true).length;
+            const sRep    = sEng.filter(r => r.homework_replied === true).length;
+            const sJudged = sEng.filter(r => r.homework !== null && r.homework !== undefined).length;
+            // 繳交／回覆是教練「點」出來的，只有點過才有數字 → 沒點就是未標，不是 0%
+            const mark = (icon, n, label) => sJudged
+              ? `<span class="stu-b ${lvl(pct(n, wd))}">${icon} <span class="dash-pct">${n}</span><i>/${wd} 天</i></span>`
+              : `<span class="stu-b stu-na" title="教練還沒進來標記，不代表學員沒做">⬜ 未標</span>`;
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
               <div class="dash-stu-status">
-                ${chipFor(yLog, yesterday)}
+                ${hasCourse ? `<span class="stu-b ${lvl(sHwPct)}" title="全繳單元數／已上單元數">作業 <span class="dash-pct">${sHwPct}%</span><i>${sHwFull}/${taughtN}</i></span>` : ''}
+                ${sLogs.length
+                  ? `<span class="stu-b ${lvl(pct(sLogs.length, wd))}" title="有填天數／平日數 · 累積行動分數">✍️ <span class="dash-pct">${sLogs.length}</span><i>/${wd} 天 · ${sPts} 分</i></span>`
+                  : `<span class="stu-b stu-na">✍️ 未填</span>`}
+                ${mark('📤', sSent)}
+                <span class="dash-sep">教練</span>
+                ${mark('↩️', sRep)}
+                <span class="stu-arrow-gap"></span>
               </div>
             </div>`;
           }).join('')}
