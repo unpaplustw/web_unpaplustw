@@ -139,6 +139,7 @@
   .eng-btn.coach.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
   /* 學員沒交 → 「－ 無需回」不可點；不是灰掉懲罰，而是「這一格你已經做完了」 */
   .eng-btn[disabled]{cursor:default;opacity:.55}
+  .eng-closed{background:var(--red-lt,#fdecea);color:var(--red,#c0392b);font-weight:700;line-height:1.9}
   .eng-btn.coach.done[disabled]{opacity:1;background:var(--green-bg);border-color:var(--green);color:var(--green)}
   .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
   /* 學員填報狀況：純顯示、不可點、不影響分數（2026-08-09 加，教練反映看不到誰填了） */
@@ -735,6 +736,17 @@ function getDateStr(which) {
   const d = new Date();
   if (which === 'yesterday') d.setDate(d.getDate() - 1);
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+// 🔴 12:00 結算（Randoph 2026-08-19 定案）
+//    流程：學員晚上在賴群貼 → 系統抓不到，只有教練隔天早上看得到 LINE 時間戳
+//         → 教練回完作業後來網頁，把「已交」「已回」兩個勾一起打
+//         → 隔天 12:00 一到，那一天關閉，不能再改。
+//    為什麼要鎖：不鎖的話，教練可以事後補標、也可以回頭把「沒交」改成「已交」，
+//    記點就形同虛設，12:00 也只是建議而不是死線。
+function dayClosed(day) {
+  const dl = new Date(getDateStr(day) + 'T12:00:00');
+  dl.setDate(dl.getDate() + 1);
+  return new Date() > dl;
 }
 function formatDate(d) {
   const [y,m,dd] = d.split('-');
@@ -1553,8 +1565,14 @@ function renderEngagement() {
   if (hd) hd.textContent = M.title;
 
   const map = engMapFor(currentDay);
+  const closed = dayClosed(currentDay);
+  const yBtn = document.getElementById('btnYesterday');
+  if (yBtn) yBtn.textContent = dayClosed('yesterday') ? '昨天 🔒' : '昨天';
   let sYes = 0, cYes = 0, filledCount = 0;
-  let h = `<div class="eng-hint">${M.hint}<br><b class="eng-auto">✅ 點一下就自動儲存，不需要再按送出</b></div>`;
+  let h = closed
+    ? `<div class="eng-hint eng-closed">⛔ <b>${formatDate(getDateStr(currentDay))} 已於今天 12:00 結算</b>，不能再改。<br>
+       沒標到的已計入教練記點。學員事後補交請到「📋 作業」補勾——那邊不壓日期，隨時可補。</div>`
+    : `<div class="eng-hint">${M.hint}<br><b class="eng-auto">✅ 點一下就自動儲存，不需要再按送出</b></div>`;
 
   studentList.forEach(stu => {
     const rec = map[stu.id] || {};
@@ -1570,12 +1588,16 @@ function renderEngagement() {
           <span class="sym ${filled ? '' : 'no'}">${filled ? '📝' : '⬜'}</span>${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}<span class="caret">›</span>
         </span>
         <span class="eng-toggle">
-          <button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>
-          ${sv === true
-            ? `<button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>`
-            : sv === false
-              ? `<button class="eng-btn coach done" disabled title="學員沒交，沒東西可回——你標了「沒交」就算處理完，不會扣你">－ 無需回</button>`
-              : `<button class="eng-btn coach" disabled title="先點左邊判斷學員交了沒">${M.coach.label}</button>`}
+          ${closed
+            ? `<button class="eng-btn stu ${sv === true ? 'on' : ''}" disabled title="已於 12:00 結算">${sv === true ? M.stu.label : (sv === false ? '📝 沒交' : '📝 未標')}</button>`
+            : `<button class="eng-btn stu ${sv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.stu.field}')">${M.stu.label}</button>`}
+          ${closed
+            ? `<button class="eng-btn coach ${cv === true ? 'on' : ''} ${sv === false ? 'done' : ''}" disabled title="已於 12:00 結算">${sv === false ? '－ 無需回' : (cv === true ? M.coach.label : '✅ 沒回')}</button>`
+            : sv === true
+              ? `<button class="eng-btn coach ${cv === true ? 'on' : ''}" onclick="toggleEngage('${stu.id}','${M.coach.field}')">${M.coach.label}</button>`
+              : sv === false
+                ? `<button class="eng-btn coach done" disabled title="學員沒交，沒東西可回——你標了「沒交」就算處理完，不會扣你">－ 無需回</button>`
+                : `<button class="eng-btn coach" disabled title="先點左邊判斷學員交了沒">${M.coach.label}</button>`}
         </span>
       </div>
       <div class="eng-det ${engOpen.has(stu.id) ? 'open' : ''}"><div class="eng-det-in">${fillDetailHtml(stu)}</div></div>
@@ -1589,6 +1611,7 @@ function renderEngagement() {
 
 // 兩個勾各自獨立：點一下切 true/false
 async function toggleEngage(studentId, field) {
+  if (dayClosed(currentDay)) { toast('這一天已在 12:00 結算，不能再改'); return; }
   const dateStr = getDateStr(currentDay);
   const map = engMapFor(currentDay);
   const prev = map[studentId] ? { ...map[studentId] } : undefined;
