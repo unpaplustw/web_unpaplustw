@@ -148,6 +148,12 @@
   .sub-btn[disabled]{opacity:.5}
   .sub-done{padding:14px 16px;background:var(--green-bg,#e8f5ee);color:var(--green,#1d7a4c);font-size:13px;font-weight:700;line-height:1.9}
   .sub-late{padding:14px 16px;background:var(--red-lt,#fdecea);color:var(--red,#c0392b);font-size:13px;font-weight:700;line-height:1.9}
+  /* 一覽表（日期軸） */
+  .hw-tbl th{font-size:10px;line-height:1.4}
+  .hw-sub{color:var(--gold);font-size:9px;font-weight:400}
+  .hw-makeup{background:var(--gold-lt);color:var(--gold);font-size:13px;font-weight:700;line-height:1.8;padding:10px 12px;border-radius:10px;margin:10px 0}
+  .hw-usec{margin:14px 0 6px;font-size:13.5px}
+  .hw-det-actions button.on{background:var(--gold);color:#fff;border-color:var(--gold)}
   /* 🔁 補交區 */
   .mk-form{padding:4px 16px 18px;border-bottom:1px solid var(--border)}
   .mk-l{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12px 0 5px}
@@ -334,8 +340,7 @@
 <div class="mode-tabs">
   <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">✍️ 回報</button>
   <button class="mode-tab" id="tabReview" onclick="setMode('review')">🤝 小組</button>
-  <button class="mode-tab" id="tabHw" onclick="setMode('hw')">📋 作業</button>
-  <button class="mode-tab" id="tabMakeup" onclick="setMode('makeup')">🔁 補交</button>
+  <button class="mode-tab" id="tabHw" onclick="setMode('hw')">📋 一覽表</button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
 
@@ -405,7 +410,6 @@
   <div id="hwMissing"></div>
 </div>
 
-<div id="makeupView" style="display:none"></div>
 <div id="guideView" style="display:none">
   <div class="guide-wrap">
     <div class="guide-intro">教練帶班手冊 —— 照著做，帶好你的小組 💪</div>
@@ -986,13 +990,10 @@ function setMode(mode) {
   document.getElementById('tabReview').classList.toggle('on', mode === 'review');
   document.getElementById('tabGuide').classList.toggle('on', mode === 'guide');
   document.getElementById('tabHw').classList.toggle('on', mode === 'hw');
-  document.getElementById('tabMakeup').classList.toggle('on', mode === 'makeup');
   document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
   document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
   document.getElementById('guideView').style.display = mode === 'guide' ? '' : 'none';
   document.getElementById('hwView').style.display = mode === 'hw' ? '' : 'none';
-  document.getElementById('makeupView').style.display = mode === 'makeup' ? '' : 'none';
-  mkDelArm = null;                                        // 換分頁就取消待確認的刪除
   document.getElementById('detailView').style.display = 'none';
   if (mode === 'my') {
     currentDay = 'today';
@@ -1003,11 +1004,8 @@ function setMode(mode) {
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
   } else if (mode === 'hw') {
-    document.querySelector('.day-toggle').style.display = 'none';   // 作業檢核不壓日期
-    loadHwChecks().then(renderHw);
-  } else if (mode === 'makeup') {
-    document.querySelector('.day-toggle').style.display = 'none';   // 補交自己選日期
-    loadMakeups().then(renderMakeup);
+    document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
+    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits()]).then(renderHw);
   } else {
     document.querySelector('.day-toggle').style.display = '';
     subArm = false;
@@ -1074,197 +1072,118 @@ const MK_REASONS = {
     ['other',      '其他'],
   ],
 };
-const mkLabel = (subject, code) =>
-  ((MK_REASONS[subject] || []).find(r => r[0] === code) || [null, code])[1];
+// 補交不再是獨立功能——「補交」＝在一覽表改一個已結案日子的格子（見 logMakeup()）。
+// 原本的補交分頁（選日期／選對象／填原因）與 mkLabel／loadMakeups／renderMakeup／
+// saveMakeup／delMakeup 已於 2026-08-19 移除：Randoph「補交就是到一覽表，
+// 教練只會送出一次，剩下就是一覽表去回追哪一天的事情」——兩套入口就是多餘。
 
-let mkRows = [];
-let mkDelArm = null;          // 兩段式刪除：LIFF WebView 的 confirm 不可靠，改成點兩次
+// ══════════════════════════════════════════════════════════
+// 📋 一覽表（2026-08-19 改：橫軸日期，補交就在這裡）
+//   Randoph：「補交就是到一覽表，教練只會送出一次，剩下就是一覽表去回追哪一天的事情」
+//   所以沒有獨立的補交功能——「補交」＝改一個已結案日子的格子，改的時候留原因。
+//   橫軸用日期才涵蓋行動週（行動週沒有單元）：學習週的日期標單元號，行動週標「行動」。
+//   資料仍按單元存進 homework_checks（唯一能講出缺第幾題的來源）。
+// ══════════════════════════════════════════════════════════
+function dayUnitsOf(ds) { return (SCHEDULE || {})[ds] || null; }
 
-async function loadMakeups() {
-  const { data } = await sb.from('makeup_records')
-    .select('*').eq('batch_id', BATCH_ID).eq('coach_id', coachId)
-    .order('log_date', { ascending: false });
-  mkRows = data || [];
-}
-
-// 可補的日期＝開班日到今天的平日，且已結算（還沒結算就直接去「🤝 小組」改，不必補）
-function mkDates() {
+function dayList() {                       // 開班日到今天的平日
   const out = [];
   if (!batchDates.start) return out;
   const today = getDateStr('today');
   for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= today; d.setDate(d.getDate() + 1)) {
     const w = d.getDay();
-    if (w < 1 || w > 5) continue;                        // 週末不排作業
-    const ds = dateStrOf(d);
-    if (dateClosed(ds)) out.push(ds);
+    if (w >= 1 && w <= 5) out.push(dateStrOf(d));
   }
-  return out.reverse();                                  // 最近的排前面
+  return out;
 }
 
-function renderMakeup() {
-  const el = document.getElementById('makeupView');
-  const dates = mkDates();
-  if (!dates.length) {
-    el.innerHTML = `<div class="eng-hint">目前沒有已結算的日子需要補。<br>
-      每天 <b>12:00</b> 結算前一天——結算前直接在「🤝 小組」改就好。</div>`;
-    return;
+// 一格的狀態：full / part / none / na
+function dayState(sid, ds) {
+  const units = dayUnitsOf(ds);
+  if (units && units.length) {
+    const recs = units.map(u => hwMap[sid + '|' + u]).filter(Boolean);
+    if (!recs.length) return { k:'na', label:'' };
+    const done = recs.reduce((a, r) => a + (r.done || 0), 0);
+    const tot  = recs.reduce((a, r) => a + (r.total || 0), 0);
+    if (recs.length === units.length && tot > 0 && done >= tot) return { k:'full', label:'✓' };
+    if (done > 0) return { k:'part', label:`${done}/${tot}` };
+    return { k:'none', label:'✕' };
   }
-  const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
-  let h = `<div class="eng-hint">
-    🔁 <b>補交不會取消記點</b>——記點記的是「當時有沒有做到」，補交記的是「事後有沒有補救」。<br>
-    兩個一起看，班主才分得出「忙但負責」和「擺爛」。<b>該補的請補，這對你有利。</b></div>`;
-  h += `<div class="mk-form">
-    <label class="mk-l">補哪一天</label>
-    <select class="mk-in" id="mkDate">${
-      dates.map(d => `<option value="${d}">${formatDate(d)}（週${wd(d)}）</option>`).join('')}</select>
-    <label class="mk-l">補誰的</label>
-    <select class="mk-in" id="mkWho" onchange="renderMkReasons()">${
-      studentList.map(s => `<option value="s:${s.id}">${s.name}　學員補交</option>`).join('')
-      }<option value="c:me">我自己　教練沒在 12:00 前回完</option></select>
-    <label class="mk-l">原因</label>
-    <select class="mk-in" id="mkReason"></select>
-    <label class="mk-l">補充說明（選填）</label>
-    <input class="mk-in" id="mkNote" maxlength="100" placeholder="例如：學員 11:30 才貼，已於當天下午回覆">
-    <button class="mk-save" id="mkSave" onclick="saveMakeup()">送出補交紀錄</button>
-  </div>`;
-  h += `<div class="eng-total">🔁 已填 ${mkRows.length} 筆補交紀錄</div>`;
-  h += mkRows.map(r => {
-    const who = r.subject === 'coach' ? '我自己（教練）'
-      : ((studentList.find(s => s.id === r.student_id) || {}).name || '（已不在組內）');
-    const armed = mkDelArm === r.id;
-    return `<div class="mk-row">
-      <div><b>${formatDate(r.log_date)}（週${wd(r.log_date)}）</b>　${who}</div>
-      <div class="mk-sub">${mkLabel(r.subject, r.reason_code)}${r.reason_note ? '　·　' + r.reason_note : ''}</div>
-      <div class="mk-sub">填於 ${fmtTime(r.created_at)}
-        <span class="mk-del" onclick="delMakeup('${r.id}')">${armed ? '⚠️ 再點一次確定刪除' : '刪除'}</span></div>
-    </div>`;
-  }).join('');
-  el.innerHTML = h;
-  renderMkReasons();
+  // 行動週：看小組心得（教練標）
+  const r = engAll[sid + '|' + ds];
+  if (r && r.homework === true)  return { k:'full', label:'✓' };
+  if (r && r.homework === false) return { k:'none', label:'✕' };
+  return { k:'na', label:'' };
 }
 
-function renderMkReasons() {
-  const sel = document.getElementById('mkWho');
-  if (!sel) return;
-  const subject = sel.value.startsWith('c:') ? 'coach' : 'student';
-  document.getElementById('mkReason').innerHTML =
-    MK_REASONS[subject].map(([c, t]) => `<option value="${c}">${t}</option>`).join('');
-}
-
-async function saveMakeup() {
-  const btn = document.getElementById('mkSave');
-  const who = document.getElementById('mkWho').value;
-  const subject = who.startsWith('c:') ? 'coach' : 'student';
-  const row = {
-    batch_id: BATCH_ID, coach_id: coachId,
-    log_date: document.getElementById('mkDate').value,
-    subject,
-    student_id: subject === 'student' ? who.slice(2) : null,
-    reason_code: document.getElementById('mkReason').value,
-    reason_note: (document.getElementById('mkNote').value || '').trim() || null,
-  };
-  btn.disabled = true;
-  const { error } = await sb.from('makeup_records').insert(row);
-  btn.disabled = false;
-  if (error) { toast('儲存失敗：' + error.message); return; }
-  toast('已記錄 ✅');
-  await loadMakeups();
-  renderMakeup();
-}
-
-async function delMakeup(id) {
-  if (mkDelArm !== id) { mkDelArm = id; renderMakeup(); return; }   // 第一次點只是待確認
-  mkDelArm = null;
-  const { error } = await sb.from('makeup_records').delete().eq('id', id);
-  if (error) { toast('刪除失敗：' + error.message); return; }
-  toast('已刪除');
-  await loadMakeups();
-  renderMakeup();
-}
-
-// ══════════════════════════════════════════════════════════
-// 📋 作業檢核（2026-08-14 開會定案）
-//   不壓日期，只問「這個學員的這個單元完成了沒」。教練任何時候可回頭補。
-//   格子三態由題目勾選數推導：全繳／部分／沒繳；沒有紀錄＝還沒檢核（不是沒交）。
-//   資料表 npcombat.homework_checks（batch,student,unit 唯一），items={"題號":true/false}
-// ══════════════════════════════════════════════════════════
-let hwMap = {};          // `${student_id}|${unit_no}` -> row
-let hwOpen = null;       // 展開中的 {sid, unit}
-
-async function loadHwChecks() {
-  hwMap = {};
-  if (!coachId || !studentList.length) return;
-  const { data } = await sb.from('homework_checks')
-    .select('student_id, unit_no, items, done, total')
-    .eq('batch_id', BATCH_ID).in('student_id', studentList.map(s => s.id));
-  (data || []).forEach(r => { hwMap[r.student_id + '|' + r.unit_no] = r; });
-}
-
-function hwState(sid, unit) {
-  const r = hwMap[sid + '|' + unit];
-  if (!r) return 'na';
-  if (r.total > 0 && r.done >= r.total) return 'full';
-  if (r.done > 0) return 'part';
-  return 'none';
-}
-
-// 到今天為止「已經上過」的單元（依 units.js 的 SCHEDULE）；未來的單元灰掉不給點
-function unitsUpToToday() {
-  const today = getDateStr('today');
-  const set = new Set();
-  Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) arr.forEach(n => set.add(n)); });
-  return set;
+// 一覽表需要全期的 coach_engagement（小組分頁只抓今天/昨天）
+let engAll = {};
+async function loadEngAll() {
+  const { data } = await sb.from('coach_engagement')
+    .select('student_id, log_date, homework, homework_replied')
+    .eq('batch_id', BATCH_ID).eq('coach_id', coachId);
+  engAll = {};
+  (data || []).forEach(r => { engAll[r.student_id + '|' + r.log_date] = r; });
 }
 
 function renderHw() {
   const grid = document.getElementById('hwGrid');
   if (!studentList.length) { grid.innerHTML = '<div class="hw-hint">目前沒有配對到你的學員</div>'; return; }
-  const taught = unitsUpToToday();
+  const days = dayList();
+  if (!days.length) { grid.innerHTML = '<div class="hw-hint">班期還沒開始</div>'; return; }
+  const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
-  let h = '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
-  UNITS.forEach(u => h += `<th title="${u.n}">${u.no}</th>`);
+  let h = `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補交並要填原因</b>——
+    教練每天只送出一次，之後就在這裡回追。</div>`;
+  h += '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
+  days.forEach(ds => {
+    const us = dayUnitsOf(ds);
+    h += `<th title="${ds}（週${wd(ds)}）">${ds.slice(5).replace('-', '/')}<br>
+      <span class="hw-sub">${us ? 'U' + us.join('·') : '行動'}${dateClosed(ds) ? ' 🔒' : ''}</span></th>`;
+  });
   h += '</tr>';
   const missing = [];
   studentList.forEach(stu => {
     h += `<tr><td class="hw-nm">${stu.name}</td>`;
     const miss = [];
-    UNITS.forEach(u => {
-      const st = hwState(stu.id, u.no);
-      const r = hwMap[stu.id + '|' + u.no];
-      const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.unit === u.no;
-      const locked = !taught.has(u.no);
-      const label = st === 'part' ? `${r.done}/${r.total}` : st === 'full' ? '✓' : st === 'none' ? '✕' : '';
-      h += `<td class="hw-cell hw-${st} ${isOpen ? 'on' : ''} ${locked ? 'locked' : ''}"
-               ${locked ? '' : `onclick="openHw('${stu.id}',${u.no})"`} title="${u.n}${locked ? '（尚未上到）' : ''}">${label}</td>`;
-      if (!locked && st !== 'full') {
-        // 部分繳：直接列缺哪幾題，教練不必再點開確認
-        if (st === 'part') {
-          const lack = u.hw.map((_, i) => i + 1).filter(q => (r.items || {})[String(q)] !== true);
-          miss.push(`⚠️ U${u.no} 缺第 ${lack.join('、')} 題`);
-        } else if (st === 'none') miss.push(`❌ U${u.no} 沒繳`);
-        else miss.push(`⬜ U${u.no} 待確認`);
+    days.forEach(ds => {
+      const st = dayState(stu.id, ds);
+      const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.ds === ds;
+      h += `<td class="hw-cell hw-${st.k} ${isOpen ? 'on' : ''}"
+               onclick="openDay('${stu.id}','${ds}')"
+               title="${ds}（週${wd(ds)}）${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${st.label}</td>`;
+      if (st.k !== 'full') {
+        const us = dayUnitsOf(ds);
+        const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + ' 行動';
+        if (st.k === 'part') {
+          // 部分繳：列出缺哪幾題，教練不必再點開確認
+          const lack = [];
+          (us || []).forEach(u => {
+            const r = hwMap[stu.id + '|' + u]; const uu = UNITS.find(x => x.no === u);
+            if (!uu) return;
+            uu.hw.forEach((_, idx) => { if (!r || (r.items || {})[String(idx + 1)] !== true) lack.push(`U${u}-${idx + 1}`); });
+          });
+          miss.push(`⚠️ ${tag} 缺 ${lack.join('、')}`);
+        } else if (st.k === 'none') miss.push(`❌ ${tag} 沒繳`);
+        else miss.push(`⬜ ${tag} 待確認`);
       }
     });
     h += '</tr>';
     if (miss.length) missing.push({ name: stu.name, miss });
   });
   h += '</table></div>';
-
   grid.innerHTML = h;
   renderHwDetail();
 
-  // 缺件清單放最下面：這才是教練要拿去催的東西；一鍵複製直接貼小組群
   const mbox = document.getElementById('hwMissing');
   if (!missing.length) {
-    mbox.innerHTML = '<div class="hw-missing">🎉 目前上過的單元，每位學員都全繳了</div>';
+    mbox.innerHTML = '<div class="hw-missing">🎉 目前為止每位學員都全繳了</div>';
     return;
   }
-  // 一人一段、一單元一行——手機上好讀，雖然長一點
   const lines = missing.map(m => `【${m.name}】\n` + m.miss.map(x => '　' + x).join('\n'));
-  // 文案：敘述＋鼓勵，不壓截止時間（Randoph 2026-08-16：作業是為了在事業上專業呈現，補上就好）
   const copyText =
     '📋 作業進度小提醒\n\n' +
-    '課程作業是把每一堂學到的東西練成自己的話。有一些單元還沒完成，' +
+    '課程作業是把每一堂學到的東西練成自己的話。有一些還沒完成，' +
     '沒有真正落實學習，未來在事業上就很難專業呈現——這也是我們一起來上課的初衷。\n\n' +
     lines.join('\n\n') + '\n\n' +
     '缺哪個就補哪個，補上就好，不用趕、也不用一次全部。有卡住的地方隨時在群裡說，我陪你一起看 💪';
@@ -1275,8 +1194,8 @@ function renderHw() {
   </div>`;
 }
 
-function openHw(sid, unit) {
-  hwOpen = (hwOpen && hwOpen.sid === sid && hwOpen.unit === unit) ? null : { sid, unit };
+function openDay(sid, ds) {
+  hwOpen = (hwOpen && hwOpen.sid === sid && hwOpen.ds === ds) ? null : { sid, ds };
   renderHw();
   if (hwOpen) setTimeout(() => document.getElementById('hwDetail')?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
 }
@@ -1285,27 +1204,65 @@ function renderHwDetail() {
   const box = document.getElementById('hwDetail');
   if (!hwOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
   const stu = studentList.find(s => s.id === hwOpen.sid);
-  const u = UNITS.find(x => x.no === hwOpen.unit);
-  if (!stu || !u) { box.style.display = 'none'; return; }
-  const r = hwMap[stu.id + '|' + u.no];
-  const items = (r && r.items) || {};
-  const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
+  if (!stu) { box.style.display = 'none'; return; }
+  const ds = hwOpen.ds, units = dayUnitsOf(ds), closed = dateClosed(ds);
+  const wdc = '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
+
   let h = `<div class="hw-det">
-    <div class="hw-det-hd"><b>${stu.name} · 第 ${u.no} 單元 ${u.n}</b><button class="hw-det-close" onclick="openHw('${stu.id}',${u.no})">收起</button></div>`;
-  u.hw.forEach((q, i) => {
-    const on = items[String(i + 1)] === true;
-    h += `<div class="hw-q ${on ? 'on' : ''}" onclick="toggleHwItem('${stu.id}',${u.no},${i + 1})">
-      <div class="hw-box">${on ? '✓' : ''}</div><div class="hw-qt">${i + 1}. ${q}</div></div>`;
-  });
-  h += `<div class="hw-det-sum">${done}/${u.hw.length}　${done === u.hw.length ? '✅ 全繳' : done > 0 ? '🔶 部分繳' : r ? '❌ 沒繳' : '⬜ 還沒檢核'}</div>
-    <div class="hw-det-actions">
-      <button onclick="setHwAll('${stu.id}',${u.no},true)">全部勾（全繳）</button>
-      <button onclick="setHwAll('${stu.id}',${u.no},false)">全部取消（沒繳）</button>
-    </div></div>`;
+    <div class="hw-det-hd"><b>${stu.name} · ${ds.slice(5).replace('-','/')}（週${wdc}）${
+      units ? ' U' + units.join('·') : ' 行動心得'}</b>
+      <button class="hw-det-close" onclick="openDay('${stu.id}','${ds}')">收起</button></div>`;
+
+  if (closed) {
+    // 已結案 → 這一次改動就是補交，要留原因（Randoph：從一覽表點擊就一定是補交）
+    h += `<div class="hw-makeup">🔒 <b>這一天已結案</b>，以下改動會記成<b>補交</b>。<br>
+      <select class="mk-in" id="hwMkReason" style="margin-top:8px">${
+        MK_REASONS.student.map(([c, t]) => `<option value="${c}">${t}</option>`).join('')}</select></div>`;
+  }
+
+  if (units && units.length) {
+    units.forEach(uno => {
+      const u = UNITS.find(x => x.no === uno);
+      if (!u) return;
+      const r = hwMap[stu.id + '|' + uno];
+      const items = (r && r.items) || {};
+      const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
+      h += `<div class="hw-usec"><b>U${uno} ${u.n}</b>　<span class="hw-sub">${done}/${u.hw.length}</span></div>`;
+      u.hw.forEach((q, i) => {
+        const on = items[String(i + 1)] === true;
+        h += `<div class="hw-q ${on ? 'on' : ''}" onclick="toggleHwItem('${stu.id}',${uno},${i + 1},'${ds}')">
+          <div class="hw-box">${on ? '✓' : ''}</div><div class="hw-qt">${i + 1}. ${q}</div></div>`;
+      });
+      h += `<div class="hw-det-actions">
+        <button onclick="setHwAll('${stu.id}',${uno},true,'${ds}')">U${uno} 全勾</button>
+        <button onclick="setHwAll('${stu.id}',${uno},false,'${ds}')">U${uno} 全取消</button>
+      </div>`;
+    });
+  } else {
+    // 行動週：只有「小組心得交了沒」
+    const r = engAll[stu.id + '|' + ds] || {};
+    h += `<div class="hw-det-actions" style="margin-top:10px">
+      <button class="${r.homework === true ? 'on' : ''}" onclick="setDayPost('${stu.id}','${ds}',true)">📝 已交心得</button>
+      <button class="${r.homework === false ? 'on' : ''}" onclick="setDayPost('${stu.id}','${ds}',false)">✕ 沒交</button>
+    </div>`;
+  }
+  h += '</div>';
   box.innerHTML = h; box.style.display = '';
 }
 
-async function saveHw(sid, unit, items) {
+// 已結案時把這次改動記成補交（一次改動記一筆，原因取面板上的選單）
+async function logMakeup(sid, ds) {
+  if (!dateClosed(ds)) return;
+  const sel = document.getElementById('hwMkReason');
+  await sb.from('makeup_records').insert({
+    batch_id: BATCH_ID, coach_id: coachId, log_date: ds,
+    subject: 'student', student_id: sid,
+    reason_code: sel ? sel.value : 'other',
+    reason_note: '一覽表補交'
+  });
+}
+
+async function saveHw(sid, unit, items, ds) {
   const u = UNITS.find(x => x.no === unit);
   const total = u.hw.length;
   const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
@@ -1318,18 +1275,31 @@ async function saveHw(sid, unit, items) {
   }, { onConflict: 'batch_id,student_id,unit_no' });
   if (error) {
     if (prev) hwMap[sid + '|' + unit] = prev; else delete hwMap[sid + '|' + unit];
-    renderHw(); toast('儲存失敗：' + error.message);
+    renderHw(); toast('儲存失敗：' + error.message); return;
   }
+  if (ds) await logMakeup(sid, ds);
 }
-function toggleHwItem(sid, unit, qno) {
+function toggleHwItem(sid, unit, qno, ds) {
   const cur = { ...((hwMap[sid + '|' + unit] || {}).items || {}) };
   cur[String(qno)] = !cur[String(qno)];
-  saveHw(sid, unit, cur);
+  saveHw(sid, unit, cur, ds);
 }
-function setHwAll(sid, unit, val) {
+function setHwAll(sid, unit, val, ds) {
   const u = UNITS.find(x => x.no === unit);
   const items = {}; u.hw.forEach((_, i) => items[String(i + 1)] = val);
-  saveHw(sid, unit, items);
+  saveHw(sid, unit, items, ds);
+}
+
+// 行動週的格子：改「小組心得交了沒」
+async function setDayPost(sid, ds, val) {
+  const { error } = await sb.from('coach_engagement').upsert({
+    batch_id: BATCH_ID, coach_id: coachId, student_id: sid, log_date: ds, homework: val
+  }, { onConflict: 'batch_id,student_id,log_date' });
+  if (error) { toast('儲存失敗：' + error.message); return; }
+  await loadEngAll();
+  await logMakeup(sid, ds);
+  renderHw();
+  toast('已儲存 ✅');
 }
 
 // ── 教練指南：依今天日期自動落在當前階段（開班前/中/後），避免看到不相干的雜訊 ──
@@ -1744,7 +1714,7 @@ function engMapFor(day) { return day === 'today' ? engToday : engYesterday; }
 // 原本的 engaged／engaged_replied 已停用（6 筆舊資料併進 homework），欄位保留不刪。
 function engModeFor(dateStr) {
   return { title:'小組回報',
-           hint:'🔴 <b>學員當天 22:00 前貼＝已交</b>，過了才貼就是沒交（事後補交請到「📋 作業」補勾，不改這一天）。<br>' +
+           hint:'🔴 <b>學員當天 22:00 前貼＝已交</b>，過了才貼就是沒交（事後補交到「📋 一覽表」點那一格）。<br>' +
                 '🔴 <b>你隔天 12:00 前</b>標完＋該回的回完。學員沒交時「已回」會變「－ 無需回」，不扣你。',
            stu:  { field:'homework',         label:'📝 已交', total:'已交' },
            coach:{ field:'homework_replied', label:'✅ 已回', total:'已回' } };
@@ -1790,7 +1760,7 @@ function renderEngagement() {
   let sYes = 0, cYes = 0, filledCount = 0;
   let h = closed
     ? `<div class="eng-hint eng-closed">⛔ <b>${formatDate(getDateStr(currentDay))} 已於今天 12:00 結算</b>，不能再改。<br>
-       沒標到的已計入教練記點。學員事後補交請到「📋 作業」補勾——那邊不壓日期，隨時可補。</div>`
+       沒標到的已計入教練記點。學員事後補交到「📋 一覽表」點那一格改，改動會記成補交。</div>`
     : `<div class="eng-hint">${M.hint}<br><b class="eng-auto">✅ 點一下就自動儲存，不需要再按送出</b></div>`;
 
   studentList.forEach(stu => {
@@ -1832,10 +1802,10 @@ function renderEngagement() {
     const t = fmtTime(sub.submitted_at);
     h += `<div class="sub-done">✅ <b>${formatDate(dateStr)} 已於 ${t} 送出</b>，這一天結案了。<br>
       ${sub.unreplied ? `送出時有 <b>${sub.unreplied} 位</b>已交未回，那會記在你的點數上。<br>` : ''}
-      學員事後補繳請到「🔁 補交」留紀錄——<b>補繳不用急著回，有空再處理</b>。</div>`;
+      學員事後補繳到「📋 一覽表」點那一格改就好——<b>補繳不用急著回，有空再處理</b>。</div>`;
   } else if (overDeadline(dateStr)) {
     h += `<div class="sub-late">⏰ <b>${formatDate(dateStr)} 已過隔天 12:00</b>，沒有送出，這一天已自動結案並計點。<br>
-      要補請到「🔁 補交」。</div>`;
+      要補請到「📋 一覽表」點那一格改。</div>`;
   } else {
     const pend = studentList.filter(stu => {
       const r = map[stu.id] || {};
