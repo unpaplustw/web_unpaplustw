@@ -647,6 +647,14 @@ const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 
 // 七大行動與「小組回報行動心得」同一個開放日（DB batches.action_open_date，27期 8/10）
 // 2026-08-08 定案：行動心得要到行動日才能按——有行動才有心得可分享
 // 締結與宣言不受此鎖影響，全期開放
+// 小組回報的標籤依階段變：學習週貼的是作業，行動週貼的才是行動心得
+function labelGroupReport() {
+  const el = document.querySelector('#groupReport .group-label');
+  if (!el) return;
+  const inStudy = studyEnd && today() <= studyEnd;
+  el.textContent = inStudy ? '🎙️ 我已經在小組回報作業' : '🎙️ 我已經小組回報 3 分鐘行動心得';
+}
+
 function applyActionLock() {
   if (!actionOpenDate || today() >= actionOpenDate) return;
   const label = openLabel(actionOpenDate);
@@ -657,13 +665,12 @@ function applyActionLock() {
     if (ctrl) ctrl.insertAdjacentHTML('afterend', `<span class="act-lock">🔒 ${label}</span>`);
   });
 
-  const gr = document.getElementById('groupReport');
-  if (gr) {
-    gr.classList.add('locked');
-    gr.removeAttribute('onclick');
-    // 插在最後面（勾選框已隱藏，插它後面會跑到最左）
-    gr.insertAdjacentHTML('beforeend', `<span class="act-lock">🔒 ${label}</span>`);
-  }
+  // 🔴 2026-08-19 解鎖：小組回報不再跟七大行動綁同一把鎖。
+  //    原因（實測）：27 期 8/3～8/7 學員勾了 0 筆，8/10 開放後才有 55 筆——
+  //    那五天學員在 LINE 貼的是「作業」不是「行動心得」，卻因為這把鎖而
+  //    連一個自己的紀錄都留不下，然後灰格算他沒交、記點，他連自證管道都沒有。
+  //    當初「有行動才有心得可分享」的理由只對行動週成立，綁錯了對象。
+  //    → 小組回報全期開放，標籤依階段變（見 labelGroupReport()）。
 
   const fa = document.getElementById('formArea');   // 提示放在行動頁籤最上面
   if (fa) fa.insertAdjacentHTML('afterbegin',
@@ -930,6 +937,7 @@ async function init() {
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     studentId = stu.id;
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
+    labelGroupReport();  // 小組回報的字依階段變（學習週＝作業／行動週＝行動心得）
     // 今天有指定單元 → 預設停在學習頁籤，否則直接進行動頁籤
     switchTab(renderStudy() > 0 ? 'study' : 'action');
     memberName = member.name;

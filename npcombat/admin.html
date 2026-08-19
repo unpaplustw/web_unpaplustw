@@ -241,7 +241,7 @@
   .hwm th.nm3,.hwm td.nm3{left:142px;min-width:58px;max-width:58px}
   .hwm td.nm2,.hwm td.nm3{color:var(--muted);font-weight:400;font-size:11px;overflow:hidden;text-overflow:ellipsis}
   .hwm-c{width:26px;height:24px;border-radius:5px;text-align:center;font-weight:700;color:#fff;font-size:10px}
-  .hwm-c.full{background:#22a05a} .hwm-c.part{background:#e0a020} .hwm-c.none{background:#d9534f} .hwm-c.na{background:rgba(255,255,255,.07)} .hwm-c.nax{background:#d9534f;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5)} .hwm-c.lock{background:transparent}
+  .hwm-c.full{background:#22a05a} .hwm-c.part{background:#e0a020} .hwm-c.none{background:#d9534f} .hwm-c.na{background:rgba(255,255,255,.07)} .hwm-c.nax{background:#d9534f;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5)} .hwm-c.said{background:#8a6d1a;box-shadow:inset 0 0 0 1.5px rgba(240,192,64,.8)} .hwm-c.lock{background:transparent}
   .hwm-sum{padding:8px 4px;font-size:12px;color:var(--white);white-space:nowrap}
   .hwm-sum b{color:#f87171}
   /* 教練回報總覽（simple 模式，2026-08-13） */
@@ -503,7 +503,7 @@ async function load() {
   yesterdayLogs = (recentLogs || []).filter(l => l.log_date === yesterday);
   // 全期 logs（追蹤分析用）
   const { data: full } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, confirmed, proof_checks')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, confirmed, proof_checks, group_reported')
     .eq('batch_id', bid);
   allLogs = full || [];
   // 教練標記（simple 模式）：教練回報總覽用
@@ -706,10 +706,17 @@ function renderHwMatrix(realStudents, coachById) {
   const simpleMode = (batchRow().coach_mode || 'simple') === 'simple';
 
   // 一格的狀態：回傳 { k, txt, why }
-  //   k: full / part / none / nax（逾期未做）/ na（期限內）/ lock（不列入）
+  //   k: full / part / none / said（學員自述待查）/ nax（逾期未做）/ na（期限內）/ lock
+  //
+  //   🔴 兩條線交叉驗證（2026-08-19 Randoph：「LINE 群交和繳不應該只有一條」）
+  //      學員說「我貼了」＝ action_logs.group_reported（全期唯一不經過教練的自述）
+  //      教練說「他貼了」＝ coach_engagement.homework
+  //      兩條都要看：只有學員說 → 不是紅叉，是「待教練查」，責任在教練。
   function cellOf(sid, ds) {
     const units = dayUnits[ds];
     const eng   = engBy[sid + '|' + ds];
+    const log   = logBy[sid + '|' + ds];
+    const said  = !!(log && log.group_reported);        // 學員自己勾了「我在小組回報了」
     const over  = dayOverdue(ds);
 
     if (units && units.length) {
@@ -722,51 +729,62 @@ function renderHwMatrix(realStudents, coachById) {
         if (done > 0) return { k:'part', txt:`${done}/${tot}`, why:'逐題檢核：部分繳' };
         return { k:'none', txt:'✕', why:'逐題檢核：沒繳' };
       }
-      // ② 沒有逐題紀錄，就看教練在 LINE 標了什麼（連動）
+      // ② 教練標了什麼（連動）
       if (eng && eng.homework === true)
         return { k:'full', txt:'✓', why:'LINE 標已交（未逐題檢核）', soft:true };
       if (eng && eng.homework === false)
         return { k:'none', txt:'✕', why:'LINE 標沒交' };
-      // ③ 兩邊都沒有
+      // ③ 教練沒標，但學員自己說貼了 → 責任在教練，不是學員沒交
+      if (said)
+        return { k:'said', txt:'待', why:'學員自己勾了「已在小組回報」，教練還沒查證 → 不算學員沒交' };
+      // ④ 兩條線都沒有
       return over ? { k:'nax', txt:'✕', why:'教練逾時未處理 → 等同沒繳' }
                   : { k:'na',  txt:'',  why:'還在期限內' };
     }
 
     // 行動週（那天沒有單元）：看學員有沒有填 daily ＋ 教練有沒有回
     if (actStart && ds < actStart) return { k:'lock', txt:'', why:'行動尚未開放' };
-    const log = logBy[sid + '|' + ds];
     if (!simpleMode) {
       if (log) return log.confirmed ? { k:'full', txt:'✓', why:'學員已填＋教練已確認（full 模式）' }
                                     : { k:'part', txt:'·', why:'學員已填，教練未確認（full 模式）' };
       return over ? { k:'nax', txt:'✕', why:'學員未填、教練未確認' }
                   : { k:'na',  txt:'',  why:'還在期限內' };
     }
-    if (eng && eng.homework === true)
-      return { k: eng.homework_replied === true ? 'full' : 'part',
-               txt: eng.homework_replied === true ? '✓' : '·',
-               why: eng.homework_replied === true ? '已交＋教練已回' : '已交，教練未回' };
-    if (eng && eng.homework === false) return { k:'none', txt:'✕', why:'LINE 標沒交' };
-    if (log) return { k:'part', txt:'·', why:'學員填了行動紀錄，教練未標' };
-    return over ? { k:'nax', txt:'✕', why:'教練逾時未處理 → 等同沒繳' }
+    // 🔴 行動週是「兩件事」（Randoph 2026-08-19）：
+    //    ① 行動回報＝學員在 daily 填七大行動（action_logs 有紀錄，不經過教練）
+    //    ② LINE 回報行動心得＝學員貼群組（學員自述 group_reported 或教練標 homework）
+    //    兩件都做＝✓；只做一件＝「半」；都沒做才是紅叉。
+    const acted = !!log;                                        // ① 有填行動回報
+    const posted = said || (eng && eng.homework === true);       // ② 有貼心得（任一條線說有）
+    if (eng && eng.homework === false && !acted)
+      return { k:'none', txt:'✕', why:'教練標沒交，學員也沒填行動回報' };
+    if (acted && posted)
+      return { k:'full', txt:'✓',
+               why:`行動回報 ✓　心得 ✓（${said ? '學員自述' : ''}${said && eng && eng.homework === true ? '＋' : ''}${eng && eng.homework === true ? '教練已標' : ''}）` };
+    if (acted)  return { k:'part', txt:'半', why:'只有行動回報，小組心得沒有紀錄' };
+    if (posted) return { k:'part', txt:'半', why:`只有小組心得（${said ? '學員自述' : '教練已標'}），沒填行動回報` };
+    return over ? { k:'nax', txt:'✕', why:'行動回報與小組心得都沒有紀錄' }
                 : { k:'na',  txt:'',  why:'還在期限內' };
   }
 
   const rows = realStudents.map(s => {
-    let full = 0, part = 0, none = 0, na = 0, nax = 0, soft = 0;
+    let full = 0, part = 0, none = 0, na = 0, nax = 0, soft = 0, said = 0;
     days.forEach(ds => {
       const c = cellOf(s.id, ds);
       if (c.k === 'lock') return;
       if (c.k === 'full') { full++; if (c.soft) soft++; }
       else if (c.k === 'part') part++;
       else if (c.k === 'none') none++;
+      else if (c.k === 'said') said++;      // 學員自述待查：不算缺件，責任在教練
       else if (c.k === 'nax') nax++;
       else na++;
     });
-    return { s, full, part, none, na, nax, soft, missing: part + none + nax };
-  }).sort((a, b2) => (b2.missing - a.missing) || (b2.na - a.na));
+    return { s, full, part, none, na, nax, soft, said, missing: part + none + nax };
+  }).sort((a, b2) => (b2.missing - a.missing) || (b2.said - a.said) || (b2.na - a.na));
 
   const overdueCells = rows.reduce((a, r) => a + r.nax, 0);
   const softCells    = rows.reduce((a, r) => a + r.soft, 0);
+  const saidCells    = rows.reduce((a, r) => a + r.said, 0);
   const zeroDone     = rows.filter(r => (r.na + r.nax) === days.length).length;
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
@@ -777,6 +795,9 @@ function renderHwMatrix(realStudents, coachById) {
     綠✓=完成　橘=部分／教練未回　<b>紅✕=沒交</b>（含教練逾時未處理）　灰=還在期限內　空=未開放<br>
     🔴 <b>教練在 LINE 標「已交」會直接連動到這張表</b>——目前有 <b>${softCells} 格</b>是這樣來的
     （綠底加白點，表示還沒逐題檢核）。<b>每格的死線＝隔天 12:00</b>，過了還沒處理就是紅叉、等同沒繳。<br>
+    🟡 <b>「待」＝學員自己勾了「已在小組回報」，但教練還沒查證</b>——目前 <b>${saidCells} 格</b>，
+    <b>這些不算學員沒交</b>，責任在教練。這是唯一不經過教練的學員自述（daily 的小組回報勾）。<br>
+    行動週一格看<b>兩件事</b>：行動回報＋小組心得。兩件都做＝✓，只做一件＝「半」。<br>
     滑過任何一格都看得到它是怎麼判定的${zeroDone ? `。⚠️ 有 <b>${zeroDone} 人</b>整排都沒被處理——那要找的是教練` : ''}。</div>`;
   h += `<div class="hwm-wrap"><table class="hwm"><tr>
     <th class="nm nm1">學員</th><th class="nm nm2">教練</th><th class="nm nm3">領袖</th>`;
@@ -794,7 +815,8 @@ function renderHwMatrix(realStudents, coachById) {
       const c = cellOf(r.s.id, ds);
       h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}">${c.txt}</td>`;
     });
-    const note = [r.nax ? `逾時 ${r.nax}` : '', r.na ? `待處理 ${r.na}` : ''].filter(Boolean).join(' · ');
+    const note = [r.nax ? `逾時 ${r.nax}` : '', r.said ? `自述待查 ${r.said}` : '',
+                  r.na ? `待處理 ${r.na}` : ''].filter(Boolean).join(' · ');
     h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${
       note ? `<span style="color:var(--muted)">（${note}）</span>` : ''}</td></tr>`;
   });
@@ -983,6 +1005,10 @@ function calcDemerits() {
     return new Date(r.created_at) > dl;     // created_at 已驗證為首次寫入，upsert 不覆蓋
   };
 
+  const unitDate = {};
+  Object.entries(SCHEDULE || {}).forEach(([d, arr]) => arr.forEach(n => { unitDate[n] = d; }));
+  const logBy = {}; allLogs.forEach(l => { logBy[l.student_id + '|' + l.log_date] = l; });
+
   // 作業：已上過的單元
   const taught = new Set();
   if (typeof SCHEDULE !== 'undefined')
@@ -1000,16 +1026,24 @@ function calcDemerits() {
     //    而他們的教練（錢威達／張憶文）正是記點最高的兩位。
     //    ⚠️ 所以 hwUng 要單獨帶出來——退班既然是人工判斷，就必須分得出
     //       「真的沒交」與「教練沒檢核」，否則班主自己也判不了。
-    let hwMiss = 0, hwUng = 0;
+    let hwMiss = 0, hwUng = 0, hwSaid = 0;
     taught.forEach(u => {
       const r = hwBy[s.id + '|' + u];
-      if (!r) { hwUng++; hwMiss++; return; }        // 未檢核 → 也算沒交（催教練）
-      if (r.done < r.total) hwMiss++;               // 檢核過但沒寫完 → 真的沒交
+      if (!r) {
+        // 🔴 2026-08-19：教練沒檢核時，先看學員有沒有自己勾「已在小組回報」。
+        //    有自述就不算他沒交——那是唯一不經過教練的證據，責任回到教練身上。
+        const d = unitDate[u];
+        const lg = d ? logBy[s.id + '|' + d] : null;
+        if (lg && lg.group_reported) { hwSaid++; return; }
+        hwUng++; hwMiss++; return;                   // 兩條線都沒有 → 算沒交（催教練）
+      }
+      if (r.done < r.total) hwMiss++;                // 檢核過但沒寫完 → 真的沒交
     });
-    return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss, hwUng,
+    return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss, hwUng, hwSaid,
              made: mkStu[s.id] || 0,
              pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
-  }).filter(r => r.pts > 0 || r.pend > 0 || r.made > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
+  }).filter(r => r.pts > 0 || r.pend > 0 || r.made > 0 || r.hwSaid > 0)
+    .sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
 
   const coachRows = coaches.filter(c => stu.some(s => s.coach_id === c.id)).map(c => {
     const mine = stu.filter(s => s.coach_id === c.id);
@@ -1048,6 +1082,8 @@ function renderDemerits(target) {
     🔴 <b>教練沒檢核的格子＝當作學員沒交</b>（2026-08-19 改）——目的是讓數字難看到教練不得不填。<br>
     　所以「作業未完成」會標<b>（含未檢 N）</b>：那 N 格是教練沒檢核造成的，<b>不是學員的錯</b>。
     　<b>退班人工決定時請先看這個括號</b>——括號幾乎等於總數的人，要處理的是他的教練。<br>
+    🟡 <b>但學員若自己在 daily 勾了「已在小組回報」，那一格就不算他沒交</b>（顯示「自述待查 N 已免計」）——
+    　那是唯一不經過教練的證據，責任回到教練身上。<br>
     退不退班由人決定，系統只負責讓它看得見。<br>
     🔁 <b>「已補」＝逾期後有沒有到補交區留下說明。補交不減點</b>——點數記「當時有沒有做到」，
     已補記「事後有沒有補救」。<b>兩欄一起看才分得出態度</b>：<br>
@@ -1059,7 +1095,9 @@ function renderDemerits(target) {
     h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th><th>已補</th></tr>`;
     stuRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.coach}</span></td>
       <td>${r.miss || '—'}</td>
-      <td>${r.hwMiss || '—'}${r.hwUng ? `<span class="dm-pend">（含未檢 ${r.hwUng}）</span>` : ''}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
+      <td>${r.hwMiss || '—'}${r.hwUng ? `<span class="dm-pend">（含未檢 ${r.hwUng}）</span>` : ''}${
+        r.hwSaid ? `<span class="dm-will">（自述待查 ${r.hwSaid} 已免計）</span>` : ''}${
+        r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
       <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-will"> +${r.pend} 將計</span>` : ''}</td>
       <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td></tr>`);
     h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。</div>`;
