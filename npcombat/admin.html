@@ -204,6 +204,8 @@
   .dm-pend{color:var(--muted);font-weight:400;font-size:11.5px}
   .dm-made{display:inline-block;min-width:22px;padding:2px 7px;border-radius:5px;background:var(--green-bg);color:var(--green);font-weight:700;font-size:12px}
   .dm-none{color:var(--muted);font-size:12px}
+  /* 寬限期內的點數要看得見才有嚇阻力——原本是小灰字，等於白做 */
+  .dm-will{color:var(--yellow);font-weight:700;font-size:13px}
   /* 階段列／子區塊列（2026-08-17 重整） */
   .sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .ana-sec{border:1px solid var(--gold-bd);border-radius:14px;padding:14px 16px 18px;margin-bottom:18px;background:rgba(255,255,255,.015)}
@@ -670,7 +672,7 @@ function renderHwMatrix(realStudents, coachById) {
   const zeroChecked = rows.filter(r => r.na === taughtN).length;
 
   let h = `<div class="sec-title"><span>📋 全班作業檢核矩陣</span><span class="sec-count">已上 ${taughtN} 單元 · 教練檢核完 ${checkedAll}/${rows.length} 人</span></div>`;
-  h += `<div class="cov-note">綠=全繳　橘=部分（數字=已交/題數）　紅=沒繳　灰=<b>教練還沒檢核（不代表沒交）</b>　空=尚未上到<br>
+  h += `<div class="cov-note">綠=全繳　橘=部分（數字=已交/題數）　紅=沒繳　灰=<b>教練還沒檢核 → 現在等同沒交、計入學員點數</b>　空=尚未上到<br>
     排序：缺件多的在前。⚠️ 有 <b>${zeroChecked} 人</b>整排全灰＝教練完全沒檢核，先催教練不是催學員。</div>`;
   h += `<div class="hwm-wrap"><table class="hwm"><tr><th class="nm">學員</th>`;
   UNITS.forEach(u => h += `<th title="${u.n}">${u.no}</th>`);
@@ -881,9 +883,20 @@ function calcDemerits() {
   const stuRows = stu.map(s => {
     let miss = 0;                                   // 小組回報：教練標「沒交」的天數
     dueDays.forEach(d => { const r = engBy[s.id + '|' + d]; if (r && r.homework === false) miss++; });
-    let hwMiss = 0;                                 // 作業：已檢核且未完成的單元
-    taught.forEach(u => { const r = hwBy[s.id + '|' + u]; if (r && r.done < r.total) hwMiss++; });
-    return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss,
+    // 🔴 2026-08-19 Randoph 決定：教練沒檢核就當學員沒交。
+    //    「退不退班是我們人工說的算，就是要誇張的數字，逼教練去填寫。」
+    //    我提過的代價他已知並確認：39 人全部受影響、滿 3 點從 2 人變 11 人、
+    //    三位現行 0 點的學員（楊姷妃／陳畇驊／王喬語）會變 15 點，
+    //    而他們的教練（錢威達／張憶文）正是記點最高的兩位。
+    //    ⚠️ 所以 hwUng 要單獨帶出來——退班既然是人工判斷，就必須分得出
+    //       「真的沒交」與「教練沒檢核」，否則班主自己也判不了。
+    let hwMiss = 0, hwUng = 0;
+    taught.forEach(u => {
+      const r = hwBy[s.id + '|' + u];
+      if (!r) { hwUng++; hwMiss++; return; }        // 未檢核 → 也算沒交（催教練）
+      if (r.done < r.total) hwMiss++;               // 檢核過但沒寫完 → 真的沒交
+    });
+    return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss, hwUng,
              made: mkStu[s.id] || 0,
              pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
   }).filter(r => r.pts > 0 || r.pend > 0 || r.made > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
@@ -921,8 +934,10 @@ function renderDemerits(target) {
     <b>小組回報</b>＝防怠惰：學員當天 <b>22:00</b> 貼、<b>教練隔天 12:00 前在賴群回覆學員</b>（逾時計點）<br>
     ⚠️ 系統記的是<b>教練自己標的</b>，不是賴群的真實情況——<b>12:00 後到賴群抽查</b>才是驗證，
     那也是這條線訂在中午的用意。<br>
-    <b>課程作業</b>＝防落後：17 堂課上完前補齊即可${grace ? `　🟡 <b>本期寬限至 ${grace}</b>，之前只顯示「將計」不計點` : ''}<br>
-    🔴 <b>教練沒檢核的格子記在教練頭上，不記學員</b>——否則不檢核會變成保護學員的手段。<br>
+    <b>課程作業</b>＝防落後：17 堂課上完前補齊即可${grace ? `　🟡 <b>本期寬限至 ${grace}</b>：在那之前顯示「將計」，<b>${grace} 之後自動變成實際點數</b>` : ''}<br>
+    🔴 <b>教練沒檢核的格子＝當作學員沒交</b>（2026-08-19 改）——目的是讓數字難看到教練不得不填。<br>
+    　所以「作業未完成」會標<b>（含未檢 N）</b>：那 N 格是教練沒檢核造成的，<b>不是學員的錯</b>。
+    　<b>退班人工決定時請先看這個括號</b>——括號幾乎等於總數的人，要處理的是他的教練。<br>
     退不退班由人決定，系統只負責讓它看得見。<br>
     🔁 <b>「已補」＝逾期後有沒有到補交區留下說明。補交不減點</b>——點數記「當時有沒有做到」，
     已補記「事後有沒有補救」。<b>兩欄一起看才分得出態度</b>：<br>
@@ -934,8 +949,8 @@ function renderDemerits(target) {
     h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th><th>已補</th></tr>`;
     stuRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.coach}</span></td>
       <td>${r.miss || '—'}</td>
-      <td>${r.hwMiss || '—'}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
-      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-pend"> +${r.pend} 將計</span>` : ''}</td>
+      <td>${r.hwMiss || '—'}${r.hwUng ? `<span class="dm-pend">（含未檢 ${r.hwUng}）</span>` : ''}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
+      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-will"> +${r.pend} 將計</span>` : ''}</td>
       <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td></tr>`);
     h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。</div>`;
   }
@@ -952,7 +967,8 @@ function renderDemerits(target) {
     h += `</table><div class="cov-note" style="margin-top:0">教練的點以「天」計，三種原因<b>互斥</b>，一天最多 1 點：<br>
       <b>沒進來</b>＝那天完全沒標　<b>逾時才標</b>＝首次標記已過隔天 12:00　
       <b>沒回完</b>＝12:00 前有進來，但組裡還有人「交了卻沒回」或根本沒標到<br>
-      作業未檢核以「格」計（單元×組員），不併入點數，但那是下一期評估適任的依據。</div>`;
+      作業未檢核以「格」計（單元×組員），不併入教練點數；但<b>同一格已計入該組學員的點數</b>——
+      學員會來問你為什麼被記點，這就是要你去檢核的壓力來源。</div>`;
   }
   // 補交原因分布：看的是「大家為什麼補」，不是個人
   if (makeupRows.length) {
