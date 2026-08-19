@@ -202,6 +202,8 @@
   .dm-pt{font-weight:700;font-size:15px}
   .dm-0{color:#4ade80} .dm-1{color:#fbbf24} .dm-3{color:#f87171}
   .dm-pend{color:var(--muted);font-weight:400;font-size:11.5px}
+  .dm-made{display:inline-block;min-width:22px;padding:2px 7px;border-radius:5px;background:var(--green-bg);color:var(--green);font-weight:700;font-size:12px}
+  .dm-none{color:var(--muted);font-size:12px}
   /* 階段列／子區塊列（2026-08-17 重整） */
   .sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .ana-sec{border:1px solid var(--gold-bd);border-radius:14px;padding:14px 16px 18px;margin-bottom:18px;background:rgba(255,255,255,.015)}
@@ -368,7 +370,7 @@ const sb = window.supabase.createClient(
 
 const LIFF_ID = '2009692859-DepTDosN';
 let bid = null, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
-let allBatches = [], engRows = [], hwRows = [];   // hwRows = homework_checks（作業檢核）   // engRows = coach_engagement（simple 模式的教練標記）
+let allBatches = [], engRows = [], hwRows = [], makeupRows = [];   // hwRows = homework_checks（作業檢核）   // engRows = coach_engagement（simple 模式的教練標記）
 let myAllowedTabs = [];
 let isReadonly = false;
 
@@ -501,6 +503,11 @@ async function load() {
   const { data: hw } = await sb.from('homework_checks')
     .select('student_id, unit_no, done, total, coach_id').eq('batch_id', bid);
   hwRows = hw || [];
+  // 補交紀錄：不影響記點，只回答「有沒有補救」——記點與補交是兩個軸
+  const { data: mk } = await sb.from('makeup_records')
+    .select('log_date, subject, student_id, coach_id, reason_code, reason_note, created_at')
+    .eq('batch_id', bid);
+  makeupRows = mk || [];
   render();
 }
 
@@ -849,6 +856,13 @@ function calcDemerits() {
   const COACH_DL = 'T12:00:00';
   const dueDays = days.filter(d => { const x = new Date(d + COACH_DL); x.setDate(x.getDate() + 1); return x <= new Date(); });
 
+  // 補交筆數：學員看 subject='student'（誰被補），教練看 subject='coach'（自己補說明）
+  const mkStu = {}, mkCoach = {};
+  makeupRows.forEach(r => {
+    if (r.subject === 'student' && r.student_id) mkStu[r.student_id] = (mkStu[r.student_id] || 0) + 1;
+    if (r.subject === 'coach') mkCoach[r.coach_id] = (mkCoach[r.coach_id] || 0) + 1;
+  });
+
   const engBy = {};   // student|date -> row
   engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
   const late = r => {
@@ -870,8 +884,9 @@ function calcDemerits() {
     let hwMiss = 0;                                 // 作業：已檢核且未完成的單元
     taught.forEach(u => { const r = hwBy[s.id + '|' + u]; if (r && r.done < r.total) hwMiss++; });
     return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss,
+             made: mkStu[s.id] || 0,
              pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
-  }).filter(r => r.pts > 0 || r.pend > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
+  }).filter(r => r.pts > 0 || r.pend > 0 || r.made > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
 
   const coachRows = coaches.filter(c => stu.some(s => s.coach_id === c.id)).map(c => {
     const mine = stu.filter(s => s.coach_id === c.id);
@@ -891,8 +906,9 @@ function calcDemerits() {
     let hwNo = 0;
     mine.forEach(s => taught.forEach(u => { if (!hwBy[s.id + '|' + u]) hwNo++; }));
     return { name: nm(c), n: mine.length, noMark, lateMark, noReply, hwNo,
+             made: mkCoach[c.id] || 0,
              pts: noMark + lateMark + noReply };
-  }).filter(r => r.pts > 0 || r.hwNo > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
+  }).filter(r => r.pts > 0 || r.hwNo > 0 || r.made > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
 
   return { stuRows, coachRows, dueDays, taughtN: taught.size, graceOn, grace: b.hw_grace_until };
 }
@@ -907,31 +923,52 @@ function renderDemerits(target) {
     那也是這條線訂在中午的用意。<br>
     <b>課程作業</b>＝防落後：17 堂課上完前補齊即可${grace ? `　🟡 <b>本期寬限至 ${grace}</b>，之前只顯示「將計」不計點` : ''}<br>
     🔴 <b>教練沒檢核的格子記在教練頭上，不記學員</b>——否則不檢核會變成保護學員的手段。<br>
-    退不退班由人決定，系統只負責讓它看得見。</div>`;
+    退不退班由人決定，系統只負責讓它看得見。<br>
+    🔁 <b>「已補」＝逾期後有沒有到補交區留下說明。補交不減點</b>——點數記「當時有沒有做到」，
+    已補記「事後有沒有補救」。<b>兩欄一起看才分得出態度</b>：<br>
+    　點多＋已補多＝忙但負責，要幫他　｜　<b>點多＋已補 0＝態度問題，要談的是這些人</b></div>`;
 
   h += `<div class="sec-title"><span>👤 學員</span><span class="sec-count">${stuRows.length} 人有點數</span></div>`;
   if (!stuRows.length) h += `<div class="dash-empty">目前沒有人被記點 🎉</div>`;
   else {
-    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th></tr>`;
+    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th><th>已補</th></tr>`;
     stuRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.coach}</span></td>
       <td>${r.miss || '—'}</td>
       <td>${r.hwMiss || '—'}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
-      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-pend"> +${r.pend} 將計</span>` : ''}</td></tr>`);
+      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-pend"> +${r.pend} 將計</span>` : ''}</td>
+      <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td></tr>`);
     h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。</div>`;
   }
 
   h += `<div class="sec-title"><span>🎓 教練</span><span class="sec-count">${coachRows.length} 位有點數</span></div>`;
   if (!coachRows.length) h += `<div class="dash-empty">教練全部準時 👏</div>`;
   else {
-    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒進來</th><th>逾時才標</th><th>沒回完</th><th>作業未檢核</th><th>合計</th></tr>`;
+    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒進來</th><th>逾時才標</th><th>沒回完</th><th>作業未檢核</th><th>合計</th><th>已補</th></tr>`;
     coachRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.n} 位組員</span></td>
       <td>${r.noMark || '—'}</td><td>${r.lateMark || '—'}</td><td>${r.noReply || '—'}</td>
       <td>${r.hwNo ? r.hwNo + ' 格' : '—'}</td>
-      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td></tr>`);
+      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td>
+      <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td></tr>`);
     h += `</table><div class="cov-note" style="margin-top:0">教練的點以「天」計，三種原因<b>互斥</b>，一天最多 1 點：<br>
       <b>沒進來</b>＝那天完全沒標　<b>逾時才標</b>＝首次標記已過隔天 12:00　
       <b>沒回完</b>＝12:00 前有進來，但組裡還有人「交了卻沒回」或根本沒標到<br>
       作業未檢核以「格」計（單元×組員），不併入點數，但那是下一期評估適任的依據。</div>`;
+  }
+  // 補交原因分布：看的是「大家為什麼補」，不是個人
+  if (makeupRows.length) {
+    const LBL = { forgot:'忘記', sick:'生病', busy_work:'工作忙', family:'家庭因素',
+                  missed_notice:'沒看到通知', late_post:'學員很晚才貼', other:'其他' };
+    const cnt = {};
+    makeupRows.forEach(r => {
+      const k = (r.subject === 'coach' ? '教練·' : '學員·') + (LBL[r.reason_code] || r.reason_code);
+      cnt[k] = (cnt[k] || 0) + 1;
+    });
+    const items = Object.entries(cnt).sort((a, b2) => b2[1] - a[1]);
+    h += `<div class="sec-title"><span>🔁 補交原因分布</span><span class="sec-count">共 ${makeupRows.length} 筆</span></div>`;
+    h += `<div class="cov-note">原因用選單填寫就是為了這張表——自由填寫統計不出來。<br>
+      若「學員很晚才貼」佔多數，那要調整的是學員的 22:00，不是教練的 12:00。</div>`;
+    h += `<table class="dm-tbl"><tr><th>原因</th><th>筆數</th></tr>` +
+         items.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('') + `</table>`;
   }
   target.insertAdjacentHTML('beforeend', h);
 }

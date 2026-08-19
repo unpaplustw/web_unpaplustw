@@ -140,6 +140,15 @@
   /* 學員沒交 → 「－ 無需回」不可點；不是灰掉懲罰，而是「這一格你已經做完了」 */
   .eng-btn[disabled]{cursor:default;opacity:.55}
   .eng-closed{background:var(--red-lt,#fdecea);color:var(--red,#c0392b);font-weight:700;line-height:1.9}
+  /* 🔁 補交區 */
+  .mk-form{padding:4px 16px 18px;border-bottom:1px solid var(--border)}
+  .mk-l{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12px 0 5px}
+  .mk-in{width:100%;box-sizing:border-box;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text)}
+  .mk-save{width:100%;margin-top:16px;padding:13px;border:none;border-radius:24px;background:var(--gold);color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+  .mk-save[disabled]{opacity:.5}
+  .mk-row{padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px}
+  .mk-sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .mk-del{color:var(--red,#c0392b);margin-left:12px;cursor:pointer;text-decoration:underline}
   .eng-btn.coach.done[disabled]{opacity:1;background:var(--green-bg);border-color:var(--green);color:var(--green)}
   .eng-total{padding:14px 16px;font-size:14px;font-weight:700;color:var(--gold);text-align:center;background:var(--gold-lt)}
   /* 學員填報狀況：純顯示、不可點、不影響分數（2026-08-09 加，教練反映看不到誰填了） */
@@ -318,6 +327,7 @@
   <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">✍️ 回報</button>
   <button class="mode-tab" id="tabReview" onclick="setMode('review')">🤝 小組</button>
   <button class="mode-tab" id="tabHw" onclick="setMode('hw')">📋 作業</button>
+  <button class="mode-tab" id="tabMakeup" onclick="setMode('makeup')">🔁 補交</button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
 
@@ -387,6 +397,7 @@
   <div id="hwMissing"></div>
 </div>
 
+<div id="makeupView" style="display:none"></div>
 <div id="guideView" style="display:none">
   <div class="guide-wrap">
     <div class="guide-intro">教練帶班手冊 —— 照著做，帶好你的小組 💪</div>
@@ -743,10 +754,14 @@ function getDateStr(which) {
 //         → 隔天 12:00 一到，那一天關閉，不能再改。
 //    為什麼要鎖：不鎖的話，教練可以事後補標、也可以回頭把「沒交」改成「已交」，
 //    記點就形同虛設，12:00 也只是建議而不是死線。
-function dayClosed(day) {
-  const dl = new Date(getDateStr(day) + 'T12:00:00');
+function dateClosed(ds) {
+  const dl = new Date(ds + 'T12:00:00');
   dl.setDate(dl.getDate() + 1);
   return new Date() > dl;
+}
+function dayClosed(day) { return dateClosed(getDateStr(day)); }
+function dateStrOf(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function formatDate(d) {
   const [y,m,dd] = d.split('-');
@@ -941,10 +956,13 @@ function setMode(mode) {
   document.getElementById('tabReview').classList.toggle('on', mode === 'review');
   document.getElementById('tabGuide').classList.toggle('on', mode === 'guide');
   document.getElementById('tabHw').classList.toggle('on', mode === 'hw');
+  document.getElementById('tabMakeup').classList.toggle('on', mode === 'makeup');
   document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
   document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
   document.getElementById('guideView').style.display = mode === 'guide' ? '' : 'none';
   document.getElementById('hwView').style.display = mode === 'hw' ? '' : 'none';
+  document.getElementById('makeupView').style.display = mode === 'makeup' ? '' : 'none';
+  mkDelArm = null;                                        // 換分頁就取消待確認的刪除
   document.getElementById('detailView').style.display = 'none';
   if (mode === 'my') {
     currentDay = 'today';
@@ -957,10 +975,149 @@ function setMode(mode) {
   } else if (mode === 'hw') {
     document.querySelector('.day-toggle').style.display = 'none';   // 作業檢核不壓日期
     loadHwChecks().then(renderHw);
+  } else if (mode === 'makeup') {
+    document.querySelector('.day-toggle').style.display = 'none';   // 補交自己選日期
+    loadMakeups().then(renderMakeup);
   } else {
     document.querySelector('.day-toggle').style.display = '';
     renderReview();
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// 🔁 補交區（2026-08-19 Randoph 定案）
+//   為什麼要有：12:00 一到那一天就鎖住，記點才是真的；但人會生病、學員會晚貼，
+//   所以要留一條「記軌跡」的路——不是免罰，是讓補救被看見。
+//   🔴 補交不取消記點。記點＝當時有沒有做到（鎖住不可變）；
+//      補交＝事後有沒有補救（會累積）。兩個軸一起看才分得出
+//      「忙但負責」與「擺爛」——點數一樣，態度完全不同。
+//   原因用選單不用自由填寫，否則統計不出來。
+//   資料表 npcombat.makeup_records
+// ══════════════════════════════════════════════════════════
+const MK_REASONS = {
+  student: [
+    ['forgot',        '忘記交'],
+    ['sick',          '生病'],
+    ['busy_work',     '工作忙'],
+    ['family',        '家庭因素'],
+    ['missed_notice', '沒看到通知'],
+    ['other',         '其他'],
+  ],
+  coach: [
+    ['late_post',  '學員很晚才貼，來不及在 12:00 前回'],
+    ['forgot',     '忘記標'],
+    ['sick',       '生病'],
+    ['busy_work',  '工作忙'],
+    ['family',     '家庭因素'],
+    ['other',      '其他'],
+  ],
+};
+const mkLabel = (subject, code) =>
+  ((MK_REASONS[subject] || []).find(r => r[0] === code) || [null, code])[1];
+
+let mkRows = [];
+let mkDelArm = null;          // 兩段式刪除：LIFF WebView 的 confirm 不可靠，改成點兩次
+
+async function loadMakeups() {
+  const { data } = await sb.from('makeup_records')
+    .select('*').eq('batch_id', BATCH_ID).eq('coach_id', coachId)
+    .order('log_date', { ascending: false });
+  mkRows = data || [];
+}
+
+// 可補的日期＝開班日到今天的平日，且已結算（還沒結算就直接去「🤝 小組」改，不必補）
+function mkDates() {
+  const out = [];
+  if (!batchDates.start) return out;
+  const today = getDateStr('today');
+  for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= today; d.setDate(d.getDate() + 1)) {
+    const w = d.getDay();
+    if (w < 1 || w > 5) continue;                        // 週末不排作業
+    const ds = dateStrOf(d);
+    if (dateClosed(ds)) out.push(ds);
+  }
+  return out.reverse();                                  // 最近的排前面
+}
+
+function renderMakeup() {
+  const el = document.getElementById('makeupView');
+  const dates = mkDates();
+  if (!dates.length) {
+    el.innerHTML = `<div class="eng-hint">目前沒有已結算的日子需要補。<br>
+      每天 <b>12:00</b> 結算前一天——結算前直接在「🤝 小組」改就好。</div>`;
+    return;
+  }
+  const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
+  let h = `<div class="eng-hint">
+    🔁 <b>補交不會取消記點</b>——記點記的是「當時有沒有做到」，補交記的是「事後有沒有補救」。<br>
+    兩個一起看，班主才分得出「忙但負責」和「擺爛」。<b>該補的請補，這對你有利。</b></div>`;
+  h += `<div class="mk-form">
+    <label class="mk-l">補哪一天</label>
+    <select class="mk-in" id="mkDate">${
+      dates.map(d => `<option value="${d}">${formatDate(d)}（週${wd(d)}）</option>`).join('')}</select>
+    <label class="mk-l">補誰的</label>
+    <select class="mk-in" id="mkWho" onchange="renderMkReasons()">${
+      studentList.map(s => `<option value="s:${s.id}">${s.name}　學員補交</option>`).join('')
+      }<option value="c:me">我自己　教練沒在 12:00 前回完</option></select>
+    <label class="mk-l">原因</label>
+    <select class="mk-in" id="mkReason"></select>
+    <label class="mk-l">補充說明（選填）</label>
+    <input class="mk-in" id="mkNote" maxlength="100" placeholder="例如：學員 11:30 才貼，已於當天下午回覆">
+    <button class="mk-save" id="mkSave" onclick="saveMakeup()">送出補交紀錄</button>
+  </div>`;
+  h += `<div class="eng-total">🔁 已填 ${mkRows.length} 筆補交紀錄</div>`;
+  h += mkRows.map(r => {
+    const who = r.subject === 'coach' ? '我自己（教練）'
+      : ((studentList.find(s => s.id === r.student_id) || {}).name || '（已不在組內）');
+    const armed = mkDelArm === r.id;
+    return `<div class="mk-row">
+      <div><b>${formatDate(r.log_date)}（週${wd(r.log_date)}）</b>　${who}</div>
+      <div class="mk-sub">${mkLabel(r.subject, r.reason_code)}${r.reason_note ? '　·　' + r.reason_note : ''}</div>
+      <div class="mk-sub">填於 ${String(r.created_at).slice(5, 16).replace('T', ' ')}
+        <span class="mk-del" onclick="delMakeup('${r.id}')">${armed ? '⚠️ 再點一次確定刪除' : '刪除'}</span></div>
+    </div>`;
+  }).join('');
+  el.innerHTML = h;
+  renderMkReasons();
+}
+
+function renderMkReasons() {
+  const sel = document.getElementById('mkWho');
+  if (!sel) return;
+  const subject = sel.value.startsWith('c:') ? 'coach' : 'student';
+  document.getElementById('mkReason').innerHTML =
+    MK_REASONS[subject].map(([c, t]) => `<option value="${c}">${t}</option>`).join('');
+}
+
+async function saveMakeup() {
+  const btn = document.getElementById('mkSave');
+  const who = document.getElementById('mkWho').value;
+  const subject = who.startsWith('c:') ? 'coach' : 'student';
+  const row = {
+    batch_id: BATCH_ID, coach_id: coachId,
+    log_date: document.getElementById('mkDate').value,
+    subject,
+    student_id: subject === 'student' ? who.slice(2) : null,
+    reason_code: document.getElementById('mkReason').value,
+    reason_note: (document.getElementById('mkNote').value || '').trim() || null,
+  };
+  btn.disabled = true;
+  const { error } = await sb.from('makeup_records').insert(row);
+  btn.disabled = false;
+  if (error) { toast('儲存失敗：' + error.message); return; }
+  toast('已記錄 ✅');
+  await loadMakeups();
+  renderMakeup();
+}
+
+async function delMakeup(id) {
+  if (mkDelArm !== id) { mkDelArm = id; renderMakeup(); return; }   // 第一次點只是待確認
+  mkDelArm = null;
+  const { error } = await sb.from('makeup_records').delete().eq('id', id);
+  if (error) { toast('刪除失敗：' + error.message); return; }
+  toast('已刪除');
+  await loadMakeups();
+  renderMakeup();
 }
 
 // ══════════════════════════════════════════════════════════
