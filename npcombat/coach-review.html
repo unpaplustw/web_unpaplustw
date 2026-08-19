@@ -140,6 +140,14 @@
   /* 學員沒交 → 「－ 無需回」不可點；不是灰掉懲罰，而是「這一格你已經做完了」 */
   .eng-btn[disabled]{cursor:default;opacity:.55}
   .eng-closed{background:var(--red-lt,#fdecea);color:var(--red,#c0392b);font-weight:700;line-height:1.9}
+  /* 送出區 */
+  .sub-box{padding:16px}
+  .sub-hint{font-size:13px;color:var(--muted);line-height:1.9;margin-bottom:10px}
+  .sub-warn{background:var(--gold-lt);color:var(--gold);font-size:13px;font-weight:700;line-height:1.8;padding:10px 12px;border-radius:10px;margin-bottom:12px}
+  .sub-btn{width:100%;padding:14px;border:none;border-radius:26px;background:var(--gold);color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer}
+  .sub-btn[disabled]{opacity:.5}
+  .sub-done{padding:14px 16px;background:var(--green-bg,#e8f5ee);color:var(--green,#1d7a4c);font-size:13px;font-weight:700;line-height:1.9}
+  .sub-late{padding:14px 16px;background:var(--red-lt,#fdecea);color:var(--red,#c0392b);font-size:13px;font-weight:700;line-height:1.9}
   /* 🔁 補交區 */
   .mk-form{padding:4px 16px 18px;border-bottom:1px solid var(--border)}
   .mk-l{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12px 0 5px}
@@ -754,11 +762,33 @@ function getDateStr(which) {
 //         → 隔天 12:00 一到，那一天關閉，不能再改。
 //    為什麼要鎖：不鎖的話，教練可以事後補標、也可以回頭把「沒交」改成「已交」，
 //    記點就形同虛設，12:00 也只是建議而不是死線。
-function dateClosed(ds) {
+// 🔴 送出即結案（2026-08-19 Randoph 定案）
+//    「教練送出後，代表有人沒繳就是學員的問題，事後就到一覽表再去修正」
+//    送出＝教練主動宣告「我今天看完了，名單就是這樣」，責任從教練轉到學員。
+//    12:00 從「自動結算」降級為「最晚期限」——教練可以早上 10:00 就結案去忙自己的事。
+// 🔴 timestamptz 要轉本地時間再顯示。直接切 ISO 字串會少 8 小時——
+//    在一個以 12:00 為死線的系統裡，那會讓教練以為自己準時、實際超時 8 小時。
+function fmtTime(ts) {
+  const d = new Date(ts), p = n => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+let submitMap = {};                       // log_date -> coach_submits row
+async function loadSubmits() {
+  const { data } = await sb.from('coach_submits')
+    .select('log_date, submitted_at, unreplied')
+    .eq('batch_id', BATCH_ID).eq('coach_id', coachId);
+  submitMap = {};
+  (data || []).forEach(r => { submitMap[r.log_date] = r; });
+}
+const isSubmitted = ds => !!submitMap[ds];
+function overDeadline(ds) {              // 是否已過隔天 12:00
   const dl = new Date(ds + 'T12:00:00');
   dl.setDate(dl.getDate() + 1);
   return new Date() > dl;
 }
+// 已送出、或已過最晚期限 → 那一天不能再改（要改就到一覽表補交）
+function dateClosed(ds) { return isSubmitted(ds) || overDeadline(ds); }
 function dayClosed(day) { return dateClosed(getDateStr(day)); }
 function dateStrOf(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -980,8 +1010,40 @@ function setMode(mode) {
     loadMakeups().then(renderMakeup);
   } else {
     document.querySelector('.day-toggle').style.display = '';
-    renderReview();
+    subArm = false;
+    loadSubmits().then(renderReview);
   }
+}
+
+// 送出：有「已交未回」先擋一次，教練仍可強制送出（例如那是補繳、他打算晚點再回），
+// 強制送出時把欠帳筆數一起存進 unreplied，記在教練頭上。
+let subArm = false;
+async function submitDay() {
+  const dateStr = getDateStr(currentDay);
+  if (dateClosed(dateStr)) { toast('這一天已經結案了'); return; }
+  const M = engModeFor(dateStr);
+  const map = engMapFor(currentDay);
+  const pend = studentList.filter(stu => {
+    const r = map[stu.id] || {};
+    return r[M.stu.field] === true && r[M.coach.field] !== true;
+  });
+  if (pend.length && !subArm) {          // 第一次點：擋住
+    subArm = true;
+    const btn = document.getElementById('subBtn');
+    if (btn) btn.textContent = `⚠️ 還有 ${pend.length} 位沒回，再按一次仍要送出`;
+    toast('先回覆他們，或再按一次強制送出');
+    return;
+  }
+  subArm = false;
+  const btn = document.getElementById('subBtn');
+  if (btn) btn.disabled = true;
+  const { error } = await sb.from('coach_submits').upsert({
+    batch_id: BATCH_ID, coach_id: coachId, log_date: dateStr, unreplied: pend.length
+  }, { onConflict: 'batch_id,coach_id,log_date' });
+  if (error) { if (btn) btn.disabled = false; toast('送出失敗：' + error.message); return; }
+  await loadSubmits();
+  renderEngagement();
+  toast(pend.length ? `已送出（${pend.length} 位未回將計點）` : '已送出 ✅ 今天結案');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1073,7 +1135,7 @@ function renderMakeup() {
     return `<div class="mk-row">
       <div><b>${formatDate(r.log_date)}（週${wd(r.log_date)}）</b>　${who}</div>
       <div class="mk-sub">${mkLabel(r.subject, r.reason_code)}${r.reason_note ? '　·　' + r.reason_note : ''}</div>
-      <div class="mk-sub">填於 ${String(r.created_at).slice(5, 16).replace('T', ' ')}
+      <div class="mk-sub">填於 ${fmtTime(r.created_at)}
         <span class="mk-del" onclick="delMakeup('${r.id}')">${armed ? '⚠️ 再點一次確定刪除' : '刪除'}</span></div>
     </div>`;
   }).join('');
@@ -1763,6 +1825,31 @@ function renderEngagement() {
 
   const total = studentList.length;
   h += `<div class="eng-total">📝 已填報 ${filledCount}/${total}　·　${M.stu.total} ${sYes}/${total}　·　${M.coach.total} ${cYes}/${total}</div>`;
+
+  // ── 送出區 ──
+  const sub = submitMap[dateStr];
+  if (sub) {
+    const t = fmtTime(sub.submitted_at);
+    h += `<div class="sub-done">✅ <b>${formatDate(dateStr)} 已於 ${t} 送出</b>，這一天結案了。<br>
+      ${sub.unreplied ? `送出時有 <b>${sub.unreplied} 位</b>已交未回，那會記在你的點數上。<br>` : ''}
+      學員事後補繳請到「🔁 補交」留紀錄——<b>補繳不用急著回，有空再處理</b>。</div>`;
+  } else if (overDeadline(dateStr)) {
+    h += `<div class="sub-late">⏰ <b>${formatDate(dateStr)} 已過隔天 12:00</b>，沒有送出，這一天已自動結案並計點。<br>
+      要補請到「🔁 補交」。</div>`;
+  } else {
+    const pend = studentList.filter(stu => {
+      const r = map[stu.id] || {};
+      return r[M.stu.field] === true && r[M.coach.field] !== true;   // 標了已交、還沒標已回
+    });
+    h += `<div class="sub-box">
+      <div class="sub-hint">按下送出＝<b>我今天看完了，名單就是這樣</b>。<br>
+        送出後這一天結案，<b>沒標到的就算學員沒繳</b>，你可以去忙自己的事了。<br>
+        最晚 <b>隔天 12:00</b>；沒送出會記你的點。</div>
+      ${pend.length ? `<div class="sub-warn">⚠️ 還有 <b>${pend.length} 位</b>你標了已交但還沒標已回：
+        ${pend.map(x => x.name).join('、')}</div>` : ''}
+      <button class="sub-btn" id="subBtn" onclick="submitDay()">送出 ${formatDate(dateStr)}</button>
+    </div>`;
+  }
   document.getElementById('summaryBody').innerHTML = h;
 }
 
