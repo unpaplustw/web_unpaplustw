@@ -875,16 +875,23 @@ function calcDemerits() {
 
   const coachRows = coaches.filter(c => stu.some(s => s.coach_id === c.id)).map(c => {
     const mine = stu.filter(s => s.coach_id === c.id);
-    let noMark = 0, lateMark = 0;
+    let noMark = 0, lateMark = 0, noReply = 0;
+    // 🔴 Randoph 2026-08-18：「教練賴群必須在 12:00 前回覆學員」。
+    //    原本只抓「沒進來」與「逾時才標」——教練 11:00 標完「已交」就走人、
+    //    永遠沒點「已回」，完全零成本。第三種原因就是補這個洞。
+    //    三種原因互斥（先判先計、判到就 return），所以一天最多 1 點，
+    //    跟「滿 3 點可退班」的尺度才對得上。
     dueDays.forEach(d => {
       const rows = mine.map(s => engBy[s.id + '|' + d]).filter(Boolean);
       if (!rows.length) { noMark++; return; }                  // 那天完全沒進來 → 1 點
-      if (rows.every(late)) lateMark++;                        // 那天標的全部逾時 → 1 點
+      if (rows.every(late)) { lateMark++; return; }            // 那天標的全部逾時 → 1 點
+      // 準時進來了，但組裡還有人「交了卻沒回」或根本沒標到 → 1 點
+      if (!mine.every(s => coachDone(engBy[s.id + '|' + d]))) noReply++;
     });
     let hwNo = 0;
     mine.forEach(s => taught.forEach(u => { if (!hwBy[s.id + '|' + u]) hwNo++; }));
-    return { name: nm(c), n: mine.length, noMark, lateMark, hwNo,
-             pts: noMark + lateMark };
+    return { name: nm(c), n: mine.length, noMark, lateMark, noReply, hwNo,
+             pts: noMark + lateMark + noReply };
   }).filter(r => r.pts > 0 || r.hwNo > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
 
   return { stuRows, coachRows, dueDays, taughtN: taught.size, graceOn, grace: b.hw_grace_until };
@@ -895,7 +902,9 @@ function renderDemerits(target) {
   const cls = p => p >= 3 ? 'dm-3' : p >= 1 ? 'dm-1' : 'dm-0';
   let h = `<div class="sec-title"><span>⚠️ 記點（自動計算，不寫入資料庫）</span><span class="sec-count">已過期限 ${dueDays.length} 天 · 已上 ${taughtN} 單元</span></div>`;
   h += `<div class="cov-note">
-    <b>小組回報</b>＝防怠惰：學員當天 22:00 貼、<b>教練隔天 22:00 前回</b>（逾時計點）<br>
+    <b>小組回報</b>＝防怠惰：學員當天 <b>22:00</b> 貼、<b>教練隔天 12:00 前在賴群回覆學員</b>（逾時計點）<br>
+    ⚠️ 系統記的是<b>教練自己標的</b>，不是賴群的真實情況——<b>12:00 後到賴群抽查</b>才是驗證，
+    那也是這條線訂在中午的用意。<br>
     <b>課程作業</b>＝防落後：17 堂課上完前補齊即可${grace ? `　🟡 <b>本期寬限至 ${grace}</b>，之前只顯示「將計」不計點` : ''}<br>
     🔴 <b>教練沒檢核的格子記在教練頭上，不記學員</b>——否則不檢核會變成保護學員的手段。<br>
     退不退班由人決定，系統只負責讓它看得見。</div>`;
@@ -914,12 +923,14 @@ function renderDemerits(target) {
   h += `<div class="sec-title"><span>🎓 教練</span><span class="sec-count">${coachRows.length} 位有點數</span></div>`;
   if (!coachRows.length) h += `<div class="dash-empty">教練全部準時 👏</div>`;
   else {
-    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒進來</th><th>逾時才標</th><th>作業未檢核</th><th>合計</th></tr>`;
+    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒進來</th><th>逾時才標</th><th>沒回完</th><th>作業未檢核</th><th>合計</th></tr>`;
     coachRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.n} 位組員</span></td>
-      <td>${r.noMark || '—'}</td><td>${r.lateMark || '—'}</td>
+      <td>${r.noMark || '—'}</td><td>${r.lateMark || '—'}</td><td>${r.noReply || '—'}</td>
       <td>${r.hwNo ? r.hwNo + ' 格' : '—'}</td>
       <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td></tr>`);
-    h += `</table><div class="cov-note" style="margin-top:0">教練的點以「天」計：那天完全沒進來、或標的全部逾時，各記 1 點。<br>
+    h += `</table><div class="cov-note" style="margin-top:0">教練的點以「天」計，三種原因<b>互斥</b>，一天最多 1 點：<br>
+      <b>沒進來</b>＝那天完全沒標　<b>逾時才標</b>＝首次標記已過隔天 12:00　
+      <b>沒回完</b>＝12:00 前有進來，但組裡還有人「交了卻沒回」或根本沒標到<br>
       作業未檢核以「格」計（單元×組員），不併入點數，但那是下一期評估適任的依據。</div>`;
   }
   target.insertAdjacentHTML('beforeend', h);
