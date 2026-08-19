@@ -231,9 +231,15 @@
   .hwm th.nm,.hwm td.nm{text-align:left;position:sticky;left:0;background:var(--navy);z-index:1;padding-right:8px;white-space:nowrap}
   .hwm td.nm{color:var(--white);font-weight:600;font-size:12px}
   .hwm td.nm .c{color:var(--muted);font-weight:400;font-size:10px;margin-left:4px}
+  /* 學員／教練／領袖三欄都凍結：橫向捲到 U17 時仍看得出這一列是誰的責任。
+     left 偏移＝前面各欄寬度累加＋每欄之間的 border-spacing 2px */
+  .hwm th.nm1,.hwm td.nm1{left:0;   min-width:76px;max-width:76px}
+  .hwm th.nm2,.hwm td.nm2{left:80px;min-width:58px;max-width:58px}
+  .hwm th.nm3,.hwm td.nm3{left:142px;min-width:58px;max-width:58px}
+  .hwm td.nm2,.hwm td.nm3{color:var(--muted);font-weight:400;font-size:11px;overflow:hidden;text-overflow:ellipsis}
   .hwm-c{width:26px;height:24px;border-radius:5px;text-align:center;font-weight:700;color:#fff;font-size:10px}
   .hwm-c.full{background:#22a05a} .hwm-c.part{background:#e0a020} .hwm-c.none{background:#d9534f} .hwm-c.na{background:rgba(255,255,255,.07)} .hwm-c.nax{background:#d9534f;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5)} .hwm-c.lock{background:transparent}
-  .hwm-sum{padding:8px 4px;font-size:12px;color:var(--white)}
+  .hwm-sum{padding:8px 4px;font-size:12px;color:var(--white);white-space:nowrap}
   .hwm-sum b{color:#f87171}
   /* 教練回報總覽（simple 模式，2026-08-13） */
   .cov-tbl{width:100%;border-collapse:collapse;font-size:13px}
@@ -702,11 +708,14 @@ function renderHwMatrix(realStudents, coachById) {
     滑過格子看得到是「真的沒繳」還是「教練沒檢核」。<br>
     目前有 <b>${overdueCells} 格</b>紅叉是教練逾時未檢核造成的${zeroChecked ? `，其中 <b>${zeroChecked} 人</b>整排都是` : ''}——
     <b>那要找的是教練，不是學員。</b></div>`;
-  h += `<div class="hwm-wrap"><table class="hwm"><tr><th class="nm">學員</th>`;
+  h += `<div class="hwm-wrap"><table class="hwm"><tr>
+    <th class="nm nm1">學員</th><th class="nm nm2">教練</th><th class="nm nm3">領袖</th>`;
   UNITS.forEach(u => h += `<th title="${u.n}">${u.no}</th>`);
   h += `<th>缺</th></tr>`;
   rows.forEach(r => {
-    h += `<tr><td class="nm">${nm(r.s)}<span class="c">${coachById[r.s.coach_id] || ''}</span></td>`;
+    h += `<tr><td class="nm nm1">${nm(r.s)}</td>
+      <td class="nm nm2">${coachById[r.s.coach_id] || '—'}</td>
+      <td class="nm nm3">${coachById[r.s.sponsor_id] || '—'}</td>`;
     UNITS.forEach(u => {
       if (!taught.has(u.no)) { h += `<td class="hwm-c lock"></td>`; return; }
       const k = st(r.s.id, u.no); const rec = map[r.s.id + '|' + u.no];
