@@ -232,7 +232,7 @@
   .hwm td.nm{color:var(--white);font-weight:600;font-size:12px}
   .hwm td.nm .c{color:var(--muted);font-weight:400;font-size:10px;margin-left:4px}
   .hwm-c{width:26px;height:24px;border-radius:5px;text-align:center;font-weight:700;color:#fff;font-size:10px}
-  .hwm-c.full{background:#22a05a} .hwm-c.part{background:#e0a020} .hwm-c.none{background:#d9534f} .hwm-c.na{background:rgba(255,255,255,.07)} .hwm-c.lock{background:transparent}
+  .hwm-c.full{background:#22a05a} .hwm-c.part{background:#e0a020} .hwm-c.none{background:#d9534f} .hwm-c.na{background:rgba(255,255,255,.07)} .hwm-c.nax{background:#d9534f;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5)} .hwm-c.lock{background:transparent}
   .hwm-sum{padding:8px 4px;font-size:12px;color:var(--white)}
   .hwm-sum b{color:#f87171}
   /* 教練回報總覽（simple 模式，2026-08-13） */
@@ -659,21 +659,49 @@ function renderHwMatrix(realStudents, coachById) {
   const taught = new Set();
   Object.entries(SCHEDULE || {}).forEach(([d, arr]) => { if (d <= today) arr.forEach(n => taught.add(n)); });
   const map = {}; hwRows.forEach(r => map[r.student_id + '|' + r.unit_no] = r);
-  const st = (sid, u) => { const r = map[sid + '|' + u]; if (!r) return 'na'; if (r.total > 0 && r.done >= r.total) return 'full'; return r.done > 0 ? 'part' : 'none'; };
+
+  // 🔴 2026-08-19 Randoph：「12:00 教練沒填寫的直接沒繳的叉叉，這樣這張圖就會看到
+  //    很誇張的顏色，教練和上線才能有所查證和要求。」
+  //    每個單元各自的死線＝該單元上課日的隔天 12:00（跟小組回報同一條線）。
+  //    死線過了還沒檢核 → 紅叉、等同沒繳；死線還沒到 → 維持灰色，不冤枉今天剛上的單元。
+  const unitDate = {};
+  Object.entries(SCHEDULE || {}).forEach(([d, arr]) => arr.forEach(n => { unitDate[n] = d; }));
+  const overdueUnit = u => {
+    const d = unitDate[u];
+    if (!d) return false;
+    const dl = new Date(d + 'T12:00:00'); dl.setDate(dl.getDate() + 1);
+    return new Date() > dl;
+  };
+
+  const st = (sid, u) => {
+    const r = map[sid + '|' + u];
+    if (!r) return overdueUnit(u) ? 'nax' : 'na';      // nax＝逾期未檢核 → 畫成紅叉
+    if (r.total > 0 && r.done >= r.total) return 'full';
+    return r.done > 0 ? 'part' : 'none';
+  };
 
   const rows = realStudents.map(s => {
-    let full = 0, part = 0, none = 0, na = 0;
-    UNITS.forEach(u => { if (!taught.has(u.no)) return; const k = st(s.id, u.no); if (k === 'full') full++; else if (k === 'part') part++; else if (k === 'none') none++; else na++; });
-    return { s, full, part, none, na, missing: part + none };
+    let full = 0, part = 0, none = 0, na = 0, nax = 0;
+    UNITS.forEach(u => {
+      if (!taught.has(u.no)) return;
+      const k = st(s.id, u.no);
+      if (k === 'full') full++; else if (k === 'part') part++;
+      else if (k === 'none') none++; else if (k === 'nax') nax++; else na++;
+    });
+    // 缺件數含逾期未檢核，才跟記點表的「作業未完成」對得起來
+    return { s, full, part, none, na, nax, missing: part + none + nax };
   }).sort((a, b) => (b.missing - a.missing) || (b.na - a.na));
 
   const taughtN = taught.size;
-  const checkedAll = rows.filter(r => r.na === 0).length;
-  const zeroChecked = rows.filter(r => r.na === taughtN).length;
+  const zeroChecked = rows.filter(r => (r.na + r.nax) === taughtN).length;
+  const overdueCells = rows.reduce((a, r) => a + r.nax, 0);
 
-  let h = `<div class="sec-title"><span>📋 全班作業檢核矩陣</span><span class="sec-count">已上 ${taughtN} 單元 · 教練檢核完 ${checkedAll}/${rows.length} 人</span></div>`;
-  h += `<div class="cov-note">綠=全繳　橘=部分（數字=已交/題數）　紅=沒繳　灰=<b>教練還沒檢核 → 現在等同沒交、計入學員點數</b>　空=尚未上到<br>
-    排序：缺件多的在前。⚠️ 有 <b>${zeroChecked} 人</b>整排全灰＝教練完全沒檢核，先催教練不是催學員。</div>`;
+  let h = `<div class="sec-title"><span>📋 全班作業檢核矩陣</span><span class="sec-count">已上 ${taughtN} 單元 · <b style="color:#d9534f">教練逾時未檢 ${overdueCells} 格</b></span></div>`;
+  h += `<div class="cov-note">綠=全繳　橘=部分（數字=已交/題數）　<b>紅✕=沒繳</b>（含<b>教練逾時未檢核</b>）　灰=還在期限內　空=尚未上到<br>
+    🔴 <b>每個單元的死線＝上課日隔天 12:00</b>；過了還沒檢核就是紅叉，<b>等同沒繳、計入學員點數</b>。
+    滑過格子看得到是「真的沒繳」還是「教練沒檢核」。<br>
+    目前有 <b>${overdueCells} 格</b>紅叉是教練逾時未檢核造成的${zeroChecked ? `，其中 <b>${zeroChecked} 人</b>整排都是` : ''}——
+    <b>那要找的是教練，不是學員。</b></div>`;
   h += `<div class="hwm-wrap"><table class="hwm"><tr><th class="nm">學員</th>`;
   UNITS.forEach(u => h += `<th title="${u.n}">${u.no}</th>`);
   h += `<th>缺</th></tr>`;
@@ -682,10 +710,15 @@ function renderHwMatrix(realStudents, coachById) {
     UNITS.forEach(u => {
       if (!taught.has(u.no)) { h += `<td class="hwm-c lock"></td>`; return; }
       const k = st(r.s.id, u.no); const rec = map[r.s.id + '|' + u.no];
-      const t = k === 'full' ? '✓' : k === 'part' ? `${rec.done}/${rec.total}` : k === 'none' ? '✕' : '';
-      h += `<td class="hwm-c ${k}" title="U${u.no} ${u.n}">${t}</td>`;
+      const t = k === 'full' ? '✓' : k === 'part' ? `${rec.done}/${rec.total}` : (k === 'none' || k === 'nax') ? '✕' : '';
+      const why = k === 'nax' ? `教練逾時未檢核（死線 ${unitDate[u.no]} 隔天 12:00）→ 等同沒繳`
+                : k === 'none' ? '教練檢核過，確認沒繳'
+                : k === 'na'   ? '還在期限內，教練尚未檢核' : '';
+      h += `<td class="hwm-c ${k}" title="U${u.no} ${u.n}${why ? '｜' + why : ''}">${t}</td>`;
     });
-    h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${r.na ? `<span style="color:var(--muted)">（未檢 ${r.na}）</span>` : ''}</td></tr>`;
+    const note = [r.nax ? `逾時 ${r.nax}` : '', r.na ? `待檢 ${r.na}` : ''].filter(Boolean).join(' · ');
+    h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${
+      note ? `<span style="color:var(--muted)">（${note}）</span>` : ''}</td></tr>`;
   });
   h += `</table></div>`;
   return h;
