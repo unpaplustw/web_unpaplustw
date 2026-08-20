@@ -208,6 +208,8 @@
   .dm-will{color:var(--yellow);font-weight:700;font-size:13px}
   /* 階段列／子區塊列（2026-08-17 重整） */
   .sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .sub-tab{padding:9px 16px;border-radius:20px;border:1px solid var(--gold-bd);background:var(--navy2);color:var(--muted);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .sub-tab.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
   .ana-sec{border:1px solid var(--gold-bd);border-radius:14px;padding:14px 16px 18px;margin-bottom:18px;background:rgba(255,255,255,.015)}
   .ana-hd{font-size:16px;font-weight:700;color:var(--gold);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--gold-bd);display:flex;justify-content:space-between;align-items:baseline}
   .ana-hd span{font-size:11.5px;font-weight:400;color:var(--muted)}
@@ -666,7 +668,10 @@ function renderCoachOverview(realStudents, logsByStu) {
 // ── 全班作業矩陣（2026-08-14）：資料來自教練在 coach-review「📋 作業」的檢核（homework_checks）
 //   格子：全繳／部分／沒繳／未檢核（教練沒點過，不代表沒交）；未來單元空白
 //   用途：記點退班（未交作業記 1 點）的依據；缺件排行讓管理者知道該催誰、該催哪位教練去檢核
-function renderHwMatrix(realStudents, coachById) {
+// scope：'study'＝只看作業（有排單元的日子）／'action'＝只看行動（行動開放後的日子）
+//   兩張表分開的理由是 Randoph 的閱讀動線，不是資料——同一天可能兩件事都要做（27 期 8/10～8/20 重疊），
+//   所以同一天會同時出現在兩張表，各自只顯示自己那件事。
+function renderHwMatrix(realStudents, coachById, scope) {
   if (typeof UNITS === 'undefined' || !realStudents.length) return '';
   const today = localDateStr(new Date());
 
@@ -687,11 +692,16 @@ function renderHwMatrix(realStudents, coachById) {
   Object.entries(SCHEDULE || {}).forEach(([d, arr]) => { dayUnits[d] = arr.slice(); });
 
   const b = batchRow();
-  const days = [];                           // 開班日到今天的平日
+  const actStart0 = actionStartDate();
+  const days = [];                           // 開班日到今天的平日，再依 scope 過濾
   if (b.start_date)
     for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
       const w = d.getDay();
-      if (w >= 1 && w <= 5) days.push(localDateStr(d));
+      if (w < 1 || w > 5) continue;
+      const ds = localDateStr(d);
+      if (scope === 'study'  && !(dayUnits[ds] || []).length) continue;   // 沒排單元的日子不進作業表
+      if (scope === 'action' && actStart0 && ds < actStart0) continue;    // 行動開放前不進行動表
+      days.push(ds);
     }
   if (!days.length) return '';
 
@@ -723,7 +733,7 @@ function renderHwMatrix(realStudents, coachById) {
     const said  = !!(log && log.group_reported);        // 學員自己勾了「我在小組回報了」
     const over  = dayOverdue(ds);
 
-    if (units && units.length) {
+    if (scope !== 'action' && units && units.length) {
       // ① 逐題紀錄最優先（唯一能講出「缺第幾題」的來源）
       const recs = units.map(u => hwBy[sid + '|' + u]).filter(Boolean);
       if (recs.length === units.length) {
@@ -746,7 +756,7 @@ function renderHwMatrix(realStudents, coachById) {
                   : { k:'na',  txt:'',  why:'還在期限內' };
     }
 
-    // 行動週（那天沒有單元）：看學員有沒有填 daily ＋ 教練有沒有回
+    // 行動：看學員有沒有填 daily ＋ 小組心得（scope='action' 時即使那天有單元也走這條）
     if (actStart && ds < actStart) return { k:'lock', txt:'', why:'行動尚未開放' };
     if (!simpleMode) {
       if (log) return log.confirmed ? { k:'full', txt:'✓', why:'學員已填＋教練已確認（full 模式）' }
@@ -792,23 +802,28 @@ function renderHwMatrix(realStudents, coachById) {
   const zeroDone     = rows.filter(r => (r.na + r.nax) === days.length).length;
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
-  let h = `<div class="sec-title"><span>📋 作業與行動一覽表</span><span class="sec-count">${
-    days.length} 個平日 · <b style="color:#d9534f">教練逾時未處理 ${overdueCells} 格</b></span></div>`;
+  const isAct = scope === 'action';
+  // 分頁標題已經寫過表名，內層只放統計（同一個雙標題的坑之前在「②／各組完成度」踩過一次）
+  let h = `<div class="sec-title"><span>${overdueCells
+      ? `<b style="color:#d9534f">⚠️ 教練逾時未處理 ${overdueCells} 格</b>` : '✅ 沒有逾時未處理的格子'}</span><span class="sec-count">${
+    days.length} 個${isAct ? '行動日' : '上課日'} · ${realStudents.length} 位學員</span></div>`;
   h += `<div class="cov-note">
-    橫軸是<b>日期</b>（學習班行動班共用一張表）：學習週的日期底下標單元號，行動週只有日期。<br>
+    ${isAct ? '這張只看<b>行動</b>：行動回報（學員自己填）＋小組心得。作業請看「📋 作業一覽表」。'
+            : '這張只看<b>作業</b>：橫軸是上課日，底下標該日單元號。行動請看「🏃 行動一覽表」。'}<br>
     綠✓=完成　橘=部分／教練未回　<b>紅✕=沒交</b>（含教練逾時未處理）　灰=還在期限內　空=未開放<br>
     🔴 <b>教練在 LINE 標「已交」會直接連動到這張表</b>——目前有 <b>${softCells} 格</b>是這樣來的
     （綠底加白點，表示還沒逐題檢核）。<b>每格的死線＝隔天 12:00</b>，過了還沒處理就是紅叉、等同沒繳。<br>
     🟡 <b>「待」＝學員自己勾了「已在小組回報」，但教練還沒查證</b>——目前 <b>${saidCells} 格</b>，
     <b>這些不算學員沒交</b>，責任在教練。這是唯一不經過教練的學員自述（daily 的小組回報勾）。<br>
-    行動週一格看<b>兩件事</b>：行動回報＋小組心得。兩件都做＝✓，只做一件＝「半」。<br>
+    ${isAct ? '一格看<b>兩件事</b>：行動回報＋小組心得。兩件都做＝✓，只做一件＝「半」。<br>' : ''}
     滑過任何一格都看得到它是怎麼判定的${zeroDone ? `。⚠️ 有 <b>${zeroDone} 人</b>整排都沒被處理——那要找的是教練` : ''}。</div>`;
   h += `<div class="hwm-wrap"><table class="hwm"><tr>
     <th class="nm nm1">學員</th><th class="nm nm2">教練</th><th class="nm nm3">領袖</th>`;
   days.forEach(ds => {
     const us = dayUnits[ds];
-    h += `<th title="${ds}（週${wd(ds)}）${us ? ' · U' + us.join(',U') : ' · 行動'}">${
-      ds.slice(5).replace('-', '/')}<br><span class="hwm-u">${us ? 'U' + us.join('·') : '行動'}</span></th>`;
+    const tag = scope === 'action' ? '行動' : (us ? 'U' + us.join('·') : '行動');
+    h += `<th title="${ds}（週${wd(ds)}）· ${tag}">${
+      ds.slice(5).replace('-', '/')}<br><span class="hwm-u">${tag}</span></th>`;
   });
   h += `<th>缺</th></tr>`;
   rows.forEach(r => {
@@ -962,7 +977,7 @@ function batchEnded() {
   return !!(b && b.end_date && localDateStr(new Date()) > b.end_date);
 }
 
-function renderNow() { renderAnalysis(document.getElementById('nowArea')); }
+function renderNow() { anaPainted.clear(); renderAnalysis(document.getElementById('nowArea')); }
 
 // ── 記點（2026-08-17 定案）──────────────────────────────
 //   兩套規則、兩種性質，不是雙軌而是兩個尺度：
@@ -1158,21 +1173,39 @@ function renderDemerits(target) {
 //   ③ 作業追蹤彙整：17 單元 × 學員的完成矩陣（累積）
 //   ④ 狀態排序：需要注意的人與組（排行）
 //   Randoph：不要把日報、整體報全部混在一起——混了就分不出「昨天沒事」和「整期都沒事」。
+// 🔴 2026-08-20 改成「真的分頁」，不再是錨點捲動。
+//    Randoph：「分析你是用錨點跑到下面，當我想要看別的時候又要往上滑上去」——
+//    四節加起來 139KB，用捲動找就是難讀。點一下切換，各看各的。
+//    順序照他講的：當日回報 → 一覽表（作業／行動各自獨立）→ 學員和教練狀況。
+//    作業與行動分兩頁的理由：那本來就是兩件事，而且行動週開始後作業表就固定不動了
+//    （17 單元上完，只剩追補交），每天在動的是行動表。
 const ANA = [
-  { k:'daily',  t:'① 昨日回報即時報', d:() => { const r = lastWeekday(); return `單日快照 · ${r.slice(5).replace('-','/')}（週${WDAY[new Date(r+'T00:00:00').getDay()]}）`; } },
-  { k:'groups', t:'② 整體組別回報率', d:() => {
+  { k:'daily', t:'📅 當日回報', only:null,
+    d:() => { const r = lastWeekday(); return `${r.slice(5).replace('-','/')}（週${WDAY[new Date(r+'T00:00:00').getDay()]}）單日快照`; },
+    render: el => renderDashboard(el, 'daily') },
+
+  { k:'hw', t:'📋 作業一覽表', only:'study',
+    d:() => `日期 × 學員 · 已上 ${(() => { let n = 0; const t = localDateStr(new Date());
+      Object.entries(SCHEDULE || {}).forEach(([d, a]) => { if (d <= t) n += a.length; }); return n; })()} 單元`,
+    render: el => renderHwSection(el, 'study') },
+
+  { k:'act', t:'🏃 行動一覽表', only:null,
+    d:() => `日期 × 學員 · 行動開放 ${actionStartDate() || '—'} 起`,
+    render: el => renderHwSection(el, 'action') },
+
+  { k:'status', t:'📊 學員與教練狀況', only:null,
+    d:() => {
       // 兩個分母不一樣就兩個都寫出來——只寫一個，另一欄就變成看不出尺度的數字
       const w = weekdaysSoFar(), a = actionWeekdays();
-      return a === w ? `開班至今累積 · 平日 ${w} 天`
-                     : `開班至今累積 · 作業與 LINE ${w} 天 · 行動 ${a} 天`;
-    } },
-  { k:'hw',     t:'③ 作業與行動一覽表', d:() => hasHomework() ? '日期 × 學員 · 含單元' : '日期 × 學員 · 行動' },
-  { k:'rank',   t:'④ 狀態排序',       d:'需要注意的排行' },
+      return a === w ? `開班至今累積 · 平日 ${w} 天` : `累積 · 作業與 LINE ${w} 天 · 行動 ${a} 天`;
+    },
+    render: el => { renderDashboard(el, 'groups'); renderCoverageSection(el); renderDemerits(el); renderTrack(el); } },
 ];
 // ⑤ 只在該期已結業時併進來——沒結業就不存在，不佔位、也不用切換
 const anaSections = () => {
   const list = ANA.filter(a => !a.only || a.only === batchKind());
-  return batchEnded() ? list.concat([{ k:'after', t:'⑤ 結案報表', d:'全期封存' }]) : list;
+  return batchEnded() ? list.concat([{ k:'after', t:'📦 結案報表', d:'全期封存',
+                                       render: el => { el.innerHTML = phaseAfter(); } }]) : list;
 };
 // ── 班型：所有「這一期有沒有作業／行動從哪天算」的判斷都從這裡推導 ──────────
 //    學習班 study：study_start 有值＝前段上課、後段行動（27 期）
@@ -1211,20 +1244,39 @@ function weekdaysFrom(from) {
 }
 function weekdaysSoFar()  { return weekdaysFrom(batchRow().start_date); }   // 作業／LINE：開班第一天就要求
 function actionWeekdays() { return weekdaysFrom(actionStartDate()); }       // 行動紀錄：行動開放後才要求
+let anaTab = 'daily';          // 記住當前子分頁，重繪不跳回第一頁
 function renderAnalysis(el) {
-  el.innerHTML = `<div class="sub-bar">` + anaSections().map(a =>
-    `<a class="sub-anchor" onclick="document.getElementById('ana-${a.k}').scrollIntoView({behavior:'smooth',block:'start'})">${a.t}</a>`
-  ).join('') + `</div>` + anaSections().map(a =>
-    `<div class="ana-sec" id="ana-${a.k}"><div class="ana-hd">${a.t}<span>${typeof a.d === 'function' ? a.d() : a.d}</span></div><div id="ana-body-${a.k}"></div></div>`
+  const list = anaSections();
+  if (!list.some(a => a.k === anaTab)) anaTab = list[0].k;      // 換期別可能少了某頁
+  el.innerHTML = `<div class="sub-bar">` + list.map(a =>
+    `<button class="sub-tab ${a.k === anaTab ? 'on' : ''}" onclick="setAnaTab('${a.k}')">${a.t}</button>`
+  ).join('') + `</div>` + list.map(a =>
+    `<div class="ana-sec" id="ana-${a.k}" style="display:${a.k === anaTab ? '' : 'none'}">
+       <div class="ana-hd">${a.t}<span>${typeof a.d === 'function' ? a.d() : a.d}</span></div>
+       <div id="ana-body-${a.k}"></div></div>`
   ).join('');
-  renderDashboard(document.getElementById('ana-body-daily'), 'daily');
-  const gEl = document.getElementById('ana-body-groups');
-  renderDashboard(gEl, 'groups');
-  renderCoverageSection(gEl);
-  renderHwSection(document.getElementById('ana-body-hw'));
-  const rank = document.getElementById('ana-body-rank');
-  renderDemerits(rank); renderTrack(rank);
-  if (batchEnded()) document.getElementById('ana-body-after').innerHTML = phaseAfter();
+  paintAnaTab(anaTab);
+}
+// lazy render：切到才畫。省掉「四節一次全渲染」——首次載入本來要多畫 3 頁。
+const anaPainted = new Set();
+function paintAnaTab(k) {
+  if (anaPainted.has(k)) return;
+  const sec = anaSections().find(a => a.k === k);
+  const body = document.getElementById('ana-body-' + k);
+  if (!sec || !body) return;
+  sec.render(body);
+  anaPainted.add(k);
+}
+function setAnaTab(k) {
+  anaTab = k;
+  anaSections().forEach(a => {
+    const sec = document.getElementById('ana-' + a.k);
+    if (sec) sec.style.display = a.k === k ? '' : 'none';
+  });
+  document.querySelectorAll('.sub-bar .sub-tab').forEach(b =>
+    b.classList.toggle('on', b.textContent === (anaSections().find(a => a.k === k) || {}).t));
+  paintAnaTab(k);
+  window.scrollTo({ top: 0, behavior: 'smooth' });        // 切頁一律回到頂端
 }
 
 // ② 的下半：教練回報總覽（看了／交件／已回／組員填報）
@@ -1238,11 +1290,12 @@ function renderCoverageSection(target) {
 }
 
 // ③ 作業追蹤彙整（原本掛在 renderTrack 裡，拆出來獨立一節）
-function renderHwSection(target) {
+function renderHwSection(target, scope) {
   const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
   const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
-  target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById) || '<div class="dash-empty">尚無可顯示的日期（班期尚未開始）</div>');
+  target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
+    `<div class="dash-empty">${scope === 'action' ? '行動還沒開放（看 batches.action_open_date）' : '尚無可顯示的日期'}</div>`);
 }
 
 // ── 開班前：全綠才能開班 ──────────────────────────────
