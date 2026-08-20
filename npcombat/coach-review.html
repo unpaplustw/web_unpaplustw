@@ -779,9 +779,10 @@ function fmtTime(ts) {
 
 let submitMap = {};                       // log_date -> coach_submits row
 async function loadSubmits() {
-  const { data } = await sb.from('coach_submits')
+  const { data, error } = await sb.from('coach_submits')
     .select('log_date, submitted_at, unreplied')
     .eq('batch_id', BATCH_ID).eq('coach_id', coachId);
+  if (error) throw new Error('送出紀錄：' + error.message);
   submitMap = {};
   (data || []).forEach(r => { submitMap[r.log_date] = r; });
 }
@@ -1005,7 +1006,18 @@ function setMode(mode) {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
   } else if (mode === 'hw') {
     document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
-    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits()]).then(renderHw);
+    // 🔴 三個查詢任一失敗，原本會靜默留白——教練只看到空頁，班主也查不出原因。
+    //    2026-08-20 錢威達回報「看不到」就是卡在這裡（我這邊同帳號跑卻正常）。
+    //    改成：先顯示載入中，失敗就把原因印在畫面上。
+    const g = document.getElementById('hwGrid');
+    // 有舊資料就先畫出來（切回來時零等待），沒有才顯示載入中——
+    // 4G 下三個查詢要好幾秒，全空的畫面會被當成故障（錢威達 8/20 就是這樣）
+    if (Object.keys(hwMap).length) { try { renderHw(); } catch (e) {} }
+    else if (g) g.innerHTML = '<div class="hw-hint">載入中…</div>';
+    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits()])
+      .then(() => { try { renderHw(); }
+        catch (e) { if (g) g.innerHTML = `<div class="hw-hint">畫面產生失敗：${e.message}<br>請截圖告訴班主</div>`; } })
+      .catch(e => { if (g) g.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴班主</div>`; });
   } else {
     document.querySelector('.day-toggle').style.display = '';
     subArm = false;
@@ -1077,6 +1089,19 @@ const MK_REASONS = {
 // saveMakeup／delMakeup 已於 2026-08-19 移除：Randoph「補交就是到一覽表，
 // 教練只會送出一次，剩下就是一覽表去回追哪一天的事情」——兩套入口就是多餘。
 
+let hwMap = {};          // `${student_id}|${unit_no}` -> row
+let hwOpen = null;       // 展開中的 {sid, ds}（2026-08-19 起改成日期，不是單元）
+
+async function loadHwChecks() {
+  hwMap = {};
+  if (!coachId || !studentList.length) return;
+  const { data, error } = await sb.from('homework_checks')
+    .select('student_id, unit_no, items, done, total')
+    .eq('batch_id', BATCH_ID).in('student_id', studentList.map(s => s.id));
+  if (error) throw new Error('作業檢核：' + error.message);
+  (data || []).forEach(r => { hwMap[r.student_id + '|' + r.unit_no] = r; });
+}
+
 // ══════════════════════════════════════════════════════════
 // 📋 一覽表（2026-08-19 改：橫軸日期，補交就在這裡）
 //   Randoph：「補交就是到一覽表，教練只會送出一次，剩下就是一覽表去回追哪一天的事情」
@@ -1119,9 +1144,10 @@ function dayState(sid, ds) {
 // 一覽表需要全期的 coach_engagement（小組分頁只抓今天/昨天）
 let engAll = {};
 async function loadEngAll() {
-  const { data } = await sb.from('coach_engagement')
+  const { data, error } = await sb.from('coach_engagement')
     .select('student_id, log_date, homework, homework_replied')
     .eq('batch_id', BATCH_ID).eq('coach_id', coachId);
+  if (error) throw new Error('小組標記：' + error.message);
   engAll = {};
   (data || []).forEach(r => { engAll[r.student_id + '|' + r.log_date] = r; });
 }
@@ -1130,7 +1156,11 @@ function renderHw() {
   const grid = document.getElementById('hwGrid');
   if (!studentList.length) { grid.innerHTML = '<div class="hw-hint">目前沒有配對到你的學員</div>'; return; }
   const days = dayList();
-  if (!days.length) { grid.innerHTML = '<div class="hw-hint">班期還沒開始</div>'; return; }
+  if (!days.length) {
+    grid.innerHTML = `<div class="hw-hint">目前沒有可顯示的日期。<br>
+      班期起日 ${batchDates.start || '（未設定）'}，今天 ${getDateStr('today')}。</div>`;
+    return;
+  }
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
   let h = `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補交並要填原因</b>——
