@@ -471,6 +471,8 @@ async function init() {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
       btn.classList.add('on');
       document.getElementById('p-' + btn.dataset.t).classList.add('on');
+      paintTab(btn.dataset.t);                          // 切到才畫
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
   await load();
@@ -566,13 +568,28 @@ function matchSearch(item) {
   return (nm(item)+mc(item)+(item.phone||'')).toLowerCase().includes(t);
 }
 
+// 🔴 2026-08-20：頂層 Tab 改 lazy render。
+//    原本每次 load() 都把五個 Tab 全部渲染再用 CSS 藏起來——
+//    實測 👥名冊 175KB／🎓教練 29KB，而它們是**開班前密集用、開班後幾乎不碰**的靜態資料，
+//    你每天打開是要看分析，卻每次都陪著畫它們。
+//    改成切到才畫：首次載入只畫「分析」一個 Tab。
+const TAB_RENDER = {
+  now:    () => renderNow(),
+  roster: () => { renderReview(); renderPairing(); renderFinance(); renderRosterBar(); },
+  coach:  () => renderOrg(),
+  setup:  () => { renderSetup(); renderBonus(); },
+  perm:   () => renderPerm(),
+};
+const tabPainted = new Set();
+function paintTab(t) {
+  if (tabPainted.has(t) || !TAB_RENDER[t]) return;
+  TAB_RENDER[t]();
+  tabPainted.add(t);
+}
 function render() {
-  renderNow();                                   // 🎯 現在（依階段自動）
-  renderReview(); renderPairing(); renderFinance();   // 👥 名冊（三段同頁）
-  renderOrg();                                   // 🎓 教練
-  renderSetup(); renderBonus();                  // ⚙️ 設定
-  renderPerm();                                  // 🔐 權限
-  renderRosterBar();
+  tabPainted.clear();                                   // 資料重載 → 已畫的都過期了
+  const cur = document.querySelector('.tab.on');
+  paintTab(cur ? cur.dataset.t : 'now');                // 只畫當前這一個
 }
 
 // 名冊頁的三段快速跳轉（審核／分組／繳費原本是三個 Tab）
