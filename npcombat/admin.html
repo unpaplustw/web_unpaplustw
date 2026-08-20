@@ -713,6 +713,16 @@ function renderHwMatrix(realStudents, coachById, scope) {
 
   const b = batchRow();
   const actStart0 = actionStartDate();
+  // 🔴 行動「一覽表」的起點 ≠ 行動「計算」的起點（Randoph 2026-08-20）
+  //    計算用 actionStartDate()（＝action_open_date 8/10）——四環節分母、記點都照舊，這裡不動。
+  //    但一覽表要從**行動週**才列（study_end 隔天 8/21）：
+  //    8/10～8/20 行動雖然開放了，學員的主任務仍是作業，列進行動表只會讓它難看且不公平。
+  //    行動班沒有 study_end → 自動退回 actionStartDate()，同一條規則兩種班都對。
+  const actViewFrom = (() => {
+    if (!b.study_end) return actStart0;
+    const d = new Date(b.study_end + 'T00:00:00'); d.setDate(d.getDate() + 1);
+    return localDateStr(d);
+  })();
   const days = [];                           // 開班日到今天的平日，再依 scope 過濾
   if (b.start_date)
     for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
@@ -720,7 +730,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
       if (w < 1 || w > 5) continue;
       const ds = localDateStr(d);
       if (scope === 'study'  && !(dayUnits[ds] || []).length) continue;   // 沒排單元的日子不進作業表
-      if (scope === 'action' && actStart0 && ds < actStart0) continue;    // 行動開放前不進行動表
+      if (scope === 'action' && actViewFrom && ds < actViewFrom) continue;  // 行動週之前不進行動表
       days.push(ds);
     }
   if (!days.length) return '';
@@ -1215,7 +1225,12 @@ const ANA = [
     render: el => renderHwSection(el, 'study') },
 
   { k:'act', t:'🏃 行動一覽表', only:null,
-    d:() => `日期 × 學員 · 行動開放 ${actionStartDate() || '—'} 起`,
+    d:() => {
+      const b = batchRow();
+      let from = actionStartDate();
+      if (b.study_end) { const d = new Date(b.study_end + 'T00:00:00'); d.setDate(d.getDate() + 1); from = localDateStr(d); }
+      return `日期 × 學員 · 行動週 ${from || '—'} 起`;
+    },
     render: el => renderHwSection(el, 'action') },
 
   { k:'status', t:'📊 學員與教練狀況', only:null,
@@ -1337,7 +1352,9 @@ function renderHwSection(target, scope) {
   const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
-    `<div class="dash-empty">${scope === 'action' ? '行動還沒開放（看 batches.action_open_date）' : '尚無可顯示的日期'}</div>`);
+    `<div class="dash-empty">${scope === 'action'
+      ? '行動週還沒開始（學習週結束的隔天起算，看 batches.study_end）'
+      : '尚無可顯示的日期'}</div>`);
 }
 
 // ── 開班前：全綠才能開班 ──────────────────────────────
