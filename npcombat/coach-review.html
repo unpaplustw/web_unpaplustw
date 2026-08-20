@@ -151,6 +151,11 @@
   /* 一覽表（日期軸） */
   .hw-tbl th{font-size:10px;line-height:1.4}
   .hw-sub{color:var(--gold);font-size:9px;font-weight:400}
+  .hw-scope{display:flex;gap:8px;padding:12px 16px 0}
+  .hw-sc{flex:1;padding:9px;border-radius:20px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
+  .hw-sc.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
+  .hw-miss-p{margin:10px 0;font-size:13.5px;line-height:1.9}
+  .hw-miss-mine{color:var(--muted)}
   .hw-makeup{background:var(--gold-lt);color:var(--gold);font-size:13px;font-weight:700;line-height:1.8;padding:10px 12px;border-radius:10px;margin:10px 0}
   .hw-usec{margin:14px 0 6px;font-size:13.5px}
   .hw-det-actions button.on{background:var(--gold);color:#fff;border-color:var(--gold)}
@@ -1111,20 +1116,42 @@ async function loadHwChecks() {
 // ══════════════════════════════════════════════════════════
 function dayUnitsOf(ds) { return (SCHEDULE || {})[ds] || null; }
 
-function dayList() {                       // 開班日到今天的平日
+// 一覽表內部切「作業／行動」——不加頂層分頁（手機上四個字已經在折行了）
+// 預設停在當前階段該看的那個：學習週開作業、行動週開行動。
+let hwScope = null;                       // null＝跟著階段走；使用者點過就固定
+function defaultScope() {
+  const t = getDateStr('today');
+  return (batchDates.studyEnd && t > batchDates.studyEnd) ? 'action' : 'study';
+}
+function curScope() { return hwScope || defaultScope(); }
+function setHwScope(k) { hwScope = k; hwOpen = null; renderHw(); }
+
+// 行動一覽表從**行動週**起算（study_end 隔天），不是 action_open_date——
+// 那段兩者重疊時學員主任務仍是作業，列進來只會難看又不公平（與 admin 同一條規則）
+function actionViewFrom() {
+  if (!batchDates.studyEnd) return batchDates.start;
+  const d = new Date(batchDates.studyEnd + 'T00:00:00'); d.setDate(d.getDate() + 1);
+  return dateStrOf(d);
+}
+
+function dayList() {                       // 開班日到今天的平日，再依 scope 過濾
   const out = [];
   if (!batchDates.start) return out;
-  const today = getDateStr('today');
+  const today = getDateStr('today'), sc = curScope(), actFrom = actionViewFrom();
   for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= today; d.setDate(d.getDate() + 1)) {
     const w = d.getDay();
-    if (w >= 1 && w <= 5) out.push(dateStrOf(d));
+    if (w < 1 || w > 5) continue;
+    const ds = dateStrOf(d);
+    if (sc === 'study'  && !(dayUnitsOf(ds) || []).length) continue;   // 沒排課的日子不進作業表
+    if (sc === 'action' && actFrom && ds < actFrom) continue;          // 行動週之前不進行動表
+    out.push(ds);
   }
   return out;
 }
 
 // 一格的狀態：full / part / none / na
 function dayState(sid, ds) {
-  const units = dayUnitsOf(ds);
+  const units = curScope() === 'action' ? null : dayUnitsOf(ds);
   if (units && units.length) {
     const recs = units.map(u => hwMap[sid + '|' + u]).filter(Boolean);
     if (!recs.length) return { k:'na', label:'' };
@@ -1155,15 +1182,26 @@ async function loadEngAll() {
 function renderHw() {
   const grid = document.getElementById('hwGrid');
   if (!studentList.length) { grid.innerHTML = '<div class="hw-hint">目前沒有配對到你的學員</div>'; return; }
+  const sc0 = curScope();
+  const scopeBar = `<div class="hw-scope">
+    <button class="hw-sc ${sc0 === 'action' ? '' : 'on'}" onclick="setHwScope('study')">📋 作業</button>
+    <button class="hw-sc ${sc0 === 'action' ? 'on' : ''}" onclick="setHwScope('action')">🏃 行動</button>
+  </div>`;
   const days = dayList();
   if (!days.length) {
-    grid.innerHTML = `<div class="hw-hint">目前沒有可顯示的日期。<br>
-      班期起日 ${batchDates.start || '（未設定）'}，今天 ${getDateStr('today')}。</div>`;
+    // 🔴 切換鈕一定要留著——否則切到行動又沒資料，教練就被卡在空白頁回不去
+    grid.innerHTML = scopeBar + (sc0 === 'action'
+      ? `<div class="hw-hint">🏃 行動週從 <b>${actionViewFrom()}</b> 開始，還沒到。<br>現在請看「📋 作業」。</div>`
+      : `<div class="hw-hint">目前沒有可顯示的上課日。<br>班期起日 ${batchDates.start || '（未設定）'}，今天 ${getDateStr('today')}。</div>`);
+    if (document.getElementById('hwMissing')) document.getElementById('hwMissing').innerHTML = '';
+    if (document.getElementById('hwDetail')) document.getElementById('hwDetail').style.display = 'none';
     return;
   }
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
-  let h = `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補交並要填原因</b>——
+  const isAct = sc0 === 'action';
+  let h = scopeBar;
+  h += `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補交並要填原因</b>——
     教練每天只送出一次，之後就在這裡回追。</div>`;
   h += '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
   days.forEach(ds => {
@@ -1183,8 +1221,8 @@ function renderHw() {
                onclick="openDay('${stu.id}','${ds}')"
                title="${ds}（週${wd(ds)}）${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${st.label}</td>`;
       if (st.k !== 'full') {
-        const us = dayUnitsOf(ds);
-        const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + ' 行動';
+        const us = isAct ? null : dayUnitsOf(ds);
+        const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + (isAct ? ' 行動心得' : '');
         if (st.k === 'part') {
           // 部分繳：列出缺哪幾題，教練不必再點開確認
           const lack = [];
@@ -1193,9 +1231,13 @@ function renderHw() {
             if (!uu) return;
             uu.hw.forEach((_, idx) => { if (!r || (r.items || {})[String(idx + 1)] !== true) lack.push(`U${u}-${idx + 1}`); });
           });
-          miss.push(`⚠️ ${tag} 缺 ${lack.join('、')}`);
-        } else if (st.k === 'none') miss.push(`❌ ${tag} 沒繳`);
-        else miss.push(`⬜ ${tag} 待確認`);
+          miss.push({ t: `⚠️ ${tag} 缺 ${lack.join('、')}`, mine: false });
+        } else if (st.k === 'none') {
+          miss.push({ t: `❌ ${tag} 沒繳`, mine: false });
+        } else {
+          // 🔴「教練請確定」＝我自己還沒檢核，不是學員沒交 → 畫面顯示、但不進複製文字
+          miss.push({ t: `⬜ ${tag} 教練請確定`, mine: true });
+        }
       }
     });
     h += '</tr>';
@@ -1207,20 +1249,32 @@ function renderHw() {
 
   const mbox = document.getElementById('hwMissing');
   if (!missing.length) {
-    mbox.innerHTML = '<div class="hw-missing">🎉 目前為止每位學員都全繳了</div>';
+    mbox.innerHTML = `<div class="hw-missing">🎉 ${isAct ? '行動心得每天都有' : '目前為止每位學員都全繳了'}</div>`;
     return;
   }
-  const lines = missing.map(m => `【${m.name}】\n` + m.miss.map(x => '　' + x).join('\n'));
-  const copyText =
-    '📋 作業進度小提醒\n\n' +
-    '課程作業是把每一堂學到的東西練成自己的話。有一些還沒完成，' +
-    '沒有真正落實學習，未來在事業上就很難專業呈現——這也是我們一起來上課的初衷。\n\n' +
+  // 複製文字只放「真的缺件」；「教練請確定」是自己的事，貼給學員只會讓他困惑
+  const forCopy = missing.map(m => ({ name: m.name, list: m.miss.filter(x => !x.mine) }))
+                         .filter(m => m.list.length);
+  const mineN = missing.reduce((a, m) => a + m.miss.filter(x => x.mine).length, 0);
+  const lines = forCopy.map(m => `【${m.name}】\n` + m.list.map(x => '　' + x.t).join('\n'));
+  const copyText = forCopy.length ? (
+    (isAct ? '🏃 行動回報小提醒\n\n每天在小組貼行動心得，是把當天做的事講成自己的話。\n有幾天還沒看到你的分享——\n\n'
+           : '📋 作業進度小提醒\n\n課程作業是把每一堂學到的東西練成自己的話。有一些還沒完成，' +
+             '沒有真正落實學習，未來在事業上就很難專業呈現——這也是我們一起來上課的初衷。\n\n') +
     lines.join('\n\n') + '\n\n' +
-    '缺哪個就補哪個，補上就好，不用趕、也不用一次全部。有卡住的地方隨時在群裡說，我陪你一起看 💪';
+    '缺哪個就補哪個，補上就好，不用趕、也不用一次全部。有卡住的地方隨時在群裡說，我陪你一起看 💪'
+  ) : '（目前沒有需要提醒學員的缺件）';
+  // 畫面上仍然全列（含「教練請確定」），教練自己要看得到還有幾格沒檢核
+  const shown = missing.map(m =>
+    `<div class="hw-miss-p"><b>${m.name}</b>${m.miss.map(x =>
+      `<div class="${x.mine ? 'hw-miss-mine' : ''}">　${x.t}</div>`).join('')}</div>`).join('');
   mbox.innerHTML = `<div class="hw-missing">
-    <div class="hw-missing-hd"><span>📣 缺件清單（${missing.length} 人）</span><button class="hw-copy" onclick="copyGuide('hwCopySrc', this)">📋 一鍵複製</button></div>
-    <div id="hwCopySrc" class="hw-copy-src">${copyText.replace(/</g,'&lt;')}</div>
-    <div style="margin-top:8px;font-size:11.5px;color:var(--muted)">沒有標示的＝你還沒檢核，不代表他沒交。複製前先把灰格點掉，清單才準。</div>
+    <div class="hw-missing-hd"><span>📣 ${isAct ? '行動' : '作業'}缺件（${missing.length} 人）</span><button class="hw-copy" onclick="copyGuide('hwCopySrc', this)">📋 一鍵複製</button></div>
+    ${shown}
+    <div id="hwCopySrc" class="hw-copy-src" style="display:none">${copyText.replace(/</g,'&lt;')}</div>
+    <div style="margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.8">
+      🔴 <b>「教練請確定」是你自己還沒檢核，不是學員沒交</b>——${mineN ? `目前 <b>${mineN} 格</b>，` : ''}
+      <b>複製時已自動排除</b>，不會貼給學員。先把那幾格點掉，清單才完整。</div>
   </div>`;
 }
 
