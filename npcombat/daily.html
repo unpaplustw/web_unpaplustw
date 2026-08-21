@@ -553,7 +553,7 @@
 </div>
 </div><!-- /actionPane -->
 
-<div class="ft">實戰班委員會</div>
+<div class="ft">實戰班委員會<br><span id="verTag" style="font-size:10px;opacity:.45"></span></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1367,6 +1367,16 @@ function backToEdit() {
 // 🎓 結業成長證明書：整份證書（樣式＋資料＋渲染）已抽出成獨立的 cert.html，由首頁「我的成長歷程」按鈕開啟；此頁不再持有證書程式碼。
 
 init();
+
+// 🔴 版本標記（2026-08-21）：教練回報「看不到新功能」時，第一件事就是看這裡。
+//    document.lastModified ＝ 這份 HTML 的 Last-Modified，反映**實際載入到手機上的版本**，
+//    不是伺服器上的版本——所以快取沒更新一眼就看得出來，不用再猜。
+(function () {
+  const el = document.getElementById('verTag');
+  if (!el) return;
+  const d = new Date(document.lastModified), p = n => String(n).padStart(2, '0');
+  el.textContent = `版本 ${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+})();
 </script>
 
 </body>

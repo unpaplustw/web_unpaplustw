@@ -339,7 +339,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>實戰班主系統管理</h1>
+    <h1>實戰班主系統管理<span id="verTag" style="font-size:10px;font-weight:400;opacity:.45;margin-left:8px"></span></h1>
     <div class="hd-right">
       <select id="selBatch"></select>
       <button class="btn-ref" onclick="load()">重整</button>
@@ -2482,6 +2482,15 @@ async function removeAdmin(adminId) {
 
 
 init();
+
+// 🔴 版本標記（2026-08-21）：有人回報「看不到新功能」時第一件事就是看這裡。
+//    document.lastModified 反映**實際載入到那台裝置的版本**，不是伺服器上的——快取沒更新一眼看得出來。
+(function () {
+  const el = document.getElementById('verTag');
+  if (!el) return;
+  const d = new Date(document.lastModified), p = n => String(n).padStart(2, '0');
+  el.textContent = `版本 ${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+})();
 </script>
 </body>
 </html>

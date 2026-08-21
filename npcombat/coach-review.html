@@ -689,7 +689,7 @@ https://ppt.cc/fJAcix
   </div>
 </div>
 
-<div class="ft">實戰班委員會</div>
+<div class="ft">實戰班委員會<br><span id="verTag" style="font-size:10px;opacity:.45"></span></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1181,21 +1181,32 @@ async function loadEngAll() {
 
 function renderHw() {
   const grid = document.getElementById('hwGrid');
-  if (!studentList.length) { grid.innerHTML = '<div class="hw-hint">目前沒有配對到你的學員</div>'; return; }
+  // 🔴 切換鈕在**所有**早退出之前產生。
+  //    2026-08-20 只修了「沒有日期」那條，漏掉「沒有組員」那條——Randoph 自己的帳號沒配組員，
+  //    打開就只有一句「沒有配對到你的學員」，連切換鈕都沒有。
+  //    同一個錯我在 wiki 記過「例外路徑把出口一起吃掉」，結果自己還留了一個。
+  //    通則：出口元件先產生，之後每一條 return 都帶著它。
   const sc0 = curScope();
   const scopeBar = `<div class="hw-scope">
     <button class="hw-sc ${sc0 === 'action' ? '' : 'on'}" onclick="setHwScope('study')">📋 作業</button>
     <button class="hw-sc ${sc0 === 'action' ? 'on' : ''}" onclick="setHwScope('action')">🏃 行動</button>
   </div>`;
+  const clearBelow = () => {
+    const a = document.getElementById('hwMissing'); if (a) a.innerHTML = '';
+    const b = document.getElementById('hwDetail'); if (b) b.style.display = 'none';
+  };
+  if (!studentList.length) {
+    grid.innerHTML = scopeBar + `<div class="hw-hint">目前沒有配對到你的學員。<br>
+      （你若是班主／不帶組，這一頁本來就沒有內容——組員名單在 admin 的「👥 名冊」。）</div>`;
+    clearBelow(); return;
+  }
   const days = dayList();
   if (!days.length) {
     // 🔴 切換鈕一定要留著——否則切到行動又沒資料，教練就被卡在空白頁回不去
     grid.innerHTML = scopeBar + (sc0 === 'action'
       ? `<div class="hw-hint">🏃 行動週從 <b>${actionViewFrom()}</b> 開始，還沒到。<br>現在請看「📋 作業」。</div>`
       : `<div class="hw-hint">目前沒有可顯示的上課日。<br>班期起日 ${batchDates.start || '（未設定）'}，今天 ${getDateStr('today')}。</div>`);
-    if (document.getElementById('hwMissing')) document.getElementById('hwMissing').innerHTML = '';
-    if (document.getElementById('hwDetail')) document.getElementById('hwDetail').style.display = 'none';
-    return;
+    clearBelow(); return;
   }
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
@@ -2248,6 +2259,16 @@ async function undoConfirm() {
 }
 
 init();
+
+// 🔴 版本標記（2026-08-21）：教練回報「看不到新功能」時，第一件事就是看這裡。
+//    document.lastModified ＝ 這份 HTML 的 Last-Modified，反映**實際載入到手機上的版本**，
+//    不是伺服器上的版本——所以快取沒更新一眼就看得出來，不用再猜。
+(function () {
+  const el = document.getElementById('verTag');
+  if (!el) return;
+  const d = new Date(document.lastModified), p = n => String(n).padStart(2, '0');
+  el.textContent = `版本 ${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+})();
 </script>
 </body>
 </html>
