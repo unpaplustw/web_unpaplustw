@@ -111,7 +111,7 @@ const CERT_FIELDS = [
   { key:'name_list', label:'狂列名單', w:1 },
   { key:'meet',      label:'認識新友', w:1 },
   { key:'invite',    label:'邀約見面', w:2 },
-  { key:'present',   label:'溝通本說明', w:5 },
+  { key:'present',   label:'邀請溝通本', w:5 },
   { key:'seminar',   label:'邀請說明會', w:5 },
   { key:'ghosted',   label:'被放鴿子', w:1 },
   { key:'rejected',  label:'締結未果', w:1 },
@@ -298,7 +298,7 @@ function certStyle(posPts) {
   const get = l => (posPts.find(p => p.label === l) || {}).pts || 0;
   const dev = get('狂列名單') + get('認識新友');           // 開發
   const rel = get('邀約見面');                              // 邀約（2026-08-23 改名，此處是字串比對，必須同步）
-  const close = get('溝通本說明') + get('邀請說明會');      // 推進成交
+  const close = get('邀請溝通本') + get('邀請說明會');      // 邀請兩式（字串比對，改 label 必須同步）
   const total = dev + rel + close;
   if (total === 0) return '🌱 起步型';
   const max = Math.max(dev, rel, close);

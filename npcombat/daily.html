@@ -437,7 +437,7 @@
         <div class="act-left">
           <div class="act-emoji">🗣️</div>
           <div class="act-info">
-            <div class="act-label">溝通本說明</div>
+            <div class="act-label">邀請溝通本</div>
             <div class="act-desc">📷 合照＋溝通本畫面</div>
             <div class="act-desc act-cheer">說出口就是成功的一半</div>
           </div>
@@ -692,7 +692,7 @@ const COUNT_FIELDS = [
   { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1 },
   { key:'meet',      emoji:'🤝', label:'認識新友',     pts:1 },
   { key:'invite',    emoji:'💬', label:'邀約見面',     pts:2 },
-  { key:'present',   emoji:'🗣️', label:'溝通本說明',   pts:5 },
+  { key:'present',   emoji:'🗣️', label:'邀請溝通本',   pts:5 },
   { key:'seminar',   emoji:'🏛️', label:'邀請說明會',   pts:5 },
   { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
   { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true },
@@ -1335,8 +1335,8 @@ function renderAccum(todayPts) {
     <div class="accum-title">📊 開班累積紀錄</div>
     <div class="accum-grid">
       <div class="accum-item"><div class="accum-item-val">${newMeet}</div><div class="accum-item-label">🤝 認識新友</div></div>
-      <div class="accum-item"><div class="accum-item-val">${newInvite}</div><div class="accum-item-label">📞 邀約見面</div></div>
-      <div class="accum-item"><div class="accum-item-val">${newPresent}</div><div class="accum-item-label">🗣️ 溝通本說明</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newInvite}</div><div class="accum-item-label">💬 邀約見面</div></div>
+      <div class="accum-item"><div class="accum-item-val">${newPresent}</div><div class="accum-item-label">🗣️ 邀請溝通本</div></div>
       <div class="accum-item"><div class="accum-item-val">${newSeminar}</div><div class="accum-item-label">🏛️ 邀請說明會</div></div>
       <div class="accum-item"><div class="accum-item-val">${newClose}</div><div class="accum-item-label">✅ 締結成功</div></div>
       <div class="accum-item"><div class="accum-item-val">${newGhosted + newRejected}</div><div class="accum-item-label">🛡️ 勇氣印記</div></div>
