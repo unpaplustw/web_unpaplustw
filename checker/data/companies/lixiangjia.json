@@ -1,0 +1,40 @@
+{
+ "_draft": true,
+ "_note": "2026-08-12 粗篩自動產出：meta 為機械抽取，其餘為素材搬運未改寫成白話。第二階段須人工精修 entry_cost/bonuses/ranks 白話化並複核 weaknesses。null＝wiki 無資料，勿編造。",
+ "meta": {
+  "slug": "lixiangjia",
+  "name": "理想家",
+  "model": "雙軌制",
+  "type": "雙軌制（多營業中心）",
+  "handbook": "2026.01",
+  "ftc": "https://fair.ftc.gov.tw/fair/report/report_info.aspx?sn=70786756",
+  "updated": "2026-08-12",
+  "payout_rate": "55"
+ },
+ "_logics": {
+  "develop": [
+   "個人業績獎",
+   "推薦固定獎金"
+  ],
+  "org": [
+   "雙軌對碰",
+   "配對獎"
+  ],
+  "pool": [
+   "池化分紅"
+  ],
+  "welfare": []
+ },
+ "entry_cost": null,
+ "_entry_src": null,
+ "bonuses": null,
+ "_bonus_src": null,
+ "_verify_src": "手冊理想家_202601(P&P)+制度_202603核對(Synergy WorldWide)：消費回饋=TC1月重消超120CV部分×25%→個人業績獎；輔導獎金=新人啟動1TC US$25/3TC US$75固定(⚠️人頭)→推薦固定獎金；組織獎金=弱邊×10%積分無限代不歸零+領袖紅利=聘階倍數×弱邊新增CV×2-4%→雙軌對碰；Mega-Match=依直推所領組織獎金配對(弱邊<500CV以500計)→配對獎；全球分紅=全球CV 1%按總裁級基數1-4分→池化分紅；範圍外：CV總閘55%、月獎<US$25不發累積",
+ "ranks": null,
+ "_rank_src": [
+  "",
+  ""
+ ],
+ "weaknesses": null,
+ "_portrait_src": "多營業中心買結構(200CV=1TC/600CV=3TC,無入會費包裝)、積分不歸零(與環貫同賣點)、70%零售規則+12個月不活躍降優惠顧客、月維持TC1購120CV(自購綁定)"
+}

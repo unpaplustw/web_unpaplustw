@@ -1,0 +1,45 @@
+{
+ "_draft": true,
+ "_note": "2026-08-12 粗篩自動產出：meta 為機械抽取，其餘為素材搬運未改寫成白話。第二階段須人工精修 entry_cost/bonuses/ranks 白話化並複核 weaknesses。null＝wiki 無資料，勿編造。",
+ "meta": {
+  "slug": "lihui",
+  "name": "力匯",
+  "model": null,
+  "type": "雙軌制（RB/DB/MB）",
+  "handbook": "2026.06",
+  "ftc": "https://fair.ftc.gov.tw/fair/report/report_info.aspx?sn=53529092",
+  "updated": "2026-08-12",
+  "payout_rate": "60"
+ },
+ "_logics": {
+  "develop": [],
+  "org": [],
+  "pool": [],
+  "welfare": []
+ },
+ "entry_cost": null,
+ "_entry_src": null,
+ "bonuses": null,
+ "_bonus_src": [
+  "依公司總業績抽出**10%**作為RB計算",
+  "**一次性**獎金（被推薦人加入時即計算）",
+  "每日計算，每日派發",
+  "根據保薦樹計算（無最高每日推薦人數限制）",
+  ""
+ ],
+ "_verify_src": null,
+ "ranks": null,
+ "_rank_src": [
+  "鑽石1星：組織達 10 個鉑金位置",
+  "鑽石2星：左右腿各 1 個鑽石1星",
+  "鑽石3星：左右腿各 1 個鑽石2星",
+  "每在 1 個保薦樹組織栽培出 ≥1 位飛馬領隊5（Πε）以上 ＝ 1 環。",
+  "環色依所栽培飛馬領隊級別：白（飛馬5 Πε）／黃（飛馬6 Πς）／紫（飛馬7 Πζ）／玄（飛馬8 Πη）／紅（飛馬9 Πθ）。",
+  "排位先比環數、再比環色（環數同則環色大者勝）。",
+  "飛馬領隊分 1～9 級（Πα～Πθ）：飛馬領隊N 須在 N 個不同組織各栽培出 ≥1 位飛馬領隊5以上。",
+  "",
+  ""
+ ],
+ "weaknesses": null,
+ "_portrait_src": null
+}
