@@ -547,7 +547,7 @@ const WDAY = ['日','一','二','三','四','五','六'];
 // 27 期 8/20 上完最後一堂，8/21 起是行動週，那時再叫「上課日」就錯了
 const refDayLabel = () => ((SCHEDULE || {})[lastWeekday()] || []).length ? '上一個上課日' : '上一個平日';
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'拉近關係', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
+const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'邀約見面', present:'溝通本說明', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
 const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組'];
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
 const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];

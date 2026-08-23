@@ -110,7 +110,7 @@ function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).pad
 const CERT_FIELDS = [
   { key:'name_list', label:'狂列名單', w:1 },
   { key:'meet',      label:'認識新友', w:1 },
-  { key:'invite',    label:'拉近關係', w:2 },
+  { key:'invite',    label:'邀約見面', w:2 },
   { key:'present',   label:'溝通本說明', w:5 },
   { key:'seminar',   label:'邀請說明會', w:5 },
   { key:'ghosted',   label:'被放鴿子', w:1 },
@@ -297,7 +297,7 @@ function aiInsight(d) {
 function certStyle(posPts) {
   const get = l => (posPts.find(p => p.label === l) || {}).pts || 0;
   const dev = get('狂列名單') + get('認識新友');           // 開發
-  const rel = get('拉近關係');                              // 關係
+  const rel = get('邀約見面');                              // 邀約（2026-08-23 改名，此處是字串比對，必須同步）
   const close = get('溝通本說明') + get('邀請說明會');      // 推進成交
   const total = dev + rel + close;
   if (total === 0) return '🌱 起步型';
