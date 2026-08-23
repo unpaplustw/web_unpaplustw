@@ -251,7 +251,12 @@ const AWARDS = [
   // 2026-08-14 開會定案三套統計：實戰班推薦人數（只算新人 001、小金大金同 1 人、分店不算）／
   // 之夜嘉許（推薦新人的締結分，含小金大金倍率）／獎勵活動（新人＋分店全算，見 total）
   { key:'referrals', emoji:'🌱', name:'推薦王',    desc:'推薦新人 001 人數（開分店不算）', unit:'人', fun:false },
-  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'推薦新人的締結分（含小金大金）', unit:'分', fun:false },
+  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'推薦新人的締結分（含小金大金）', unit:'分', fun:false, cumulative:true },
+  // 2026-08-23 Randoph：「每週以締結 001 為主，其他算在整期排行，比較不會失焦」
+  //   週榜＝推薦王（人頭），整期＝締結王／開店王／金牌王。同一個 1400 分，
+  //   放在週榜會壓垮那一週，放整期就只是「她這期開了張大單」——尺度對了，倍率就不用吵。
+  { key:'branch_pts',  emoji:'🏪', name:'開店王',    desc:'自己開分店的締結分（全期累積）', unit:'分', fun:false, cumulative:true },
+  { key:'badge_units', emoji:'🥇', name:'金牌王',    desc:'小金大金開出的單位數（全期累積）', unit:'單位', fun:false, cumulative:true },
   { key:'slots',     emoji:'🎫', name:'獎勵達人',  desc:'達成挑戰門檻名額最多（全期累積）', unit:'位', fun:false, cumulative:true },
   { key:'name_list', emoji:'📋', name:'滿門抄斬',  desc:'狂列名單筆數最多',         unit:'筆', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
@@ -491,7 +496,7 @@ function calcStats(startDate, endDate) {
       sid: s.id, name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
       ghosted:0, rejected:0, name_list:0,
-      close_pts:0, action_pts:0, total:0, slots:0, referrals:0, branch_pts:0, _refCodes:new Set(),
+      close_pts:0, action_pts:0, total:0, slots:0, referrals:0, branch_pts:0, badge_units:0, upline_unit_pts:0, _refCodes:new Set(),
       supervise:0,
       filled:false, filledItems:0, verifiedItems:0,
       downlinePts:0, downlineCount:0, downlineAvg:0, downlineNames:[]
@@ -543,19 +548,35 @@ function calcStats(startDate, endDate) {
     if (endDate && c.close_date > endDate) return false;
     return true;
   });
+  // 🔴 締結三分類（2026-08-23 Randoph 定案）
+  //   B 自營分店（is_new=false）      → branch_pts，進 total、開店王
+  //   C 下線加開單位（is_new 且 sub≠001）→ 不計分。理由（Randoph）：
+  //     「C 自己推薦自己的分店，就會變成那位下線的自己開分店的分數，
+  //      獎勵分數公司怎麼可能重複計算」——同一個單位若上下線都是學員，
+  //      會被報兩次。記錄在 upline_unit_pts 供查，但不進 total、不進任何榜。
+  //   A 新規 001（is_new 且 sub=001）  → close_pts、推薦王
+  //   D 舊格式無編號（8/13 前）        → 併入 A。無法判定，且不再產生；
+  //     那是學員真的做到的事，只是當時沒存編號，從寬。
   closes.forEach(c => {
     const sid = memberToStu[c.member_id];
     if (!sid || !students[sid]) return;
     if (!closeCounts(c)) return;
     const st = students[sid];
-    if (c.is_new === false) {                       // 自己開分店：只進獎勵活動總分
+    const isBranchOfDownline = c.is_new === true && c.target_code && c.target_sub && c.target_sub !== '001';
+    if (c.is_new === false) {
       st.branch_pts += c.points || 0;
-    } else {                                        // 推薦新人（或舊資料無判定）
+    } else if (isBranchOfDownline) {
+      st.upline_unit_pts += c.points || 0;      // 記錄但不計分（避免與下線重複）
+      return;                                   // 金牌也不算，這筆整體不屬於他
+    } else {
       st.close_pts += c.points || 0;
-      if (c.is_new === true && c.target_code && !st._refCodes.has(c.target_code)) {
+      // ⚠️ 只有 001 才是新規會員。漏掉這個條件會把「下線的第 N 個單位」
+      //    當成新人（2026-08-23 修：巫鈴珠 2893623-002 曾被算成推薦 1 人）
+      if (c.is_new === true && c.target_code && c.target_sub === '001' && !st._refCodes.has(c.target_code)) {
         st._refCodes.add(c.target_code); st.referrals += 1;   // 同一新人開小金大金＝1 人
       }
     }
+    if (c.badge) st.badge_units += (c.badge === 'big_gold' ? 7 : 3);
   });
   const arr = Object.values(students);
   arr.forEach(s => {
@@ -606,7 +627,7 @@ function loadWeek(idx) {
     const prevEnd = fmtDateISO(weeks[idx - 1].end);
     const { students: cumStudents } = calcStats(null, cumEnd);
     const { students: prevStudents } = calcStats(null, prevEnd);
-    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total','buddies','supervise','referrals','branch_pts'];
+    const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','close_pts','action_pts','total','buddies','supervise','referrals','branch_pts','badge_units','upline_unit_pts'];
     arr.forEach(s => {
       const cum = cumStudents[s.sid];
       const prev = prevStudents[s.sid];
