@@ -165,6 +165,13 @@
   .vf-b.ok{border-color:var(--green,#1d7a4c);color:var(--green,#1d7a4c)}
   .vf-b.no{border-color:var(--red,#c0392b);color:var(--red,#c0392b)}
   .tab-badge{display:none;min-width:17px;height:17px;line-height:17px;border-radius:9px;background:var(--red,#c0392b);color:#fff;font-size:10.5px;font-weight:700;margin-left:4px;padding:0 4px;vertical-align:top}
+  /* 🔴 待辦橫幅（2026-08-23）：徽章只說「有事」，橫幅要說「哪一天、什麼事、按這裡」。
+     8/21 只有 1/15 教練按送出——不是不做，是沒有東西提醒他還沒做。 */
+  .todo-bar{max-width:500px;margin:12px auto 0;padding:11px 13px;border-radius:10px;
+    background:#fdecea;border:1px solid #f5b7b1;color:#922b21;font-size:13.5px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;gap:8px;line-height:1.4}
+  .todo-bar .go{margin-left:auto;background:#c0392b;color:#fff;border-radius:7px;
+    padding:5px 10px;font-size:12.5px;white-space:nowrap;font-weight:700}
   .sc-badge{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--red,#c0392b);color:#fff;font-size:10px;font-weight:700;margin-left:4px;padding:0 4px}
   .hw-scope{display:flex;gap:8px;padding:12px 16px 0}
   .hw-sc{flex:1;padding:9px;border-radius:20px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
@@ -358,10 +365,12 @@
 
 <!-- Mode Tabs -->
 <div class="mode-tabs">
-  <button class="mode-tab on" id="tabRec" onclick="setMode('rec')">📝 紀錄</button>
+  <button class="mode-tab on" id="tabRec" onclick="setMode('rec')">📝 紀錄<span id="recBadge" class="tab-badge"></span></button>
   <button class="mode-tab" id="tabChk" onclick="setMode('chk')">🔍 審查<span id="chkBadge" class="tab-badge"></span></button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
+
+<div id="todoBar" class="todo-bar" style="display:none" onclick="gotoSubmit()"></div>
 
 <!-- Day Toggle -->
 <div class="day-toggle">
@@ -938,13 +947,13 @@ async function init() {
 
   try {
     // 當期批次（換屆只改 DB）+ 教練模式
-    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date, study_start, study_end, action_open_date').eq('is_active', true).maybeSingle();
+    const { data: batchRow } = await sb.from('batches').select('id, coach_mode, start_date, end_date, study_start, study_end, action_open_date, submit_from').eq('is_active', true).maybeSingle();
     if (!batchRow) { document.getElementById('coachName').textContent = '無進行中班期'; toast('目前沒有進行中的班期'); return; }
     BATCH_ID = batchRow.id;
     coachMode = batchRow.coach_mode || 'simple';
     batchDates = { start: batchRow.start_date, end: batchRow.end_date,
                    studyStart: batchRow.study_start, studyEnd: batchRow.study_end,
-                   actionOpen: batchRow.action_open_date };
+                   actionOpen: batchRow.action_open_date, submitFrom: batchRow.submit_from };
     initGuidePhase();
     // ⚠️ 2026-08-23 分頁改名後，這裡原本改的 tabReview 已不存在 → null.textContent 讓整個 init 拋錯、
     //    coachId 沒設、學員撈不到，畫面只剩「載入失敗」。分頁名現在固定，不需要依模式改字。
@@ -1095,6 +1104,7 @@ async function init() {
 
   renderMyReport();
   renderReview();
+  await loadSubmits().catch(() => {});   // 燈號要在首頁就亮，不能等點進組員頁
   renderRollcall();   // 這裡才有 studentList，接龍名單要等到現在才生得出來
   setMode('my');
 }
@@ -1133,6 +1143,7 @@ function setMode(mode) {
   document.getElementById('hwView').style.display = mode === 'chk' ? '' : 'none';
   document.getElementById('detailView').style.display = 'none';
   renderRecScopeBar();
+  refreshTodo();
   if (inMy) {
     currentDay = 'today';
     document.getElementById('btnToday').classList.add('on');
@@ -1142,7 +1153,7 @@ function setMode(mode) {
   } else if (inGroup) {
     document.querySelector('.day-toggle').style.display = '';
     subArm = false; rejectArm = null;
-    loadSubmits().then(renderReview)
+    loadSubmits().then(() => { renderReview(); refreshTodo(); })
       .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
@@ -1208,6 +1219,7 @@ async function submitDay() {
   }, { onConflict: 'batch_id,coach_id,log_date' });
   if (error) { if (btn) btn.disabled = false; toast('送出失敗：' + error.message); return; }
   await loadSubmits();
+  refreshTodo();
   renderEngagement();
   toast(pend.length ? `已送出（${pend.length} 位未回將計點）` : '已送出 ✅ 今天結案');
 }
@@ -1286,6 +1298,71 @@ function renderChkBadge() {
   el.textContent = n ? String(n) : '';
   el.style.display = n ? '' : 'none';
 }
+
+// ══════════════════════════════════════════════════════════
+// 🔴 待送出燈號（2026-08-23 Randoph：「警示燈號也不錯」）
+//   為什麼要有：8/20 群組推了一下，13 個教練有動作、8 個按送出；
+//   8/21 沒推，剩 4 個有動作、**只有 1/15 按送出**。
+//   教練不是不做，是打開頁面看到一片正常，沒有任何東西說「你今天還沒送出」。
+//
+//   何時亮（三條都要成立，否則燈會變成永久紅點＝狼來了）：
+//     1. 那天是「要送出」的日子——平日、在班期內、且 >= submit_from
+//     2. 還沒送出
+//     3. **還來得及**——過了隔天 12:00 就按不下去了，亮著也沒用，那要走一覽表補交
+//   另加：今天的燈要等 22:00 才亮（學員 22:00 前才交完，早上亮只是噪音）。
+//   → 實務上教練看到燈的時間點，正好是「昨天的、今天 12:00 前要交」，就是他該做的事。
+// ══════════════════════════════════════════════════════════
+function pendingSubmitDays() {
+  if (!coachId || !batchDates.start) return [];
+  if (studentsLoaded && !studentList.length) return [];   // 沒帶學員就沒有送出義務
+  const now = new Date(), todayStr = getDateStr('today');
+  const from = batchDates.submitFrom || batchDates.start;
+  const out = [];
+  ['yesterday', 'today'].forEach(w => {
+    const ds = getDateStr(w);
+    if (ds < from) return;
+    if (batchDates.end && ds > batchDates.end) return;
+    const wd = new Date(ds + 'T00:00:00').getDay();
+    if (wd < 1 || wd > 5) return;                 // 只有平日要送出
+    if (isSubmitted(ds)) return;
+    if (overDeadline(ds)) return;                 // 已經鎖住了 → 交給一覽表補交
+    if (ds === todayStr && now.getHours() < 22) return;   // 學員還沒交完
+    out.push(ds);
+  });
+  return out;
+}
+
+// 徽章說「有事」，橫幅說「哪一天、什麼事、按這裡」——兩層都要，否則教練得自己猜
+function renderRecBadge() {
+  const el = document.getElementById('recBadge');
+  if (!el) return;
+  const n = pendingSubmitDays().length;
+  el.textContent = n ? String(n) : '';
+  el.style.display = n ? '' : 'none';
+}
+function renderTodoBar() {
+  const el = document.getElementById('todoBar');
+  if (!el) return;
+  const ds = pendingSubmitDays()[0];
+  const show = !!ds && currentMode === 'rec';
+  el.style.display = show ? '' : 'none';
+  if (!show) return;
+  const late = ds !== getDateStr('today');        // 昨天的 → 今天 12:00 就鎖
+  el.innerHTML = `<span>🔴</span><span>${formatDate(ds)} 的組員回報還沒送出` +
+                 `${late ? '，<b>今天 12:00 截止</b>' : ''}</span>` +
+                 `<span class="go">去送出 ›</span>`;
+}
+function refreshTodo() { renderRecBadge(); renderTodoBar(); }
+
+// 橫幅要一鍵到位：切到 👥 組員 ＋ 跳到該送出的那一天。少一步都會有人卡住。
+function gotoSubmit() {
+  const ds = pendingSubmitDays()[0];
+  if (!ds) return;
+  recScope = 'group';
+  setMode('rec');
+  setDay(ds === getDateStr('today') ? 'today' : 'yesterday');
+}
+
 
 // 行動一覽表從**行動週**起算（study_end 隔天），不是 action_open_date——
 // 那段兩者重疊時學員主任務仍是作業，列進來只會難看又不公平（與 admin 同一條規則）
