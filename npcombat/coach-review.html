@@ -170,6 +170,8 @@
   .todo-bar{max-width:500px;margin:12px auto 0;padding:11px 13px;border-radius:10px;
     background:#fdecea;border:1px solid #f5b7b1;color:#922b21;font-size:13.5px;font-weight:600;
     cursor:pointer;display:flex;align-items:center;gap:8px;line-height:1.4}
+  .todo-bar.almost{background:#fef5e7;border-color:#f0c674;color:#8a5a00}
+  .todo-bar.almost .go{background:#e08e0b}
   .todo-bar .go{margin-left:auto;background:#c0392b;color:#fff;border-radius:7px;
     padding:5px 10px;font-size:12.5px;white-space:nowrap;font-weight:700}
   .sc-badge{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--red,#c0392b);color:#fff;font-size:10px;font-weight:700;margin-left:4px;padding:0 4px}
@@ -1340,6 +1342,24 @@ function renderRecBadge() {
   el.textContent = n ? String(n) : '';
   el.style.display = n ? '' : 'none';
 }
+// 進度感知：教練最容易掉的不是「忘了做」，是「做完了不知道還要按送出」。
+// 8/19~21 共 9 位教練、14 人次標了卻沒送出，33 個標記白做工還被記點——
+// 元凶是列表上方寫著「不需要再按送出」（本意是指標記自動存），已一併改掉。
+// 進度規則必須跟畫面下方的 eng-total 同一套，否則會出現兩套真相。
+function dayProgress(ds) {
+  if (coachMode !== 'simple' || !studentList.length) return null;
+  const M = engModeFor(ds);
+  const map = (ds === getDateStr('today')) ? engToday : engYesterday;
+  let unmarked = 0, owe = 0;
+  studentList.forEach(stu => {
+    const r = map[stu.id] || {};
+    const sv = r[M.stu.field], cv = r[M.coach.field];
+    if (sv === undefined || sv === null) unmarked++;         // 還沒判斷交了沒
+    else if (sv === true && cv !== true) owe++;              // 交了但還沒標已回
+  });
+  return { total: studentList.length, unmarked, owe };
+}
+
 function renderTodoBar() {
   const el = document.getElementById('todoBar');
   if (!el) return;
@@ -1348,9 +1368,22 @@ function renderTodoBar() {
   el.style.display = show ? '' : 'none';
   if (!show) return;
   const late = ds !== getDateStr('today');        // 昨天的 → 今天 12:00 就鎖
-  el.innerHTML = `<span>🔴</span><span>${formatDate(ds)} 的組員回報還沒送出` +
-                 `${late ? '，<b>今天 12:00 截止</b>' : ''}</span>` +
-                 `<span class="go">去送出 ›</span>`;
+  const dl = late ? '，<b>今天 12:00 截止</b>' : '';
+  const pg = dayProgress(ds);
+  let almost = false, msg;
+  if (!pg || pg.unmarked === pg.total) {
+    msg = `${formatDate(ds)} 的組員回報還沒送出${dl}`;
+  } else if (pg.unmarked > 0) {
+    msg = `${formatDate(ds)} 還有 <b>${pg.unmarked} 位</b>沒標${dl}`;
+  } else {
+    // 🔴 全標完了卻沒送出——14 人次就是死在這一步。這裡要看起來「差一步」，不是「還沒做」
+    almost = true;
+    msg = pg.owe ? `${formatDate(ds)} 都標完了（<b>${pg.owe} 位</b>還沒回）——<b>按送出才算結案</b>`
+                 : `${formatDate(ds)} 都標完了！<b>按送出才算結案</b>`;
+  }
+  el.className = 'todo-bar' + (almost ? ' almost' : '');
+  el.innerHTML = `<span>${almost ? '⚠️' : '🔴'}</span><span>${msg}</span>` +
+                 `<span class="go">${almost ? '送出 ›' : '去處理 ›'}</span>`;
 }
 function refreshTodo() { renderRecBadge(); renderTodoBar(); }
 
@@ -1361,6 +1394,13 @@ function gotoSubmit() {
   recScope = 'group';
   setMode('rec');
   setDay(ds === getDateStr('today') ? 'today' : 'yesterday');
+  const pg = dayProgress(ds);
+  if (pg && pg.unmarked === 0) {            // 只差送出 → 直接帶到按鈕，別讓他自己滑
+    setTimeout(() => {
+      const b = document.getElementById('subBtn');
+      if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  }
 }
 
 
@@ -2120,7 +2160,7 @@ function renderEngagement() {
   let h = closed
     ? `<div class="eng-hint eng-closed">⛔ <b>${formatDate(getDateStr(currentDay))} 已於今天 12:00 結算</b>，不能再改。<br>
        沒標到的已計入教練記點。學員事後補交到「📋 一覽表」點那一格改，改動會記成補交。</div>`
-    : `<div class="eng-hint">${M.hint}<br><b class="eng-auto">✅ 點一下就自動儲存，不需要再按送出</b></div>`;
+    : `<div class="eng-hint">${M.hint}<br>✅ 每一格點了就存，不會掉；<b class="eng-auto">但要按最下面的「送出」，這天才算結案</b></div>`;
 
   studentList.forEach(stu => {
     const rec = map[stu.id] || {};
@@ -2180,6 +2220,7 @@ function renderEngagement() {
     </div>`;
   }
   document.getElementById('summaryBody').innerHTML = h;   // 締結核對已搬到「🔍 審查」分頁
+  refreshTodo();   // 標完最後一位要立刻變成「按送出才算結案」
 }
 
 // 兩個勾各自獨立：點一下切 true/false
@@ -2259,6 +2300,7 @@ function renderSummary() {
   </div>`;
 
   document.getElementById('summaryBody').innerHTML = h;
+  refreshTodo();   // 標完最後一位要立刻變成「按送出才算結案」
 }
 
 // ── Detail View ──
