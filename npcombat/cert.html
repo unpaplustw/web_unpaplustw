@@ -327,7 +327,9 @@ function buildCertHTML(d) {
   // 稱號徽章（依突出數據）
   const tags = [];
   if (d.streak >= 7) tags.push('🔥 七日連燒');
-  if (d.checkinDays >= 5) tags.push('🏢 勤跑公司');
+  // 🏢 勤跑公司（打卡）已於 26 期後移除輸入介面，27 期零資料 → 位置回收給「邀約」
+  //    門檻 30：26 期 35% 的人達得到，是有挑戰但拿得到的線（2026-08-23 Randoph 定）
+  if (d.totals.invite >= 30) tags.push('🔗 引路達人');
   if (d.totals.meet >= 30) tags.push('🦋 社交蝴蝶');
   if (d.totals.name_list >= 50) tags.push('📋 彈藥充足');
   if (d.totals.seminar >= 5) tags.push('🎯 會場常客');
