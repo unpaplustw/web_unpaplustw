@@ -61,6 +61,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .c-ct{font-size:16px;color:var(--gold3);font-weight:800;white-space:nowrap}
 .c-ds{font-size:16px;color:var(--txt2);margin-top:6px}
 
+/* 學院廣場 */
+.plaza{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 16px;
+  text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;min-height:132px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.tile:active{transform:scale(.98)}
+.tile:hover{border-color:rgba(184,150,12,.3);box-shadow:0 6px 18px rgba(0,0,0,.09)}
+.tile .ic{font-size:34px;line-height:1}
+.tile .nm{font-size:19px;font-weight:900}
+.tile .sub{font-size:14px;color:var(--txt2);line-height:1.4}
+.tile.soon{opacity:.55;cursor:default;background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
+.tile.soon:hover{border-color:var(--border);box-shadow:var(--shadow)}
+.tile.wide{grid-column:1 / -1;min-height:auto;flex-direction:row;gap:14px;justify-content:flex-start;text-align:left;padding:18px}
+.tile.wide .ic{font-size:30px}
+.tile.wide .nm{font-size:20px}
+.tile.hero{background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);
+  box-shadow:0 4px 18px rgba(184,150,12,.20)}
+.tile.admin-t{border-color:rgba(184,150,12,.35)}
 .sec-title{font-size:16px;color:var(--txt2);font-weight:700;margin:22px 0 10px}
 
 .lrow{display:flex;align-items:center;gap:13px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow);transition:all .2s}
@@ -213,16 +231,26 @@ textarea:focus{outline:none;border-color:var(--gold2)}
   <div id="screen-home" class="screen">
     <div class="hd">
       <div class="hd-icon">🎓</div>
-      <div class="hd-title">環球致富學院</div>
+      <div class="hd-title">學院廣場</div>
       <div class="hd-sub" id="home-sub">歡迎回來</div>
       <div><span class="chip ok">✅ 已入場</span> <span class="chip admin" id="admin-chip" style="display:none">🛡️ 學院管理員</span></div>
+    </div>
+    <div class="plaza" id="plaza"></div>
+  </div>
+
+  <!-- 課程（廣場 → 課程） -->
+  <div id="screen-courses" class="screen">
+    <div class="back" onclick="go('home')">← 回廣場</div>
+    <div class="hd" style="padding-top:6px">
+      <div class="hd-title" style="font-size:23px">📖 課程</div>
+      <div class="hd-sub" id="courses-sub"></div>
     </div>
     <div id="course-list"></div>
   </div>
 
   <!-- 課程 → 課列表 -->
   <div id="screen-course" class="screen">
-    <div class="back" onclick="go('home')">← 回課程列表</div>
+    <div class="back" onclick="go('courses')">← 回課程</div>
     <div class="hd" style="padding-top:6px">
       <div class="hd-title" id="course-name" style="font-size:23px"></div>
       <div class="hd-sub" id="course-count"></div>
@@ -279,10 +307,20 @@ function toast(m){const e=document.getElementById('toast');e.textContent=m;e.cla
 function show(id){
   document.querySelectorAll('.screen,.center').forEach(el=>el.classList.remove('active'));
   const el=document.getElementById(id); if(el) el.classList.add('active');
+  syncFab();
   window.scrollTo(0,0);
 }
+let fabWanted = false;
+function showFab(on){ fabWanted = on; syncFab(); }
+function syncFab(){
+  const home = document.getElementById('screen-home').classList.contains('active');
+  const admin = document.getElementById('screen-admin').classList.contains('active');
+  document.getElementById('fab-admin').classList.toggle('on', fabWanted && !home && !admin);
+}
+
 function go(name){
-  const map={home:'screen-home',course:'screen-course',lesson:'screen-lesson',admin:'screen-admin'};
+  const map={home:'screen-home',courses:'screen-courses',course:'screen-course',lesson:'screen-lesson',admin:'screen-admin'};
+  if(name==='courses') renderCourses();
   show(map[name]||name);
 }
 
@@ -313,7 +351,8 @@ function route(){
   const st = ctx.state;
   // 🔴 學院管理員的審核鈕必須在「任何狀態」都看得到。
   //    否則第一個管理員自己還是 pending 時，看不到審核台 → 誰也審不了，包括他自己（死鎖）
-  document.getElementById('fab-admin').classList.toggle('on', !!ctx.is_admin);
+  //    ⚠️ 廣場本身已有「審核」格，那一頁隱藏浮動鈕，避免同畫面兩個入口（見 showFab）
+  showFab(!!ctx.is_admin);
   if(st === 'no_member'){ show('screen-nomember'); loadOaList(); return; }
   if(ctx.access){ renderHome(); return; }
   if(st === 'pending'){
@@ -447,13 +486,41 @@ async function submitApply(){
 // ========== 學院首頁 ==========
 function renderHome(){
   document.getElementById('home-sub').textContent = ctx.member?.name ? ctx.member.name + '，歡迎回來' : '歡迎回來';
-  const isAdmin = ctx.is_admin;
+  const isAdmin = !!ctx.is_admin;
   document.getElementById('admin-chip').style.display = isAdmin ? '' : 'none';
-  document.getElementById('fab-admin').classList.toggle('on', !!isAdmin);
+  showFab(isAdmin);
 
-  const list = (ctx.courses||[]).map(c => {
+  const cs = ctx.courses || [];
+  const 開放 = cs.filter(c => !c.is_locked && (c.lesson_count||0) > 0);
+  const 堂數 = 開放.reduce((s,c) => s + (c.lesson_count||0), 0);
+
+  // 廣場：官網＝產品層，廣場＝功能層。新功能加在這裡，不加官網路口。
+  const tiles = [
+    {ic:'🚀', nm:'我的下一步', sub:'啟動器', soon:true, wide:true},
+    {ic:'📖', nm:'課程', sub:`${開放.length} 門 · ${堂數} 堂`, go:'courses'},
+    {ic:'🎬', nm:'影片庫', sub:'說明會 · 領袖訪談', soon:true},
+    {ic:'🏆', nm:'故事探索', sub:'找到像你的人', soon:true},
+    {ic:'🏅', nm:'我的集點', sub:'學分與徽章', soon:true},
+  ];
+  if (isAdmin) tiles.push({ic:'🛡️', nm:'審核', sub:'入場申請', act:"go('admin');loadAdmin('pending')", admin:true, wide:true});
+
+  document.getElementById('plaza').innerHTML = tiles.map(x => `
+    <div class="tile ${x.soon?'soon':''} ${x.wide?'wide':''} ${x.admin?'admin-t':''} ${x.nm==='我的下一步'&&!x.soon?'hero':''}"
+      ${x.soon?'':`onclick="${x.act || `go('${x.go}')`}"`}>
+      <div class="ic">${x.ic}</div>
+      <div><div class="nm">${x.nm}</div><div class="sub">${x.soon?'準備中':x.sub}</div></div>
+    </div>`).join('');
+  go('home');
+}
+
+function renderCourses(){
+  const cs = ctx.courses || [];
+  const 開放 = cs.filter(c => !c.is_locked && (c.lesson_count||0) > 0);
+  document.getElementById('courses-sub').textContent =
+    `開放 ${開放.reduce((s,c)=>s+(c.lesson_count||0),0)} 堂，其餘陸續開放`;
+  document.getElementById('course-list').innerHTML = cs.map(c => {
     const n = c.lesson_count || 0;
-    const locked = !!c.is_locked || n === 0;     // 上鎖或無內容 → 看得到、點不進去
+    const locked = !!c.is_locked || n === 0;
     const note = c.locked_note || (n === 0 ? '內容準備中' : '尚未開放');
     return `<div class="card ${locked?'locked':'tap'}" ${locked?'':`onclick="openCourse('${c.id}')"`}>
       <div class="c-top"><span class="c-nm">${locked?'🔒 ':''}${esc(c.title)}</span>
@@ -462,9 +529,7 @@ function renderHome(){
         ? (n > 0 ? n + ' 堂，開放後會通知已入場的同學' : '內容整理中，開放後會通知你')
         : esc(c.description||'')}</div>
     </div>`;
-  }).join('');
-  document.getElementById('course-list').innerHTML = list || '<div class="card">課程準備中</div>';
-  go('home');
+  }).join('') || '<div class="card">課程準備中</div>';
 }
 
 function openCourse(id){
