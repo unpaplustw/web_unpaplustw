@@ -433,8 +433,10 @@ async function reloadData() {
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
+  // 🔴 上線退回的締結不計分（2026-08-23）。verified：NULL＝待審仍計分／true＝已確認／false＝退回
   const { data: closeData } = await sb.from('closing_records')
-    .select('member_id, points, close_date, source, is_new, target_code').in('member_id', memberIds);
+    .select('member_id, points, close_date, source, is_new, target_code, verified')
+    .in('member_id', memberIds).not('verified', 'is', false);
   allCloses = closeData || [];
 
   const { data: bonusData } = await sb.from('bonus_rules')

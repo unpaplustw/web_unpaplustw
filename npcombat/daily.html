@@ -985,8 +985,9 @@ async function init() {
       .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('confirmed', true);
     // ⚠️ 必須帶 batch_id：closing_records.member_id 指向跨期共用的 members_master，
     // 少了 batch_id 會把學員在其他期的締結算進本期累積（2026-08-09 修）
+    // 🔴 上線退回的締結不計入學員自己的累積畫面（2026-08-23）
     const { data: closes } = await sb.from('closing_records').select('points, close_date')
-      .eq('member_id', memberId).eq('batch_id', BATCH_ID);
+      .eq('member_id', memberId).eq('batch_id', BATCH_ID).not('verified', 'is', false);
 
     // 查活動起迄算天數 + 門檻
     const { data: batch } = await sb.from('batches').select('name, event_name, start_date, challenge_start, earlybird_score, earlybird_month, single_month_score, cross_month_score, end_date').eq('id', BATCH_ID).single();

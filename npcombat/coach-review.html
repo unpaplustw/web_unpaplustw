@@ -151,6 +151,19 @@
   /* 一覽表（日期軸） */
   .hw-tbl th{font-size:10px;line-height:1.4}
   .hw-sub{color:var(--gold);font-size:9px;font-weight:400}
+  /* 上線審核區：只在有待審時出現 */
+  .vf-box{margin:14px 16px;border:2px solid var(--gold);border-radius:14px;overflow:hidden;background:var(--card)}
+  .vf-hd{background:var(--gold-lt);color:var(--gold);font-weight:700;font-size:14.5px;padding:11px 14px;display:flex;justify-content:space-between}
+  .vf-note{padding:10px 14px;font-size:12.5px;color:var(--muted);line-height:1.8;border-bottom:1px solid var(--border)}
+  .vf-item{padding:12px 14px;border-bottom:1px solid var(--border)}
+  .vf-item:last-child{border-bottom:none}
+  .vf-t{font-size:14px}
+  .vf-pt{color:var(--gold);font-weight:700}
+  .vf-d{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.7}
+  .vf-btns{display:flex;gap:8px;margin-top:10px}
+  .vf-b{flex:1;padding:9px;border-radius:20px;border:2px solid var(--border);background:var(--card);font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--muted)}
+  .vf-b.ok{border-color:var(--green,#1d7a4c);color:var(--green,#1d7a4c)}
+  .vf-b.no{border-color:var(--red,#c0392b);color:var(--red,#c0392b)}
   .hw-scope{display:flex;gap:8px;padding:12px 16px 0}
   .hw-sc{flex:1;padding:9px;border-radius:20px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
   .hw-sc.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
@@ -771,6 +784,90 @@ function getDateStr(which) {
 //         → 隔天 12:00 一到，那一天關閉，不能再改。
 //    為什麼要鎖：不鎖的話，教練可以事後補標、也可以回頭把「沒交」改成「已交」，
 //    記點就形同虛設，12:00 也只是建議而不是死線。
+// ══════════════════════════════════════════════════════════
+// 🔍 上線審核締結（2026-08-23）
+//   起因：黃貞燕誤填大金（1400 分＝全班締結總分的 57%），是別的教練去問學員才發現。
+//   Randoph：「教練和他的直屬上線是不是應該看到他是否報件，教練要知道，上線要審核」。
+//   分工——交叉配對保證教練 ≠ 上線，所以是兩個獨立的人各看一次：
+//     教練（coach_id）  ：看得到組員報了什麼，唯讀
+//     上線（sponsor_id）：確認／退回，他才知道那筆生意的真假
+//   計分：**先計分、標待審**（verified NULL 仍計分），退回才不計分。
+//   ⚠️「我的組員」與「我的下線」是兩群人，必須分開查。
+// ══════════════════════════════════════════════════════════
+const CLOSE_PLAN = { '20k':'2萬PV', '15k':'1.5萬PV', '10k':'1萬PV' };
+const CLOSE_SIZE = { full:'一套', half:'半套', sub:'訂閱' };
+const CLOSE_BADGE = { small_gold:'🏅小金×3', big_gold:'🏆大金×7' };
+const REJECT_REASONS = [
+  ['wrong_badge', '金牌填錯（不是這個倍率）'],
+  ['wrong_plan',  '方案／規格填錯'],
+  ['not_exist',   '沒有這筆締結'],
+  ['duplicate',   '重複填報'],
+  ['other',       '其他'],
+];
+
+let downlineCloses = [];      // 我的下線的締結（含已審）
+let rejectArm = null;         // 正在填退回原因的那一筆 id
+
+async function loadDownlineCloses() {
+  downlineCloses = [];
+  if (!coachId) return;
+  const { data: ds, error: e1 } = await sb.from('batch_students')
+    .select('member_id, members_master(name)')
+    .eq('batch_id', BATCH_ID).eq('sponsor_id', coachId).eq('status', 'approved');
+  if (e1) throw new Error('下線名單：' + e1.message);
+  if (!ds || !ds.length) return;
+  const nameOf = {};
+  ds.forEach(d => { nameOf[d.member_id] = (d.members_master || {}).name || '—'; });
+  const { data: cs, error: e2 } = await sb.from('closing_records')
+    .select('id, member_id, close_date, plan, size, badge, points, target_name, target_code, verified, verify_note')
+    .eq('batch_id', BATCH_ID).in('member_id', Object.keys(nameOf))
+    .order('close_date', { ascending: false });
+  if (e2) throw new Error('下線締結：' + e2.message);
+  downlineCloses = (cs || []).map(c => ({ ...c, who: nameOf[c.member_id] }));
+}
+
+function renderVerifyBlock() {
+  const pend = downlineCloses.filter(c => c.verified === null || c.verified === undefined);
+  if (!pend.length) return '';
+  return `<div class="vf-box">
+    <div class="vf-hd">🔍 待你審核（你的直屬下線）<span>${pend.length} 筆</span></div>
+    <div class="vf-note">你是他們的上線，只有你知道這筆生意的真假。
+      <b>確認</b>＝沒問題；<b>退回</b>＝填錯或沒這筆（退回後不計分，學員可重填）。</div>
+    ${pend.map(c => {
+      const armed = rejectArm === c.id;
+      return `<div class="vf-item">
+        <div class="vf-t"><b>${c.who}</b>　${c.close_date.slice(5).replace('-','/')}　
+          <span class="vf-pt">${c.points} 分</span></div>
+        <div class="vf-d">${CLOSE_PLAN[c.plan] || c.plan || '—'} ·
+          ${CLOSE_SIZE[c.size] || c.size || '—'}${c.badge ? ' · ' + (CLOSE_BADGE[c.badge] || c.badge) : ''}
+          ${c.target_name ? '　對方：' + c.target_name : ''}${c.target_code ? '（' + c.target_code + '）' : ''}</div>
+        ${armed ? `<select class="mk-in" id="vfR-${c.id}" style="margin:8px 0">${
+            REJECT_REASONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>` : ''}
+        <div class="vf-btns">
+          ${armed
+            ? `<button class="vf-b no" onclick="doVerify('${c.id}',false)">確定退回</button>
+               <button class="vf-b" onclick="rejectArm=null;renderEngagement()">取消</button>`
+            : `<button class="vf-b ok" onclick="doVerify('${c.id}',true)">✅ 確認</button>
+               <button class="vf-b no" onclick="rejectArm='${c.id}';renderEngagement()">↩️ 退回</button>`}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function doVerify(id, ok) {
+  const note = ok ? null : (document.getElementById('vfR-' + id) || {}).value || 'other';
+  const row = downlineCloses.find(c => c.id === id);
+  if (row) { row.verified = ok; row.verify_note = note; }      // 樂觀更新
+  rejectArm = null;
+  renderEngagement();
+  const { error } = await sb.from('closing_records').update({
+    verified: ok, verified_by: coachId, verified_at: new Date().toISOString(), verify_note: note
+  }).eq('id', id);
+  if (error) { await loadDownlineCloses(); renderEngagement(); toast('儲存失敗：' + error.message); return; }
+  toast(ok ? '已確認 ✅' : '已退回，該筆不計分');
+}
+
 // 🔴 送出即結案（2026-08-19 Randoph 定案）
 //    「教練送出後，代表有人沒繳就是學員的問題，事後就到一覽表再去修正」
 //    送出＝教練主動宣告「我今天看完了，名單就是這樣」，責任從教練轉到學員。
@@ -1025,8 +1122,10 @@ function setMode(mode) {
       .catch(e => { if (g) g.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴班主</div>`; });
   } else {
     document.querySelector('.day-toggle').style.display = '';
-    subArm = false;
-    loadSubmits().then(renderReview);
+    subArm = false; rejectArm = null;
+    Promise.all([loadSubmits(), loadDownlineCloses()])
+      .then(renderReview)
+      .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   }
 }
 
@@ -1830,10 +1929,17 @@ function fillDetailHtml(stu) {
     const v = d[f.key] || 0;
     return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}</span><span>${v}</span></div>`;
   }).join('');
-  const closes = (d.close_entries || []).length;
+  // 締結列出內容與分數（原本只有筆數）——教練要「知道組員報了什麼」；
+  // 審核是上線的事，見 renderVerifyBlock()
+  const ce = d.close_entries || [];
+  const closeHtml = ce.length
+    ? ce.map(c => `<div class="eng-dclose"><span>✅ ${CLOSE_PLAN[c.plan] || c.plan || '—'} · ${
+        CLOSE_SIZE[c.size] || c.size || '—'}${c.badge ? ' · ' + (CLOSE_BADGE[c.badge] || c.badge) : ''}${
+        c.target_name ? '　' + c.target_name : ''}</span><span>${c.points || 0} 分${
+        c.verified === false ? '（已退回）' : c.verified === true ? ' ✔' : '（待上線審）'}</span></div>`).join('')
+    : `<div class="eng-dclose"><span>✅ 締結成功</span><span>0 筆</span></div>`;
   return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))} 填的內容</div>
-    <div class="eng-dgrid">${items}</div>
-    <div class="eng-dclose"><span>✅ 締結成功</span><span>${closes} 筆</span></div>`;
+    <div class="eng-dgrid">${items}</div>${closeHtml}`;
 }
 
 function toggleEngDetail(studentId) {
@@ -1915,6 +2021,7 @@ function renderEngagement() {
       <button class="sub-btn" id="subBtn" onclick="submitDay()">送出 ${formatDate(dateStr)}</button>
     </div>`;
   }
+  h += renderVerifyBlock();          // 有待審才出現，沒有就是空字串、不佔版面
   document.getElementById('summaryBody').innerHTML = h;
 }
 
