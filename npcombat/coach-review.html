@@ -164,6 +164,8 @@
   .vf-b{flex:1;padding:9px;border-radius:20px;border:2px solid var(--border);background:var(--card);font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--muted)}
   .vf-b.ok{border-color:var(--green,#1d7a4c);color:var(--green,#1d7a4c)}
   .vf-b.no{border-color:var(--red,#c0392b);color:var(--red,#c0392b)}
+  .tab-badge{display:none;min-width:17px;height:17px;line-height:17px;border-radius:9px;background:var(--red,#c0392b);color:#fff;font-size:10.5px;font-weight:700;margin-left:4px;padding:0 4px;vertical-align:top}
+  .sc-badge{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--red,#c0392b);color:#fff;font-size:10px;font-weight:700;margin-left:4px;padding:0 4px}
   .hw-scope{display:flex;gap:8px;padding:12px 16px 0}
   .hw-sc{flex:1;padding:9px;border-radius:20px;border:2px solid var(--border);background:var(--card);color:var(--muted);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
   .hw-sc.on{background:var(--gold-lt);border-color:var(--gold);color:var(--gold)}
@@ -356,9 +358,8 @@
 
 <!-- Mode Tabs -->
 <div class="mode-tabs">
-  <button class="mode-tab on" id="tabMyReport" onclick="setMode('my')">✍️ 回報</button>
-  <button class="mode-tab" id="tabReview" onclick="setMode('review')">🤝 小組</button>
-  <button class="mode-tab" id="tabHw" onclick="setMode('hw')">📋 一覽表</button>
+  <button class="mode-tab on" id="tabRec" onclick="setMode('rec')">📝 紀錄</button>
+  <button class="mode-tab" id="tabChk" onclick="setMode('chk')">🔍 審查<span id="chkBadge" class="tab-badge"></span></button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
 
@@ -760,6 +761,9 @@ let myCloseEntries = []; // [{plan,size,badge}]
 let myCloseData = { today: [], yesterday: [] };
 let currentMode = 'my';
 let studentList = [];
+// 🔴 沒有這個旗標就分不出「還沒載入」與「真的沒組員」，
+//    切到審查頁時會顯示「沒有配對到你的學員」，教練以為自己沒帶組（2026-08-23 踩到）
+let studentsLoaded = false;
 let currentIdx = -1;
 let currentDay = 'today';
 let batchDates = { start: null, end: null, studyStart: null, studyEnd: null }; // 班期起訖＋學習週
@@ -833,7 +837,12 @@ async function loadDownlineCloses() {
 
 function renderVerifyBlock() {
   const pend = downlineCloses.filter(c => c.verified === null || c.verified === undefined);
-  if (!pend.length) return '';
+  if (!pend.length) {
+    const done = downlineCloses.length;
+    return `<div class="hw-hint">✅ 沒有待核對的締結。${
+      done ? `你的下線目前共 ${done} 筆，都處理過了。` : '你目前沒有直屬下線報件。'}<br>
+      <span style="color:var(--muted)">教練自己的締結免審，不會出現在這裡。</span></div>`;
+  }
   return `<div class="vf-box">
     <div class="vf-hd">🔍 待你審核（你的直屬下線）<span>${pend.length} 筆</span></div>
     <div class="vf-note">你是他們的上線，只有你知道這筆生意的真假。
@@ -937,7 +946,9 @@ async function init() {
                    studyStart: batchRow.study_start, studyEnd: batchRow.study_end,
                    actionOpen: batchRow.action_open_date };
     initGuidePhase();
-    if (coachMode === 'simple') document.getElementById('tabReview').textContent = '🤝 小組';
+    // ⚠️ 2026-08-23 分頁改名後，這裡原本改的 tabReview 已不存在 → null.textContent 讓整個 init 拋錯、
+    //    coachId 沒設、學員撈不到，畫面只剩「載入失敗」。分頁名現在固定，不需要依模式改字。
+    //    **教訓：改元素 id 一定要全域搜尋所有引用**（我只改了 setMode，漏了這一行）。
 
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
@@ -986,10 +997,12 @@ async function init() {
       myCloseData.yesterday = (myCloses||[]).filter(c => c.close_date === yesterdayStr);
     }
 
+    studentsLoaded = false;
     // 查配對學員（只撈已批准）
+    // ⚠️ batch_id 一定要帶（wiki 硬規定）——coach_id 雖然每期獨立，但少帶就是隱患
     const { data: students } = await sb.from('batch_students').select('id, member_id')
-      .eq('coach_id', coachId).eq('status', 'approved');
-    if (!students || students.length === 0) { toast('目前無配對學員'); renderReview(); return; }
+      .eq('batch_id', BATCH_ID).eq('coach_id', coachId).eq('status', 'approved');
+    if (!students || students.length === 0) { studentsLoaded = true; toast('目前無配對學員'); renderReview(); return; }
 
     // 查學員基本資料
     const memberIds = students.map(s => s.member_id);
@@ -1014,6 +1027,7 @@ async function init() {
       .in('close_date', [todayStr, yesterdayStr]);
 
     // 組裝 studentList
+    studentsLoaded = true;
     studentList = students.map(stu => {
       const info = memberMap[stu.member_id] || {};
       const stuLogs = (logs || []).filter(l => l.student_id === stu.id);
@@ -1092,26 +1106,48 @@ function renderReview() {
 }
 
 // ── Mode Toggle ──
+// 🔴 2026-08-23 教練端重整成三個分頁（Randoph 定）
+//    📝 紀錄：教練每天要「填」的——✍️我的（先）→ 👥組員（標繳標回＋送出）
+//            「教練自己先填寫，才是看學員」：以身作則，順序就是規則。
+//            （也可能解掉教練填報率只有 11.8% 的問題——自己的東西擺第一個看到。）
+//    🔍 審查：回頭「查」的——📋作業／🏃行動／✅締結核對
+//    📖 指南：不動
+//    內部用 recScope／hwScope 切，頂層只留三個，手機才不折行。
+let recScope = 'my';                        // 'my' | 'group'——預設停在自己的，教練先填自己
+function setRecScope(k) { recScope = k; setMode('rec'); }
+
 function setMode(mode) {
+  // 舊模式名相容：'my'/'review' → 'rec'，'hw' → 'chk'
+  if (mode === 'my')     { recScope = 'my';    mode = 'rec'; }
+  if (mode === 'review') { recScope = 'group'; mode = 'rec'; }
+  if (mode === 'hw')     { mode = 'chk'; }
   currentMode = mode;
-  document.getElementById('tabMyReport').classList.toggle('on', mode === 'my');
-  document.getElementById('tabReview').classList.toggle('on', mode === 'review');
+  document.getElementById('tabRec').classList.toggle('on', mode === 'rec');
+  document.getElementById('tabChk').classList.toggle('on', mode === 'chk');
   document.getElementById('tabGuide').classList.toggle('on', mode === 'guide');
-  document.getElementById('tabHw').classList.toggle('on', mode === 'hw');
-  document.getElementById('myReportView').style.display = mode === 'my' ? '' : 'none';
-  document.getElementById('summaryView').style.display = mode === 'review' ? '' : 'none';
+  const inMy = mode === 'rec' && recScope === 'my';
+  const inGroup = mode === 'rec' && recScope === 'group';
+  document.getElementById('myReportView').style.display = inMy ? '' : 'none';
+  document.getElementById('summaryView').style.display = inGroup ? '' : 'none';
   document.getElementById('guideView').style.display = mode === 'guide' ? '' : 'none';
-  document.getElementById('hwView').style.display = mode === 'hw' ? '' : 'none';
+  document.getElementById('hwView').style.display = mode === 'chk' ? '' : 'none';
   document.getElementById('detailView').style.display = 'none';
-  if (mode === 'my') {
+  renderRecScopeBar();
+  if (inMy) {
     currentDay = 'today';
     document.getElementById('btnToday').classList.add('on');
     document.getElementById('btnYesterday').classList.remove('on');
     document.querySelector('.day-toggle').style.display = 'none';
     renderMyReport();
+  } else if (inGroup) {
+    document.querySelector('.day-toggle').style.display = '';
+    subArm = false; rejectArm = null;
+    loadSubmits().then(renderReview)
+      .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
-  } else if (mode === 'hw') {
+  } else if (mode === 'chk') {          // ⚠️ 開頭已把 'hw' 正規化成 'chk'，這裡必須跟著改——
+                                        //    漏改的話這條永遠不成立，審查頁一輩子不會被渲染
     document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
     // 🔴 三個查詢任一失敗，原本會靜默留白——教練只看到空頁，班主也查不出原因。
     //    2026-08-20 錢威達回報「看不到」就是卡在這裡（我這邊同帳號跑卻正常）。
@@ -1121,17 +1157,28 @@ function setMode(mode) {
     // 4G 下三個查詢要好幾秒，全空的畫面會被當成故障（錢威達 8/20 就是這樣）
     if (Object.keys(hwMap).length) { try { renderHw(); } catch (e) {} }
     else if (g) g.innerHTML = '<div class="hw-hint">載入中…</div>';
-    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits()])
+    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits(), loadDownlineCloses()])
       .then(() => { try { renderHw(); }
         catch (e) { if (g) g.innerHTML = `<div class="hw-hint">畫面產生失敗：${e.message}<br>請截圖告訴班主</div>`; } })
       .catch(e => { if (g) g.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴班主</div>`; });
-  } else {
-    document.querySelector('.day-toggle').style.display = '';
-    subArm = false; rejectArm = null;
-    Promise.all([loadSubmits(), loadDownlineCloses()])
-      .then(renderReview)
-      .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   }
+}
+
+// 紀錄頁的內部切換（✍️我的 → 👥組員），插在兩個 view 的上方
+function renderRecScopeBar() {
+  let bar = document.getElementById('recBar');
+  const show = currentMode === 'rec';
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'recBar'; bar.className = 'hw-scope';
+    const anchor = document.getElementById('myReportView');
+    anchor.parentNode.insertBefore(bar, anchor);
+  }
+  bar.style.display = show ? '' : 'none';
+  if (!show) return;
+  bar.innerHTML = `
+    <button class="hw-sc ${recScope === 'my' ? 'on' : ''}" onclick="setRecScope('my')">✍️ 我的</button>
+    <button class="hw-sc ${recScope === 'group' ? 'on' : ''}" onclick="setRecScope('group')">👥 組員</button>`;
 }
 
 // 送出：有「已交未回」先擋一次，教練仍可強制送出（例如那是補繳、他打算晚點再回），
@@ -1227,8 +1274,18 @@ function defaultScope() {
   const t = getDateStr('today');
   return (batchDates.studyEnd && t > batchDates.studyEnd) ? 'action' : 'study';
 }
-function curScope() { return hwScope || defaultScope(); }
+function curScope() { return hwScope || defaultScope(); }   // 'study' | 'action' | 'verify'
 function setHwScope(k) { hwScope = k; hwOpen = null; renderHw(); }
+const pendingVerifyCount = () =>
+  downlineCloses.filter(c => c.verified === null || c.verified === undefined).length;
+// 徽章：位置可以放深，但提示要淺——否則低頻頁的待辦一定被漏看
+function renderChkBadge() {
+  const el = document.getElementById('chkBadge');
+  if (!el) return;
+  const n = pendingVerifyCount();
+  el.textContent = n ? String(n) : '';
+  el.style.display = n ? '' : 'none';
+}
 
 // 行動一覽表從**行動週**起算（study_end 隔天），不是 action_open_date——
 // 那段兩者重疊時學員主任務仍是作業，列進來只會難看又不公平（與 admin 同一條規則）
@@ -1242,6 +1299,7 @@ function dayList() {                       // 開班日到今天的平日，再�
   const out = [];
   if (!batchDates.start) return out;
   const today = getDateStr('today'), sc = curScope(), actFrom = actionViewFrom();
+  if (sc === 'verify') return out;                    // 締結核對不吃日期軸
   for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= today; d.setDate(d.getDate() + 1)) {
     const w = d.getDay();
     if (w < 1 || w > 5) continue;
@@ -1290,15 +1348,30 @@ function renderHw() {
   //    打開就只有一句「沒有配對到你的學員」，連切換鈕都沒有。
   //    同一個錯我在 wiki 記過「例外路徑把出口一起吃掉」，結果自己還留了一個。
   //    通則：出口元件先產生，之後每一條 return 都帶著它。
-  const sc0 = curScope();
-  const scopeBar = `<div class="hw-scope">
-    <button class="hw-sc ${sc0 === 'action' ? '' : 'on'}" onclick="setHwScope('study')">📋 作業</button>
-    <button class="hw-sc ${sc0 === 'action' ? 'on' : ''}" onclick="setHwScope('action')">🏃 行動</button>
-  </div>`;
+  // ⚠️ clearBelow 必須宣告在所有早退出之前——const 有 TDZ，
+  //    在宣告前呼叫會 ReferenceError（2026-08-23 踩到，跟「出口先產生」是同一類問題）
   const clearBelow = () => {
     const a = document.getElementById('hwMissing'); if (a) a.innerHTML = '';
     const b = document.getElementById('hwDetail'); if (b) b.style.display = 'none';
   };
+  const sc0 = curScope();
+  const pv = pendingVerifyCount();
+  const scopeBar = `<div class="hw-scope">
+    <button class="hw-sc ${sc0 === 'study' ? 'on' : ''}" onclick="setHwScope('study')">📋 作業</button>
+    <button class="hw-sc ${sc0 === 'action' ? 'on' : ''}" onclick="setHwScope('action')">🏃 行動</button>
+    <button class="hw-sc ${sc0 === 'verify' ? 'on' : ''}" onclick="setHwScope('verify')">✅ 締結核對${
+      pv ? `<span class="sc-badge">${pv}</span>` : ''}</button>
+  </div>`;
+  renderChkBadge();
+  if (sc0 === 'verify') {
+    grid.innerHTML = scopeBar + renderVerifyBlock();
+    clearBelow();
+    return;
+  }
+  if (!studentsLoaded) {
+    grid.innerHTML = scopeBar + '<div class="hw-hint">載入中…</div>';
+    return;                                    // 還沒載完就說「沒有組員」會誤導
+  }
   if (!studentList.length) {
     grid.innerHTML = scopeBar + `<div class="hw-hint">目前沒有配對到你的學員。<br>
       （你若是班主／不帶組，這一頁本來就沒有內容——組員名單在 admin 的「👥 名冊」。）</div>`;
@@ -2029,8 +2102,7 @@ function renderEngagement() {
       <button class="sub-btn" id="subBtn" onclick="submitDay()">送出 ${formatDate(dateStr)}</button>
     </div>`;
   }
-  h += renderVerifyBlock();          // 有待審才出現，沒有就是空字串、不佔版面
-  document.getElementById('summaryBody').innerHTML = h;
+  document.getElementById('summaryBody').innerHTML = h;   // 締結核對已搬到「🔍 審查」分頁
 }
 
 // 兩個勾各自獨立：點一下切 true/false
