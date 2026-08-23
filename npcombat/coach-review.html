@@ -815,9 +815,14 @@ async function loadDownlineCloses() {
     .select('member_id, members_master(name)')
     .eq('batch_id', BATCH_ID).eq('sponsor_id', coachId).eq('status', 'approved');
   if (e1) throw new Error('下線名單：' + e1.message);
+  // 教練締結免審：正常情況寫入時已標 verified=true，這裡再排除一次當保險
+  const { data: cos } = await sb.from('batch_coaches')
+    .select('member_id').eq('batch_id', BATCH_ID).eq('status', 'approved');
+  const coachMids = new Set((cos || []).map(c => c.member_id));
   if (!ds || !ds.length) return;
   const nameOf = {};
-  ds.forEach(d => { nameOf[d.member_id] = (d.members_master || {}).name || '—'; });
+  ds.forEach(d => { if (!coachMids.has(d.member_id)) nameOf[d.member_id] = (d.members_master || {}).name || '—'; });
+  if (!Object.keys(nameOf).length) return;
   const { data: cs, error: e2 } = await sb.from('closing_records')
     .select('id, member_id, close_date, plan, size, badge, points, target_name, target_code, verified, verify_note')
     .eq('batch_id', BATCH_ID).in('member_id', Object.keys(nameOf))
@@ -1864,7 +1869,10 @@ async function submitMyReport() {
           plan: e.plan, size: e.size, badge: e.badge,
           target_code: code || null, target_sub: code ? sub : null, target_name: (e.tname || '').trim() || null,
           is_new: code ? code !== myCode : null,
-          points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily'
+          points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily',
+          // 🔴 教練締結免審（Randoph 2026-08-23：「教練締結不用審核，出錯機會比較低」）
+          //    寫入時就標 true，不必每次查詢再判斷「這個下線是不是教練」。
+          verified: true, verify_note: '教練締結免審'
         };
       });
       const { error: insErr } = await sb.from('closing_records').insert(allRows);
