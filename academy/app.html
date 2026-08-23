@@ -79,6 +79,22 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .tile.hero{background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);
   box-shadow:0 4px 18px rgba(184,150,12,.20)}
 .tile.admin-t{border-color:rgba(184,150,12,.35)}
+/* 四大類 → 學分 */
+.cat{margin:22px 0 10px;display:flex;align-items:center;gap:9px}
+.cat .n{font-size:20px;font-weight:900}
+.cat .d{font-size:14px;color:var(--txt2)}
+.cat .bar{flex:1;height:2px;background:linear-gradient(90deg,var(--gold2),transparent)}
+.credit{display:flex;align-items:center;gap:12px;padding:15px 16px;background:var(--card);
+  border:1px solid var(--border);border-radius:14px;margin-bottom:9px;box-shadow:var(--shadow);
+  cursor:pointer;transition:all .2s}
+.credit:hover{border-color:rgba(184,150,12,.28);transform:translateX(3px)}
+.credit:active{transform:scale(.99)}
+.credit .nm{flex:1;font-size:18px;font-weight:800}
+.credit .ct{font-size:15px;font-weight:800;color:var(--gold3);white-space:nowrap}
+.credit .ct .lk{color:var(--txt2);font-weight:700}
+.credit.alllock{opacity:.6;background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
+.unit-lock{opacity:.55}
+.unit-lock .no{background:rgba(0,0,0,.04);border-color:var(--border);color:var(--txt2)}
 .sec-title{font-size:16px;color:var(--txt2);font-weight:700;margin:22px 0 10px}
 
 .lrow{display:flex;align-items:center;gap:13px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow);transition:all .2s}
@@ -242,7 +258,7 @@ textarea:focus{outline:none;border-color:var(--gold2)}
   <div id="screen-courses" class="screen">
     <div class="back" onclick="go('home')">← 回廣場</div>
     <div class="hd" style="padding-top:6px">
-      <div class="hd-title" style="font-size:23px">📖 課程</div>
+      <div class="hd-title" style="font-size:23px">📖 學分地圖</div>
       <div class="hd-sub" id="courses-sub"></div>
     </div>
     <div id="course-list"></div>
@@ -250,7 +266,7 @@ textarea:focus{outline:none;border-color:var(--gold2)}
 
   <!-- 課程 → 課列表 -->
   <div id="screen-course" class="screen">
-    <div class="back" onclick="go('courses')">← 回課程</div>
+    <div class="back" onclick="go('courses')">← 回學分地圖</div>
     <div class="hd" style="padding-top:6px">
       <div class="hd-title" id="course-name" style="font-size:23px"></div>
       <div class="hd-sub" id="course-count"></div>
@@ -484,20 +500,20 @@ async function submitApply(){
 }
 
 // ========== 學院首頁 ==========
+function allCredits(){ return (ctx.categories||[]).flatMap(c => c.credits||[]); }
+
 function renderHome(){
   document.getElementById('home-sub').textContent = ctx.member?.name ? ctx.member.name + '，歡迎回來' : '歡迎回來';
   const isAdmin = !!ctx.is_admin;
   document.getElementById('admin-chip').style.display = isAdmin ? '' : 'none';
   showFab(isAdmin);
 
-  const cs = ctx.courses || [];
-  const 開放 = cs.filter(c => !c.is_locked && (c.lesson_count||0) > 0);
-  const 堂數 = 開放.reduce((s,c) => s + (c.lesson_count||0), 0);
+  const cr = allCredits();
+  const 開放單元 = cr.reduce((s,c)=>s+(c.open_count||0),0);
 
-  // 廣場：官網＝產品層，廣場＝功能層。新功能加在這裡，不加官網路口。
   const tiles = [
     {ic:'🚀', nm:'我的下一步', sub:'啟動器', soon:true, wide:true},
-    {ic:'📖', nm:'課程', sub:`${開放.length} 門 · ${堂數} 堂`, go:'courses'},
+    {ic:'📖', nm:'學分地圖', sub:`${cr.length} 學分 · ${開放單元} 單元`, go:'courses'},
     {ic:'🎬', nm:'影片庫', sub:'說明會 · 領袖訪談', soon:true},
     {ic:'🏆', nm:'故事探索', sub:'找到像你的人', soon:true},
     {ic:'🏅', nm:'我的集點', sub:'學分與徽章', soon:true},
@@ -505,7 +521,7 @@ function renderHome(){
   if (isAdmin) tiles.push({ic:'🛡️', nm:'審核', sub:'入場申請', act:"go('admin');loadAdmin('pending')", admin:true, wide:true});
 
   document.getElementById('plaza').innerHTML = tiles.map(x => `
-    <div class="tile ${x.soon?'soon':''} ${x.wide?'wide':''} ${x.admin?'admin-t':''} ${x.nm==='我的下一步'&&!x.soon?'hero':''}"
+    <div class="tile ${x.soon?'soon':''} ${x.wide?'wide':''} ${x.admin?'admin-t':''}"
       ${x.soon?'':`onclick="${x.act || `go('${x.go}')`}"`}>
       <div class="ic">${x.ic}</div>
       <div><div class="nm">${x.nm}</div><div class="sub">${x.soon?'準備中':x.sub}</div></div>
@@ -513,39 +529,44 @@ function renderHome(){
   go('home');
 }
 
+// 四大類＝時間軸：底層觀念／見人前／見人時／見人後
+const CAT_DESC = {'觀念確信':'我為什麼相信','行前準備':'見人之前','會場運作':'人在面前時','組織運作':'他進來之後'};
+
 function renderCourses(){
-  const cs = ctx.courses || [];
-  const 開放 = cs.filter(c => !c.is_locked && (c.lesson_count||0) > 0);
+  const cr = allCredits();
   document.getElementById('courses-sub').textContent =
-    `開放 ${開放.reduce((s,c)=>s+(c.lesson_count||0),0)} 堂，其餘陸續開放`;
-  document.getElementById('course-list').innerHTML = cs.map(c => {
-    const n = c.lesson_count || 0;
-    const locked = !!c.is_locked || n === 0;
-    const note = c.locked_note || (n === 0 ? '內容準備中' : '尚未開放');
-    return `<div class="card ${locked?'locked':'tap'}" ${locked?'':`onclick="openCourse('${c.id}')"`}>
-      <div class="c-top"><span class="c-nm">${locked?'🔒 ':''}${esc(c.title)}</span>
-        <span class="c-ct">${locked ? esc(note) : n + ' 堂'}</span></div>
-      <div class="c-ds">${locked
-        ? (n > 0 ? n + ' 堂，開放後會通知已入場的同學' : '內容整理中，開放後會通知你')
-        : esc(c.description||'')}</div>
-    </div>`;
+    `${cr.length} 個學分 · 開放 ${cr.reduce((s,c)=>s+(c.open_count||0),0)} 單元`;
+  document.getElementById('course-list').innerHTML = (ctx.categories||[]).map(cat => {
+    const rows = (cat.credits||[]).map(c => {
+      const 全鎖 = (c.open_count||0) === 0;
+      const 部分 = !全鎖 && (c.unit_count||0) > (c.open_count||0);
+      const 右 = 全鎖 ? '<span class="lk">🔒 尚未開放</span>'
+                     : `${c.open_count} 單元${部分 ? ` <span class="lk">＋${c.unit_count-c.open_count} 🔒</span>` : ''}`;
+      return `<div class="credit ${全鎖?'alllock':''}" onclick="openCourse('${c.id}')">
+        <div class="nm">${esc(c.title)}</div><div class="ct">${右}</div></div>`;
+    }).join('');
+    return `<div class="cat"><span class="n">${esc(cat.name)}</span>
+      <span class="d">${CAT_DESC[cat.name]||''}</span><span class="bar"></span></div>${rows}`;
   }).join('') || '<div class="card">課程準備中</div>';
 }
 
 function openCourse(id){
-  const c = (ctx.courses||[]).find(x => x.id === id);
+  const c = allCredits().find(x => x.id === id);
   if(!c) return;
   curCourse = c;
   document.getElementById('course-name').textContent = c.title;
-  document.getElementById('course-count').textContent = (c.lesson_count||0) + ' 堂課';
-  document.getElementById('lesson-list').innerHTML = (c.lessons||[]).map(l =>
-    `<div class="lrow ${l.has_video?'':'novideo'}" onclick="openLesson('${l.id}')">
-       <div class="no">${String(l.seq).padStart(2,'0')}</div>
-       <div class="tx">${esc(stripNo(l.title))}${l.duration_sec?`<br><span style="font-size:14px;color:var(--txt2)">${mmss(l.duration_sec)}</span>`:''}</div>
-       <div class="go">›</div>
+  document.getElementById('course-count').textContent =
+    `${c.open_count} / ${c.unit_count} 單元已開放`;
+  document.getElementById('lesson-list').innerHTML = (c.units||[]).map(u =>
+    `<div class="lrow ${u.has_video?'':'novideo'} ${u.is_locked?'unit-lock':''}"
+       ${u.is_locked?'':`onclick="openLesson('${u.id}')"`}>
+       <div class="no">${u.is_locked?'🔒':String(u.seq).padStart(2,'0')}</div>
+       <div class="tx">${esc(u.title)}${u.is_locked?'<br><span style="font-size:14px;color:var(--txt2)">尚未開放</span>':''}</div>
+       <div class="go">${u.is_locked?'':'›'}</div>
      </div>`).join('');
   go('course');
 }
+
 // 課名前面已有編號，左側圓圈也顯示編號 → 去掉重複的 "09."
 function stripNo(t){ return String(t).replace(/^\d+\.\s*/, ''); }
 
