@@ -868,8 +868,8 @@ function renderHwMatrix(realStudents, coachById, scope) {
     const cN = coachById[r.s.coach_id] || '—', sN = coachById[r.s.sponsor_id] || '—';
     const gFull = groupByCoach[r.s.coach_id] || '';
     const gN = gFull.replace(/^第/, '').replace(/組$/, '');
-    h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" data-g="${gFull}"
-             onclick="showWho(event,this)" title="${gFull || '未分組'}｜教練 ${cN}｜領袖 ${sN}">${nm(r.s)}${gN ? `<span class="nm-g">${gN}</span>` : ''}</td>`;
+    h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" 
+             onclick="showWho(event,this)" title="教練 ${cN}｜領袖 ${sN}">${nm(r.s)}${gN ? `<span class="nm-g">${gN}</span>` : ''}</td>`;
     days.forEach(ds => {
       const c = cellOf(r.s.id, ds);
       h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}">${c.txt}</td>`;
@@ -1343,7 +1343,7 @@ function showWho(ev, td) {
   let box = document.getElementById('whoPop');
   if (!box) { box = document.createElement('div'); box.id = 'whoPop'; box.className = 'who-pop'; document.body.appendChild(box); }
   const d = td.dataset;
-  box.innerHTML = `<b>${d.n}</b><div>組別　${d.g || '未分組'}</div><div>教練　${d.c}</div><div>領袖　${d.s}</div>`;
+  box.innerHTML = `<b>${d.n}</b><div>教練　${d.c}</div><div>領袖　${d.s}</div>`;
   const r = td.getBoundingClientRect();
   box.style.display = 'block';
   box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
