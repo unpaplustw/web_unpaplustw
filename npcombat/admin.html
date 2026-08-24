@@ -694,6 +694,9 @@ function renderCoachOverview(realStudents, logsByStu) {
 //   兩張表分開的理由是 Randoph 的閱讀動線，不是資料——同一天可能兩件事都要做（27 期 8/10～8/20 重疊），
 //   所以同一天會同時出現在兩張表，各自只顯示自己那件事。
 function renderHwMatrix(realStudents, coachById, scope) {
+  // ⚠️ 組別在 batch_coaches.group_name（第一組～第十四組），
+  //    不是 batch_students.group_name——那裡 54 人全都是「啟動班」，是班別不是組別。
+  const groupByCoach = {}; coaches.forEach(c => groupByCoach[c.id] = c.group_name || '');
   if (typeof UNITS === 'undefined' || !realStudents.length) return '';
   const today = localDateStr(new Date());
 
@@ -863,9 +866,10 @@ function renderHwMatrix(realStudents, coachById, scope) {
   h += `<th>缺</th></tr>`;
   rows.forEach(r => {
     const cN = coachById[r.s.coach_id] || '—', sN = coachById[r.s.sponsor_id] || '—';
-    const gN = (r.s.group_name || '').replace(/^第/, '').replace(/組$/, '');
-    h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" data-g="${r.s.group_name || ''}"
-             onclick="showWho(event,this)" title="${r.s.group_name || '未分組'}｜教練 ${cN}｜領袖 ${sN}">${nm(r.s)}${gN ? `<span class="nm-g">${gN}</span>` : ''}</td>`;
+    const gFull = groupByCoach[r.s.coach_id] || '';
+    const gN = gFull.replace(/^第/, '').replace(/組$/, '');
+    h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" data-g="${gFull}"
+             onclick="showWho(event,this)" title="${gFull || '未分組'}｜教練 ${cN}｜領袖 ${sN}">${nm(r.s)}${gN ? `<span class="nm-g">${gN}</span>` : ''}</td>`;
     days.forEach(ds => {
       const c = cellOf(r.s.id, ds);
       h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}">${c.txt}</td>`;
