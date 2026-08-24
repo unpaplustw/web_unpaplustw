@@ -28,11 +28,6 @@
   .hd-admin-link:active{background:var(--gold);color:#fff}
 
   /* ── Day Toggle ── */
-  .g-rollday{display:flex;gap:0;margin:0 0 14px}
-  .g-rollday-btn{flex:1;padding:11px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .g-rollday-btn:first-child{border-radius:10px 0 0 10px}
-  .g-rollday-btn:last-child{border-radius:0 10px 10px 0;border-left:0}
-  .g-rollday-btn.on{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
   .my-lock-note{background:var(--gold-lt);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:13.5px;line-height:1.8;color:var(--muted);text-align:center}
   .my-lock-note b{color:var(--gold)}
   .stu-row.locked{opacity:.45}
@@ -236,6 +231,8 @@
   .g-step{margin-bottom:26px}
   /* 🚪 退班卡（2026-08-23）：不編號、用紅圈——它不是每天要做的步驟，是收到通知才觸發 */
   .g-step.g-drop .g-step-n{background:var(--red,#c0392b);font-size:17px}
+  /* 行動週卡（2026-08-23）：學習週貼作業，行動週貼戰報＋心得接龍 */
+  .g-step.g-act .g-step-n{background:var(--green,#1e8449);font-size:17px}
   .g-drop-pick{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
   .g-drop-pick select{flex:1;min-width:140px;padding:9px 11px;border-radius:9px;border:1px solid var(--border);
     background:var(--bg);color:var(--text);font-size:14.5px;font-family:inherit}
@@ -683,14 +680,35 @@ https://ppt.cc/fJAcix
       <div class="guide-phase-sub">8/3 ～ 9/1 結業</div>
       <div class="guide-body" id="guideDuring">
 
-        <div class="g-rollday">
-          <button class="g-rollday-btn on" id="grdToday" onclick="setRollDay('today')">今天的</button>
-          <button class="g-rollday-btn" id="grdTomorrow" onclick="setRollDay('tomorrow')">明天的</button>
+        <!-- 行動週專用：課表跑完後（8/21 起）這裡才有東西，學習週隱藏 -->
+        <div id="actGuide" style="display:none">
+          <div class="g-step g-act">
+            <div class="g-step-hd"><span class="g-step-n">📊</span><span class="g-step-t">貼昨天的戰報</span></div>
+            <div class="g-step-when">📌 <b>什麼時候：</b>早上，讓大家看到昨天全組做了多少。</div>
+            <div class="g-step-body">
+              <div class="g-copybox">
+<pre class="g-text" id="cpActStat">載入中…</pre>
+                <button class="g-copy" onclick="copyGuide('cpActStat',this)">📋 一鍵複製</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="g-step g-act">
+            <div class="g-step-hd"><span class="g-step-n">✅</span><span class="g-step-t">貼行動心得接龍</span></div>
+            <div class="g-step-when">📌 <b>什麼時候：</b>接在戰報後面。學員錄完 3 分鐘心得就來打勾。</div>
+            <div class="g-step-body">
+              <div class="g-do">你的組員名單已經幫你帶好了 👇</div>
+              <div class="g-copybox">
+<pre class="g-text" id="cpActRoll">載入中…</pre>
+                <button class="g-copy" onclick="copyGuide('cpActRoll',this)">📋 一鍵複製</button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="g-step">
+        <div class="g-step" id="gStepHw1">
           <div class="g-step-hd"><span class="g-step-n">1</span><span class="g-step-t">貼作業內容到小組群</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>前一晚或當天早上，讓學員知道要交什麼。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群。</div>
+          <div class="g-step-when">📌 <b>什麼時候：</b><b>睡前</b>貼，讓學員知道<b>明天</b>要交什麼。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群。</div>
           <div class="g-step-body">
             <div class="g-copybox">
 <pre class="g-text" id="cpHomework">載入中…</pre>
@@ -699,7 +717,7 @@ https://ppt.cc/fJAcix
           </div>
         </div>
 
-        <div class="g-step">
+        <div class="g-step" id="gStepHw2">
           <div class="g-step-hd"><span class="g-step-n">2</span><span class="g-step-t">貼作業接龍，讓學員打勾</span></div>
           <div class="g-step-when">📌 <b>什麼時候：</b>接在上一則後面貼。<br>👉 <b>怎麼做：</b>學員在自己名字後面打 ✅ 接龍，你一眼看得出誰還沒交。</div>
           <div class="g-step-body">
@@ -1017,8 +1035,9 @@ async function init() {
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
 
     // 查本期教練身份
-    const { data: coach } = await sb.from('batch_coaches').select('id, status')
+    const { data: coach } = await sb.from('batch_coaches').select('id, status, group_name')
       .eq('batch_id', BATCH_ID).eq('member_id', coachMemberId).single();
+    myGroupName = coach?.group_name || '';   // 戰報標題用，同一個查詢帶回不多一次往返
     if (!coach || coach.status !== 'approved') {
       document.getElementById('coachName').textContent = member.name;
       toast('非本期已批准教練'); return;
@@ -1203,6 +1222,7 @@ function setMode(mode) {
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
     fillDropStu();                                                  // 退班下拉：切進來才填，學員清單此時已載入
+    renderActGuide();                                               // 行動週才有戰報與心得接龍
   } else if (mode === 'chk') {          // ⚠️ 開頭已把 'hw' 正規化成 'chk'，這裡必須跟著改——
                                         //    漏改的話這條永遠不成立，審查頁一輩子不會被渲染
     document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
@@ -1814,17 +1834,183 @@ function fillDropText() {
   gp.textContent = n ? DROP_GROUP(n) : '先在上面選擇組員…';
 }
 
+// 📜 金句（來源：wiki 生涯庫/大領袖學院/金句總表.md，593 則中挑 12 則）
+//   用自己人講的話，不用外部名人——學員認識這些人，份量完全不同。
+//   🔴 刻意排除「要求型」的句子（萬惡懶為首／做什麼都遲到…）：
+//      掛零的組看到那種話是補刀，不是鼓勵。這裡只留零殺傷力的。
+//   27 期只剩幾天，不做「依狀況選句」——每天全班同一句，改陣列就能換。
+const QUOTES = [
+  {q:'邀約、邀約、邀約，再邀約！\n　有邀約一定有締結', by:'張朕卿'},
+  {q:'小雞不跳下來就一定餓死\n　跳下來不見得每次都活\n　但不跳，完全沒有活', by:'張朕卿'},
+  {q:'邀約的目的只有一個：見面\n　不要在電話上什麼都吐出來', by:'凌翊迅'},
+  {q:'沒有收集到五個拒絕，不要回家', by:'王若葁'},
+  {q:'學了不動，永遠是觀眾', by:'王若葁'},
+  {q:'你們就是「沒有邀約不會死」\n　所以才沒有那種勇氣一直去邀約', by:'張朕卿'},
+  {q:'「我跟你邀，你不來是你的損失！」\n　邀約要強勢、要專業', by:'張朕卿'},
+  {q:'你每天起床出門看到的是什麼？\n　人。不是鬼', by:'王若葁'},
+  {q:'想，就是永遠在瞄準\n　他覺得沒有射擊，我就沒有挫敗', by:'王若葁'},
+  {q:'每一個高手，曾經都是新手', by:'楊敬豪'},
+  {q:'事必成不是馬上，但是遲早輪到你', by:'王若葁'},
+  {q:'你還活著，你就還有機會', by:'王若葁'},
+];
+
+// ══════════════════════════════════════════════════════════
+// 📊 行動週貼文（2026-08-23）
+//   課表 8/20 跑完，行動週教練指南原本只剩「沒有排定單元，不用貼作業 🎉」——
+//   但學員每天仍要錄 3 分鐘行動心得，教練仍要貼文。
+//   Randoph：「如果還能統計昨天的進度，是一個很棒的激勵」。
+//
+//   🔴 只給「全班總量」不給組別排名：倒數的組看到排名會放棄，
+//      但看到「我們貢獻了 5/18」是參與感。激勵要往前推，不是往下比。
+// ══════════════════════════════════════════════════════════
+let actStatLoaded = false;
+let myGroupName = '';        // 教練自己的組別（第X組），init 帶回
+
+function inActionWeek() {
+  return !!batchDates.studyEnd && getDateStr('today') > batchDates.studyEnd;
+}
+
+async function renderActGuide() {
+  const box = document.getElementById('actGuide');
+  const s1 = document.getElementById('gStepHw1'), s2 = document.getElementById('gStepHw2');
+  if (!box) return;
+  const act = inActionWeek();
+  box.style.display = act ? '' : 'none';
+  if (s1) s1.style.display = act ? 'none' : '';
+  if (s2) s2.style.display = act ? 'none' : '';
+  if (!act) return;
+
+  // ① 接龍：不用等查詢，先畫出來（教練最常用的是這則）
+  const t = new Date();
+  const md = `${t.getMonth()+1}/${t.getDate()}`;
+  const roll = document.getElementById('cpActRoll');
+  if (roll) {
+    roll.textContent = studentList.length
+      ? `${md} 行動心得錄音完成請打✅\n\n`
+        + `六項都要講 👇\n`
+        + `① 今天幾月幾日、第幾組、你是誰\n`
+        + `② 我＿＿＿是所有的起源\n`
+        + `③ 這期目標「直推2人」\n`
+        + `④ 今天做了什麼（見面／邀請／締結／邀約 各幾人）\n`
+        + `⑤ 明天排定跟誰見面、目標邀請幾人\n`
+        + `⑥ 鼓勵自己的一句話\n\n`
+        + studentList.map((x, i) => `${i+1}.${x.name}`).join('\n')
+        + `\n\n⏰ 今天 22:00 前錄完貼上來\n📌 明天一樣，我們每天都要動`
+      : '你的小組還沒有學員資料';
+  }
+
+  // ② 戰報：要查昨天全班資料
+  const stat = document.getElementById('cpActStat');
+  if (!stat) return;
+  if (actStatLoaded) return;                          // 一輪只查一次
+  const ds = getDateStr('yesterday');
+  const wd = ['日','一','二','三','四','五','六'][new Date(ds + 'T00:00:00').getDay()];
+  try {
+    // 全期一次撈完（27 期至今 1369 筆，一次查比每天查省事），昨天的從裡面篩
+    const [{ data: allLogs }, { data: cls }, { data: roster }] = await Promise.all([
+      sb.from('action_logs')
+        .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
+        .eq('batch_id', BATCH_ID),
+      sb.from('closing_records')
+        .select('member_id, close_date').eq('batch_id', BATCH_ID).not('verified', 'is', false),
+      sb.from('batch_students').select('id, coach_id')
+        .eq('batch_id', BATCH_ID).eq('status', 'approved').not('coach_id', 'is', null),
+    ]);
+    const logs = (allLogs || []).filter(l => l.log_date === ds);   // 昨天
+    const mine = new Set(studentList.map(x => x.id));
+    const myMids = new Set(studentList.map(x => x.member_id).filter(Boolean));
+    const F = ['name_list','meet','invite','present','seminar'];
+
+    // 本組：全期累積 ALLT／昨天 g
+    const ALLT = { close: 0 }, g = {};
+    F.forEach(k => { ALLT[k] = 0; g[k] = 0; });
+    let yRej = 0;
+    (allLogs || []).forEach(l => {
+      if (!mine.has(l.student_id)) return;
+      F.forEach(k => ALLT[k] += (l[k] || 0));
+      if (l.log_date === ds) {
+        F.forEach(k => g[k] += (l[k] || 0));
+        yRej += (l.ghosted || 0) + (l.rejected || 0);
+      }
+    });
+    ALLT.close = (cls || []).filter(c => myMids.has(c.member_id)).length;
+
+    // 全班平均邀約／組——有對照才知道自己在哪，但不點名誰墊底
+    const byGrp = {};
+    (roster || []).forEach(r => { if (r.coach_id) (byGrp[r.coach_id] = byGrp[r.coach_id] || []).push(r.id); });
+    const invByGrp = Object.values(byGrp).map(ids => {
+      const set = new Set(ids);
+      return (allLogs || []).reduce((a, l) => a + (set.has(l.student_id) ? (l.invite || 0) : 0), 0);
+    });
+    const avgInv = invByGrp.length ? Math.round(invByGrp.reduce((a, b) => a + b, 0) / invByGrp.length) : 0;
+    const movedG = invByGrp.filter(v => v > 0).length;
+    // 全班全期總量——只給總數與平均，不給排名（墊底的組看到排名會直接放棄）
+    const W = { close: (cls || []).length };
+    F.forEach(k => W[k] = (allLogs || []).reduce((a, l) => a + (l[k] || 0), 0));
+
+    const gName = myGroupName || '我們這組';
+
+    const md = ds.slice(5).replace('-','/');
+    // 🔴 主體是「全期累積」不是「昨天」（Randoph）：單日 8/21 有 8/14 組掛零，
+    //    全期累積後降到 4/14——數字每天只增不減，教練才貼得下去。
+    //    但保留一行「昨天 +N」，否則累積數字很大、實際已經三天沒動也看不出來。
+    const G = ALLT;                       // 全期（本組）
+    const out = G.meet + G.invite + G.present + G.seminar;
+    const yOut = g.meet + g.invite + g.present + g.seminar;
+
+    // 依日期輪播：全班同一句，教練不用選，你要換就改上面的陣列
+    const qt = QUOTES[parseInt(ds.replace(/-/g, ''), 10) % QUOTES.length];
+
+    const endD = batchDates.end ? new Date(batchDates.end + 'T00:00:00') : null;
+    const left = endD ? Math.max(0, Math.round((endD - new Date(getDateStr('today') + 'T00:00:00')) / 86400000)) : 0;
+    const foot =
+`🌏 全班戰況
+　🤝 認識 ${W.meet}　💬 邀約 ${W.invite}
+　🏛️ 邀請 ${W.present + W.seminar}　🎯 締結 ${W.close}
+　🔥 ${movedG}／${invByGrp.length} 組已出發
+
+💬 今日一句
+「${qt.q}」
+　　　　— ${qt.by}
+
+🎙️ 今天 22:00 前，記得錄 3 分鐘行動心得！`;
+
+    if (out === 0 && G.name_list === 0) {
+      // 🔴 掛零的組不列六個 0——下面緊接全班 188 邀約，落差會讓人直接放棄。
+      //    只講全班在動、還剩幾天。一樣誠實，但留了台階。
+      stat.textContent =
+`🌅 ${gName}　我們還沒開始
+━━━━━━━━━━━━━━
+${foot.split('\n💬')[0]}
+⏳ 還有 ${left} 天，現在開始都來得及
+
+💬${foot.split('\n💬')[1]}`;
+    } else {
+      stat.textContent =
+`📊 ${gName}　開班至今
+━━━━━━━━━━━━━━
+📋 名單 ${G.name_list}　　🤝 認識 ${G.meet}
+💬 邀約 ${G.invite}　　🗣️ 溝通本 ${G.present}
+🏛️ 說明會 ${G.seminar}　　🎯 締結 ${G.close}
+${G.name_list > 0 && G.invite === 0 ? `
+📌 名單已經 ${G.name_list} 筆，接下來就是約出來
+` : ''}
+⚡ 昨天（${md}）${yOut > 0 ? `＋${g.invite} 邀約　＋${g.meet} 認識` : '沒有新的行動'}
+
+${foot}`;
+    }
+    actStatLoaded = true;
+  } catch (e) {
+    stat.textContent = `昨天的戰報載入失敗：${e.message}\n請關掉重開，或截圖告訴總教練`;
+  }
+}
+
 // ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
 // ── 開班中：作業文案＋接龍範本，教練一鍵複製貼群（課表來源 units.js，改課表不必動這裡）──
-let rollDay = 'today';
+// 🔴 2026-08-23 移除「今天的／明天的」切換（Randoph）：
+//   作業貼文的設計本來就是「睡前預告明天要交什麼」，多一個「今天的」只會讓教練
+//   早上打開時以為現在才要貼——但學員昨晚就該知道了。少一個選項＝少一個出錯的地方。
 const WD_TW = ['日','一','二','三','四','五','六'];
-
-function setRollDay(d) {
-  rollDay = d;
-  document.getElementById('grdToday').classList.toggle('on', d === 'today');
-  document.getElementById('grdTomorrow').classList.toggle('on', d === 'tomorrow');
-  renderRollcall();
-}
 
 // 把【錄音1分鐘】這種標記轉成好讀的「🎙 錄音 1 分鐘」
 function fmtTag(tag) {
@@ -1838,7 +2024,7 @@ function renderRollcall() {
   if (!hwBox || !rcBox || typeof unitsOfDay !== 'function') return;
 
   const base = new Date();
-  if (rollDay === 'tomorrow') base.setDate(base.getDate() + 1);
+  base.setDate(base.getDate() + 1);          // 固定明天：睡前貼的是明天要交的作業
   const d = base.getFullYear() + '-' + String(base.getMonth()+1).padStart(2,'0') + '-' + String(base.getDate()).padStart(2,'0');
   const md = `${base.getMonth()+1}/${base.getDate()}（${WD_TW[base.getDay()]}）`;
   const units = unitsOfDay(d);
