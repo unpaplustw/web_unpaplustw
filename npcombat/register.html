@@ -438,14 +438,14 @@
 <div class="screen rejected" id="screen-coach-rejected">
   <div class="screen-icon">❌</div>
   <h2>教練登記未通過</h2>
-  <p>本次登記未通過審核，請聯繫班主了解原因。</p>
+  <p>本次登記未通過審核，請聯繫總教練了解原因。</p>
 </div>
 
 <!-- 教練：登記成功（剛送出） -->
 <div class="screen" id="screen-coach-success">
   <div class="screen-icon">✅</div>
   <h2>教練登記已送出！</h2>
-  <p>資料已送出，班主將盡快審核。<br>審核通過後學員即可選擇你為上線。</p>
+  <p>資料已送出，總教練將盡快審核。<br>審核通過後學員即可選擇你為上線。</p>
 </div>
 
 <!-- 非 LINE 環境 -->
@@ -885,7 +885,7 @@ async function init() {
       const isLineApp = /Line\//i.test(navigator.userAgent);
       if (isLineApp) {
         errScreen.querySelector('h2').textContent = 'LIFF 載入失敗';
-        errScreen.querySelector('p').innerHTML = '錯誤訊息：<br><strong>' + e.message + '</strong><br><br>請截圖回報給班主。';
+        errScreen.querySelector('p').innerHTML = '錯誤訊息：<br><strong>' + e.message + '</strong><br><br>請截圖回報給總教練。';
       }
       errScreen.classList.add('active');
     }

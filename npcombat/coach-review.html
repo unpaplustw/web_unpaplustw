@@ -714,7 +714,7 @@ https://ppt.cc/fJAcix
 
         <div class="g-step g-drop">
           <div class="g-step-hd"><span class="g-step-n">🚪</span><span class="g-step-t">學員退班</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>收到班主的退班通知後。<b>平常不用看這一段。</b></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>收到總教練的退班通知後。<b>平常不用看這一段。</b></div>
           <div class="g-step-body">
             <div class="g-drop-pick">
               <span style="font-size:14px">要退班的組員</span>
@@ -1206,7 +1206,7 @@ function setMode(mode) {
   } else if (mode === 'chk') {          // ⚠️ 開頭已把 'hw' 正規化成 'chk'，這裡必須跟著改——
                                         //    漏改的話這條永遠不成立，審查頁一輩子不會被渲染
     document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
-    // 🔴 三個查詢任一失敗，原本會靜默留白——教練只看到空頁，班主也查不出原因。
+    // 🔴 三個查詢任一失敗，原本會靜默留白——教練只看到空頁，總教練也查不出原因。
     //    2026-08-20 錢威達回報「看不到」就是卡在這裡（我這邊同帳號跑卻正常）。
     //    改成：先顯示載入中，失敗就把原因印在畫面上。
     const g = document.getElementById('hwGrid');
@@ -1216,8 +1216,8 @@ function setMode(mode) {
     else if (g) g.innerHTML = '<div class="hw-hint">載入中…</div>';
     Promise.all([loadHwChecks(), loadEngAll(), loadSubmits(), loadDownlineCloses()])
       .then(() => { try { renderHw(); }
-        catch (e) { if (g) g.innerHTML = `<div class="hw-hint">畫面產生失敗：${e.message}<br>請截圖告訴班主</div>`; } })
-      .catch(e => { if (g) g.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴班主</div>`; });
+        catch (e) { if (g) g.innerHTML = `<div class="hw-hint">畫面產生失敗：${e.message}<br>請截圖告訴總教練</div>`; } })
+      .catch(e => { if (g) g.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴總教練</div>`; });
   }
 }
 
@@ -1535,7 +1535,7 @@ function renderHw() {
   }
   if (!studentList.length) {
     grid.innerHTML = scopeBar + `<div class="hw-hint">目前沒有配對到你的學員。<br>
-      （你若是班主／不帶組，這一頁本來就沒有內容——組員名單在 admin 的「👥 名冊」。）</div>`;
+      （你若是總教練／不帶組，這一頁本來就沒有內容——組員名單在 admin 的「👥 名冊」。）</div>`;
     clearBelow(); return;
   }
   const days = dayList();
