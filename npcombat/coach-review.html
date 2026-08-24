@@ -234,6 +234,18 @@
   .g-sec-t{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gold-lt)}
   /* 步驟式流程（銀髮友善：大字、白話、照順序走） */
   .g-step{margin-bottom:26px}
+  /* 🚪 退班卡（2026-08-23）：不編號、用紅圈——它不是每天要做的步驟，是收到通知才觸發 */
+  .g-step.g-drop .g-step-n{background:var(--red,#c0392b);font-size:17px}
+  .g-drop-pick{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .g-drop-pick select{flex:1;min-width:140px;padding:9px 11px;border-radius:9px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text);font-size:14.5px;font-family:inherit}
+  .g-drop-sub{display:flex;align-items:flex-start;gap:9px;margin:16px 0 8px}
+  .g-drop-sub-n{flex-shrink:0;width:21px;height:21px;border-radius:50%;background:var(--border);color:var(--text);
+    display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;margin-top:2px}
+  .g-drop-sub-t{font-size:14.5px;font-weight:600;line-height:1.55}
+  .g-drop-note{font-size:13px;line-height:1.7;color:var(--text2,#8a8a8a);margin:6px 0 0 30px}
+  .g-drop-wait{background:#fdecea;border:1px solid #f5b7b1;color:#922b21;border-radius:10px;
+    padding:11px 13px;font-size:13.5px;line-height:1.7;font-weight:600;margin-top:6px}
   .g-step:last-child{margin-bottom:0}
   .g-step-hd{display:flex;align-items:center;gap:11px;margin-bottom:7px}
   .g-step-n{width:34px;height:34px;flex-shrink:0;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
@@ -700,6 +712,37 @@ https://ppt.cc/fJAcix
           </div>
         </div>
 
+        <div class="g-step g-drop">
+          <div class="g-step-hd"><span class="g-step-n">🚪</span><span class="g-step-t">學員退班</span></div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>收到班主的退班通知後。<b>平常不用看這一段。</b></div>
+          <div class="g-step-body">
+            <div class="g-drop-pick">
+              <span style="font-size:14px">要退班的組員</span>
+              <select id="dropStu" onchange="fillDropText()"><option value="">— 請選擇 —</option></select>
+            </div>
+
+            <div class="g-drop-sub"><span class="g-drop-sub-n">1</span><span class="g-drop-sub-t">📞 先打電話給他</span></div>
+            <div class="g-drop-note">有接 → 溫馨告知，並鼓勵他再努力。<br>沒接 → 也沒關係，直接做第 2 步。</div>
+
+            <div class="g-drop-sub"><span class="g-drop-sub-n">2</span><span class="g-drop-sub-t">💌 私訊給學員</span></div>
+            <div class="g-drop-note">⚠️ <b>不管有沒有接到電話，這則都要傳。</b></div>
+            <div class="g-copybox" style="margin-top:8px">
+<pre class="g-text" id="cpDropDM">先在上面選擇組員…</pre>
+              <button class="g-copy" onclick="copyGuide('cpDropDM',this)">📋 一鍵複製</button>
+            </div>
+
+            <div class="g-drop-sub"><span class="g-drop-sub-n">3</span><span class="g-drop-sub-t">👥 貼到小組群組</span></div>
+            <div class="g-copybox" style="margin-top:8px">
+<pre class="g-text" id="cpDropGroup">先在上面選擇組員…</pre>
+              <button class="g-copy" onclick="copyGuide('cpDropGroup',this)">📋 一鍵複製</button>
+            </div>
+
+            <div class="g-drop-sub"><span class="g-drop-sub-n">4</span><span class="g-drop-sub-t">⏰ 過 1 小時，才把他移出群組</span></div>
+            <div class="g-drop-wait">⚠️ 貼完不要馬上移出——留 1 小時讓組員看到訊息、跟他道別。<br>
+              馬上移出等於當眾請人離開，那一小時是給彼此的體面。</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -1159,6 +1202,7 @@ function setMode(mode) {
       .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
+    fillDropStu();                                                  // 退班下拉：切進來才填，學員清單此時已載入
   } else if (mode === 'chk') {          // ⚠️ 開頭已把 'hw' 正規化成 'chk'，這裡必須跟著改——
                                         //    漏改的話這條永遠不成立，審查頁一輩子不會被渲染
     document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
@@ -1716,6 +1760,59 @@ function showGuidePhase(phase) {
 }
 
 function initGuidePhase() { renderRollcall(); showGuidePhase(currentGuidePhase()); }
+
+// ══════════════════════════════════════════════════════════
+// 🚪 退班文案（2026-08-23 Randoph 提供，逐字不改）
+//   為什麼放指南而不是每天看的分頁：退班是收到通知才觸發的低頻動作，
+//   但發生時教練壓力大——他需要的是「照順序做」，不是自己想怎麼講。
+//   姓名自動帶入而不讓教練手填：文案長、兩處姓名，填錯名字會讓一件
+//   本來就難的事變成事故。
+// ══════════════════════════════════════════════════════════
+const DROP_DM = n => `🌸 給親愛的 ${n} 🌸
+
+知道你平時工作十分忙碌，這段時間在班級裡的努力與用心，大家都有看在眼裡 ✨
+
+🏃 有節奏的行動，才是成功的關鍵
+實戰班的運作與團隊的推進，需要大家保持一致的步伐。了解到你近期剛好有私人的行程與安排，可能比較難配合班級緊湊的節奏。
+
+⚖️ 教練團的決定與建議
+經過教練團客觀的評估與討論，為了不讓你蠟燭兩頭燒，我們建議你這次先暫停實戰班的進度。等下次時間比較充裕、能夠全心投入時，再回來報名參加！🫂
+
+💌 未來的期許
+你一直是非常優秀的夥伴 ❤️ 這次雖然暫時休息，但請一定要保持當初經營的初衷與信念 💪
+
+先把自己的時間與節奏規劃好，為自己的人生勇敢打一次勝仗吧！教練團會在這裡隨時歡迎你歸隊，期待你準備好的那一天，我們再一起拚！🔥`;
+
+const DROP_GROUP = n => `親愛的 ${n} 🌸
+
+這段時間看著你一邊忙碌一邊努力跟上大家，真的很不容易，大家都有看在眼裡！✨
+
+知道你近期有個人的行程與規劃需要專注處理，為了不讓你蠟燭兩頭燒、產生太多進度壓力，教練團討論後，建議你這次先以處理個人事務為優先，先暫時移出這個小組的實戰演練。
+
+等你把手邊的事情安頓好、時間更充裕時，隨時都歡迎你回來報名下一期！💪
+
+謝謝你這段時間在小組裡的付出，先好好照顧自己的生活節奏，期待你準備好後，我們再一起並肩作戰！❤️`;
+
+// 下拉只列自己的組員——教練不該、也不會處理別組的退班
+function fillDropStu() {
+  const sel = document.getElementById('dropStu');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— 請選擇 —</option>' +
+    studentList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  if (cur && studentList.some(s => s.name === cur)) sel.value = cur;
+  fillDropText();
+}
+
+function fillDropText() {
+  const sel = document.getElementById('dropStu');
+  const dm = document.getElementById('cpDropDM'), gp = document.getElementById('cpDropGroup');
+  if (!sel || !dm || !gp) return;
+  const n = sel.value;
+  // 沒選人時不要顯示半成品文案——教練可能直接複製貼出去
+  dm.textContent = n ? DROP_DM(n) : '先在上面選擇組員…';
+  gp.textContent = n ? DROP_GROUP(n) : '先在上面選擇組員…';
+}
 
 // ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
 // ── 開班中：作業文案＋接龍範本，教練一鍵複製貼群（課表來源 units.js，改課表不必動這裡）──
