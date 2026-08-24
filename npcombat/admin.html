@@ -234,8 +234,6 @@
   /* LINE 標記連動來的格子：綠底加白點，提醒還沒逐題檢核 */
   .hwm-c.soft{background:#1d8049;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
   .hwm th.nm,.hwm td.nm{text-align:left;position:sticky;left:0;background:var(--navy);z-index:1;padding-right:8px;white-space:nowrap}
-  /* 組號跟在名字後（2026-08-23）：一覽表寬度有限，只留組號數字，不寫「第」「組」 */
-  .hwm td.nm .nm-g{margin-left:5px;font-size:10.5px;font-weight:400;opacity:.5}
   .hwm td.nm{color:var(--white);font-weight:600;font-size:12px}
   .hwm td.nm .c{color:var(--muted);font-weight:400;font-size:10px;margin-left:4px}
   /* 學員／教練／領袖三欄都凍結：橫向捲到 U17 時仍看得出這一列是誰的責任。
@@ -867,9 +865,9 @@ function renderHwMatrix(realStudents, coachById, scope) {
   rows.forEach(r => {
     const cN = coachById[r.s.coach_id] || '—', sN = coachById[r.s.sponsor_id] || '—';
     const gFull = groupByCoach[r.s.coach_id] || '';
-    const gN = gFull.replace(/^第/, '').replace(/組$/, '');
     h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" 
-             onclick="showWho(event,this)" title="教練 ${cN}｜領袖 ${sN}">${nm(r.s)}${gN ? `<span class="nm-g">${gN}</span>` : ''}</td>`;
+             data-g="${gFull || '未分組'}"
+             onclick="showWho(event,this)" title="教練 ${cN}｜領袖 ${sN}">${nm(r.s)}</td>`;
     days.forEach(ds => {
       const c = cellOf(r.s.id, ds);
       h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}">${c.txt}</td>`;
@@ -1343,7 +1341,7 @@ function showWho(ev, td) {
   let box = document.getElementById('whoPop');
   if (!box) { box = document.createElement('div'); box.id = 'whoPop'; box.className = 'who-pop'; document.body.appendChild(box); }
   const d = td.dataset;
-  box.innerHTML = `<b>${d.n}</b><div>教練　${d.c}</div><div>領袖　${d.s}</div>`;
+  box.innerHTML = `<b>${d.n}</b><div>組別　${d.g}</div><div>教練　${d.c}</div><div>領袖　${d.s}</div>`;
   const r = td.getBoundingClientRect();
   box.style.display = 'block';
   box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
