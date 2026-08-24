@@ -683,7 +683,7 @@ https://ppt.cc/fJAcix
         <!-- 行動週專用：課表跑完後（8/21 起）這裡才有東西，學習週隱藏 -->
         <div id="actGuide" style="display:none">
           <div class="g-step g-act">
-            <div class="g-step-hd"><span class="g-step-n">📊</span><span class="g-step-t">貼昨天的戰報</span></div>
+            <div class="g-step-hd"><span class="g-step-n">📊</span><span class="g-step-t">課程＆行動公告</span></div>
             <div class="g-step-when">📌 <b>什麼時候：</b>早上，讓大家看到昨天全組做了多少。</div>
             <div class="g-step-body">
               <div class="g-copybox">
@@ -694,7 +694,7 @@ https://ppt.cc/fJAcix
           </div>
 
           <div class="g-step g-act">
-            <div class="g-step-hd"><span class="g-step-n">✅</span><span class="g-step-t">貼行動心得接龍</span></div>
+            <div class="g-step-hd"><span class="g-step-n">✅</span><span class="g-step-t">學員完成項目接龍</span></div>
             <div class="g-step-when">📌 <b>什麼時候：</b>接在戰報後面。學員錄完 3 分鐘心得就來打勾。</div>
             <div class="g-step-body">
               <div class="g-do">你的組員名單已經幫你帶好了 👇</div>
@@ -1891,8 +1891,8 @@ async function renderActGuide() {
         + `① 今天幾月幾日、第幾組、你是誰\n`
         + `② 我＿＿＿是所有的起源\n`
         + `③ 這期目標「直推2人」\n`
-        + `④ 今天做了什麼（見面／邀請／締結／邀約 各幾人）\n`
-        + `⑤ 明天排定跟誰見面、目標邀請幾人\n`
+        + `④ 今天執行項目（跟誰見面／邀請／締結／邀約 各幾人）\n`
+        + `⑤ 明天預計安排（跟誰見面／邀請／邀約 各幾人）\n`
         + `⑥ 鼓勵自己的一句話\n\n`
         + studentList.map((x, i) => `${i+1}.${x.name}`).join('\n')
         + `\n\n⏰ 今天 22:00 前錄完貼上來\n📌 明天一樣，我們每天都要動`
@@ -1934,6 +1934,7 @@ async function renderActGuide() {
       }
     });
     ALLT.close = (cls || []).filter(c => myMids.has(c.member_id)).length;
+    const yClose = (cls || []).filter(c => myMids.has(c.member_id) && c.close_date === ds).length;
 
     // 全班平均邀約／組——有對照才知道自己在哪，但不點名誰墊底
     const byGrp = {};
@@ -1950,7 +1951,7 @@ async function renderActGuide() {
 
     const gName = myGroupName || '我們這組';
 
-    const md = ds.slice(5).replace('-','/');
+    const md = `${+ds.slice(5,7)}/${+ds.slice(8,10)}`;   // 8/24 不是 08/24
     // 🔴 主體是「全期累積」不是「昨天」（Randoph）：單日 8/21 有 8/14 組掛零，
     //    全期累積後降到 4/14——數字每天只增不減，教練才貼得下去。
     //    但保留一行「昨天 +N」，否則累積數字很大、實際已經三天沒動也看不出來。
@@ -1986,17 +1987,24 @@ ${foot.split('\n💬')[0]}
 
 💬${foot.split('\n💬')[1]}`;
     } else {
-      stat.textContent =
+      // 昨天只列有增加的項目，沒有增加就整項不出現（列一排 ＋0 等於在說「你沒做」）
+    const dl = [];
+    if (g.invite)  dl.push(`💬 ＋${g.invite}`);
+    if (g.present) dl.push(`🗣️ ＋${g.present}`);
+    if (g.seminar) dl.push(`🏛️ ＋${g.seminar}`);
+    if (yClose)    dl.push(`🎯 ＋${yClose}`);
+    if (g.meet)    dl.push(`🤝 ＋${g.meet}`);
+
+    stat.textContent =
 `📊 ${gName}　開班至今
 ━━━━━━━━━━━━━━
-📋 名單 ${G.name_list}　　🤝 認識 ${G.meet}
 💬 邀約 ${G.invite}　　🗣️ 溝通本 ${G.present}
 🏛️ 說明會 ${G.seminar}　　🎯 締結 ${G.close}
 ${G.name_list > 0 && G.invite === 0 ? `
 📌 名單已經 ${G.name_list} 筆，接下來就是約出來
+` : ''}${dl.length ? `
+⚡ 昨天（${md}）　${dl.join('　')}
 ` : ''}
-⚡ 昨天（${md}）${yOut > 0 ? `＋${g.invite} 邀約　＋${g.meet} 認識` : '沒有新的行動'}
-
 ${foot}`;
     }
     actStatLoaded = true;
