@@ -1217,7 +1217,7 @@ function setMode(mode) {
   } else if (inGroup) {
     document.querySelector('.day-toggle').style.display = '';
     subArm = false; rejectArm = null;
-    loadSubmits().then(() => { renderReview(); refreshTodo(); })
+    loadSubmits().then(() => { applyDefaultDay(); renderReview(); refreshTodo(); })
       .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   } else if (mode === 'guide') {
     document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
@@ -1450,6 +1450,29 @@ function renderTodoBar() {
                  `<span class="go">${almost ? '送出 ›' : '去處理 ›'}</span>`;
 }
 function refreshTodo() { renderRecBadge(); renderTodoBar(); }
+
+// 🔴 預設停在「該處理的那一天」（2026-08-25 Randoph）
+//   273 筆教練標記裡有 117 筆（43%）是隔天才標的——也就是打開頁面要標「昨天」，
+//   但畫面寫死停在「今天」。教練得先多按一次；沒注意的人會直接在今天那頁標記，
+//   標錯日期而且沒有任何警告。
+//   過期的那天不算——已經鎖住了，Randoph：「過期的就去一覽表去補就好」。
+//   只在第一次進組員頁時套用，之後尊重教練自己切的日期（不然切走再回來會被彈掉）。
+let dayInited = false;
+function defaultDay() {
+  const p = pendingSubmitDays()[0];
+  if (!p) return 'today';
+  return p === getDateStr('today') ? 'today' : 'yesterday';
+}
+function applyDefaultDay() {
+  if (dayInited) return;
+  dayInited = true;
+  const d = defaultDay();
+  if (d === currentDay) return;
+  currentDay = d;
+  const bT = document.getElementById('btnToday'), bY = document.getElementById('btnYesterday');
+  if (bT) bT.classList.toggle('on', d === 'today');
+  if (bY) bY.classList.toggle('on', d === 'yesterday');
+}
 
 // 橫幅要一鍵到位：切到 👥 組員 ＋ 跳到該送出的那一天。少一步都會有人卡住。
 function gotoSubmit() {
@@ -2379,6 +2402,7 @@ async function submitMyReport() {
 
 // ── Day Toggle ──
 function setDay(day) {
+  dayInited = true;          // 教練自己選過就不再自動套預設
   currentDay = day;
   document.getElementById('btnToday').classList.toggle('on', day === 'today');
   document.getElementById('btnYesterday').classList.toggle('on', day === 'yesterday');
