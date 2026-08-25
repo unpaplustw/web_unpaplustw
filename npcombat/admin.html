@@ -718,12 +718,17 @@ function renderHwMatrix(realStudents, coachById, scope) {
   const actStart0 = actionStartDate();
   // 🔴 行動「一覽表」的起點 ≠ 行動「計算」的起點（Randoph 2026-08-20）
   //    計算用 actionStartDate()（＝action_open_date 8/10）——四環節分母、記點都照舊，這裡不動。
-  //    但一覽表要從**行動週**才列（study_end 隔天 8/21）：
   //    8/10～8/20 行動雖然開放了，學員的主任務仍是作業，列進行動表只會讓它難看且不公平。
   //    行動班沒有 study_end → 自動退回 actionStartDate()，同一條規則兩種班都對。
+  //
+  //    🔴 2026-08-25 Randoph 更正：行動週從 **study_end 之後的第一個週一** 起算，
+  //    不是「隔天」。27 期 8/20（四）上完課，8/21（五）只有 9 人填、8/22–23 是週末，
+  //    8/24（一）才真正啟動（教練標記 12→19 人）。用「隔天」會把 8/21 列進表，
+  //    那天沒填的 30 人平白多一筆缺件。28 期同理（10/2 週五 → 10/5 週一）。
   const actViewFrom = (() => {
     if (!b.study_end) return actStart0;
-    const d = new Date(b.study_end + 'T00:00:00'); d.setDate(d.getDate() + 1);
+    const d = new Date(b.study_end + 'T00:00:00');
+    do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);   // 推到下一個週一
     return localDateStr(d);
   })();
   const days = [];                           // 開班日到今天的平日，再依 scope 過濾
@@ -1233,7 +1238,9 @@ const ANA = [
     d:() => {
       const b = batchRow();
       let from = actionStartDate();
-      if (b.study_end) { const d = new Date(b.study_end + 'T00:00:00'); d.setDate(d.getDate() + 1); from = localDateStr(d); }
+      if (b.study_end) { const d = new Date(b.study_end + 'T00:00:00');
+        do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);   // 下一個週一，與 actViewFrom 同規則
+        from = localDateStr(d); }
       return `日期 × 學員 · 行動週 ${from || '—'} 起`;
     },
     render: el => renderHwSection(el, 'action') },
@@ -1358,7 +1365,7 @@ function renderHwSection(target, scope) {
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
     `<div class="dash-empty">${scope === 'action'
-      ? '行動週還沒開始（學習週結束的隔天起算，看 batches.study_end）'
+      ? '行動週還沒開始（學習週結束後的第一個週一起算，看 batches.study_end）'
       : '尚無可顯示的日期'}</div>`);
 }
 

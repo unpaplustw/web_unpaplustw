@@ -1471,8 +1471,10 @@ function gotoSubmit() {
 // 行動一覽表從**行動週**起算（study_end 隔天），不是 action_open_date——
 // 那段兩者重疊時學員主任務仍是作業，列進來只會難看又不公平（與 admin 同一條規則）
 function actionViewFrom() {
+  // 🔴 行動週＝study_end 之後的第一個週一（2026-08-25 Randoph 更正，與 admin 同規則）
   if (!batchDates.studyEnd) return batchDates.start;
-  const d = new Date(batchDates.studyEnd + 'T00:00:00'); d.setDate(d.getDate() + 1);
+  const d = new Date(batchDates.studyEnd + 'T00:00:00');
+  do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);
   return dateStrOf(d);
 }
 
@@ -1867,7 +1869,7 @@ let actStatLoaded = false;
 let myGroupName = '';        // 教練自己的組別（第X組），init 帶回
 
 function inActionWeek() {
-  return !!batchDates.studyEnd && getDateStr('today') > batchDates.studyEnd;
+  return !!batchDates.studyEnd && getDateStr('today') >= actionViewFrom();
 }
 
 async function renderActGuide() {
