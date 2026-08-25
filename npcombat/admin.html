@@ -126,6 +126,9 @@
   .roster-check:hover{background:var(--navy3)}
   .roster-check .has{color:var(--green)}
   .roster-check .no{color:var(--muted)}
+  /* 🚪 已退班（2026-08-25）：整張卡淡化，一眼分得出誰還在跑 */
+  .roster-card.gone{opacity:.55}
+  .roster-card.gone .card-name::after{content:' 🚪 已退班';font-size:11px;color:#f87171;font-weight:400}
   .btn-edit{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(91,141,239,.3);background:var(--blue-bg);color:var(--blue);font-family:inherit;transition:.2s}
   .btn-edit:hover{background:rgba(91,141,239,.3)}
   .edit-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:end}
@@ -486,7 +489,7 @@ async function init() {
 
 async function load() {
   const { data: s } = await sb.from('batch_students')
-    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, dropped_at, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
     .eq('batch_id', bid);
   students = s || [];
   const { data: c } = await sb.from('batch_coaches')
@@ -1901,18 +1904,22 @@ function renderRosterSection() {
       const coachName = coachObj ? nm(coachObj) : '未配對';
       const hasList = s.name_list && (Array.isArray(s.name_list) ? s.name_list.length > 0 : String(s.name_list).trim());
       const hasIntro = s.introduction && String(s.introduction).trim();
+      const gone = !!s.dropped_at;
       h += `
-      <div class="roster-card" id="rc-${s.id}">
+      <div class="roster-card${gone ? ' gone' : ''}" id="rc-${s.id}">
         <div class="roster-top">
           <div>
             <div class="card-name">${nm(s)}${mc(s)}</div>
-            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 教練：${coachName}</div>
+            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 教練：${coachName}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
             <div class="roster-checks">
               <span class="roster-check" onclick="showDetail('${s.id}','name_list')"><span class="${hasList?'has':'no'}">${hasList?'✓':'✗'}</span> 名單</span>
               <span class="roster-check" onclick="showDetail('${s.id}','introduction')"><span class="${hasIntro?'has':'no'}">${hasIntro?'✓':'✗'}</span> 自我定位</span>
             </div>
           </div>
           ${isReadonly ? '' : `<div style="display:flex;gap:6px">
+            ${gone
+              ? `<button class="btn-edit" style="background:rgba(34,197,94,.15);color:#4ade80" onclick="undropStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">歸隊</button>`
+              : `<button class="btn-edit" style="background:rgba(249,115,22,.15);color:#fb923c" onclick="dropStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">退班</button>`}
             <button class="btn-edit" onclick="showEdit('${s.id}')">編輯</button>
             <button class="btn-edit" style="background:rgba(220,38,38,.15);color:#f87171" onclick="deleteStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">刪除</button>
           </div>`}
@@ -1956,6 +1963,30 @@ async function deleteCoach(cid, cname) {
   const { error } = await sb.from('batch_coaches').delete().eq('id', cid);
   if (error) return alert('刪除失敗：' + error.message);
   toast('教練已刪除'); await load();
+}
+
+// 🚪 退班＝凍結，不是移除（2026-08-25 Randoph）
+//   status 維持 approved（那是白名單，一改所有查詢都會漏），只寫 dropped_at。
+//   效果：教練組員頁不再顯示、送出不被卡、學員端鎖住；一覽表與所有歷史資料完整保留。
+//   可隨時「歸隊」還原——這也是不用 status 的另一個理由：復原只要清一個欄位。
+async function dropStudent(sid, sname) {
+  if (!confirm(`確認讓「${sname}」退班？\n\n`
+    + `・資料完整保留，一覽表照樣看得到\n`
+    + `・教練的組員頁不會再出現他，送出也不會被卡住\n`
+    + `・他打開回報頁會看到「已暫停本期」\n\n`
+    + `隨時可以按「歸隊」還原。`)) return;
+  const t = new Date();
+  const today = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+  const { error } = await sb.from('batch_students').update({ dropped_at: today }).eq('id', sid);
+  if (error) return alert('退班失敗：' + error.message);
+  toast(`${sname} 已退班（${today}）`); await load();
+}
+
+async function undropStudent(sid, sname) {
+  if (!confirm(`確認讓「${sname}」歸隊？\n\n他會重新出現在教練的組員頁，也能再填寫回報。`)) return;
+  const { error } = await sb.from('batch_students').update({ dropped_at: null }).eq('id', sid);
+  if (error) return alert('歸隊失敗：' + error.message);
+  toast(`${sname} 已歸隊`); await load();
 }
 
 async function deleteStudent(sid, sname) {
