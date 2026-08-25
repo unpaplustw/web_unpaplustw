@@ -128,6 +128,10 @@
   .roster-check .no{color:var(--muted)}
   /* 🚪 已退班（2026-08-25）：整張卡淡化，一眼分得出誰還在跑 */
   .roster-card.gone{opacity:.55}
+  .dm-drop{background:rgba(249,115,22,.15);color:#fb923c;border:0;border-radius:5px;
+    padding:3px 9px;font-size:11.5px;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .dm-drop:hover{background:rgba(249,115,22,.28)}
+  .dm-gone{font-size:11px;color:#f87171;white-space:nowrap}
   .roster-card.gone .card-name::after{content:' 🚪 已退班';font-size:11px;color:#f87171;font-weight:400}
   .btn-edit{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(91,141,239,.3);background:var(--blue-bg);color:var(--blue);font-family:inherit;transition:.2s}
   .btn-edit:hover{background:rgba(91,141,239,.3)}
@@ -1081,8 +1085,14 @@ function calcDemerits() {
   const graceOn = b.hw_grace_until && today <= b.hw_grace_until;   // 寬限期內只提醒不計點
 
   const stuRows = stu.map(s => {
+    // 🚪 退班後不再累加（2026-08-25 Randoph）：人都退了還一路加到結業，
+    //    那個數字沒有意義，還會讓全班統計失真。點數凍結在退班當下。
+    const gone = s.dropped_at || null;
     let miss = 0;                                   // 小組回報：教練標「沒交」的天數
-    dueDays.forEach(d => { const r = engBy[s.id + '|' + d]; if (r && r.homework === false) miss++; });
+    dueDays.forEach(d => {
+      if (gone && d >= gone) return;                // 退班日（含）之後不計
+      const r = engBy[s.id + '|' + d]; if (r && r.homework === false) miss++;
+    });
     // 🔴 2026-08-19 Randoph 決定：教練沒檢核就當學員沒交。
     //    「退不退班是我們人工說的算，就是要誇張的數字，逼教練去填寫。」
     //    我提過的代價他已知並確認：39 人全部受影響、滿 3 點從 2 人變 11 人、
@@ -1092,6 +1102,7 @@ function calcDemerits() {
     //       「真的沒交」與「教練沒檢核」，否則總教練自己也判不了。
     let hwMiss = 0, hwUng = 0, hwSaid = 0;
     taught.forEach(u => {
+      if (gone && unitDate[u] && unitDate[u] >= gone) return;   // 退班日之後的單元不計
       const r = hwBy[s.id + '|' + u];
       if (!r) {
         // 🔴 2026-08-19：教練沒檢核時，先看學員有沒有自己勾「已在小組回報」。
@@ -1103,7 +1114,8 @@ function calcDemerits() {
       }
       if (r.done < r.total) hwMiss++;                // 檢核過但沒寫完 → 真的沒交
     });
-    return { name: nm(s), coach: coachById[s.coach_id] || '未配對', miss, hwMiss, hwUng, hwSaid,
+    return { id: s.id, name: nm(s), coach: coachById[s.coach_id] || '未配對',
+             gone, miss, hwMiss, hwUng, hwSaid,
              made: mkStu[s.id] || 0,
              pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
   }).filter(r => r.pts > 0 || r.pend > 0 || r.made > 0 || r.hwSaid > 0)
@@ -1166,15 +1178,20 @@ function renderDemerits(target) {
   h += `<div class="sec-title"><span>👤 學員</span><span class="sec-count">${stuRows.length} 人有點數</span></div>`;
   if (!stuRows.length) h += `<div class="dash-empty">目前沒有人被記點 🎉</div>`;
   else {
-    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th><th>已補</th></tr>`;
-    stuRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.coach}</span></td>
+    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>合計</th><th>已補</th>${isReadonly ? '' : '<th></th>'}</tr>`;
+    stuRows.forEach(r => h += `<tr${r.gone ? ' style="opacity:.5"' : ''}><td>${r.name}<span class="c">${r.coach}</span></td>
       <td>${r.miss || '—'}</td>
       <td>${r.hwMiss || '—'}${r.hwUng ? `<span class="dm-pend">（含未檢 ${r.hwUng}）</span>` : ''}${
         r.hwSaid ? `<span class="dm-will">（自述待查 ${r.hwSaid} 已免計）</span>` : ''}${
         r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
       <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-will"> +${r.pend} 將計</span>` : ''}</td>
-      <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td></tr>`);
-    h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。</div>`;
+      <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td>${
+        isReadonly ? '' : `<td>${r.gone
+          ? `<span class="dm-gone">🚪 ${r.gone.slice(5).replace('-','/')} 退</span>`
+          : `<button class="dm-drop" onclick="dropStudent('${r.id}','${r.name.replace(/'/g,"\\'")}')">退班</button>`}</td>`
+      }</tr>`);
+    h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。<br>
+      🚪 <b>退班後點數就凍結在當下</b>，不會再累加；資料與一覽表完整保留，名冊可「歸隊」還原。</div>`;
   }
 
   h += `<div class="sec-title"><span>🎓 教練</span><span class="sec-count">${coachRows.length} 位有點數</span></div>`;
@@ -1474,6 +1491,21 @@ function phaseAfter() {
   h += `<div class="cov-note">分診（依 [[26期結案反思]] 的漏斗，順序不可顛倒）：<br>
     ① 整期沒出手 <b>${g1}</b> 人　② 有出手沒進到溝通 <b>${g2}</b> 人　③ 溝通過 <b>${g3}</b> 人<br>
     ⚠️ ③ 裡面「溝通過但零締結」才是最該救的那群——他們通常比 ② 更努力。溝通場次是締結的真門檻。</div>`;
+  // 🚪 退班報表（2026-08-25）：下一期開班前拿來看「什麼時候最容易掉人」
+  const goneList = stu.filter(x => x.dropped_at)
+    .map(x => ({ name: nm(x), d: x.dropped_at, coach: coachById[x.coach_id] || '未配對' }))
+    .sort((a, c) => a.d.localeCompare(c.d));
+  const wkOf = d => Math.floor((new Date(d + 'T00:00:00') - new Date(b.start_date + 'T00:00:00')) / 604800000) + 1;
+  h += `<div class="sec-title"><span>🚪 退班</span><span class="sec-count">${goneList.length} 人</span></div>`;
+  if (!goneList.length) h += `<div class="dash-empty">這一期沒有人退班 🎉</div>`;
+  else {
+    h += `<table class="dm-tbl"><tr><th>退班日</th><th>第幾週</th><th>學員</th><th>教練</th></tr>`;
+    goneList.forEach(g => h += `<tr><td>${g.d.slice(5).replace('-','/')}</td><td>第 ${wkOf(g.d)} 週</td>
+      <td>${g.name}</td><td>${g.coach}</td></tr>`);
+    h += `</table><div class="cov-note" style="margin-top:0">
+      看的是<b>時間點</b>不是名單：集中在同一週＝那一週的內容或節奏有問題；分散＝個別狀況。<br>
+      退班者的點數已凍結在退班當下，上面的記點表不會再累加。</div>`;
+  }
   h += `<div class="sec-title"><span>✅ 結案待辦</span></div>`;
   const todo = [
     [certDone >= stu.length, `結業證書評語：已寫 ${certDone}／${stu.length}`],
