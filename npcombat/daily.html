@@ -932,9 +932,17 @@ async function init() {
     memberId = member.id;
 
     // 查本期學員身份
-    const { data: stu } = await sb.from('batch_students').select('id, status')
+    const { data: stu } = await sb.from('batch_students').select('id, status, dropped_at')
       .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
+    // 🔴 已退班（2026-08-25）：資料全部保留，只是不能再填。
+    //    status 維持 approved——那是白名單，一改所有查詢都會漏；用 dropped_at 控制。
+    if (stu.dropped_at) {
+      const d = new Date(stu.dropped_at + 'T00:00:00');
+      showBlock(`${member.name}，你已於 ${d.getMonth() + 1}/${d.getDate()} 暫停本期實戰班。\n`
+              + `你之前的紀錄都完整保留著。\n下一期歡迎回來，我們再一起拚 💪`);
+      return;
+    }
     studentId = stu.id;
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     labelGroupReport();  // 小組回報的字依階段變（學習週＝作業／行動週＝行動心得）

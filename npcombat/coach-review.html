@@ -1073,7 +1073,7 @@ async function init() {
     studentsLoaded = false;
     // 查配對學員（只撈已批准）
     // ⚠️ batch_id 一定要帶（wiki 硬規定）——coach_id 雖然每期獨立，但少帶就是隱患
-    const { data: students } = await sb.from('batch_students').select('id, member_id')
+    const { data: students } = await sb.from('batch_students').select('id, member_id, dropped_at')
       .eq('batch_id', BATCH_ID).eq('coach_id', coachId).eq('status', 'approved');
     if (!students || students.length === 0) { studentsLoaded = true; toast('目前無配對學員'); renderReview(); return; }
 
@@ -1136,6 +1136,7 @@ async function init() {
       return {
         id: stu.id,
         member_id: stu.member_id,
+        dropped_at: stu.dropped_at || null,   // 有值＝已退班，不進每日回報
         name: info.name || '未知',
         code: info.member_code || '',
         today: buildDayData(todayLog, todayCloses),
@@ -1266,7 +1267,7 @@ async function submitDay() {
   if (dateClosed(dateStr)) { toast('這一天已經結案了'); return; }
   const M = engModeFor(dateStr);
   const map = engMapFor(currentDay);
-  const pend = studentList.filter(stu => {
+  const pend = activeStudents().filter(stu => {
     const r = map[stu.id] || {};
     return r[M.stu.field] === true && r[M.coach.field] !== true;
   });
@@ -1380,7 +1381,7 @@ function renderChkBadge() {
 // ══════════════════════════════════════════════════════════
 function pendingSubmitDays() {
   if (!coachId || !batchDates.start) return [];
-  if (studentsLoaded && !studentList.length) return [];   // 沒帶學員就沒有送出義務
+  if (studentsLoaded && !activeStudents().length) return [];   // 沒帶學員（或都退班了）就沒有送出義務
   const now = new Date(), todayStr = getDateStr('today');
   const from = batchDates.submitFrom || batchDates.start;
   const out = [];
@@ -1411,17 +1412,17 @@ function renderRecBadge() {
 // 元凶是列表上方寫著「不需要再按送出」（本意是指標記自動存），已一併改掉。
 // 進度規則必須跟畫面下方的 eng-total 同一套，否則會出現兩套真相。
 function dayProgress(ds) {
-  if (coachMode !== 'simple' || !studentList.length) return null;
+  if (coachMode !== 'simple' || !activeStudents().length) return null;
   const M = engModeFor(ds);
   const map = (ds === getDateStr('today')) ? engToday : engYesterday;
   let unmarked = 0, owe = 0;
-  studentList.forEach(stu => {
+  activeStudents().forEach(stu => {
     const r = map[stu.id] || {};
     const sv = r[M.stu.field], cv = r[M.coach.field];
     if (sv === undefined || sv === null) unmarked++;         // 還沒判斷交了沒
     else if (sv === true && cv !== true) owe++;              // 交了但還沒標已回
   });
-  return { total: studentList.length, unmarked, owe };
+  return { total: activeStudents().length, unmarked, owe };
 }
 
 function renderTodoBar() {
@@ -1450,6 +1451,13 @@ function renderTodoBar() {
                  `<span class="go">${almost ? '送出 ›' : '去處理 ›'}</span>`;
 }
 function refreshTodo() { renderRecBadge(); renderTodoBar(); }
+
+// 🔴 退班的人不進每日回報（2026-08-25 Randoph：「主要是會干擾教練回報」）
+//   留在清單裡教練每天都要標一次「沒交」，但他們永遠不會交。
+//   status 維持 approved（那是白名單，一改所有查詢都會漏），改用 dropped_at 控制顯示。
+//   退班文案的下拉仍列全部——教練可能還沒貼完。
+const activeStudents = () => studentList.filter(s => !s.dropped_at);
+const droppedStudents = () => studentList.filter(s => s.dropped_at);
 
 // 🔴 預設停在「該處理的那一天」（2026-08-25 Randoph）
 //   273 筆教練標記裡有 117 筆（43%）是隔天才標的——也就是打開頁面要標「昨天」，
@@ -1624,7 +1632,11 @@ function renderHw() {
   h += '</tr>';
   const missing = [];
   studentList.forEach(stu => {
-    h += `<tr><td class="hw-nm">${stu.name}</td>`;
+    // 一覽表保留退班的人——歷史紀錄還在，只是標記出來
+    const gone = stu.dropped_at
+      ? ` <span style="font-size:11px;opacity:.55">🚪${(d => `${d.getMonth()+1}/${d.getDate()}`)(new Date(stu.dropped_at + 'T00:00:00'))}退</span>`
+      : '';
+    h += `<tr><td class="hw-nm">${stu.name}${gone}</td>`;
     const miss = [];
     days.forEach(ds => {
       const st = dayState(stu.id, ds);
@@ -1928,7 +1940,7 @@ async function renderActGuide() {
   const md = `${t.getMonth()+1}/${t.getDate()}`;
   const roll = document.getElementById('cpActRoll');
   if (roll) {
-    roll.textContent = studentList.length
+    roll.textContent = activeStudents().length
       ? `${md} 行動心得錄音完成請打✅\n\n`
         + `六項都要講 👇\n`
         + `① 今天幾月幾日、第幾組、你是誰\n`
@@ -1937,7 +1949,7 @@ async function renderActGuide() {
         + `④ 今天執行項目（跟誰見面／邀請／締結／邀約 各幾人）\n`
         + `⑤ 明天預計安排（跟誰見面／邀請／邀約 各幾人）\n`
         + `⑥ 鼓勵自己的一句話\n\n`
-        + studentList.map((x, i) => `${i+1}.${x.name}`).join('\n')
+        + activeStudents().map((x, i) => `${i+1}.${x.name}`).join('\n')
         + `\n\n⏰ 今天 22:00 前錄完貼上來\n📌 明天一樣，我們每天都要動`
       : '你的小組還沒有學員資料';
   }
@@ -2121,8 +2133,8 @@ ${tip}
 💪 一天一步，我們一起完成`;
 
   // ② 作業接龍
-  if (!studentList.length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
-  const names = studentList.map((s, i) => `${i+1}.${s.name}`).join('\n');
+  if (!activeStudents().length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
+  const names = activeStudents().map((s, i) => `${i+1}.${s.name}`).join('\n');
   rcBox.textContent = `${base.getMonth()+1}/${base.getDate()}作業完成請打✅\n\n`
     + units.map(u => `《${String(u.no).padStart(2,'0')}${u.n}》\n${names}`).join('\n\n');
 }
@@ -2497,7 +2509,7 @@ function renderEngagement() {
        沒標到的已計入教練記點。學員事後補交到「📋 一覽表」點那一格改，改動會記成補交。</div>`
     : `<div class="eng-hint">${M.hint}<br>✅ 每一格點了就存，不會掉；<b class="eng-auto">但要按最下面的「送出」，這天才算結案</b></div>`;
 
-  studentList.forEach(stu => {
+  activeStudents().forEach(stu => {
     const rec = map[stu.id] || {};
     const sv = rec[M.stu.field], cv = rec[M.coach.field];   // true / false / undefined(未標記)
     if (sv === true) sYes++;
@@ -2527,7 +2539,11 @@ function renderEngagement() {
     </div>`;
   });
 
-  const total = studentList.length;
+  const total = activeStudents().length;
+  const gone = droppedStudents();
+  // 顯示退班名單——不然教練會以為「我明明有 3 個人怎麼剩 2 個」
+  if (gone.length) h += `<div class="eng-hint" style="margin-top:10px;font-size:12.5px">
+    🚪 已退班 ${gone.length} 人：${gone.map(x => x.name).join('、')}（資料保留在一覽表，不用再回報）</div>`;
   h += `<div class="eng-total">📝 已填報 ${filledCount}/${total}　·　${M.stu.total} ${sYes}/${total}　·　${M.coach.total} ${cYes}/${total}</div>`;
 
   // ── 送出區 ──
@@ -2541,7 +2557,7 @@ function renderEngagement() {
     h += `<div class="sub-late">⏰ <b>${formatDate(dateStr)} 已過隔天 12:00</b>，沒有送出，這一天已自動結案並計點。<br>
       要補請到「📋 一覽表」點那一格改。</div>`;
   } else {
-    const pend = studentList.filter(stu => {
+    const pend = activeStudents().filter(stu => {
       const r = map[stu.id] || {};
       return r[M.stu.field] === true && r[M.coach.field] !== true;   // 標了已交、還沒標已回
     });
@@ -2598,7 +2614,7 @@ function renderSummary() {
     <span style="width:24px;text-align:center">✅</span>
   </div>`;
 
-  studentList.forEach((stu, i) => {
+  activeStudents().forEach((stu, i) => {
     const d = getStuData(stu);
     const c = getCoachData(stu);
     const actionPts = calcActionPts(d);
@@ -2623,7 +2639,7 @@ function renderSummary() {
     </div>`;
   });
 
-  const total = studentList.length;
+  const total = activeStudents().length;
   h += `<div class="summary-total">
     <span class="summary-name">合計</span>
     <span class="summary-col">${totalAction}</span>
@@ -2657,13 +2673,13 @@ function backToSummary() {
 
 function navStudent(delta) {
   let next = currentIdx + delta;
-  if (next < 0 || next >= studentList.length) return;
+  if (next < 0 || next >= activeStudents().length) return;
   currentIdx = next;
   renderStudent();
 }
 
 function renderStudent() {
-  const stu = studentList[currentIdx];
+  const stu = activeStudents()[currentIdx];   // 必須與 navStudent 的邊界同一個陣列
   const d = getStuData(stu);
   const c = getCoachData(stu);
   const isLocked = c?.confirmed === true;
@@ -2794,7 +2810,7 @@ function renderStudent() {
 }
 
 function toggleProof(key) {
-  const stu = studentList[currentIdx];
+  const stu = activeStudents()[currentIdx];   // 必須與 navStudent 的邊界同一個陣列
   const d = getStuData(stu);
   if (!d || getCoachData(stu)?.confirmed) return;
   if (!d.proof_checks) d.proof_checks = {};
@@ -2803,7 +2819,7 @@ function toggleProof(key) {
 }
 
 function toggleCoachCheck(key) {
-  const stu = studentList[currentIdx];
+  const stu = activeStudents()[currentIdx];   // 必須與 navStudent 的邊界同一個陣列
   const d = getStuData(stu);
   if (!d || getCoachData(stu)?.confirmed) return;
   if (!d.coach_checks) d.coach_checks = {};
@@ -2813,13 +2829,13 @@ function toggleCoachCheck(key) {
 
 function updateNav() {
   document.getElementById('btnPrev').disabled = currentIdx === 0;
-  document.getElementById('btnNext').disabled = currentIdx === studentList.length - 1;
-  document.getElementById('navInfo').textContent = `${currentIdx+1} / ${studentList.length}`;
+  document.getElementById('btnNext').disabled = currentIdx === activeStudents().length - 1;
+  document.getElementById('navInfo').textContent = `${currentIdx+1} / ${activeStudents().length}`;
 }
 
 // ── Adjust ──
 function adjStu(key, delta) {
-  const stu = studentList[currentIdx];
+  const stu = activeStudents()[currentIdx];   // 必須與 navStudent 的邊界同一個陣列
   const d = getStuData(stu);
   if (!d || getCoachData(stu)?.confirmed) return;
   d[key] = Math.max(0, (d[key]||0) + delta);
@@ -2832,7 +2848,7 @@ function adjStu(key, delta) {
 
 // ── Submit（教練確認：寫入 action_logs）──
 async function submitCoach() {
-  const stu = studentList[currentIdx];
+  const stu = activeStudents()[currentIdx];   // 必須與 navStudent 的邊界同一個陣列
   const d = getStuData(stu);
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true; btn.textContent = '送出中…';
@@ -2880,7 +2896,7 @@ async function submitCoach() {
 
 // ── Undo（撤銷確認）──
 async function undoConfirm() {
-  const stu = studentList[currentIdx];
+  const stu = activeStudents()[currentIdx];   // 必須與 navStudent 的邊界同一個陣列
   const logIdKey = currentDay === 'today' ? '_logId_today' : '_logId_yesterday';
   const logId = stu[logIdKey];
 
