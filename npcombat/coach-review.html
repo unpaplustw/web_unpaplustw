@@ -1962,18 +1962,27 @@ async function renderActGuide() {
   const wd = ['日','一','二','三','四','五','六'][new Date(ds + 'T00:00:00').getDay()];
   try {
     // 全期一次撈完（27 期至今 1369 筆，一次查比每天查省事），昨天的從裡面篩
-    const [{ data: allLogs }, { data: cls }, { data: roster }] = await Promise.all([
+    const [{ data: allLogs }, { data: cls }, { data: roster }, { data: allCoaches }] = await Promise.all([
       sb.from('action_logs')
         .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
         .eq('batch_id', BATCH_ID),
       sb.from('closing_records')
         .select('member_id, close_date').eq('batch_id', BATCH_ID).not('verified', 'is', false),
-      sb.from('batch_students').select('id, coach_id')
-        .eq('batch_id', BATCH_ID).eq('status', 'approved').not('coach_id', 'is', null),
+      // 含 coach_id 為 null 的列（教練本人），下面再對回他自己的組
+      sb.from('batch_students').select('id, coach_id, member_id')
+        .eq('batch_id', BATCH_ID).eq('status', 'approved'),
+      sb.from('batch_coaches').select('id, member_id')
+        .eq('batch_id', BATCH_ID).eq('status', 'approved'),
     ]);
     const logs = (allLogs || []).filter(l => l.log_date === ds);   // 昨天
+    // 🔴 本組含教練自己（2026-08-25 Randoph：「教練和學員都算」）
+    //   教練在 batch_students 的 coach_id 是空的（否則會在自己的組員清單看到自己），
+    //   所以不屬於任何組——但他的行動是這一組的戰果，全班總數也一直含著他。
+    //   不加進來的話：各組加總永遠湊不到全班（27 期差 73 次邀約），而且教練白跑。
     const mine = new Set(studentList.map(x => x.id));
     const myMids = new Set(studentList.map(x => x.member_id).filter(Boolean));
+    if (myStudentId) mine.add(myStudentId);
+    if (coachMemberId) myMids.add(coachMemberId);
     const F = ['name_list','meet','invite','present','seminar'];
 
     // 本組：全期累積 ALLT／昨天 g
@@ -1992,8 +2001,15 @@ async function renderActGuide() {
     const yClose = (cls || []).filter(c => myMids.has(c.member_id) && c.close_date === ds).length;
 
     // 全班平均邀約／組——有對照才知道自己在哪，但不點名誰墊底
+    // 每組＝該教練的學員 ＋ 教練本人，與上面的本組同一條規則。
+    // 教練那一列的 coach_id 是空的，用 member_id 對回 batch_coaches 才知道他是哪一組。
+    const coachIdByMid = {};
+    (allCoaches || []).forEach(c => { coachIdByMid[c.member_id] = c.id; });
     const byGrp = {};
-    (roster || []).forEach(r => { if (r.coach_id) (byGrp[r.coach_id] = byGrp[r.coach_id] || []).push(r.id); });
+    (roster || []).forEach(r => {
+      const g = r.coach_id || coachIdByMid[r.member_id];
+      if (g) (byGrp[g] = byGrp[g] || []).push(r.id);
+    });
     const invByGrp = Object.values(byGrp).map(ids => {
       const set = new Set(ids);
       return (allLogs || []).reduce((a, l) => a + (set.has(l.student_id) ? (l.invite || 0) : 0), 0);
