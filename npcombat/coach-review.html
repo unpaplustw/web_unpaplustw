@@ -33,11 +33,6 @@
   .stu-row.locked{opacity:.45}
   .stu-row.locked .stu-adj{cursor:not-allowed}
   .eng-auto{display:inline-block;margin-top:6px;color:var(--gold);font-size:13px}
-  .day-toggle{display:flex;gap:0;max-width:500px;margin:16px auto 0;padding:0 16px}
-  .day-btn{flex:1;padding:12px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:600;font-family:inherit;color:var(--muted);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
-  .day-btn:first-child{border-radius:10px 0 0 10px}
-  .day-btn:last-child{border-radius:0 10px 10px 0}
-  .day-btn.on{background:var(--gold-lt);color:var(--gold);border-color:var(--gold)}
 
   /* ── Summary Table ── */
   .summary-wrap{padding:12px 16px;max-width:500px;margin:0 auto}
@@ -384,11 +379,6 @@
 <div id="todoBar" class="todo-bar" style="display:none" onclick="gotoSubmit()"></div>
 
 <!-- Day Toggle -->
-<div class="day-toggle">
-  <button class="day-btn" id="btnYesterday" onclick="setDay('yesterday')">昨天</button>
-  <button class="day-btn on" id="btnToday" onclick="setDay('today')">今天</button>
-</div>
-
 <!-- My Report View -->
 <div id="myReportView">
   <div class="my-report">
@@ -1210,23 +1200,17 @@ function setMode(mode) {
   renderRecScopeBar();
   refreshTodo();
   if (inMy) {
-    currentDay = 'today';
-    document.getElementById('btnToday').classList.add('on');
-    document.getElementById('btnYesterday').classList.remove('on');
-    document.querySelector('.day-toggle').style.display = 'none';
+    currentDay = 'today';        // ✍️ 我的：只填今天自己的
     renderMyReport();
   } else if (inGroup) {
-    document.querySelector('.day-toggle').style.display = '';
     subArm = false; rejectArm = null;
-    loadSubmits().then(() => { applyDefaultDay(); renderReview(); refreshTodo(); })
+    loadSubmits().then(() => { syncDay(); renderReview(); refreshTodo(); })
       .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
   } else if (mode === 'guide') {
-    document.querySelector('.day-toggle').style.display = 'none';   // 指南不需要日期切換
     fillDropStu();                                                  // 退班下拉：切進來才填，學員清單此時已載入
     renderActGuide();                                               // 行動週才有戰報與心得接龍
   } else if (mode === 'chk') {          // ⚠️ 開頭已把 'hw' 正規化成 'chk'，這裡必須跟著改——
                                         //    漏改的話這條永遠不成立，審查頁一輩子不會被渲染
-    document.querySelector('.day-toggle').style.display = 'none';   // 一覽表橫軸是日期，不用切今天/昨天
     // 🔴 三個查詢任一失敗，原本會靜默留白——教練只看到空頁，總教練也查不出原因。
     //    2026-08-20 錢威達回報「看不到」就是卡在這裡（我這邊同帳號跑卻正常）。
     //    改成：先顯示載入中，失敗就把原因印在畫面上。
@@ -1465,40 +1449,16 @@ const droppedStudents = () => studentList.filter(s => s.dropped_at);
 //   標錯日期而且沒有任何警告。
 //   過期的那天不算——已經鎖住了，Randoph：「過期的就去一覽表去補就好」。
 //   只在第一次進組員頁時套用，之後尊重教練自己切的日期（不然切走再回來會被彈掉）。
-// 🔴 按鈕要標實際日期（2026-08-25 Randoph：「日期要明確，避免沒注意就改了」）
-//   原本只寫「昨天／今天」，教練不知道那是幾號——尤其現在預設會停在昨天，
-//   更需要一眼看出自己正在改哪一天的資料。
-function renderDayBtns() {
-  const bT = document.getElementById('btnToday'), bY = document.getElementById('btnYesterday');
-  if (!bT || !bY) return;
-  const W = ['日','一','二','三','四','五','六'];
-  const f = w => {
-    const ds = getDateStr(w);
-    const d = new Date(ds + 'T00:00:00');
-    return `${d.getMonth() + 1}/${d.getDate()}（${W[d.getDay()]}）`;
-  };
-  bY.textContent = `昨天 ${f('yesterday')}${dayClosed('yesterday') ? ' 🔒' : ''}`;
-  bT.textContent = `今天 ${f('today')}${dayClosed('today') ? ' 🔒' : ''}`;
-}
-
-let dayInited = false;
+// 🔴 只顯示一天，日期由系統決定（2026-08-27 Randoph：「不要上鎖，就只有一個，
+//    中午過後就是跳轉下一個」）。教練不用想「我現在該標哪天」——
+//    12:00 前＝昨天（今天要送出的那天）、12:00 後或昨天已送出＝今天。
+//    要看已結案的日子就到「🔍 審查」的一覽表，那裡本來就能回頭改（記成補交）。
 function defaultDay() {
   const p = pendingSubmitDays()[0];
   if (!p) return 'today';
   return p === getDateStr('today') ? 'today' : 'yesterday';
 }
-function applyDefaultDay() {
-  if (dayInited) return;
-  dayInited = true;
-  const d = defaultDay();
-  // ⚠️ 無條件同步：原本只在 d!==currentDay 時才更新，
-  //    「預設是今天」的日子按鈕會停在沒有日期的靜態文字，選取狀態也不保證正確
-  currentDay = d;
-  const bT = document.getElementById('btnToday'), bY = document.getElementById('btnYesterday');
-  if (bT) bT.classList.toggle('on', d === 'today');
-  if (bY) bY.classList.toggle('on', d === 'yesterday');
-  renderDayBtns();
-}
+function syncDay() { currentDay = defaultDay(); }
 
 // 橫幅要一鍵到位：切到 👥 組員 ＋ 跳到該送出的那一天。少一步都會有人卡住。
 function gotoSubmit() {
@@ -1639,6 +1599,12 @@ function renderHw() {
     h += `<tr><td class="hw-nm">${stu.name}${gone}</td>`;
     const miss = [];
     days.forEach(ds => {
+      // 🚪 退班日（含）之後：顯示「—」，不算缺件也不進清單
+      //   否則教練會去追一個已經退班的人（2026-08-27 教練回報）
+      if (stu.dropped_at && ds >= stu.dropped_at) {
+        h += `<td class="hw-cell hw-na" title="${ds}｜已於 ${stu.dropped_at} 退班">—</td>`;
+        return;
+      }
       const st = dayState(stu.id, ds);
       const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.ds === ds;
       h += `<td class="hw-cell hw-${st.k} ${isOpen ? 'on' : ''}"
@@ -2448,11 +2414,7 @@ async function submitMyReport() {
 
 // ── Day Toggle ──
 function setDay(day) {
-  dayInited = true;          // 教練自己選過就不再自動套預設
   currentDay = day;
-  document.getElementById('btnToday').classList.toggle('on', day === 'today');
-  document.getElementById('btnYesterday').classList.toggle('on', day === 'yesterday');
-  renderDayBtns();
   if (currentMode === 'my') { renderMyReport(); return; }
   if (coachMode === 'simple') { renderEngagement(); return; }
   if (document.getElementById('detailView').style.display !== 'none') {
@@ -2512,13 +2474,15 @@ function toggleEngDetail(studentId) {
 function renderEngagement() {
   const dateStr = getDateStr(currentDay);
   const M = engModeFor(dateStr);
-  document.getElementById('summaryDate').textContent = formatDate(dateStr);
+  // 只有一天，日期就是唯一的定位——寫清楚星期與是否已結案
+  const _wd = ['日','一','二','三','四','五','六'][new Date(dateStr + 'T00:00:00').getDay()];
+  document.getElementById('summaryDate').textContent =
+    `${formatDate(dateStr)}（${_wd}）${dateClosed(dateStr) ? ' 🔒 已結案' : ''}`;
   const hd = document.querySelector('#summaryView .summary-hd span');
   if (hd) hd.textContent = M.title;
 
   const map = engMapFor(currentDay);
   const closed = dayClosed(currentDay);
-  renderDayBtns();      // 鎖頭與日期一起更新（原本只改昨天那顆、且沒有日期）
   let sYes = 0, cYes = 0, filledCount = 0;
   let h = closed
     ? `<div class="eng-hint eng-closed">⛔ <b>${formatDate(getDateStr(currentDay))} 已於今天 12:00 結算</b>，不能再改。<br>
@@ -2675,14 +2639,12 @@ function openStudent(idx) {
   currentIdx = idx;
   document.getElementById('summaryView').style.display = 'none';
   document.getElementById('detailView').style.display = '';
-  document.querySelector('.day-toggle').style.display = 'none';
   renderStudent();
 }
 
 function backToSummary() {
   document.getElementById('summaryView').style.display = '';
   document.getElementById('detailView').style.display = 'none';
-  document.querySelector('.day-toggle').style.display = '';
   currentIdx = -1;
   renderSummary();
 }
