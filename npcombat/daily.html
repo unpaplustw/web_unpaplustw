@@ -125,6 +125,14 @@
   .close-entry-num{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
   .close-entry-row{display:flex;gap:8px;flex-wrap:nowrap}
   /* 締結對象（2026-08-14）：主編號 7 碼＋分號 3 碼＋姓名，主編號=自己→分店、≠自己→推薦新人 */
+  /* 🔴 先選種類再填欄位（2026-08-27 Randoph）：原本讓學員填編號、系統再猜是哪一種，
+     學員得先懂「分號要填 001」。改成先問「這一筆是？」，各自只問必要欄位。 */
+  .close-kind{display:flex;gap:8px;margin-top:8px}
+  .close-kind-btn{flex:1;padding:11px 8px;border:2px solid var(--border);background:var(--card);
+    border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);
+    cursor:pointer;text-align:center;line-height:1.4}
+  .close-kind-btn.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
+  .close-kind-btn small{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.8}
   .close-who{display:flex;gap:6px;margin-top:8px;align-items:center}
   .close-who input{border:2px solid var(--border);border-radius:10px;padding:10px 8px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);min-width:0;-webkit-appearance:none}
   .close-who input:focus{outline:none;border-color:var(--gold)}
@@ -806,7 +814,7 @@ function adj(key, delta) {
 
 // ── Close entries ──
 function addCloseEntry() {
-  closeEntries.push({ plan:null, size:null, badge:null });
+  closeEntries.push({ kind:null, plan:null, size:null, badge:null });
   renderCloseEntries();
 }
 
@@ -843,13 +851,26 @@ function getEntryPts(e) {
 //   主編號 ＝ 自己 → 自己開分店（推薦統計不算；獎勵活動照算）
 // 用編號本身當分類，學員不必自我申報「新人／分店」，沒有報錯空間。
 function verdictOf(e) {
+  if (!e.kind) return { k:'pending', t:'先選上面的種類' };
+  if (e.kind === 'branch') {
+    return (e.tname || '').trim()
+      ? { k:'branch', t:`🏪 你的分店（編號 ${myCode || '—'}）· 計入獎勵活動，不算推薦人數` }
+      : { k:'pending', t:'請填分店名稱' };
+  }
   const code = (e.tcode || '').replace(/\D/g, '');
-  if (code.length < 7 || !(e.tname || '').trim()) return { k:'pending', t:'請填對方主編號 7 碼＋姓名' };
-  if (!myCode) return { k:'pending', t:'（無法判定：你的會員編號未登錄）' };
-  return code === myCode
-    ? { k:'branch', t:'🏪 自己開分店（獎勵活動計分，不算推薦人數）' }
-    : { k:'new',    t:'🌱 推薦新人 001（推薦人數 +1）' };
+  if (code.length < 7 || !(e.tname || '').trim()) return { k:'pending', t:'請填對方會員編號 7 碼＋姓名' };
+  if (myCode && code === myCode) return { k:'pending', t:'⚠️ 這是你自己的編號——要記分店請改選右邊' };
+  return { k:'new', t:'🌱 推薦新人（推薦人數 +1）' };
 }
+function setKind(i, k) {
+  const e = closeEntries[i];
+  if (e.kind === k) return;
+  e.kind = k;
+  // 換種類時清掉對方欄位，避免留下上一種的殘值
+  e.tcode = ''; e.tname = '';
+  renderCloseEntries();
+}
+
 function setWho(i, field, val) {
   closeEntries[i][field] = val;
   // 只更新判定列，不重畫整筆（重畫會讓輸入框失焦）
@@ -866,18 +887,25 @@ function renderCloseEntries() {
     h += `<div class="close-entry">
       <button class="btn-del-entry" onclick="delCloseEntry(${i})">✕</button>
       <div class="close-entry-num">第 ${i+1} 筆</div>
-      <div class="close-who">
-        <input class="w-code" inputmode="numeric" maxlength="7" placeholder="主編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
-        <span class="w-dash">−</span>
-        <input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||''}" oninput="setWho(${i},'tsub',this.value)">
-        <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
+      <div class="close-kind">
+        <div class="close-kind-btn ${e.kind==='new'?'sel':''}" onclick="setKind(${i},'new')">
+          👤 推薦新人<small>別人加入</small></div>
+        <div class="close-kind-btn ${e.kind==='branch'?'sel':''}" onclick="setKind(${i},'branch')">
+          🏪 我開分店<small>自己加開</small></div>
       </div>
+      ${e.kind === 'new' ? `<div class="close-who">
+        <input class="w-code" inputmode="numeric" maxlength="7" placeholder="會員編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
+        <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
+      </div>` : ''}
+      ${e.kind === 'branch' ? `<div class="close-who">
+        <input class="w-name" placeholder="分店名稱" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
+      </div>` : ''}
       <div class="close-verdict ${v.k}" id="verdict-${i}">${v.t}</div>
-      <div class="close-entry-row">
+      ${e.kind ? `<div class="close-entry-row">
         ${PLANS.map(p => `<div class="close-pill ${e.plan===p.key?'sel':''}" onclick="setPlan(${i},'${p.key}')">
           ${p.label}
         </div>`).join('')}
-      </div>
+      </div>` : ''}
       ${e.plan ? `<div class="close-half-row">
         ${SIZES.map(s => `<div class="close-half ${e.size===s.key?'sel':''}" onclick="setSize(${i},'${s.key}')">${s.label}</div>`).join('')}
       </div>` : ''}
@@ -976,7 +1004,8 @@ async function init() {
       .eq('close_date', d).eq('source', 'daily');
     if (todayCloses && todayCloses.length) {
       closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: c.badge || null,
-        tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '' }));
+        tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '',
+        kind: c.is_new === false ? 'branch' : 'new' }));   // 重開頁面要還原種類
       // 舊資料沒有 plan／size（欄位是 2026-08-12 才加的）→ 用 points 反查，查不到就留空讓學員重選
       closeEntries.forEach((e, i) => {
         if (e.plan && e.size) return;
@@ -1187,6 +1216,7 @@ async function submit() {
   // validate close entries
   for (let i = 0; i < closeEntries.length; i++) {
     const e = closeEntries[i];
+    if (!e.kind) { toast(`第 ${i+1} 筆締結還沒選「推薦新人」或「我開分店」`); return; }
     if (!e.plan || !e.size) { toast(`第 ${i+1} 筆締結尚未選完方案`); return; }
   }
 
@@ -1227,16 +1257,24 @@ async function submit() {
         const incomplete = closeEntries.filter(e => e.plan && e.size && verdictOf(e).k === 'pending');
         if (incomplete.length) {
           btn.disabled = false; btn.textContent = '送出今日回報';
-          toast('締結要填對方主編號 7 碼＋姓名，還有 ' + incomplete.length + ' 筆沒填'); return;
+          toast('締結還有 ' + incomplete.length + ' 筆沒填完（推薦新人要編號＋姓名；分店要店名）'); return;
         }
-        const closeRows = closeEntries.filter(e => e.plan && e.size).map(e => {
-          const code = (e.tcode || '').replace(/\D/g, '').slice(0, 7);
-          const sub  = ((e.tsub || '').replace(/\D/g, '') || '001').padStart(3, '0').slice(-3);
+        // 🔴 種類由學員直接選，不再從編號反推（2026-08-27 Randoph）
+        //   推薦新人 → 對方編號＋姓名，分號固定 001（新會員的第一個單位就是 001）
+        //   我開分店 → 編號自動帶自己的、分號留空（is_new=false 已足夠分類，
+        //              學員不見得知道自己是第幾個分店；要知道開幾個數筆數就有）
+        //   兩個選項裡沒有「別人的第 N 個單位」的位置——那筆本來就該由那位下線
+        //   自己填成「我開分店」，學員填了會與他重複（2026-08-23 定案的 C 類）
+        const closeRows = closeEntries.filter(e => e.kind && e.plan && e.size).map(e => {
+          const isBranch = e.kind === 'branch';
+          const code = isBranch ? (myCode || '') : (e.tcode || '').replace(/\D/g, '').slice(0, 7);
           return {
             member_id: memberId, batch_id: BATCH_ID, close_date: today(),
             plan: e.plan, size: e.size, badge: e.badge,
-            target_code: code, target_sub: sub, target_name: (e.tname || '').trim(),
-            is_new: code !== myCode,
+            target_code: code || null,
+            target_sub: isBranch ? null : '001',
+            target_name: (e.tname || '').trim(),
+            is_new: !isBranch,
             points: getEntryPts(e), source: 'daily'
           };
         });
