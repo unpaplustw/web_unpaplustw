@@ -566,10 +566,12 @@
       </div>
 
       <div class="field" id="intro-field" style="display:none">
-        <label>自我定位 <span class="req">*</span></label>
-        <textarea id="f-intro" rows="3" maxlength="200"
-          placeholder="用兩三句話說明：你是誰、為什麼做這個事業、想帶給別人什麼"></textarea>
-        <p class="hint">行動組與菁英組必填——你已經上過課，這是接下來要用出去的東西。</p>
+        <label>自我定位（完整版）<span class="req">*</span></label>
+        <textarea id="f-intro" rows="10" maxlength="2000"
+          placeholder="就是 U11 教的那個三分鐘版本——直接把你講的內容打上來。"></textarea>
+        <p class="hint">🎙️ <b>不是兩三句的簡介，是課程 U11 教的完整自我定位</b>（錄音 3 分鐘的那個版本）。<br>
+          行動組與菁英組必填——你已經上過課、也跟上線演練過，這是接下來每天要用出去的東西。<br>
+          <span id="introCount">0</span> / 2000 字</p>
       </div>
 
       <div class="field">
@@ -747,6 +749,13 @@ async function loadCoaches() {
 }
 
 // 學習組免填自我定位，行動／菁英組必填——切換時才顯示，不要一開始就嚇人
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'f-intro') {
+    const c = document.getElementById('introCount');
+    if (c) c.textContent = e.target.value.length;
+  }
+});
+
 function onTrackChange() {
   const t = (document.querySelector('input[name="track"]:checked') || {}).value || 'learn';
   const box = document.getElementById('intro-field');
@@ -777,7 +786,10 @@ async function handleStudentSubmit() {
   if (!registered)  errors.push('請選擇是否已完成 A Plus 系統註冊');
   if (registered === 'no') errors.push('請先完成 A Plus 系統官網註冊，再回來填寫報名表');
   // 學習組是第一次參加，還沒有定位可寫；行動／菁英組上過課了，這是接下來要用出去的東西
+  // 三分鐘的稿子中文約 500～700 字；低於 150 字幾乎確定是隨手打的簡介，不是 U11 那版
   if (track !== 'learn' && !intro) errors.push('行動組與菁英組請填寫自我定位');
+  else if (track !== 'learn' && intro.length < 150)
+    errors.push('自我定位請填完整版（U11 教的三分鐘版本），目前只有 ' + intro.length + ' 字');
   if (!coachId)     errors.push('請選擇上線（教練）');
   const transferClean = transfer.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{5}$/.test(transferClean)) errors.push('匯款帳號後 5 碼必須是 5 位數字');
