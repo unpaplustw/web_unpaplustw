@@ -114,6 +114,16 @@
     margin: 0 auto;
   }
 
+  /* 三組選擇（2026-08-28）：同一期三種身分，報名時自選，資格不符由管理端改組 */
+  .track-pick { display:flex; flex-direction:column; gap:8px; }
+  .track-opt { display:flex; align-items:flex-start; gap:10px; padding:12px 13px;
+    border:2px solid #dfe3ea; border-radius:12px; cursor:pointer; background:#fff; transition:.15s; }
+  .track-opt:has(input:checked) { border-color:#1a3068; background:#f4f7fd; }
+  .track-opt input { margin-top:3px; flex-shrink:0; width:18px; height:18px; accent-color:#1a3068; }
+  .track-body { display:flex; flex-direction:column; gap:2px; line-height:1.5; }
+  .track-body b { font-size:15.5px; color:#1a3068; }
+  .track-body em { font-style:normal; font-size:12px; font-weight:700; color:#b8960c; }
+  .track-body small { font-size:12.5px; color:#5a6478; line-height:1.6; }
   .field { margin-bottom: 18px; }
   .field label {
     display: flex; align-items: center; gap: 5px;
@@ -532,15 +542,34 @@
 
       <div class="field">
         <label>參加的組別 <span class="req">*</span></label>
-        <div class="field-static">啟動班</div>
+        <div class="track-pick">
+          <label class="track-opt"><input type="radio" name="track" value="learn" checked>
+            <span class="track-body"><b>初階學習組</b><em>目標 直推 1</em>
+              <small>第一次參加。前兩週上完 17 單元，後兩週全力行動。</small></span></label>
+          <label class="track-opt"><input type="radio" name="track" value="action">
+            <span class="track-body"><b>初階行動組</b><em>目標 直推 2</em>
+              <small>不用上課，開班第一天就開始行動。<b>須已完成初階學習組。</b></small></span></label>
+          <label class="track-opt"><input type="radio" name="track" value="elite">
+            <span class="track-body"><b>初階菁英組</b><em>目標 直推 8</em>
+              <small>不用上課，開班就開跑。<b>限 5 人・需面試。</b></small></span></label>
+        </div>
+        <p class="hint">🔴 <b>行動組與菁英組須已完成初階學習組。</b>
+          未通過面試或資格不符，將由教練團安排為<b>行動組</b>，不會取消你的報名。</p>
+      </div>
+
+      <div class="field" id="intro-field" style="display:none">
+        <label>自我定位 <span class="req">*</span></label>
+        <textarea id="f-intro" rows="3" maxlength="200"
+          placeholder="用兩三句話說明：你是誰、為什麼做這個事業、想帶給別人什麼"></textarea>
+        <p class="hint">行動組與菁英組必填——你已經上過課，這是接下來要用出去的東西。</p>
       </div>
 
       <div class="field">
-        <label>上線（教練）<span class="req">*</span></label>
+        <label>你的上線 <span class="req">*</span></label>
         <select id="f-coach">
           <option value="">— 請選擇 —</option>
         </select>
-        <p class="hint">若找不到你的上線，請聯繫對方確認是否已完成登記並通過審核。</p>
+        <p class="hint">推薦你來的那位。<b>分組教練是開班前由教練團分配，不是這裡選的。</b><br>若找不到你的上線，請聯繫對方確認是否已完成登記並通過審核。</p>
       </div>
 
       <div class="divider"><span>匯款資訊</span></div>
@@ -709,12 +738,25 @@ async function loadCoaches() {
   }
 }
 
+// 學習組免填自我定位，行動／菁英組必填——切換時才顯示，不要一開始就嚇人
+function onTrackChange() {
+  const t = (document.querySelector('input[name="track"]:checked') || {}).value || 'learn';
+  const box = document.getElementById('intro-field');
+  if (box) box.style.display = (t === 'learn') ? 'none' : '';
+}
+document.addEventListener('change', e => {
+  if (e.target && e.target.name === 'track') onTrackChange();
+});
+
 async function handleStudentSubmit() {
   const memberCode  = document.getElementById('f-member-code').value.trim();
   const name        = document.getElementById('f-name').value.trim();
   const phone       = document.getElementById('f-phone').value.trim();
   const registered  = document.querySelector('input[name="registered"]:checked')?.value;
   const coachId     = document.getElementById('f-coach').value;
+  const track       = (document.querySelector('input[name="track"]:checked') || {}).value || 'learn';
+  const introEl     = document.getElementById('f-intro');
+  const intro       = introEl ? introEl.value.trim() : '';
   const transfer    = document.getElementById('f-transfer').value.trim();
   const errEl       = document.getElementById('error-msg');
   errEl.style.display = 'none';
@@ -726,6 +768,8 @@ async function handleStudentSubmit() {
   if (!phone)       errors.push('請填寫手機號碼');
   if (!registered)  errors.push('請選擇是否已完成 A Plus 系統註冊');
   if (registered === 'no') errors.push('請先完成 A Plus 系統官網註冊，再回來填寫報名表');
+  // 學習組是第一次參加，還沒有定位可寫；行動／菁英組上過課了，這是接下來要用出去的東西
+  if (track !== 'learn' && !intro) errors.push('行動組與菁英組請填寫自我定位');
   if (!coachId)     errors.push('請選擇上線（教練）');
   const transferClean = transfer.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{5}$/.test(transferClean)) errors.push('匯款帳號後 5 碼必須是 5 位數字');
@@ -761,8 +805,9 @@ async function handleStudentSubmit() {
       sponsor_id:    coachId,
       phone,
       registered:    registered === 'yes',
-      group_name:    '啟動班',
-      introduction:  null,
+      track,
+      group_name:    null,           // 分組（第X組）開班前由教練團分配，報名時還沒有
+      introduction:  intro || null,  // 學習組免填；行動／菁英組必填
       name_list:     [],
       transfer_code: transferClean,
       status:        'pending'
