@@ -46,8 +46,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 .found b{color:var(--gold3)}
 .found .miss{color:var(--txt2);font-weight:400}
 
-/* ── 榜的 chip ── */
-.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 14px;margin:0 -16px;
+/* ── 榜的 chip：分類一行，每行各自橫滑 ──
+   16 個 chip 排成一行滑到後面會忘了前面有什麼，所以先分類（Randoph 2026-08-29）*/
+.grp{margin-bottom:10px}
+.grp-t{font-size:11.5px;font-weight:900;color:var(--txt3);letter-spacing:2px;
+  margin-bottom:6px;padding-left:2px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 16px 4px;margin:0 -16px;
   scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);
@@ -56,6 +60,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 .chip.on{background:linear-gradient(135deg,var(--gold3),var(--gold2));
   border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(184,150,12,.3)}
 .chip .n{font-size:11px;opacity:.65;margin-left:4px;font-weight:400}
+.chip.zero{opacity:.5}
+
 
 /* ── 榜單 ── */
 .board-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
@@ -106,7 +112,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
   </div>
   <div class="found" id="found"></div>
 
-  <div class="chips" id="chips"></div>
+  <div id="chips"></div>
 
   <div class="board-hd">
     <div class="board-t" id="bT">—</div>
@@ -135,9 +141,16 @@ function init() {
   document.getElementById('meta').textContent =
     `收錄 ${bs}　·　${HALL.total} 人在榜　·　${HALL.updated} 更新`;
 
-  document.getElementById('chips').innerHTML = HALL.defs.map(([k, icon, nm]) =>
-    `<button class="chip" data-k="${k}">${icon} ${nm.replace('榜','')}` +
-    `<span class="n">${(HALL.boards[k] || []).length}</span></button>`).join('');
+  document.getElementById('chips').innerHTML = (HALL.groups || ['']).map(g => {
+    const items = HALL.defs.filter(d => d[4] === g);
+    if (!items.length) return '';
+    return `<div class="grp"><div class="grp-t">${g}</div><div class="chips">` +
+      items.map(([k, icon, nm]) => {
+        const n = (HALL.boards[k] || []).length;
+        return `<button class="chip${n ? '' : ' zero'}" data-k="${k}">${icon} ` +
+               `${nm.replace('榜','')}<span class="n">${n}</span></button>`;
+      }).join('') + '</div></div>';
+  }).join('');
   document.querySelectorAll('.chip').forEach(c =>
     c.onclick = () => { cur = c.dataset.k; render(); });
 
