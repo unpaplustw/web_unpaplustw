@@ -635,6 +635,13 @@
           <option value="">— 請選擇 —</option>
         </select>
         <p class="hint">推薦你來的那位。<b>分組教練是開班前由教練團分配，不是這裡選的。</b><br>若找不到你的上線，請聯繫對方確認是否已完成登記並通過審核。</p>
+        <div class="hint" id="noCoachTip" style="display:none;margin-top:10px;padding:11px 13px;
+             background:#fff4e5;border:1.5px solid #f0a500;border-radius:10px;color:#8a5200;
+             font-size:13px;line-height:1.8">
+          🔴 <b>學員報名尚未開放</b><br>
+          教練登記還在進行中。教練通過審核後，這裡才會出現可以選的上線。<br>
+          <b>如果你是要登記教練，請往上切到「我是教練」。</b>
+        </div>
       </div>
 
       <div class="divider"><span>匯款資訊</span></div>
@@ -869,6 +876,16 @@ async function loadCoaches() {
       opt.textContent = c.members_master?.name || '（未命名）';
       sel.appendChild(opt);
     });
+    // 🔴 教練還沒招募完，學員選不到上線——要在這裡講清楚，
+    //    不能讓人填完六步驟自我定位才發現送不出去（2026-08-29）
+    if (!data.length) {
+      sel.innerHTML = '<option value="">— 教練招募中，請稍候 —</option>';
+      sel.disabled = true;
+      const box = document.getElementById('noCoachTip');
+      if (box) box.style.display = 'block';
+      const btn = document.getElementById('btn-submit');
+      if (btn) btn.disabled = true;
+    }
   } catch(e) {
     console.warn('loadCoaches skipped:', e.message);
   }
