@@ -251,7 +251,7 @@ function render(scroll) {
   if (!rows.length) {
     L.innerHTML = '<div class="empty"><div class="empty-i">🌱</div>' +
       '<div class="empty-t">這張榜還沒有人</div>' +
-      `<div class="empty-d">${HALL.notes[cur] || '還沒有資料'}</div></div>`;
+      `<div class="empty-d">${HALL.notes[cur] || '還沒有人上榜'}</div></div>`;
   } else {
     // 同分同名次（競賽排名）：並列之後直接跳號——9 人並列第 1，下一個就是第 10。
     let rank = 0, prev = null;
@@ -269,14 +269,11 @@ function render(scroll) {
     }).join('');
   }
 
-  // 榜底：門檻 ＋ 這張榜的但書
+  // 榜底只講一件事：進榜門檻。資料口徑的技術限制寫在 wiki，不放在學員看的頁面。
   const th = HALL.threshold[cur] || 0;
-  const bits = [];
-  if (th) bits.push(`<b>進榜門檻：${th}</b>（第 ${rows.length} 名）`);
-  else if (rows.length) bits.push(`目前 <b>${rows.length}</b> 人在榜——現在進來還很容易，之後會越來越擠`);
-  if (HALL.notes[cur]) bits.push('⚠️ ' + HALL.notes[cur]);
-  bits.push('0 不進榜——沒出手的人不佔位置。每期結業重算一次，不動的人會被擠下去。');
-  document.getElementById('foot').innerHTML = bits.join('<br>');
+  const foot = document.getElementById('foot');
+  foot.style.display = th ? 'block' : 'none';
+  if (th) foot.innerHTML = `進榜門檻：<b>${th}</b>`;
 
   if (scroll && hitCode) {
     const el = document.querySelector(`.row[data-c="${hitCode}"]`);
