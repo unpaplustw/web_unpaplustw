@@ -258,13 +258,14 @@ async function autoAssign(){
 }
 
 
-function openCard(id){
+function openCard(id,depth){
+  CARD_ID=id;
   document.getElementById('mcard').classList.remove('hidden');
   document.getElementById('mcHead').innerHTML='<b>載入中…</b>';
   document.getElementById('mcBody').innerHTML='';
   fetch(SUPABASE_URL+'/rest/v1/rpc/nds_member_card',{method:'POST',
     headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
-    body:JSON.stringify({p:{...CRED,member_id:id}})}).then(r=>r.json()).then(renderCard);
+    body:JSON.stringify({p:{...CRED,member_id:id,depth:depth||4}})}).then(r=>r.json()).then(renderCard);
 }
 function closeCard(){document.getElementById('mcard').classList.add('hidden');}
 function pm(n){return {0:'❌已解約',1:'自動扣款',2:'匯款',3:'預購一次付',4:'信用卡'}[n]||('代碼'+n);}
@@ -283,8 +284,8 @@ function renderCard(d){
   // 子樹
   let tree='<div class="mut">此位置底下無安置人員（末端位置）</div>';
   if((d.tree||[]).length){
-    tree='<table><thead><tr><th>子樹</th><th>總位置</th><th>未解約</th><th>本月有效</th><th>9月有買</th></tr></thead><tbody>'+
-      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.total}</td><td>${t.active}</td><td>${t.valid}</td><td>${t.bought_m9}</td></tr>`).join('')+
+    tree='<table><thead><tr><th>子樹</th><th>總位置</th><th>未解約</th><th>本月有效</th><th>9月有買</th><th>最深</th></tr></thead><tbody>'+
+      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.total}</td><td>${t.active}</td><td>${t.valid}</td><td>${t.bought_m9}</td><td>${t.max_depth} 代</td></tr>`).join('')+
       '</tbody></table>';
   }
   // 直推
@@ -319,15 +320,88 @@ function renderCard(d){
      <div style="flex:1;min-width:250px">
        <b>🌳 位置關係</b>
        <table><tbody>
-        <tr><td class="mut">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:#58a6ff">${esc(b.sponsor_name||b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人，此為 BC 分身)</span>':''):'—'}</td></tr>
-        <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:#58a6ff">${esc(b.placement_parent_name||b.placement_parent_id)}</a>`:'—'} ${esc(b.placement_position||'')}</td></tr>
+        <tr><td class="mut">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:#58a6ff">${esc(b.sponsor_name||'')} ${esc(b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人分身)</span>':''):'—'}</td></tr>
+        <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:#58a6ff">${esc(b.placement_parent_name||'')} ${esc(b.placement_parent_id)}</a>`:'—'} <b>${esc(b.placement_position||'')}</b></td></tr>
        </tbody></table>
        <div style="margin-top:8px"><b>底下組織</b>${tree}</div>
      </div>
    </div>
+   <div style="margin-top:12px"><b>📉 動線統計（往下每一代還剩多少）</b>${genTable(d.gen)}</div>
+   <div style="margin-top:12px">
+     <div style="display:flex;justify-content:space-between;align-items:center">
+       <b>🗺️ 組織圖（安置線，前 ${d.depth} 代）</b>
+       <span><button class="btn sm" onclick="drawDepth('${esc(b.member_id)}',3)">3代</button>
+       <button class="btn sm" onclick="drawDepth('${esc(b.member_id)}',5)">5代</button>
+       <button class="btn sm" onclick="drawDepth('${esc(b.member_id)}',8)">8代</button></span>
+     </div>
+     <div style="overflow:auto;max-height:420px;border:1px solid #30363d;border-radius:8px;margin-top:6px;background:#0d1117">
+       ${treeSVG(b,d.nodes)}
+     </div>
+     <div class="mut" style="margin-top:4px">🟢9月有買　🟡未解約沒買　⚪未達/停滯　🔴倒數中　⬛已解約　｜點方塊可開該人的卡</div>
+   </div>
    <div style="margin-top:12px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div>
      <div class="mut" style="margin-top:4px">第一性原理：直推 ≥2 有效才跑得動獨立循環（BC 自推也算）</div></div>
    <div style="margin-top:12px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div></div>`;
+}
+
+
+let CARD_ID=null;
+function drawDepth(id,n){CARD_ID=id;openCard(id,n);}
+function genTable(g){
+  if(!g||!g.length)return '<div class="mut">底下無人</div>';
+  let tot=0; g.forEach(x=>tot+=x.l+x.r);
+  return '<table><thead><tr><th>代</th><th>左</th><th>右</th><th>合計</th><th>未解約</th><th>9月有買</th><th>存活率</th></tr></thead><tbody>'+
+   g.map(x=>{const n=x.l+x.r;const rate=n?Math.round(x.active/n*100):0;
+     return `<tr><td>第 ${x.depth} 代</td><td>${x.l}</td><td>${x.r}</td><td><b>${n}</b></td>
+     <td>${x.active}</td><td>${x.bought_m9?'<b style="color:#3fb950">'+x.bought_m9+'</b>':'<span style="color:#ff5d5d">0</span>'}</td>
+     <td><span style="color:${rate>=70?'#3fb950':rate>=40?'#d29922':'#ff5d5d'}">${rate}%</span></td></tr>`;}).join('')+
+   `</tbody><tfoot><tr><td colspan="3"><b>總計</b></td><td colspan="4"><b>${tot} 個位置，最深 ${g.length} 代</b></td></tr></tfoot></table>`;
+}
+function nodeColor(n){
+  if(n.cancelled)return {bg:'#21262d',bd:'#484f58',fg:'#6e7681'};
+  if(n.auto_cancel_days)return {bg:'#3d1418',bd:'#ff5d5d',fg:'#ffa198'};
+  if(n.m9)return {bg:'#0f2e17',bd:'#3fb950',fg:'#7ee787'};
+  if(n.is_valid)return {bg:'#2d2411',bd:'#d29922',fg:'#e3b341'};
+  return {bg:'#161b22',bd:'#30363d',fg:'#8b949e'};
+}
+function treeSVG(root,nodes){
+  if(!nodes||!nodes.length)return '<div class="mut" style="padding:14px">此位置底下無安置人員</div>';
+  const kids={}; nodes.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
+  const byId={}; nodes.forEach(n=>byId[n.member_id]=n);
+  const BW=86,BH=34,GX=14,GY=58;
+  let col=0; const pos={};
+  (function lay(id,depth){
+    const k=kids[id]||{}, L=k['左'], R=k['右'];
+    if(!L&&!R){pos[id]={x:col++,d:depth};return;}
+    if(L)lay(L.member_id,depth+1);
+    const mine=col; if(!L||!R)col++;
+    if(R)lay(R.member_id,depth+1);
+    const xs=[]; if(L)xs.push(pos[L.member_id].x); if(R)xs.push(pos[R.member_id].x);
+    pos[id]={x:xs.length===2?(xs[0]+xs[1])/2:(L?xs[0]+0.6:xs[0]-0.6),d:depth};
+  })(root.member_id,0);
+  const minX=Math.min(...Object.values(pos).map(p=>p.x));
+  if(minX<0)Object.values(pos).forEach(p=>p.x-=minX);
+  col=Math.max(col,Math.max(...Object.values(pos).map(p=>p.x))+1);
+  const maxD=Math.max(...Object.values(pos).map(p=>p.d));
+  const W=Math.max(320,(col+1)*(BW+GX)), H=(maxD+1)*GY+20;
+  const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+10;
+  let lines='',boxes='';
+  Object.keys(pos).forEach(id=>{
+    const n=byId[id]; const p=pos[id];
+    const par=(n?n.parent:null);
+    if(par&&pos[par]){const pp=pos[par];
+      lines+=`<path d="M${X(pp)+BW/2},${Y(pp)+BH} V${Y(p)-8} H${X(p)+BW/2} V${Y(p)}" fill="none" stroke="#30363d" stroke-width="1.5"/>`;}
+    const isRoot=!n;
+    const c=isRoot?{bg:'#1f6feb',bd:'#58a6ff',fg:'#fff'}:nodeColor(n);
+    const label=isRoot?root.name:n.name;
+    const side=n?(n.pos==='左'?'左':'右'):'';
+    boxes+=`<g style="cursor:pointer" onclick="openCard('${id}')">
+      <rect x="${X(p)}" y="${Y(p)}" width="${BW}" height="${BH}" rx="6" fill="${c.bg}" stroke="${c.bd}" stroke-width="${isRoot?2:1}"/>
+      <text x="${X(p)+BW/2}" y="${Y(p)+15}" text-anchor="middle" font-size="12" fill="${c.fg}">${esc(String(label).slice(0,5))}</text>
+      <text x="${X(p)+BW/2}" y="${Y(p)+27}" text-anchor="middle" font-size="9" fill="${c.fg}" opacity=".75">${side}${n&&n.auto_cancel_days?' ⏳'+esc(n.auto_cancel_days):''}</text>
+     </g>`;
+  });
+  return `<svg width="${W}" height="${H}" style="display:block">${lines}${boxes}</svg>`;
 }
 
 </script></div></body></html>
