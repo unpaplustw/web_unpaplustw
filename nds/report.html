@@ -254,8 +254,8 @@ body {
       <div class="hint">不填則之後維護補</div>
     </div>
 
-    <!-- C. 入會期待 -->
-    <div class="section-label">C · 他為什麼加入</div>
+    <!-- D. 入會期待 -->
+    <div class="section-label">D · 他為什麼加入</div>
     <div id="intentKnown" style="display:none" class="form-group"></div>
     <div id="intentAsk">
       <div class="form-group">
@@ -457,7 +457,7 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
       const intentSkipped = PERSON && PERSON.found && PERSON.intent
                           && document.getElementById('intentAsk').style.display==='none';
     if(!INTENT_CAT && !intentSkipped && Object.keys(INTENT_OPTS).length){
-      showResult('請選「C · 他為什麼加入」的主要期待。','warning'); resetBtn(); return;
+      showResult('請選「D · 他為什麼加入」的主要期待。','warning'); resetBtn(); return;
     }
   const res = await fetch(NDS_RPC_URL, {
       method:'POST',
