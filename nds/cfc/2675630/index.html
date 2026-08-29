@@ -367,7 +367,7 @@ function renderCard(d){
       <td>${t.max_depth?t.max_depth+' 代':'—'}</td></tr>`).join('')+'</tbody></table></div>'
       +(dTot?'<div class="mut" style="font-size:13px;margin-top:4px">另有 '+dTot+' 個已解約位置，不列入計算</div>':'');
   }
-  document.getElementById('mcBody').innerHTML = cd + readOut(b,d) + `
+  document.getElementById('mcBody').innerHTML = cd + intentBox(d) + readOut(b,d) + `
    <div class="card" style="margin-bottom:12px"><b>🎯 機會名單（先打這些）</b><div style="margin-top:6px">${hope}</div></div>
    <div class="card" style="margin-bottom:12px"><b>💳 方案與消費</b>
      <div class="scroll"><table><tbody>
@@ -703,6 +703,24 @@ function renderRoster(){
       <td class="mut">${esc(x.route)}</td>
       <td><button class="btn sm" onclick="enlist('${esc(x.member_id)}',false)">移除</button></td></tr>`;}).join('')+
     '</tbody></table></div>';
+}
+
+
+function intentBox(d){
+  const i=d.intent, n=(d.intent_history||[]).length;
+  if(!i) return `<div class="card" style="background:#0d1116;margin-bottom:12px;border-color:#3a2f18">
+    <b>💬 他為什麼加入</b>
+    <div class="mut" style="margin-top:4px">還沒記錄。這是回訪與滿意度調查唯一的對照基準——<b>下次接觸時補問一句</b>。</div></div>`;
+  const t=(i.topics||[]).map(x=>`<span style="display:inline-block;background:#16324a;color:#79c0ff;border-radius:12px;padding:2px 10px;margin:3px 5px 0 0;font-size:13px">${esc(x)}</span>`).join('');
+  return `<div class="card" style="background:#0d1116;margin-bottom:12px;border-color:var(--acc)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
+      <b>💬 他為什麼加入</b>
+      <span class="mut" style="font-size:12.5px">${esc(i.asked_at||'')}｜${esc(i.source||'')}${i.reported_by?'｜'+esc(i.reported_by)+' 填':''}${n>1?'｜共 '+n+' 次記錄':''}</span>
+    </div>
+    <div style="margin-top:6px;font-size:16px"><b style="color:var(--acc)">${esc(i.category||'')}</b>${t?'　'+t:''}</div>
+    ${i.detail?`<div style="margin-top:6px;padding:8px;border-left:3px solid var(--acc);background:#0f1a2e">「${esc(i.detail)}」</div>`:''}
+    <div class="mut" style="margin-top:6px;font-size:13px">回訪就從這裡開口：<b>「當初你說${esc((i.topics&&i.topics[0])||i.category)}，現在怎麼樣？」</b></div>
+  </div>`;
 }
 
 </script></div></body></html>

@@ -125,6 +125,8 @@ body {
 .result-box.error { background: rgba(255,80,80,0.2); border: 2px solid rgba(255,80,80,0.6); color: #ffb0b0; }
 .result-box.warning { background: rgba(255,190,50,0.2); border: 2px solid rgba(255,190,50,0.6); color: #ffe0a0; }
 .hidden { display: none !important; }
+.topic-chip{display:inline-block;border:1px solid var(--line,#d5dbe3);border-radius:16px;padding:7px 14px;margin:4px 6px 0 0;cursor:pointer;font-size:15px;user-select:none;background:#fff}
+.topic-chip.on{background:#00b09b;border-color:#00b09b;color:#fff;font-weight:600}
 </style>
 </head>
 <body>
@@ -245,6 +247,22 @@ body {
           <input type="text" id="plBranch" class="styled-input" inputmode="numeric" placeholder="001" maxlength="3"></div>
       </div>
       <div class="hint">不填則之後維護補</div>
+    </div>
+
+    <!-- C. 入會期待 -->
+    <div class="section-label">C · 他為什麼加入</div>
+    <div class="form-group">
+      <label class="req">主要期待</label>
+      <div class="btn-group" id="intentCatGroup"></div>
+      <div class="hint">之後回訪、滿意度調查都會拿這一題來對照，請照他自己說的選。</div>
+    </div>
+    <div class="form-group" id="intentTopicGroup" style="display:none">
+      <label>具體是哪方面？（可複選）</label>
+      <div id="intentTopics"></div>
+    </div>
+    <div class="form-group">
+      <label>他原話補充（選填）</label>
+      <input type="text" class="styled-input" id="intentDetail" placeholder="例：晚上睡不好，起來好幾次">
     </div>
 
     <button type="submit" id="submitBtn" class="submit-btn" disabled>
@@ -428,7 +446,10 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
 
   try {
     /* 主要寫入：直接進 Supabase（後台 corp.html 讀的同一張表） */
-    const res = await fetch(NDS_RPC_URL, {
+      if(!INTENT_CAT && Object.keys(INTENT_OPTS).length){
+      showResult('請選「C · 他為什麼加入」的主要期待。','warning'); resetBtn(); return;
+    }
+  const res = await fetch(NDS_RPC_URL, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON },
       body: JSON.stringify({ p: payload })
@@ -436,6 +457,18 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     if(!res.ok) throw new Error('伺服器回應 '+res.status);
     const result = await res.json();
     if(result && result.success===false){ showResult(result.message||'送出失敗，請聯絡管理者。','warning'); resetBtn(); return; }
+
+    /* 入會期待：主回報成功後才寫，寫失敗不影響回報結果 */
+    const ip = intentPayload(payload.member_id, payload.line_name || payload.sponsor_member_id);
+    if(ip){
+      try{
+        const ir = await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_intent_submit',{method:'POST',
+          headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+          body: JSON.stringify({ p: ip })});
+        const ires = await ir.json();
+        if(ires && ires.success===false) console.warn('intent 寫入失敗（回報已成功）', ires.message);
+      }catch(e){ console.warn('intent 寫入例外（回報已成功）', e); }
+    }
 
     /* 次要通知：原 n8n webhook 保留，非阻塞（掛掉不影響回報成功） */
     const oaKey = getOaFromUrl() || DEFAULT_OA;
@@ -449,6 +482,46 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },1800);
   } catch(err){ console.error('submit error',err); showResult('送出失敗：'+err.message,'error'); resetBtn(); }
 });
+
+/* ===== C. 入會期待 ===== */
+let INTENT_OPTS={}, INTENT_CAT='', INTENT_TOPICS=new Set();
+async function loadIntentOptions(){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_intent_options',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+      body:'{}'});
+    INTENT_OPTS=await r.json()||{};
+  }catch(e){ console.warn('intent options 載入失敗',e); INTENT_OPTS={}; }
+  const g=document.getElementById('intentCatGroup');
+  const cats=Object.keys(INTENT_OPTS);
+  if(!cats.length){ g.innerHTML='<div class="hint">選項載入失敗，可略過此區。</div>'; return; }
+  g.innerHTML=cats.map((c,i)=>
+    `<input type="radio" name="intentCat" id="ic${i}" value="${c}"><label for="ic${i}">${c}</label>`).join('');
+  cats.forEach((c,i)=>{
+    document.getElementById('ic'+i).addEventListener('change',()=>{ INTENT_CAT=c; INTENT_TOPICS.clear(); renderTopics(); });
+  });
+}
+function renderTopics(){
+  const box=document.getElementById('intentTopicGroup'), list=document.getElementById('intentTopics');
+  const ts=INTENT_OPTS[INTENT_CAT]||[];
+  if(!ts.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  list.innerHTML=ts.map((t,i)=>
+    `<span class="topic-chip" data-t="${t}" onclick="toggleTopic(this)">${t}</span>`).join('');
+}
+function toggleTopic(el){
+  const t=el.dataset.t;
+  if(INTENT_TOPICS.has(t)){ INTENT_TOPICS.delete(t); el.classList.remove('on'); }
+  else { INTENT_TOPICS.add(t); el.classList.add('on'); }
+}
+function intentPayload(mid,by){
+  if(!INTENT_CAT) return null;
+  return { member_id:mid, category:INTENT_CAT, topics:[...INTENT_TOPICS],
+           detail:(document.getElementById('intentDetail').value||'').trim(),
+           source:'入會回報', reported_by:by||'' };
+}
+document.addEventListener('DOMContentLoaded',loadIntentOptions);
+
 </script>
 </body>
 </html>
