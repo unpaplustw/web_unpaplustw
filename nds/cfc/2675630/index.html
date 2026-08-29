@@ -339,24 +339,29 @@ function renderCard(d){
        <br><span class="mut">${esc(h.member_id)}</span></td><td>${esc(h.side||'')}</td><td>${h.depth}</td>
        <td>${esc(h.why||'')}</td></tr>`).join('')+'</tbody></table></div>';
   }
-  let dir='<div class="mut">尚無直接推薦——這是目前最有價值的一格（自己開 BC 也算）。</div>';
+  let dir='<div class="mut">尚無還在的直接推薦——這是目前最有價值的一格（自己開 BC 也算）。</div>';
   if((d.directs||[]).length){
     dir=d.directs.map(x=>`<span onclick="openCard('${esc(x.member_id)}')" style="cursor:pointer;display:inline-block;border:1px solid var(--line);border-radius:14px;padding:4px 11px;margin:3px 5px 0 0">
-      ${x.cancelled?'❌':(x.is_valid?'✅':'⚠️')} ${esc(x.name)}</span>`).join('');
+      ${x.is_valid?'✅':'⚠️'} ${esc(x.name)}</span>`).join('');
   }
-  let hs='<div class="mut">此人只有這一個位置</div>';
+  if(d.dir_hidden)dir+=`<div class="mut" style="font-size:13px;margin-top:5px">另有 ${d.dir_hidden} 位已解約，不顯示</div>`;
+  let hs='<div class="mut">此人沒有其他還在的位置</div>';
   if((d.household||[]).length){
     hs='<div class="scroll"><table><thead><tr><th>分號</th><th>狀態</th><th>方案</th><th>9月</th><th>倒數</th></tr></thead><tbody>'+
       d.household.map(h=>`<tr><td><a href="javascript:openCard('${esc(h.member_id)}')" style="color:var(--acc)">${esc(h.member_id)}</a></td>
-      <td>${h.cancelled?'<span style="color:var(--bad)">已解約</span>':(h.is_valid?'✅有效':'⚠️未達')}</td>
+      <td>${h.is_valid?'✅有效':'⚠️未達'}</td>
       <td>${esc(h.plan_code||'—')}</td><td>${dot(h.m9)}</td>
-      <td>${h.auto_cancel_days?'<span style="color:var(--bad)">'+esc(h.auto_cancel_days)+'</span>':'—'}</td></tr>`).join('')+'</tbody></table></div>';
+      <td>${h.auto_cancel_days?'<span style="color:var(--bad)">'+esc(h.auto_cancel_days)+'</span>':'—'}</td></tr>`).join('')+'</tbody></table></div>'
+      +(d.house_hidden?'<div class="mut" style="font-size:13px;margin-top:4px">另有 '+d.house_hidden+' 個已解約分號，不顯示</div>':'');
   }
   let tsum='<div class="mut">此位置底下無安置人員（末端位置）</div>';
   if((d.tree||[]).length){
-    tsum='<div class="scroll"><table><thead><tr><th>子樹</th><th>總位置</th><th>未解約</th><th>方案還有效</th><th>9月有買</th><th>最深</th></tr></thead><tbody>'+
-      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.total}</td><td>${t.active}</td>
-      <td>${t.plan_ok?'<b style="color:var(--ok)">'+t.plan_ok+'</b>':0}</td><td>${t.bought_m9}</td><td>${t.max_depth} 代</td></tr>`).join('')+'</tbody></table></div>';
+    const dTot=d.tree.reduce((a,t)=>a+(t.dead||0),0);
+    tsum='<div class="scroll"><table><thead><tr><th>子樹</th><th>人數</th><th>方案還有效</th><th>9月有買</th><th>最深</th></tr></thead><tbody>'+
+      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.active}</td>
+      <td>${t.plan_ok?'<b style="color:var(--ok)">'+t.plan_ok+'</b>':0}</td><td>${t.bought_m9}</td>
+      <td>${t.max_depth?t.max_depth+' 代':'—'}</td></tr>`).join('')+'</tbody></table></div>'
+      +(dTot?'<div class="mut" style="font-size:13px;margin-top:4px">另有 '+dTot+' 個已解約位置，不列入計算</div>':'');
   }
   document.getElementById('mcBody').innerHTML = cd + readOut(b,d) + `
    <div class="card" style="margin-bottom:12px"><b>🎯 機會名單（先打這些）</b><div style="margin-top:6px">${hope}</div></div>
@@ -390,7 +395,7 @@ function renderCard(d){
      <div id="treeBox" class="scroll" style="max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:#0d1116">
        ${treeSVG(b,d.nodes)}
      </div>
-     <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　⬛已解約　｜點方塊開那個人的卡</div>
+     <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　｜解約位置：底下沒人的整支隱藏，還有人的縮成小灰點　｜點方塊開那個人的卡</div>
    </div>`;
 }
 
@@ -406,8 +411,20 @@ function nodeColor(n){
   return {bg:'#161b22',bd:'#30363d',fg:'#8b949e'};
 }
 function treeSVG(root,nodes){
-  const all=(nodes||[]).filter(n=>n.side===TREE_SIDE);
-  if(!all.length)return '<div class="mut" style="padding:16px">'+TREE_SIDE+'邊沒有人。<b style="color:#37c978">這是空位——新人排這邊，對碰才配得起來。</b></div>';
+  const side=(nodes||[]).filter(n=>n.side===TREE_SIDE);
+  if(!side.length)return '<div class="mut" style="padding:16px">'+TREE_SIDE+'邊沒有人。<b style="color:#37c978">這是空位——新人排這邊，對碰才配得起來。</b></div>';
+  const ch={}; side.forEach(n=>{(ch[n.parent]=ch[n.parent]||[]).push(n);});
+  // 只保留「自己活著」或「底下還有活人」的節點
+  const keep={};
+  (function alive(id){
+    let any=false;
+    (ch[id]||[]).forEach(n=>{ const under=alive(n.member_id);
+      if(!n.cancelled||under){keep[n.member_id]=1;any=true;} });
+    return any;
+  })(root.member_id);
+  const all=side.filter(n=>keep[n.member_id]);
+  const deadCut=side.length-all.length;
+  if(!all.length)return '<div class="mut" style="padding:16px">'+TREE_SIDE+'邊 '+side.length+' 個位置全部已解約，沒有還在的人。</div>';
   const kids={}; all.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
   const byId={}; all.forEach(n=>byId[n.member_id]=n);
   const BW=84,BH=34,GX=13,GY=56;
@@ -433,6 +450,11 @@ function treeSVG(root,nodes){
     if(par&&pos[par]){const pp=pos[par];
       lines+=`<path d="M${X(pp)+BW/2},${Y(pp)+BH} V${Y(p)-8} H${X(p)+BW/2} V${Y(p)}" fill="none" stroke="#2a3340" stroke-width="1.5"/>`;}
     const isRoot=!n;
+    if(n&&n.cancelled){   // 已解約但底下還有人 → 縮成小灰點，只當連接點
+      boxes+=`<g><circle cx="${X(p)+BW/2}" cy="${Y(p)+BH/2}" r="5" fill="#2a3340" stroke="#3d4653"/>
+        <title>已解約位置（僅為連接點）</title></g>`;
+      return;
+    }
     const c=isRoot?{bg:'#1f6feb',bd:'#58a6ff',fg:'#fff'}:nodeColor(n);
     const label=isRoot?root.name:n.name;
     const tag=isRoot?'':(n.auto_cancel_days?'⏳'+n.auto_cancel_days:(n.plan_ok&&!n.m9?'待領':(n.m9?'✔':'')));
@@ -442,8 +464,12 @@ function treeSVG(root,nodes){
       <text x="${X(p)+BW/2}" y="${Y(p)+27}" text-anchor="middle" font-size="9" fill="${c.fg}" opacity=".8">${esc(tag)}</text>
      </g>`;
   });
-  return `<svg width="${W}" height="${H}" style="display:block">${lines}${boxes}</svg>`;
+  const note=deadCut?`<div class="mut" style="padding:5px 10px;font-size:12.5px;border-bottom:1px solid var(--line)">已隱藏 ${deadCut} 個底下無人的解約位置</div>`:'';
+  return note+`<svg width="${W}" height="${H}" style="display:block">${lines}${boxes}</svg>`;
 }
+function switchSide(sd){TREE_SIDE=sd;
+  document.querySelectorAll('.sdbtn').forEach(x=>x.classList.toggle('on',x.dataset.s===sd));
+  document.getElementById('treeBox').innerHTML=treeSVG(CARD_D.base,CARD_D.nodes);}
 function switchSide(sd){TREE_SIDE=sd;
   document.querySelectorAll('.sdbtn').forEach(x=>x.classList.toggle('on',x.dataset.s===sd));
   document.getElementById('treeBox').innerHTML=treeSVG(CARD_D.base,CARD_D.nodes);}
@@ -451,16 +477,17 @@ function switchSide(sd){TREE_SIDE=sd;
 
 /* ===== 解讀：把數字翻成人話 ===== */
 function readOut(b,d){
-  const L=(d.tree||[]).find(t=>t.side==='左')||{total:0,active:0,bought_m9:0,plan_ok:0},
-        R=(d.tree||[]).find(t=>t.side==='右')||{total:0,active:0,bought_m9:0,plan_ok:0};
-  const tot=L.total+R.total, act=L.active+R.active, m9=L.bought_m9+R.bought_m9,
+  const L=(d.tree||[]).find(t=>t.side==='左')||{active:0,bought_m9:0,plan_ok:0},
+        R=(d.tree||[]).find(t=>t.side==='右')||{active:0,bought_m9:0,plan_ok:0};
+  const Lc=L.active||0, Rc=R.active||0;           // 只算還在的人
+  const tot=Lc+Rc, m9=(L.bought_m9||0)+(R.bought_m9||0),
         planOk=(L.plan_ok||0)+(R.plan_ok||0);
   const dirOk=(d.directs||[]).filter(x=>!x.cancelled&&x.is_valid).length;
   const hopes=d.hopes||[];
   let head='', steps=[];
   // 一句話定調
   if(b.payment_method===0){
-    head='這個位置已解約，本人不再產生點數。但底下 '+tot+' 個位置還掛著——價值在下面，不在這一格。';
+    head=tot?('這個位置已解約，本人不再產生點數；但底下還有 <b>'+tot+' 位</b>沒解約——價值在下面，不在這一格。'):'這個位置已解約，底下也沒有還在的人。可以不用管了。';
   }else if(b.auto_cancel_days){
     head='剩 '+b.auto_cancel_days+'，但<b>還沒掉</b>——現在動就保得住。';
     steps.push(['救','這 '+b.auto_cancel_days+'內買一次循環商品（10,000 點）','位置保住，底下 '+tot+' 個位置的鏈路不斷']);
@@ -475,14 +502,14 @@ function readOut(b,d){
   else if(dirOk===1) steps.push(['推','<b>再補 1 位</b>就好（已有 1 位）','日上限 6,000 → <b>12,000，直接翻倍</b>']);
   else steps.push(['✓','直推已有 '+dirOk+' 位有效','獨立循環跑得動，日上限 NT$12,000 起']);
   // 雙軌平衡：講該往哪擺
-  if(tot>0&&(L.total===0||R.total===0)){
-    const e=L.total===0?'左':'右';
-    steps.push(['擺','下一個新人排<b>'+e+'邊</b>','另一邊已有 '+Math.max(L.total,R.total)+' 人在等對碰，補上去才開始配對']);
+  if(tot>0&&(Lc===0||Rc===0)){
+    const e=Lc===0?'左':'右';
+    steps.push(['擺','下一個新人排<b>'+e+'邊</b>','另一邊已有 '+Math.max(Lc,Rc)+' 人在等對碰，補上去才開始配對']);
   }else if(tot>0){
-    const bg=Math.max(L.total,R.total), sm=Math.min(L.total,R.total);
+    const bg=Math.max(Lc,Rc), sm=Math.min(Lc,Rc);
     if(sm&&bg/sm>=3){
-      const w=L.total<R.total?'左':'右';
-      steps.push(['擺','新人優先排<b>'+w+'邊</b>（'+L.total+' / '+R.total+'）','弱邊每加 1 人就多一份對碰，強邊多的在空等']);
+      const w=Lc<Rc?'左':'右';
+      steps.push(['擺','新人優先排<b>'+w+'邊</b>（'+Lc+' / '+Rc+'）','弱邊每加 1 人就多一份對碰，強邊多的在空等']);
     }
   }
   // 底下的希望：講數字也講名字
