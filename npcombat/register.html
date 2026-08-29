@@ -595,20 +595,20 @@
             <span class="track-body"><b>初階學習組</b><em>目標 直推 1</em>
               <small>第一次參加。前兩週上完 17 單元，後兩週全力行動。</small></span></label>
           <label class="track-opt"><input type="radio" name="track" value="action">
-            <span class="track-body"><b>初階行動組</b><em>目標 直推 2</em>
+            <span class="track-body"><b>進階行動組</b><em>目標 直推 2</em>
               <small>不用上課，開班第一天就開始行動。<b>須已完成初階學習組。</b></small></span></label>
           <label class="track-opt"><input type="radio" name="track" value="elite">
-            <span class="track-body"><b>初階菁英組</b><em>目標 直推 8</em>
+            <span class="track-body"><b>高階精英組</b><em>目標 直推 8</em>
               <small>不用上課，開班就開跑。<b>限 5 人・需面試。</b></small></span></label>
         </div>
-        <p class="hint">🔴 <b>行動組與菁英組須已完成初階學習組。</b>
+        <p class="hint">🔴 <b>行動組與精英組須已完成初階學習組。</b>
           未通過面試或資格不符，將由教練團安排為<b>行動組</b>，不會取消你的報名。</p>
       </div>
 
       <div class="field" id="intro-field" style="display:none">
         <label>自我定位（U11 六步驟）<span class="req">*</span></label>
         <p class="hint" style="margin:0 0 10px">🎙️ 就是課程 U11 教的<b>三分鐘版本</b>，一步一步填。<br>
-          行動組與菁英組必填——你已經上過課、也跟上線演練過，這是接下來每天要用出去的東西。</p>
+          行動組與精英組必填——你已經上過課、也跟上線演練過，這是接下來每天要用出去的東西。</p>
         <div class="intro6">
           <div class="i6"><label for="i6-1"><b>1</b> 加入綠佳利之前，生活遇到什麼挑戰？</label>
             <span class="i6-tip">收入／時間／健康／家庭</span>
@@ -874,7 +874,7 @@ async function loadCoaches() {
   }
 }
 
-// 學習組免填自我定位，行動／菁英組必填——切換時才顯示，不要一開始就嚇人
+// 學習組免填自我定位，行動／精英組必填——切換時才顯示，不要一開始就嚇人
 const INTRO_Q = [
   '加入綠佳利之前，生活遇到什麼挑戰？（收入／時間／健康／家庭）',
   '你試過什麼方法解決？有用嗎？',
@@ -932,7 +932,7 @@ async function handleStudentSubmit() {
   if (!phone)       errors.push('請填寫手機號碼');
   if (!registered)  errors.push('請選擇是否已完成 A Plus 系統註冊');
   if (registered === 'no') errors.push('請先完成 A Plus 系統官網註冊，再回來填寫報名表');
-  // 學習組是第一次參加，還沒有定位可寫；行動／菁英組上過課了，這是接下來要用出去的東西
+  // 學習組是第一次參加，還沒有定位可寫；行動／精英組上過課了，這是接下來要用出去的東西
   // 🔴 六步驟逐欄檢查——只給一個大框大家會亂填（2026-08-29 Randoph）
   if (track !== 'learn') {
     const miss = i6.map((x, n) => x.a ? null : (n + 1)).filter(Boolean);
@@ -979,7 +979,7 @@ async function handleStudentSubmit() {
       registered:    registered === 'yes',
       track,
       group_name:    null,           // 分組（第X組）開班前由教練團分配，報名時還沒有
-      introduction:  intro || null,  // 學習組免填；行動／菁英組必填
+      introduction:  intro || null,  // 學習組免填；行動／精英組必填
       name_list:     [],
       transfer_code: transferClean,
       status:        'pending'

@@ -557,9 +557,9 @@ function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).pad
 const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'邀約見面', present:'邀請溝通本', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
 const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組'];
 // 28 期三種組：組別（第 N 組）是編制，track 是目標——兩件事，分開存（2026-08-29）
-const TRACKS = { learn:'初階學習組', action:'初階行動組', elite:'初階菁英組' };
+const TRACKS = { learn:'初階學習組', action:'進階行動組', elite:'高階精英組' };
 const trackName = t => TRACKS[t] || '—';
-// 只有行動組／菁英組要交自我定位；學習組（直推 1）不用
+// 只有行動組／精英組要交自我定位；學習組（直推 1）不用
 const needsIntro = s => s.track === 'action' || s.track === 'elite';
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
 const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
@@ -1867,7 +1867,7 @@ function renderReview() {
         <div class="card-left">
           <div class="card-name">${nm(s)}${mc(s)}</div>
           <div class="card-meta">電話：${s.phone||'—'} ｜ 報名組別：<b>${trackName(s.track)}</b> ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
-          ${needsIntro(s) ? (s.introduction ? `<div class="card-meta">自我定位：${s.introduction}</div>` : '<div class="card-meta" style="color:var(--yellow)">⚠️ 行動／菁英組必須交自我定位，這位還沒交</div>') : ''}
+          ${needsIntro(s) ? (s.introduction ? `<div class="card-meta">自我定位：${s.introduction}</div>` : '<div class="card-meta" style="color:var(--yellow)">⚠️ 行動／精英組必須交自我定位，這位還沒交</div>') : ''}
         </div>
         <div class="acts">${bdg(s.status)}
           ${isReadonly ? '' : `<button class="btn btn-ok" onclick="approveStudent('${s.id}')">批准</button>
@@ -2337,7 +2337,7 @@ async function setCoachGroup(cid, groupName) {
   toast('組別已更新'); await load();
 }
 
-// 報名組別（學習／行動／菁英）——菁英面試沒過改行動組，就靠這裡（2026-08-29）
+// 報名組別（學習／行動／精英）——精英面試沒過改行動組，就靠這裡（2026-08-29）
 async function setStudentTrack(sid, track) {
   const { error } = await sb.from('batch_students').update({ track: track || null }).eq('id', sid);
   if (error) return alert('組別更新失敗：' + error.message);
