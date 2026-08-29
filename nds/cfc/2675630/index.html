@@ -24,7 +24,41 @@ th{color:var(--mut);font-weight:500;white-space:nowrap}
 select.inp{padding:8px}
 .hidden{display:none}
 .mut{color:var(--mut)}
-@media(max-width:640px){.wrap{padding:8px}td,th{padding:6px}}
+/* 觸控與捲動 */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab,.btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+a{text-decoration:none}
+/* 平板（含直式 iPad） */
+@media(max-width:1024px){
+  .wrap{padding:12px;max-width:100%}
+  h1{font-size:19px}
+  .tab{padding:11px 16px;font-size:15px}      /* 手指點得到 */
+  .btn{padding:11px 18px}.btn.sm{padding:8px 13px;font-size:14px}
+  table{font-size:14px}
+  .card{padding:13px}
+}
+/* 手機 */
+@media(max-width:680px){
+  .wrap{padding:8px}
+  h1{font-size:17px;margin:6px 0 12px}
+  .card{padding:11px;border-radius:9px;margin-bottom:10px}
+  .tabs{gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+  .tab{white-space:nowrap;padding:10px 13px;font-size:14px}
+  th,td{padding:7px 6px;font-size:13.5px}
+  .inp{width:100%}
+  .btn{width:100%;margin-top:6px}
+  .btn.sm{width:auto;margin-top:0}
+  /* 兩欄區塊自動疊成一欄 */
+  .cols{flex-direction:column}
+  .cols>div{min-width:0!important}
+  /* 表格橫捲不撐破頁面 */
+  .scroll table{min-width:520px}
+}
+/* 會員卡在小螢幕滿版 */
+@media(max-width:680px){
+  #mcard{padding:0}
+  #mcard>div{border-radius:0;min-height:100vh;padding:12px}
+}
 </style></head><body><div class="wrap">
 <h1>🎯 CFC 戰情台 <span style="color:#8b96a5;font-size:14px;font-weight:400">2675630 組織</span></h1>
 
@@ -40,6 +74,7 @@ select.inp{padding:8px}
 <div id="app" class="hidden">
 <div class="tabs">
   <div class="tab on" data-v="ov" onclick="sw(this)">📊 總覽</div>
+  <div class="tab" data-v="cfc" onclick="sw(this)">🏆 CFC 佈局</div>
   <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
   <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
   <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
@@ -53,7 +88,7 @@ select.inp{padding:8px}
     </div>
     <div class="mut" style="margin-top:4px">最近成就結果：<b style="color:var(--warn)">5-6月期 左2／右0</b>（公司頁人工紀錄）｜9/1 起由 fc_status 採集自動更新｜階梯目標：<b>9-10月先拿一星（左1＋右1）</b></div>
   </div>
-  <div class="card"><b>左右線體質</b><div style="overflow-x:auto;margin-top:8px"><table>
+  <div class="card"><b>左右線體質</b><div class="scroll" style="margin-top:8px"><table>
     <thead><tr><th>線</th><th>活位置</th><th>7月買</th><th>8月買</th><th>9月買</th><th>三月未買</th><th>⏳倒數</th><th>方案有效</th><th>直推≥2(人)</th><th>自動扣款(人)</th></tr></thead>
     <tbody id="ovLeg"></tbody></table></div>
     <div class="mut" id="ovLegNote" style="margin-top:6px"></div></div>
@@ -63,16 +98,31 @@ select.inp{padding:8px}
       <button class="btn sm" onclick="autoAssign()">⚡ 一鍵建立（倒數全部＋30天內續約，自動歸戶）</button>
     </div>
     <div class="msg" id="ovMsg"></div>
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
-      <div style="flex:1;min-width:280px"><b class="mut">🚨 倒數最急</b><div style="overflow-x:auto"><table>
+    <div class="cols" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+      <div style="flex:1;min-width:280px"><b class="mut">🚨 倒數最急</b><div class="scroll"><table>
         <thead><tr><th>對象</th><th>線</th><th>剩</th><th>建議負責</th></tr></thead><tbody id="ovCd"></tbody></table></div></div>
-      <div style="flex:1;min-width:280px"><b class="mut">📄 30天內方案到期</b><div style="overflow-x:auto"><table>
+      <div style="flex:1;min-width:280px"><b class="mut">📄 30天內方案到期</b><div class="scroll"><table>
         <thead><tr><th>對象</th><th>線</th><th>方案</th><th>到期</th></tr></thead><tbody id="ovRn"></tbody></table></div></div>
     </div></div>
-  <div class="card"><b>👥 領袖出勤</b><div style="overflow-x:auto;margin-top:8px"><table>
+  <div class="card"><b>👥 領袖出勤</b><div class="scroll" style="margin-top:8px"><table>
     <thead><tr><th>領袖</th><th>層級</th><th>未結案任務</th><th>已完成</th></tr></thead>
     <tbody id="ovLd"></tbody></table></div>
     <div class="mut" id="ovTk" style="margin-top:6px"></div></div>
+</div>
+<div id="v-cfc" class="hidden">
+  <div class="card"><div id="cfcLadder">載入中…</div></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>🎖️ 成就候選排行</b>
+      <span><button class="btn sm" onclick="cfcFilter('all')">全部</button>
+      <button class="btn sm" onclick="cfcFilter('右')">只看右線</button>
+      <button class="btn sm" onclick="cfcFilter('ready')">三條全中</button></span>
+    </div>
+    <div class="mut" style="margin-top:4px">依「成就就緒度」排序。①持續購買 ②直推2有效 ③左右都有腳＝可查證；<b>④獨立循環／200萬點 待 9/1 fc_status 採集</b>。</div>
+    <div class="scroll" style="margin-top:8px"><table>
+      <thead><tr><th>就緒</th><th>姓名</th><th>線</th><th>①購買</th><th>②直推</th><th>③雙腳</th><th>組織</th><th>9月動能</th><th>還缺什麼</th></tr></thead>
+      <tbody id="cfcBody"></tbody></table></div>
+  </div>
 </div>
 <div id="v-tasks" class="card hidden">
   <div style="margin-bottom:10px">
@@ -82,7 +132,7 @@ select.inp{padding:8px}
     </select>
     <button class="btn ghost sm" onclick="loadTasks()">重新整理</button>
   </div>
-  <div style="overflow-x:auto"><table><thead><tr>
+  <div class="scroll"><table><thead><tr>
     <th>型別</th><th>對象</th><th>說明</th><th>負責</th><th>期限</th><th>狀態</th><th>回報</th><th></th>
   </tr></thead><tbody id="tbody"></tbody></table></div>
 </div>
@@ -93,7 +143,7 @@ select.inp{padding:8px}
     <button class="btn" onclick="loadCand()">載入候選名單</button>
     <span class="mut" id="ccount"></span>
   </div>
-  <div style="overflow-x:auto"><table><thead><tr>
+  <div class="scroll"><table><thead><tr>
     <th><input type="checkbox" onchange="document.querySelectorAll('.ck').forEach(c=>c.checked=this.checked)"></th>
     <th>對象</th><th>線</th><th>說明</th><th>期限</th><th>指派給</th>
   </tr></thead><tbody id="cbody"></tbody></table></div>
@@ -103,7 +153,7 @@ select.inp{padding:8px}
 
 <div id="v-bind" class="card hidden">
   <button class="btn ghost sm" onclick="loadBind()">重新整理</button>
-  <div style="overflow-x:auto"><table><thead><tr>
+  <div class="scroll"><table><thead><tr>
     <th>LINE 名稱</th><th>申請綁定</th><th>層級</th><th>申請時間</th><th>狀態</th><th></th>
   </tr></thead><tbody id="bbody"></tbody></table></div>
 </div>
@@ -143,8 +193,8 @@ async function login(){
 }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['ov','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
-  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+  ['ov','cfc','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
@@ -304,8 +354,8 @@ function renderCard(d){
       <td>${h.auto_cancel_days?'<span style="color:#ff5d5d">'+esc(h.auto_cancel_days)+'</span>':'—'}</td></tr>`).join('')+
       '</tbody></table>';
   }
-  document.getElementById('mcBody').innerHTML = cd + `
-   <div style="display:flex;gap:14px;flex-wrap:wrap">
+  document.getElementById('mcBody').innerHTML = cd + readOut(b,d) + `
+   <div class="cols" style="display:flex;gap:14px;flex-wrap:wrap">
      <div style="flex:1;min-width:250px">
        <b>💳 方案與消費</b>
        <table><tbody>
@@ -402,6 +452,111 @@ function treeSVG(root,nodes){
      </g>`;
   });
   return `<svg width="${W}" height="${H}" style="display:block">${lines}${boxes}</svg>`;
+}
+
+
+/* ===== 解讀：把數字翻成人話 ===== */
+function readOut(b,d){
+  const L=(d.tree||[]).find(t=>t.side==='左')||{total:0,active:0,bought_m9:0,max_depth:0};
+  const R=(d.tree||[]).find(t=>t.side==='右')||{total:0,active:0,bought_m9:0,max_depth:0};
+  const tot=L.total+R.total, act=L.active+R.active, m9=L.bought_m9+R.bought_m9;
+  const dirOk=(d.directs||[]).filter(x=>!x.cancelled&&x.is_valid).length;
+  const say=[];
+  // 本人
+  if(b.payment_method===0) say.push(['bad','這個位置已解約，編號不可回收——組織仍掛在下面，但本人不再產生點數。']);
+  else if(b.auto_cancel_days) say.push(['bad',`本人倒數 ${b.auto_cancel_days}：歸零就永久失去這個位置，底下 ${tot} 個位置的上手會斷。**先救這一個**。`]);
+  else if(!b.is_valid) say.push(['warn','本人本期未達 10,000 點＝沒有有效期間，這段時間底下的點數對他不計獎。']);
+  else say.push(['ok','本人資格正常。']);
+  // 雙軌平衡
+  if(tot===0) say.push(['mut','底下還沒有人——這是末端位置，要嘛他去推薦，要嘛上手把新人排到他下面。']);
+  else if(L.total===0||R.total===0){
+    const empty=L.total===0?'左':'右';
+    say.push(['bad',`**單邊組織**：${empty}腳是空的（另一邊 ${Math.max(L.total,R.total)} 人）。雙軌只算弱腿對碰，這樣<b>一毛對碰獎金都跑不出來</b>——新人優先排 ${empty} 邊。`]);
+  } else {
+    const big=L.total>=R.total?L:R, sml=L.total>=R.total?R:L;
+    const bn=L.total>=R.total?'左':'右', sn=L.total>=R.total?'右':'左';
+    const ratio=sml.total?(big.total/sml.total):99;
+    if(ratio>=3) say.push(['warn',`<b>大象腿</b>：${bn} ${big.total} 人 vs ${sn} ${sml.total} 人（${ratio.toFixed(1)} 倍）。對碰只看弱腿，${bn} 邊多出來的點數在空等——新人補 ${sn} 邊效益最高。`]);
+    else say.push(['ok',`左右還算平衡（${L.total} / ${R.total}），對碰跑得動。`]);
+  }
+  // 動能
+  if(tot>0){
+    const rate=Math.round(m9/tot*100);
+    if(m9===0) say.push(['bad',`底下 ${tot} 個位置，<b>9 月一個都沒買</b>——組織在、動能是零。這是「人數好看但不產點」的典型。`]);
+    else if(rate<20) say.push(['warn',`${tot} 人裡只有 ${m9} 人 9 月有買（${rate}%）——多數是掛著的空位置。`]);
+    else say.push(['ok',`${tot} 人裡 ${m9} 人 9 月有買（${rate}%），底下還在動。`]);
+    const deadN=tot-act;
+    if(deadN>0) say.push(['mut',`其中 ${deadN} 個已解約（位置永久佔著、不可回收，也不再產點）。`]);
+  }
+  // 直推（第一性）
+  if(dirOk>=2) say.push(['ok',`直推有效 ${dirOk} 位 → 每天可跑<b>獨立循環</b>（日上限 NT$12,000 起）。`]);
+  else if(dirOk===1) say.push(['warn','直推有效只有 1 位 → 只能跑<b>半獨立循環</b>（日上限 NT$6,000）。<b>再補 1 位就翻倍</b>——含自己開 BC 也算。']);
+  else say.push(['bad','直推有效 0 位 → <b>日循環獎金完全領不到</b>，而且累積點數會歸零。這是最優先要補的一格。']);
+  const col={ok:'#37c978',warn:'#ffb020',bad:'#ff5d5d',mut:'#8b96a5'};
+  return `<div class="card" style="background:#0d1116;margin-bottom:12px"><b>🧭 解讀</b>
+    <ul style="margin:6px 0 0;padding-left:20px">${say.map(x=>`<li style="color:${col[x[0]]};margin:3px 0">${x[1]}</li>`).join('')}</ul></div>`;
+}
+
+/* ===== CFC 佈局 ===== */
+let CFC=null, CFC_F='all';
+async function loadCfc(){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_cfc_plan',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED}})});
+  CFC=await r.json();
+  if(!CFC.success){document.getElementById('cfcLadder').textContent=CFC.message||'讀取失敗';return;}
+  renderLadder(); renderCand();
+}
+const STAR=[[1,'一星鑽 ★'],[3,'三星鑽 ★★★'],[5,'五星鑽'],[7,'七星鑽'],[9,'九星鑽'],[12,'CFC MASTER']];
+function renderLadder(){
+  const s=CFC.star, l=s.l??0, r=s.r??0, now=Math.min(l,r);
+  const cand=CFC.candidates||[];
+  const ready=g=>cand.filter(c=>c.leg===g&&c.c_supply&&c.c_direct&&c.c_feet).length;
+  const rl=ready('左'), rr=ready('右');
+  let rows=STAR.map(([n,nm])=>{
+    const got=now>=n;
+    const pool=Math.min(rl,rr)>=n;
+    return `<tr style="opacity:${got?1:.85}">
+      <td>${got?'✅':'⬜'} ${nm}</td><td>左右各 ${n}</td>
+      <td>${got?'<b style="color:var(--ok)">已達</b>':'還差 左'+Math.max(0,n-l)+'／右'+Math.max(0,n-r)}</td>
+      <td>${pool?'<span style="color:var(--ok)">候選池夠</span>':'<span style="color:var(--bad)">候選池不足</span>'}</td></tr>`;}).join('');
+  document.getElementById('cfcLadder').innerHTML=`
+   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+     <b style="font-size:17px">🏆 星鑽階梯 → CFC MASTER（左右各 12 個成就達成者）</b>
+     <span class="mut">資料日 ${esc(CFC.as_of||'')}</span></div>
+   <div style="margin:8px 0;font-size:16px">目前成就達成者：<b style="color:var(--ok)">左 ${l}</b>　<b style="color:${r?'var(--ok)':'var(--bad)'}">右 ${r}</b>
+     <span class="mut">（${esc(s.period||'')}｜來源：${esc(s.source||'')}）</span></div>
+   <div class="scroll"><table><thead><tr><th>階</th><th>條件</th><th>還差</th><th>候選池</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div style="margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#0d1116">
+     <b>🧭 建議邏輯</b>
+     <ul style="margin:6px 0 0;padding-left:20px">
+       <li>通過三條可查證條件的候選：<b style="color:var(--ok)">左 ${rl} 人</b>／<b style="color:${rr>=12?'var(--ok)':'var(--bad)'}">右 ${rr} 人</b>。星鑽<b>取左右較小值</b>，所以<b>右線就是天花板</b>。</li>
+       <li>${rr>=12?'右線候選池已達 12，重點轉為把候選推過第④條（獨立循環／點數）。'
+          :`右線候選池只有 ${rr} 人，<b>連 12 都湊不出來</b>——先做的不是催成就，而是<b>把右線候選池從 ${rr} 養到 12</b>。`}</li>
+       <li>養候選池最快的兩條路（第一性）：①讓現有右線位置<b>恢復循環購買</b>（看「還缺什麼」標「本人未持續購買」者）②幫右線的人<b>補到直推 2 位有效</b>（自己開 BC 也算）。</li>
+       <li>⚠️ 第④條「左右各 5 個獨立循環／各 200 萬點」<b>本表看不到</b>，需 9/1 採集 fc_status 後才能判定。目前排行只代表「基礎條件就緒度」。</li>
+     </ul></div>`;
+}
+function cfcFilter(f){CFC_F=f;renderCand();}
+function renderCand(){
+  const yn=v=>v?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--bad)">✕</span>';
+  let rows=(CFC.candidates||[]);
+  if(CFC_F==='右')rows=rows.filter(c=>c.leg==='右');
+  else if(CFC_F==='ready')rows=rows.filter(c=>c.c_supply&&c.c_direct&&c.c_feet);
+  rows=rows.slice(0,60);
+  document.getElementById('cfcBody').innerHTML=rows.map(c=>{
+    const full=c.c_supply&&c.c_direct&&c.c_feet;
+    return `<tr>
+     <td><b style="color:${full?'var(--ok)':c.score>=60?'var(--warn)':'var(--mut)'}">${c.score}</b></td>
+     <td><a href="javascript:openCard('${esc(c.member_id)}')" style="color:var(--acc);font-weight:600">${esc(c.name)}</a>
+         <br><span class="mut">${esc(c.member_id)}</span></td>
+     <td><b>${esc(c.leg)}</b></td><td>${yn(c.c_supply)}</td>
+     <td>${yn(c.c_direct)} <span class="mut">${c.dir_valid}</span></td>
+     <td>${yn(c.c_feet)} <span class="mut">${c.l_active}/${c.r_active}</span></td>
+     <td>${c.sub_active}</td>
+     <td>${c.sub_m9?'<b style="color:var(--ok)">'+c.sub_m9+'</b>':'<span style="color:var(--bad)">0</span>'}</td>
+     <td class="mut">${esc(c.lack||'—')}</td></tr>`;}).join('')
+   ||'<tr><td colspan="9" class="mut">無符合條件者</td></tr>';
 }
 
 </script></div></body></html>
