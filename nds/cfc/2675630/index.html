@@ -39,12 +39,42 @@ select.inp{padding:8px}
 
 <div id="app" class="hidden">
 <div class="tabs">
-  <div class="tab on" data-v="tasks" onclick="sw(this)">📋 任務板</div>
+  <div class="tab on" data-v="ov" onclick="sw(this)">📊 總覽</div>
+  <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
   <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
   <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
 </div>
 
-<div id="v-tasks" class="card">
+<div id="v-ov">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
+      <b style="font-size:17px">🎯 CFC 目標：左右各 12 個成就達成者</b>
+      <span class="mut" id="ovAsof"></span>
+    </div>
+    <div class="mut" style="margin-top:4px">最近成就結果：<b style="color:var(--warn)">5-6月期 左2／右0</b>（公司頁人工紀錄）｜9/1 起由 fc_status 採集自動更新｜階梯目標：<b>9-10月先拿一星（左1＋右1）</b></div>
+  </div>
+  <div class="card"><b>左右線體質</b><div style="overflow-x:auto;margin-top:8px"><table>
+    <thead><tr><th>線</th><th>活位置</th><th>7月買</th><th>8月買</th><th>9月買</th><th>三月未買</th><th>⏳倒數</th><th>方案有效</th><th>直推≥2(人)</th><th>自動扣款(人)</th></tr></thead>
+    <tbody id="ovLeg"></tbody></table></div>
+    <div class="mut" id="ovLegNote" style="margin-top:6px"></div></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>💡 建議任務</b>
+      <button class="btn sm" onclick="autoAssign()">⚡ 一鍵建立（倒數全部＋30天內續約，自動歸戶）</button>
+    </div>
+    <div class="msg" id="ovMsg"></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+      <div style="flex:1;min-width:280px"><b class="mut">🚨 倒數最急</b><div style="overflow-x:auto"><table>
+        <thead><tr><th>對象</th><th>線</th><th>剩</th><th>建議負責</th></tr></thead><tbody id="ovCd"></tbody></table></div></div>
+      <div style="flex:1;min-width:280px"><b class="mut">📄 30天內方案到期</b><div style="overflow-x:auto"><table>
+        <thead><tr><th>對象</th><th>線</th><th>方案</th><th>到期</th></tr></thead><tbody id="ovRn"></tbody></table></div></div>
+    </div></div>
+  <div class="card"><b>👥 領袖出勤</b><div style="overflow-x:auto;margin-top:8px"><table>
+    <thead><tr><th>領袖</th><th>層級</th><th>未結案任務</th><th>已完成</th></tr></thead>
+    <tbody id="ovLd"></tbody></table></div>
+    <div class="mut" id="ovTk" style="margin-top:6px"></div></div>
+</div>
+<div id="v-tasks" class="card hidden">
   <div style="margin-bottom:10px">
     <select id="fstat" class="inp" onchange="loadTasks()">
       <option value="">全部狀態</option><option>待處理</option><option>已聯絡</option>
@@ -99,12 +129,12 @@ async function login(){
   if(!d.success){document.getElementById('lmsg').textContent=d.message||'登入失敗';return;}
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  renderTasks(d.rows);
+  renderTasks(d.rows); loadOv();
 }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
-  if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+  ['ov','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
@@ -176,4 +206,45 @@ async function setBind(uid,st){
   const d=await api({action:'binding_set',line_user_id:uid,status:st});
   if(d.success)loadBind();else alert(d.message||'失敗');
 }
+
+async function api2(p){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_hq_stats',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...p}})});
+  return r.json();
+}
+async function loadOv(){
+  const d=await api2({action:'overview'});
+  if(!d.success)return;
+  document.getElementById('ovAsof').textContent='資料日 '+(d.as_of||'');
+  const fp={}; (d.first_principle||[]).forEach(x=>fp[x.leg]=x);
+  const tb=document.getElementById('ovLeg');tb.innerHTML='';
+  (d.byleg||[]).forEach(x=>{
+    const f=fp[x.leg]||{};
+    tb.innerHTML+=`<tr><td><b>${esc(x.leg)}</b></td><td>${x.active}</td><td>${x.m7}</td><td>${x.m8}</td><td>${x.m9}</td>
+    <td style="color:var(--warn)">${x.no3m}</td><td style="color:var(--bad,#ff5d5d)">${x.countdown}</td>
+    <td>${x.plan_active}</td><td>${f.sponsor2??'—'}</td><td>${f.autopay??'—'}</td></tr>`;
+  });
+  document.getElementById('ovLegNote').textContent='第一性原理：①循環購買 ②直推2（有效）。右線兩項皆遠低於左線＝CFC 瓶頸。';
+  const cd=document.getElementById('ovCd');cd.innerHTML='';
+  (d.countdown_top||[]).forEach(x=>{cd.innerHTML+=`<tr><td>${esc(x.name)}<br><span class="mut">${esc(x.member_id)}</span></td>
+    <td>${esc(x.leg)}</td><td style="color:var(--bad,#ff5d5d);font-weight:700">${esc(x.auto_cancel_days)}</td><td>${esc(x.route)}</td></tr>`;});
+  const rn=document.getElementById('ovRn');rn.innerHTML='';
+  (d.renewal30||[]).forEach(x=>{rn.innerHTML+=`<tr><td>${esc(x.name)}<br><span class="mut">${esc(x.member_id)}</span></td>
+    <td>${esc(x.leg)}</td><td>${esc(x.plan_code||'')}</td><td>${esc(x.until)}</td></tr>`;});
+  const ld=document.getElementById('ovLd');ld.innerHTML='';
+  (d.leaders||[]).forEach(x=>{ld.innerHTML+=`<tr><td>${esc(x.name)}</td><td>${esc(x.tier)}</td>
+    <td>${x.open_tasks}</td><td>${x.done}</td></tr>`;});
+  const tk=d.tasks||{};
+  document.getElementById('ovTk').textContent='任務統計：'+(Object.keys(tk).length?
+    Object.entries(tk).map(([k,v])=>k+' '+v).join('｜'):'尚未建立任務——按上方「⚡ 一鍵建立」開始');
+}
+async function autoAssign(){
+  if(!confirm('將建立：全部倒數救援＋30天內續約任務，並自動歸戶給領袖。確定？'))return;
+  const d=await api2({action:'auto_assign'});
+  document.getElementById('ovMsg').textContent=d.success?
+    ('✅ 已建立 倒數救援 '+d.countdown_created+' 件、續約 '+d.renewal_created+' 件'):(d.message||'失敗');
+  if(d.success)loadOv();
+}
+
 </script></div></body></html>
