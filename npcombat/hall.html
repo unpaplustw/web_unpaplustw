@@ -192,10 +192,20 @@ function search(q) {
 
   // 他上了哪幾張榜、各排第幾
   const at = [];
+  // 名次算法要跟榜單一致：同分同名次
+  const rankOf = (board, code) => {
+    let r = 0, prev = null;
+    for (let i = 0; i < board.length; i++) {
+      if (board[i][2] !== prev) { r = i + 1; prev = board[i][2]; }
+      if (board[i][1] === code) return { rank: r, val: board[i][2] };
+    }
+    return null;
+  };
   HALL.defs.forEach(([k, icon, nm]) => {
-    const i = (HALL.boards[k] || []).findIndex(r => r[1] === who.code);
-    if (i >= 0) at.push({ k, icon, nm, rank: i + 1, val: HALL.boards[k][i][2] });
+    const hit = rankOf(HALL.boards[k] || [], who.code);
+    if (hit) at.push({ k, icon, nm, rank: hit.rank, val: hit.val });
   });
+
   at.sort((a, b) => a.rank - b.rank);
 
   box.innerHTML = `<b>${esc(who.nm)}</b>　上了 <b>${at.length}</b> 張榜<br>` +
@@ -243,8 +253,13 @@ function render(scroll) {
       '<div class="empty-t">這張榜還沒有人</div>' +
       `<div class="empty-d">${HALL.notes[cur] || '還沒有資料'}</div></div>`;
   } else {
+    // 同分同名次（競賽排名）：並列之後直接跳號——9 人並列第 1，下一個就是第 10。
+    let rank = 0, prev = null;
     L.innerHTML = rows.map(([nm, code, v], i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      if (v !== prev) { rank = i + 1; prev = v; }
+      const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      // 獎牌照名次（並列都給），但金色卡片只給前 3 個位置——
+      // 33 人並列第一時整片金色會失去層次
       const cls = [i < 3 ? 't' + (i + 1) : '', code === hitCode ? 'hit' : ''].join(' ');
       return `<div class="row ${cls}" data-c="${code}">
         <div class="rk">${medal}</div>
@@ -257,7 +272,7 @@ function render(scroll) {
   // 榜底：門檻 ＋ 這張榜的但書
   const th = HALL.threshold[cur] || 0;
   const bits = [];
-  if (th) bits.push(`<b>第 ${rows.length} 名的門檻：${th}</b>`);
+  if (th) bits.push(`<b>進榜門檻：${th}</b>（第 ${rows.length} 名）`);
   else if (rows.length) bits.push(`目前 <b>${rows.length}</b> 人在榜——現在進來還很容易，之後會越來越擠`);
   if (HALL.notes[cur]) bits.push('⚠️ ' + HALL.notes[cur]);
   bits.push('0 不進榜——沒出手的人不佔位置。每期結業重算一次，不動的人會被擠下去。');
