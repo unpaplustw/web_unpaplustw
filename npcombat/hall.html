@@ -80,9 +80,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 .rk{flex:0 0 30px;text-align:center;font-size:14px;font-weight:900;color:var(--txt3)}
 .row.t1 .rk,.row.t2 .rk,.row.t3 .rk{font-size:19px}
 .row.t1{border-color:var(--gold2);background:linear-gradient(135deg,#fffdf5,#fff8e6)}
+.av-w{flex:0 0 34px;width:34px;height:34px;border-radius:50%;position:relative;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:linear-gradient(135deg,#e3e8f0,#d5dae6);color:var(--txt2);
+  font-size:14px;font-weight:900;border:1.5px solid var(--border)}
+.av{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.row.t1 .av-w{border-color:var(--gold2)}
 .nm{flex:1;font-size:15px;font-weight:700;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-.nm .crown{font-size:12px;margin-left:4px}
 .vl{flex:0 0 auto;font-size:16px;font-weight:900;color:var(--gold3)}
 .vl small{font-size:11px;font-weight:400;color:var(--txt3);margin-left:2px}
 
@@ -204,6 +209,19 @@ function search(q) {
   render(true);
 }
 
+// 頭像來自 members_master.picture_url（LINE）。載不到就退回名字第一個字，
+// 不讓破圖出現在榜上。lazy 載入：一次只渲染一張榜，最多 100 張。
+function avatar(code, nm) {
+  const u = (HALL.av || {})[code];
+  const first = esc((nm || '?').slice(0, 1));
+  // 首字墊在底層，頭像疊上去；載不到就把 img 移除，露出底下的字。
+  // ⚠️ onerror 只能寫 this.remove()——塞含引號的 HTML 進屬性會把標籤打斷。
+  return `<div class="av-w">${first}` +
+    (u ? `<img class="av" loading="lazy" alt="" src="${esc((HALL.avp || '') + u)}"` +
+         ` onerror="this.remove()">` : '') + '</div>';
+}
+
+
 function esc(s) { return String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
 function render(scroll) {
@@ -211,15 +229,13 @@ function render(scroll) {
     c.classList.toggle('on', c.dataset.k === cur));
   const def = HALL.defs.find(d => d[0] === cur);
   const rows = HALL.boards[cur] || [];
-  const coaches = new Set(HALL.coaches || []);
 
   document.getElementById('bT').textContent = `${def[1]} ${def[2]}`;
   document.getElementById('bD').textContent = def[3];
 
   const cov = (HALL.cover[cur] || []).map(b => (HALL.batches[b] || {}).n).filter(Boolean);
-  document.getElementById('bC').innerHTML =
-    (cov.length ? `<span>收錄：${cov.join('、')}</span>` : '') +
-    '<span class="legend">👑 當過教練</span>';
+  document.getElementById('bC').textContent =
+    cov.length ? `收錄：${cov.join('、')}` : '';
 
   const L = document.getElementById('list');
   if (!rows.length) {
@@ -232,7 +248,8 @@ function render(scroll) {
       const cls = [i < 3 ? 't' + (i + 1) : '', code === hitCode ? 'hit' : ''].join(' ');
       return `<div class="row ${cls}" data-c="${code}">
         <div class="rk">${medal}</div>
-        <div class="nm">${esc(nm)}${coaches.has(code) ? '<span class="crown">👑</span>' : ''}</div>
+        ${avatar(code, nm)}
+        <div class="nm">${esc(nm)}</div>
         <div class="vl">${v}</div></div>`;
     }).join('');
   }
