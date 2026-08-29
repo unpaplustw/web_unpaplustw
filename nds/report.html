@@ -125,8 +125,13 @@ body {
 .result-box.error { background: rgba(255,80,80,0.2); border: 2px solid rgba(255,80,80,0.6); color: #ffb0b0; }
 .result-box.warning { background: rgba(255,190,50,0.2); border: 2px solid rgba(255,190,50,0.6); color: #ffe0a0; }
 .hidden { display: none !important; }
-.topic-chip{display:inline-block;border:1px solid var(--line,#d5dbe3);border-radius:16px;padding:7px 14px;margin:4px 6px 0 0;cursor:pointer;font-size:15px;user-select:none;background:#fff}
-.topic-chip.on{background:#00b09b;border-color:#00b09b;color:#fff;font-weight:600}
+.topic-chip{display:inline-block;border:2px solid rgba(255,255,255,0.25);border-radius:999px;
+  padding:11px 18px;margin:5px 7px 0 0;cursor:pointer;font-size:1.05rem;font-weight:600;
+  user-select:none;background:rgba(255,255,255,0.08);color:#fff;transition:all .2s}
+.topic-chip.on{background:var(--accent-strong);border-color:var(--accent-strong);color:#062338;font-weight:800;
+  box-shadow:0 6px 18px -6px var(--accent)}
+.intent-known{border:2px solid var(--accent-strong);border-radius:14px;padding:14px;
+  background:rgba(0,210,255,0.08);color:#fff}
 </style>
 </head>
 <body>
@@ -251,18 +256,21 @@ body {
 
     <!-- C. 入會期待 -->
     <div class="section-label">C · 他為什麼加入</div>
-    <div class="form-group">
-      <label class="req">主要期待</label>
-      <div class="btn-group" id="intentCatGroup"></div>
-      <div class="hint">之後回訪、滿意度調查都會拿這一題來對照，請照他自己說的選。</div>
-    </div>
-    <div class="form-group" id="intentTopicGroup" style="display:none">
-      <label>具體是哪方面？（可複選）</label>
-      <div id="intentTopics"></div>
-    </div>
-    <div class="form-group">
-      <label>他原話補充（選填）</label>
-      <input type="text" class="styled-input" id="intentDetail" placeholder="例：晚上睡不好，起來好幾次">
+    <div id="intentKnown" style="display:none" class="form-group"></div>
+    <div id="intentAsk">
+      <div class="form-group">
+        <label class="req">主要期待</label>
+        <div class="btn-group" id="intentCatGroup"></div>
+        <div class="hint">之後回訪、滿意度調查都會拿這一題來對照，請照他自己說的選。</div>
+      </div>
+      <div class="form-group" id="intentTopicGroup" style="display:none">
+        <label>具體是哪方面？（可複選）</label>
+        <div id="intentTopics"></div>
+      </div>
+      <div class="form-group">
+        <label>他原話補充（選填）</label>
+        <input type="text" class="styled-input" id="intentDetail" placeholder="例：晚上睡不好，起來好幾次">
+      </div>
     </div>
 
     <button type="submit" id="submitBtn" class="submit-btn" disabled>
@@ -446,7 +454,9 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
 
   try {
     /* 主要寫入：直接進 Supabase（後台 corp.html 讀的同一張表） */
-      if(!INTENT_CAT && Object.keys(INTENT_OPTS).length){
+      const intentSkipped = PERSON && PERSON.found && PERSON.intent
+                          && document.getElementById('intentAsk').style.display==='none';
+    if(!INTENT_CAT && !intentSkipped && Object.keys(INTENT_OPTS).length){
       showResult('請選「C · 他為什麼加入」的主要期待。','warning'); resetBtn(); return;
     }
   const res = await fetch(NDS_RPC_URL, {
@@ -521,6 +531,62 @@ function intentPayload(mid,by){
            source:'入會回報', reported_by:by||'' };
 }
 document.addEventListener('DOMContentLoaded',loadIntentOptions);
+
+
+/* ===== 同一個人開分店：自動帶入，不要重問 ===== */
+let PERSON=null;
+async function lookupPerson(){
+  const main=(document.getElementById('midMain').value||'').replace(/\D/g,'');
+  const box=document.getElementById('intentKnown'), ask=document.getElementById('intentAsk');
+  if(main.length<6){ PERSON=null; box.style.display='none'; ask.style.display=''; return; }
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_person_lookup',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+      body:JSON.stringify({p:{main}})});
+    PERSON=await r.json();
+  }catch(e){ console.warn('person lookup failed',e); PERSON=null; return; }
+  if(!PERSON||!PERSON.found){ box.style.display='none'; ask.style.display=''; return; }
+
+  // 帶入基本資料（只填空欄，不覆蓋已打的字）
+  const P=PERSON.person||{};
+  const fill=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
+  fill('name',P.name); fill('phone',P.phone); fill('birth',P.birth_date);
+  if(P.gender){ const g=document.getElementById(P.gender==='女'?'gF':'gM'); if(g&&!document.querySelector('input[name="gender"]:checked')) g.checked=true; }
+  // 建議下一個分號
+  const mb=document.getElementById('midBranch');
+  if(mb&&(!mb.value||mb.value==='001')&&PERSON.next_branch) mb.value=PERSON.next_branch;
+
+  const I=PERSON.intent;
+  if(I){
+    // 已問過 → 整段收起來，只顯示已知
+    ask.style.display='none';
+    INTENT_CAT=''; INTENT_TOPICS.clear();
+    box.style.display='';
+    box.innerHTML=`<div class="intent-known">
+      <div style="font-weight:800;font-size:1.05rem">✅ 這個人的期待已經記錄過了，不用再填</div>
+      <div style="margin-top:8px;font-size:1.15rem"><b>${I.category}</b>${(I.topics||[]).length?'　'+I.topics.join('、'):''}</div>
+      ${I.detail?`<div style="margin-top:6px;opacity:.85">「${I.detail}」</div>`:''}
+      <div style="margin-top:8px;font-size:.95rem;opacity:.7">${I.asked_at}｜${I.source}｜由 ${I.member_id} 回報</div>
+      <div style="margin-top:10px"><span class="topic-chip" onclick="reAskIntent()">期待改變了，重新填</span></div>
+    </div>`;
+  }else{
+    box.style.display='none'; ask.style.display='';
+    if(PERSON.branches&&PERSON.branches.length>1){
+      // 有多個分號但沒問過期待 → 提示這是補問
+      box.style.display='';
+      box.innerHTML=`<div class="intent-known" style="border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.06)">
+        這個人已有 ${PERSON.branches.length} 個位置（${PERSON.branches.join('、')}），但<b>還沒問過期待</b>——順便補一下，之後回訪才有對照。</div>`;
+    }
+  }
+}
+function reAskIntent(){
+  document.getElementById('intentKnown').style.display='none';
+  document.getElementById('intentAsk').style.display='';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const el=document.getElementById('midMain');
+  if(el){ el.addEventListener('blur',lookupPerson); el.addEventListener('change',lookupPerson); }
+});
 
 </script>
 </body>
