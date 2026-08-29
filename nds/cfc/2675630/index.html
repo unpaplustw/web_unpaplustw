@@ -544,6 +544,11 @@ function renderLadder(){
   const body=CFC.body||[], one=CFC.onestep||[];
   const B=g=>body.find(x=>x.leg===g)||{people:0,m9:0,plan_ok:0,autopay:0,countdown:0,ready:0,onestep:0};
   const L=B('左'), R=B('右');
+  // 點將名單推演（有點將就以點將為準）
+  const R0=CFC.roster||[], live=R0.filter(x=>x.status!=='婉拒');
+  const eL=live.filter(x=>x.leg==='左').length, eR=live.filter(x=>x.leg==='右').length;
+  const okL=live.filter(x=>x.leg==='左'&&x.done).length, okR=live.filter(x=>x.leg==='右'&&x.done).length;
+  const hasRoster=live.length>0;
   const weak=L.ready<=R.ready?'左':'右', W=weak==='左'?L:R, S=weak==='左'?R:L;
   const need=12, gap=Math.max(0,need-W.ready);
   const oneW=one.filter(x=>x.leg===weak);
@@ -582,11 +587,6 @@ function renderLadder(){
      <div class="mut" style="margin-top:8px;font-size:13px">⚠️ 上面算的是<b>基礎條件</b>（持續購買／直推2／左右有腳）。成就還有第④條「左右各 5 個獨立循環或各 200 萬點」，那要 9/1 採 fc_status 才看得到——屆時這張圖會再修正。</div>
    </div>`;
   // 星鑽階梯
-  // 點將名單推演（有點將就以點將為準）
-  const R0=CFC.roster||[], live=R0.filter(x=>x.status!=='婉拒');
-  const eL=live.filter(x=>x.leg==='左').length, eR=live.filter(x=>x.leg==='右').length;
-  const okL=live.filter(x=>x.leg==='左'&&x.done).length, okR=live.filter(x=>x.leg==='右'&&x.done).length;
-  const hasRoster=live.length>0;
   const rows=[[1,'一星鑽 ★'],[3,'三星鑽 ★★★'],[5,'五星鑽'],[7,'七星鑽'],[9,'九星鑽'],[12,'CFC MASTER']].map(([n,nm])=>{
     const got=now>=n;
     let col3,col4;
@@ -621,7 +621,8 @@ function renderLadder(){
    <div class="mut" style="margin-top:4px">星鑽取<b>左右較小值</b>，所以${weak}線就是天花板（另一邊 ${S.ready} 位候選在等）。</div></div>`;
   // 只差一步名單
   const ez={1:['#37c978','最好補'],2:['#ffb020','要催購買'],3:['#4f8cff','要找2位'],4:['#8b96a5','要排新人']};
-  document.getElementById('oneBody').innerHTML=(one.length?one:[]).map(x=>{
+  const oneSorted=(one||[]).slice().sort((a,b)=>(a.ease-b.ease)||(b.sub_active-a.sub_active));
+  document.getElementById('oneBody').innerHTML=oneSorted.map(x=>{
     const e=ez[x.ease]||ez[4];
     return `<tr><td><span style="background:${e[0]};color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">${e[1]}</span></td>
      <td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
@@ -632,7 +633,7 @@ function renderLadder(){
 function cfcFilter(f){CFC_F=f;renderCand();}
 function renderCand(){
   const yn=v=>v?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--bad)">✕</span>';
-  let rows=(CFC.candidates||[]);
+  let rows=(CFC.candidates||[]).slice().sort((a,b)=>(b.score-a.score)||(b.sub_active-a.sub_active));
   if(CFC_F==='右')rows=rows.filter(c=>c.leg==='右');
   else if(CFC_F==='ready')rows=rows.filter(c=>c.c_supply&&c.c_direct&&c.c_feet);
   rows=rows.slice(0,60);
@@ -661,10 +662,11 @@ async function rosterApi(a,extra){
   return r.json();
 }
 async function enlist(id,on){
-  await rosterApi(on?'enlist':'unlist',{member_id:id});
-  loadCfc();
+  const d=await rosterApi(on?'enlist':'unlist',{member_id:id});
+  if(d&&d.success===false){alert('點將失敗：'+(d.message||''));return;}
+  await loadCfc();
 }
-async function rosterSt(id,st){ await rosterApi('set_status',{member_id:id,status:st}); loadCfc(); }
+async function rosterSt(id,st){ await rosterApi('set_status',{member_id:id,status:st}); await loadCfc(); }
 async function rosterTasks(){
   const n=(CFC.roster||[]).filter(x=>x.todo).length;
   if(!n){document.getElementById('rosterMsg').textContent='名單裡的人目前都沒有缺口，不用派。';return;}
@@ -673,7 +675,7 @@ async function rosterTasks(){
   document.getElementById('rosterMsg').textContent=d.success?('✅ 已建立 '+d.created+' 件成就衝刺任務'):(d.message||'失敗');
 }
 function renderRoster(){
-  const R=CFC.roster||[];
+  const R=(CFC.roster||[]).slice().sort((a,b)=>(b.hits-a.hits)||(b.sub_active-a.sub_active));
   const box=document.getElementById('rosterBox');
   if(!R.length){box.innerHTML='<div class="mut">還沒點將。到下面名單按 <b>⚔️點將</b>，這裡就會出現，星鑽階梯也會跟著改用這份名單推演。</div>';return;}
   const st=['點將','已答應','婉拒','達成'];
