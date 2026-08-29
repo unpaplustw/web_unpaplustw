@@ -11,6 +11,7 @@ h1{font-size:20px;margin:8px 0 16px}
 .btn{background:var(--acc);border:0;border-radius:8px;color:#fff;padding:9px 16px;font-size:15px;cursor:pointer}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
 .btn.sm{padding:5px 10px;font-size:13px}
+.sdbtn{background:transparent;border:1px solid var(--line);color:var(--mut)}.sdbtn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .tab{padding:8px 14px;border-radius:8px;border:1px solid var(--line);cursor:pointer;color:var(--mut)}
 .tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -285,7 +286,7 @@ async function loadOv(){
     <td style="color:var(--warn)">${x.no3m}</td><td style="color:var(--bad,#ff5d5d)">${x.countdown}</td>
     <td>${x.plan_active}</td><td>${f.sponsor2??'—'}</td><td>${f.autopay??'—'}</td></tr>`;
   });
-  document.getElementById('ovLegNote').textContent='第一性原理：①循環購買 ②直推2（有效）。右線兩項皆遠低於左線＝CFC 瓶頸。';
+  document.getElementById('ovLegNote').innerHTML='看兩件事就夠：<b>還在買的人</b>、<b>直推 2 位有效的人</b>。右線兩項都遠低於左線，CFC 卡在右線。';
   const cd=document.getElementById('ovCd');cd.innerHTML='';
   (d.countdown_top||[]).forEach(x=>{cd.innerHTML+=`<tr><td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:#58a6ff;font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
     <td>${esc(x.leg)}</td><td style="color:var(--bad,#ff5d5d);font-weight:700">${esc(x.auto_cancel_days)}</td><td>${esc(x.route)}</td></tr>`;});
@@ -321,180 +322,180 @@ function closeCard(){document.getElementById('mcard').classList.add('hidden');}
 function pm(n){return {0:'❌已解約',1:'自動扣款',2:'匯款',3:'預購一次付',4:'信用卡'}[n]||('代碼'+n);}
 function renderCard(d){
   if(!d.success){document.getElementById('mcHead').innerHTML='<b>'+esc(d.message||'讀取失敗')+'</b>';return;}
+  CARD_D=d; TREE_SIDE='左';
   const b=d.base, isBC=b.sponsor_member_id&&b.sponsor_member_id.split('-')[0]===b.member_id.split('-')[0];
   const dead=b.payment_method===0;
   document.getElementById('mcHead').innerHTML=
-    `<div style="font-size:20px;font-weight:700">${esc(b.name)} ${dead?'<span style="color:#ff5d5d;font-size:13px">已解約</span>':''}</div>
-     <div class="mut">${esc(b.member_id)}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）
-     ｜歸戶 <b>${esc(b.route_leader)}</b></div>`;
-  // 消費三月燈號
-  const dot=v=>v==='1'?'<span style="color:#3fb950">●</span>':'<span style="color:#484f58">○</span>';
-  const cd=b.auto_cancel_days?`<div style="background:#3d1418;border:1px solid #ff5d5d;border-radius:8px;padding:8px;margin-bottom:10px">
-     🚨 <b style="color:#ff5d5d">自動解約倒數 ${esc(b.auto_cancel_days)}</b>　歸零後位置永久消失、編號不可回收</div>`:'';
-  // 子樹
-  let tree='<div class="mut">此位置底下無安置人員（末端位置）</div>';
-  if((d.tree||[]).length){
-    tree='<table><thead><tr><th>子樹</th><th>總位置</th><th>未解約</th><th>本月有效</th><th>9月有買</th><th>最深</th></tr></thead><tbody>'+
-      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.total}</td><td>${t.active}</td><td>${t.valid}</td><td>${t.bought_m9}</td><td>${t.max_depth} 代</td></tr>`).join('')+
-      '</tbody></table>';
+    `<div style="font-size:20px;font-weight:700">${esc(b.name)} ${dead?'<span style="color:var(--bad);font-size:13px">已解約</span>':''}</div>
+     <div class="mut">${esc(b.member_id)}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）｜歸戶 <b>${esc(b.route_leader)}</b></div>`;
+  const dot=v=>v==='1'?'<span style="color:var(--ok)">●</span>':'<span style="color:#484f58">○</span>';
+  const cd=b.auto_cancel_days?`<div style="background:#3d1418;border:1px solid var(--bad);border-radius:8px;padding:9px;margin-bottom:10px">
+     🚨 <b style="color:var(--bad)">自動解約倒數 ${esc(b.auto_cancel_days)}</b>　<span class="mut">歸零後位置永久消失、編號不可回收</span></div>`:'';
+  // 機會名單
+  let hope='<div class="mut">底下目前沒有明顯好切入的人。</div>';
+  if((d.hopes||[]).length){
+    hope='<div class="scroll"><table><thead><tr><th>對象</th><th>線</th><th>代</th><th>為什麼好切入</th></tr></thead><tbody>'+
+      d.hopes.map(h=>`<tr><td><a href="javascript:openCard('${esc(h.member_id)}')" style="color:var(--acc);font-weight:600">${esc(h.name)}</a>
+       <br><span class="mut">${esc(h.member_id)}</span></td><td>${esc(h.side||'')}</td><td>${h.depth}</td>
+       <td>${esc(h.why||'')}</td></tr>`).join('')+'</tbody></table></div>';
   }
-  // 直推
-  let dir='<div class="mut">尚無直接推薦</div>';
+  let dir='<div class="mut">尚無直接推薦——這是目前最有價值的一格（自己開 BC 也算）。</div>';
   if((d.directs||[]).length){
-    dir=d.directs.map(x=>`<span class="pill" onclick="openCard('${esc(x.member_id)}')" style="cursor:pointer;display:inline-block;border:1px solid #30363d;border-radius:14px;padding:3px 10px;margin:3px 4px 0 0">
+    dir=d.directs.map(x=>`<span onclick="openCard('${esc(x.member_id)}')" style="cursor:pointer;display:inline-block;border:1px solid var(--line);border-radius:14px;padding:4px 11px;margin:3px 5px 0 0">
       ${x.cancelled?'❌':(x.is_valid?'✅':'⚠️')} ${esc(x.name)}</span>`).join('');
   }
-  // 同主編號
   let hs='<div class="mut">此人只有這一個位置</div>';
   if((d.household||[]).length){
-    hs='<table><thead><tr><th>分號</th><th>狀態</th><th>方案</th><th>9月</th><th>倒數</th></tr></thead><tbody>'+
-      d.household.map(h=>`<tr><td><a href="javascript:openCard('${esc(h.member_id)}')" style="color:#58a6ff">${esc(h.member_id)}</a></td>
-      <td>${h.cancelled?'<span style="color:#ff5d5d">已解約</span>':(h.is_valid?'✅有效':'⚠️未達')}</td>
+    hs='<div class="scroll"><table><thead><tr><th>分號</th><th>狀態</th><th>方案</th><th>9月</th><th>倒數</th></tr></thead><tbody>'+
+      d.household.map(h=>`<tr><td><a href="javascript:openCard('${esc(h.member_id)}')" style="color:var(--acc)">${esc(h.member_id)}</a></td>
+      <td>${h.cancelled?'<span style="color:var(--bad)">已解約</span>':(h.is_valid?'✅有效':'⚠️未達')}</td>
       <td>${esc(h.plan_code||'—')}</td><td>${dot(h.m9)}</td>
-      <td>${h.auto_cancel_days?'<span style="color:#ff5d5d">'+esc(h.auto_cancel_days)+'</span>':'—'}</td></tr>`).join('')+
-      '</tbody></table>';
+      <td>${h.auto_cancel_days?'<span style="color:var(--bad)">'+esc(h.auto_cancel_days)+'</span>':'—'}</td></tr>`).join('')+'</tbody></table></div>';
+  }
+  let tsum='<div class="mut">此位置底下無安置人員（末端位置）</div>';
+  if((d.tree||[]).length){
+    tsum='<div class="scroll"><table><thead><tr><th>子樹</th><th>總位置</th><th>未解約</th><th>方案還有效</th><th>9月有買</th><th>最深</th></tr></thead><tbody>'+
+      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.total}</td><td>${t.active}</td>
+      <td>${t.plan_ok?'<b style="color:var(--ok)">'+t.plan_ok+'</b>':0}</td><td>${t.bought_m9}</td><td>${t.max_depth} 代</td></tr>`).join('')+'</tbody></table></div>';
   }
   document.getElementById('mcBody').innerHTML = cd + readOut(b,d) + `
-   <div class="cols" style="display:flex;gap:14px;flex-wrap:wrap">
-     <div style="flex:1;min-width:250px">
-       <b>💳 方案與消費</b>
-       <table><tbody>
-        <tr><td class="mut">付款別</td><td>${esc(pm(b.payment_method))}</td></tr>
-        <tr><td class="mut">方案</td><td>${esc(b.plan_code||'—')}${b.plan_until?'（至 '+esc(b.plan_until)+'）':''}</td></tr>
-        <tr><td class="mut">商品</td><td>${esc(b.goods_name||'—')}</td></tr>
-        <tr><td class="mut">7/8/9 月購買</td><td>${dot(b.m7)} ${dot(b.m8)} ${dot(b.m9)}</td></tr>
-        <tr><td class="mut">最後購買</td><td>${esc(b.last_purchase_month||'—')}</td></tr>
-        <tr><td class="mut">本期有效資格</td><td>${b.is_valid?'✅ 有效':'⚠️ 未達 10,000 點'}</td></tr>
-       </tbody></table>
-     </div>
-     <div style="flex:1;min-width:250px">
-       <b>🌳 位置關係</b>
-       <table><tbody>
-        <tr><td class="mut">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:#58a6ff">${esc(b.sponsor_name||'')} ${esc(b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人分身)</span>':''):'—'}</td></tr>
-        <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:#58a6ff">${esc(b.placement_parent_name||'')} ${esc(b.placement_parent_id)}</a>`:'—'} <b>${esc(b.placement_position||'')}</b></td></tr>
-       </tbody></table>
-       <div style="margin-top:8px"><b>底下組織</b>${tree}</div>
-     </div>
+   <div class="card" style="margin-bottom:12px"><b>🎯 機會名單（先打這些）</b><div style="margin-top:6px">${hope}</div></div>
+   <div class="card" style="margin-bottom:12px"><b>💳 方案與消費</b>
+     <div class="scroll"><table><tbody>
+      <tr><td class="mut" style="width:36%">付款別</td><td>${esc(pm(b.payment_method))}</td></tr>
+      <tr><td class="mut">方案</td><td>${esc(b.plan_code||'—')}${b.plan_until?'（至 '+esc(b.plan_until)+'）'+(b.plan_ok?' <span style="color:var(--ok)">仍有效</span>':' <span style="color:var(--bad)">已過期</span>'):''}</td></tr>
+      <tr><td class="mut">商品</td><td>${esc(b.goods_name||'—')}</td></tr>
+      <tr><td class="mut">7／8／9 月購買</td><td>${dot(b.m7)} ${dot(b.m8)} ${dot(b.m9)}</td></tr>
+      <tr><td class="mut">最後購買</td><td>${esc(b.last_purchase_month||'—')}</td></tr>
+      <tr><td class="mut">本期有效資格</td><td>${b.is_valid?'✅ 有效':'⚠️ 未達 10,000 點'}</td></tr>
+     </tbody></table></div></div>
+   <div class="card" style="margin-bottom:12px"><b>🌳 位置關係</b>
+     <div class="scroll"><table><tbody>
+      <tr><td class="mut" style="width:36%">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:var(--acc)">${esc(b.sponsor_name||'')} ${esc(b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人分身)</span>':''):'—'}</td></tr>
+      <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:var(--acc)">${esc(b.placement_parent_name||'')} ${esc(b.placement_parent_id)}</a>`:'—'} <b>${esc(b.placement_position||'')}</b></td></tr>
+     </tbody></table></div>
+     <div style="margin-top:8px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div></div>
+     <div style="margin-top:10px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div></div>
    </div>
-   <div style="margin-top:12px"><b>📉 動線統計（往下每一代還剩多少）</b>${genTable(d.gen)}</div>
-   <div style="margin-top:12px">
-     <div style="display:flex;justify-content:space-between;align-items:center">
-       <b>🗺️ 組織圖（安置線，前 ${d.depth} 代）</b>
-       <span><button class="btn sm" onclick="drawDepth('${esc(b.member_id)}',3)">3代</button>
-       <button class="btn sm" onclick="drawDepth('${esc(b.member_id)}',5)">5代</button>
-       <button class="btn sm" onclick="drawDepth('${esc(b.member_id)}',8)">8代</button></span>
+   <div class="card"><b>🗺️ 底下組織</b>
+     <div style="margin-top:6px">${tsum}</div>
+     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px">
+       <span><button class="btn sm sdbtn on" data-s="左" onclick="switchSide('左')">◀ 左線</button>
+             <button class="btn sm sdbtn" data-s="右" onclick="switchSide('右')">右線 ▶</button></span>
+       <span class="mut" style="font-size:13px">看 
+         <a href="javascript:drawDepth('${esc(b.member_id)}',3)" style="color:var(--acc)">3代</a>／
+         <a href="javascript:drawDepth('${esc(b.member_id)}',5)" style="color:var(--acc)">5代</a>／
+         <a href="javascript:drawDepth('${esc(b.member_id)}',8)" style="color:var(--acc)">8代</a></span>
      </div>
-     <div style="overflow:auto;max-height:420px;border:1px solid #30363d;border-radius:8px;margin-top:6px;background:#0d1117">
+     <div id="treeBox" class="scroll" style="max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:#0d1116">
        ${treeSVG(b,d.nodes)}
      </div>
-     <div class="mut" style="margin-top:4px">🟢9月有買　🟡未解約沒買　⚪未達/停滯　🔴倒數中　⬛已解約　｜點方塊可開該人的卡</div>
-   </div>
-   <div style="margin-top:12px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div>
-     <div class="mut" style="margin-top:4px">第一性原理：直推 ≥2 有效才跑得動獨立循環（BC 自推也算）</div></div>
-   <div style="margin-top:12px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div></div>`;
+     <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　⬛已解約　｜點方塊開那個人的卡</div>
+   </div>`;
 }
 
 
-let CARD_ID=null;
+let CARD_ID=null, CARD_D=null, TREE_SIDE='左';
 function drawDepth(id,n){CARD_ID=id;openCard(id,n);}
-function genTable(g){
-  if(!g||!g.length)return '<div class="mut">底下無人</div>';
-  let tot=0; g.forEach(x=>tot+=x.l+x.r);
-  return '<table><thead><tr><th>代</th><th>左</th><th>右</th><th>合計</th><th>未解約</th><th>9月有買</th><th>存活率</th></tr></thead><tbody>'+
-   g.map(x=>{const n=x.l+x.r;const rate=n?Math.round(x.active/n*100):0;
-     return `<tr><td>第 ${x.depth} 代</td><td>${x.l}</td><td>${x.r}</td><td><b>${n}</b></td>
-     <td>${x.active}</td><td>${x.bought_m9?'<b style="color:#3fb950">'+x.bought_m9+'</b>':'<span style="color:#ff5d5d">0</span>'}</td>
-     <td><span style="color:${rate>=70?'#3fb950':rate>=40?'#d29922':'#ff5d5d'}">${rate}%</span></td></tr>`;}).join('')+
-   `</tbody><tfoot><tr><td colspan="3"><b>總計</b></td><td colspan="4"><b>${tot} 個位置，最深 ${g.length} 代</b></td></tr></tfoot></table>`;
-}
+
 function nodeColor(n){
   if(n.cancelled)return {bg:'#21262d',bd:'#484f58',fg:'#6e7681'};
   if(n.auto_cancel_days)return {bg:'#3d1418',bd:'#ff5d5d',fg:'#ffa198'};
   if(n.m9)return {bg:'#0f2e17',bd:'#3fb950',fg:'#7ee787'};
-  if(n.is_valid)return {bg:'#2d2411',bd:'#d29922',fg:'#e3b341'};
+  if(n.plan_ok)return {bg:'#2d2411',bd:'#d29922',fg:'#e3b341'};
   return {bg:'#161b22',bd:'#30363d',fg:'#8b949e'};
 }
 function treeSVG(root,nodes){
-  if(!nodes||!nodes.length)return '<div class="mut" style="padding:14px">此位置底下無安置人員</div>';
-  const kids={}; nodes.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
-  const byId={}; nodes.forEach(n=>byId[n.member_id]=n);
-  const BW=86,BH=34,GX=14,GY=58;
+  const all=(nodes||[]).filter(n=>n.side===TREE_SIDE);
+  if(!all.length)return '<div class="mut" style="padding:16px">'+TREE_SIDE+'邊沒有人。<b style="color:#37c978">這是空位——新人排這邊，對碰才配得起來。</b></div>';
+  const kids={}; all.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
+  const byId={}; all.forEach(n=>byId[n.member_id]=n);
+  const BW=84,BH=34,GX=13,GY=56;
   let col=0; const pos={};
   (function lay(id,depth){
     const k=kids[id]||{}, L=k['左'], R=k['右'];
     if(!L&&!R){pos[id]={x:col++,d:depth};return;}
     if(L)lay(L.member_id,depth+1);
-    const mine=col; if(!L||!R)col++;
+    if(!L||!R)col++;
     if(R)lay(R.member_id,depth+1);
     const xs=[]; if(L)xs.push(pos[L.member_id].x); if(R)xs.push(pos[R.member_id].x);
     pos[id]={x:xs.length===2?(xs[0]+xs[1])/2:(L?xs[0]+0.6:xs[0]-0.6),d:depth};
   })(root.member_id,0);
   const minX=Math.min(...Object.values(pos).map(p=>p.x));
   if(minX<0)Object.values(pos).forEach(p=>p.x-=minX);
-  col=Math.max(col,Math.max(...Object.values(pos).map(p=>p.x))+1);
+  const maxX=Math.max(...Object.values(pos).map(p=>p.x));
   const maxD=Math.max(...Object.values(pos).map(p=>p.d));
-  const W=Math.max(320,(col+1)*(BW+GX)), H=(maxD+1)*GY+20;
-  const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+10;
+  const W=Math.max(300,(maxX+1)*(BW+GX)+GX*2), H=(maxD+1)*GY+18;
+  const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+8;
   let lines='',boxes='';
   Object.keys(pos).forEach(id=>{
-    const n=byId[id]; const p=pos[id];
-    const par=(n?n.parent:null);
+    const n=byId[id], p=pos[id], par=n?n.parent:null;
     if(par&&pos[par]){const pp=pos[par];
-      lines+=`<path d="M${X(pp)+BW/2},${Y(pp)+BH} V${Y(p)-8} H${X(p)+BW/2} V${Y(p)}" fill="none" stroke="#30363d" stroke-width="1.5"/>`;}
+      lines+=`<path d="M${X(pp)+BW/2},${Y(pp)+BH} V${Y(p)-8} H${X(p)+BW/2} V${Y(p)}" fill="none" stroke="#2a3340" stroke-width="1.5"/>`;}
     const isRoot=!n;
     const c=isRoot?{bg:'#1f6feb',bd:'#58a6ff',fg:'#fff'}:nodeColor(n);
     const label=isRoot?root.name:n.name;
-    const side=n?(n.pos==='左'?'左':'右'):'';
+    const tag=isRoot?'':(n.auto_cancel_days?'⏳'+n.auto_cancel_days:(n.plan_ok&&!n.m9?'待領':(n.m9?'✔':'')));
     boxes+=`<g style="cursor:pointer" onclick="openCard('${id}')">
       <rect x="${X(p)}" y="${Y(p)}" width="${BW}" height="${BH}" rx="6" fill="${c.bg}" stroke="${c.bd}" stroke-width="${isRoot?2:1}"/>
       <text x="${X(p)+BW/2}" y="${Y(p)+15}" text-anchor="middle" font-size="12" fill="${c.fg}">${esc(String(label).slice(0,5))}</text>
-      <text x="${X(p)+BW/2}" y="${Y(p)+27}" text-anchor="middle" font-size="9" fill="${c.fg}" opacity=".75">${side}${n&&n.auto_cancel_days?' ⏳'+esc(n.auto_cancel_days):''}</text>
+      <text x="${X(p)+BW/2}" y="${Y(p)+27}" text-anchor="middle" font-size="9" fill="${c.fg}" opacity=".8">${esc(tag)}</text>
      </g>`;
   });
   return `<svg width="${W}" height="${H}" style="display:block">${lines}${boxes}</svg>`;
 }
+function switchSide(sd){TREE_SIDE=sd;
+  document.querySelectorAll('.sdbtn').forEach(x=>x.classList.toggle('on',x.dataset.s===sd));
+  document.getElementById('treeBox').innerHTML=treeSVG(CARD_D.base,CARD_D.nodes);}
 
 
 /* ===== 解讀：把數字翻成人話 ===== */
 function readOut(b,d){
-  const L=(d.tree||[]).find(t=>t.side==='左')||{total:0,active:0,bought_m9:0,max_depth:0};
-  const R=(d.tree||[]).find(t=>t.side==='右')||{total:0,active:0,bought_m9:0,max_depth:0};
-  const tot=L.total+R.total, act=L.active+R.active, m9=L.bought_m9+R.bought_m9;
+  const L=(d.tree||[]).find(t=>t.side==='左')||{total:0,active:0,bought_m9:0,plan_ok:0},
+        R=(d.tree||[]).find(t=>t.side==='右')||{total:0,active:0,bought_m9:0,plan_ok:0};
+  const tot=L.total+R.total, act=L.active+R.active, m9=L.bought_m9+R.bought_m9,
+        planOk=(L.plan_ok||0)+(R.plan_ok||0);
   const dirOk=(d.directs||[]).filter(x=>!x.cancelled&&x.is_valid).length;
-  const say=[];
-  // 本人
-  if(b.payment_method===0) say.push(['bad','這個位置已解約，編號不可回收——組織仍掛在下面，但本人不再產生點數。']);
-  else if(b.auto_cancel_days) say.push(['bad',`本人倒數 ${b.auto_cancel_days}：歸零就永久失去這個位置，底下 ${tot} 個位置的上手會斷。<b>先救這一個</b>。`]);
-  else if(!b.is_valid) say.push(['warn','本人本期未達 10,000 點＝沒有有效期間，這段時間底下的點數對他不計獎。']);
-  else say.push(['ok','本人資格正常。']);
-  // 雙軌平衡
-  if(tot===0) say.push(['mut','底下還沒有人——這是末端位置，要嘛他去推薦，要嘛上手把新人排到他下面。']);
-  else if(L.total===0||R.total===0){
-    const empty=L.total===0?'左':'右';
-    say.push(['bad',`<b>單邊組織</b>：${empty}腳是空的（另一邊 ${Math.max(L.total,R.total)} 人）。雙軌只算弱腿對碰，這樣<b>一毛對碰獎金都跑不出來</b>——新人優先排 ${empty} 邊。`]);
-  } else {
-    const big=L.total>=R.total?L:R, sml=L.total>=R.total?R:L;
-    const bn=L.total>=R.total?'左':'右', sn=L.total>=R.total?'右':'左';
-    const ratio=sml.total?(big.total/sml.total):99;
-    if(ratio>=3) say.push(['warn',`<b>大象腿</b>：${bn} ${big.total} 人 vs ${sn} ${sml.total} 人（${ratio.toFixed(1)} 倍）。對碰只看弱腿，${bn} 邊多出來的點數在空等——新人補 ${sn} 邊效益最高。`]);
-    else say.push(['ok',`左右還算平衡（${L.total} / ${R.total}），對碰跑得動。`]);
+  const hopes=d.hopes||[];
+  let head='', steps=[];
+  // 一句話定調
+  if(b.payment_method===0){
+    head='這個位置已解約，本人不再產生點數。但底下 '+tot+' 個位置還掛著——價值在下面，不在這一格。';
+  }else if(b.auto_cancel_days){
+    head='剩 '+b.auto_cancel_days+'，但<b>還沒掉</b>——現在動就保得住。';
+    steps.push(['救','這 '+b.auto_cancel_days+'內買一次循環商品（10,000 點）','位置保住，底下 '+tot+' 個位置的鏈路不斷']);
+  }else if(!b.is_valid){
+    head='人還在、位置還在，只是這期沒達 10,000 點。<b>補一次就恢復。</b>';
+    steps.push(['補','本月補一次 10,000 點','恢復有效期間，底下的點數才算得到他頭上']);
+  }else{
+    head='本人資格正常，可以往上疊。';
   }
-  // 動能
-  if(tot>0){
-    const rate=Math.round(m9/tot*100);
-    if(m9===0) say.push(['bad',`底下 ${tot} 個位置，<b>9 月一個都沒買</b>——組織在、動能是零。這是「人數好看但不產點」的典型。`]);
-    else if(rate<20) say.push(['warn',`${tot} 人裡只有 ${m9} 人 9 月有買（${rate}%）——多數是掛著的空位置。`]);
-    else say.push(['ok',`${tot} 人裡 ${m9} 人 9 月有買（${rate}%），底下還在動。`]);
-    const deadN=tot-act;
-    if(deadN>0) say.push(['mut',`其中 ${deadN} 個已解約（位置永久佔著、不可回收，也不再產點）。`]);
+  // 直推：最大的槓桿
+  if(dirOk===0) steps.push(['推','找 1 位加入（<b>自己開 BC 也算直推</b>）','立刻能領日循環，上限 NT$6,000／日；目前是 0']);
+  else if(dirOk===1) steps.push(['推','<b>再補 1 位</b>就好（已有 1 位）','日上限 6,000 → <b>12,000，直接翻倍</b>']);
+  else steps.push(['✓','直推已有 '+dirOk+' 位有效','獨立循環跑得動，日上限 NT$12,000 起']);
+  // 雙軌平衡：講該往哪擺
+  if(tot>0&&(L.total===0||R.total===0)){
+    const e=L.total===0?'左':'右';
+    steps.push(['擺','下一個新人排<b>'+e+'邊</b>','另一邊已有 '+Math.max(L.total,R.total)+' 人在等對碰，補上去才開始配對']);
+  }else if(tot>0){
+    const bg=Math.max(L.total,R.total), sm=Math.min(L.total,R.total);
+    if(sm&&bg/sm>=3){
+      const w=L.total<R.total?'左':'右';
+      steps.push(['擺','新人優先排<b>'+w+'邊</b>（'+L.total+' / '+R.total+'）','弱邊每加 1 人就多一份對碰，強邊多的在空等']);
+    }
   }
-  // 直推（第一性）
-  if(dirOk>=2) say.push(['ok',`直推有效 ${dirOk} 位 → 每天可跑<b>獨立循環</b>（日上限 NT$12,000 起）。`]);
-  else if(dirOk===1) say.push(['warn','直推有效只有 1 位 → 只能跑<b>半獨立循環</b>（日上限 NT$6,000）。<b>再補 1 位就翻倍</b>——含自己開 BC 也算。']);
-  else say.push(['bad','直推有效 0 位 → <b>日循環獎金完全領不到</b>，而且累積點數會歸零。這是最優先要補的一格。']);
-  const col={ok:'#37c978',warn:'#ffb020',bad:'#ff5d5d',mut:'#8b96a5'};
-  return `<div class="card" style="background:#0d1116;margin-bottom:12px"><b>🧭 解讀</b>
-    <ul style="margin:6px 0 0;padding-left:20px">${say.map(x=>`<li style="color:${col[x[0]]};margin:3px 0">${x[1]}</li>`).join('')}</ul></div>`;
+  // 底下的希望：講數字也講名字
+  if(planOk>0) steps.push(['催','底下有 <b>'+planOk+' 人方案還在有效期</b>，貨沒領完','提醒就會動，不用重新說服——最省力的一批']);
+  if(hopes.length) steps.push(['做','機會名單 '+hopes.length+' 位（下方）','照名單打，比整片 '+tot+' 人亂打有效']);
+  const badge={'救':'#ff5d5d','補':'#ffb020','推':'#4f8cff','擺':'#4f8cff','催':'#37c978','做':'#37c978','✓':'#37c978'};
+  return `<div class="card" style="background:#0d1116;margin-bottom:12px">
+    <div style="font-size:15px;margin-bottom:8px">🧭 ${head}</div>
+    <div style="font-weight:600;margin-bottom:4px">最快的下一步</div>
+    <div>${steps.map(x=>`<div style="display:flex;gap:9px;align-items:flex-start;margin:6px 0">
+      <span style="flex:0 0 auto;background:${badge[x[0]]};color:#fff;border-radius:6px;padding:1px 8px;font-size:13px;font-weight:700">${x[0]}</span>
+      <span>${x[1]}<br><span class="mut" style="font-size:13px">→ ${x[2]}</span></span></div>`).join('')}</div>
+  </div>`;
 }
 
 /* ===== CFC 佈局 ===== */
@@ -533,7 +534,7 @@ function renderLadder(){
        <li>通過三條可查證條件的候選：<b style="color:var(--ok)">左 ${rl} 人</b>／<b style="color:${rr>=12?'var(--ok)':'var(--bad)'}">右 ${rr} 人</b>。星鑽<b>取左右較小值</b>，所以<b>右線就是天花板</b>。</li>
        <li>${rr>=12?'右線候選池已達 12，重點轉為把候選推過第④條（獨立循環／點數）。'
           :`右線候選池只有 ${rr} 人，<b>連 12 都湊不出來</b>——先做的不是催成就，而是<b>把右線候選池從 ${rr} 養到 12</b>。`}</li>
-       <li>養候選池最快的兩條路（第一性）：①讓現有右線位置<b>恢復循環購買</b>（看「還缺什麼」標「本人未持續購買」者）②幫右線的人<b>補到直推 2 位有效</b>（自己開 BC 也算）。</li>
+       <li>養候選池最快的兩條路：①讓現有右線位置<b>恢復循環購買</b>（看「還缺什麼」標「本人未持續購買」者）②幫右線的人<b>補到直推 2 位有效</b>（自己開 BC 也算）。</li>
        <li>⚠️ 第④條「左右各 5 個獨立循環／各 200 萬點」<b>本表看不到</b>，需 9/1 採集 fc_status 後才能判定。目前排行只代表「基礎條件就緒度」。</li>
      </ul></div>`;
 }
