@@ -108,11 +108,20 @@ a{text-decoration:none}
 </div>
 <div id="v-cfc" class="hidden">
   <div class="card"><div id="cfcLadder">載入中…</div></div>
+  <div class="card" id="rosterCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>⚔️ 點將名單（11-12 月期）</b>
+      <button class="btn sm" onclick="rosterTasks()">📤 把缺口全部派成任務</button>
+    </div>
+    <div class="mut" style="margin-top:3px">你點名要拚的人。星鑽階梯會依這份名單推演，不是依系統猜。</div>
+    <div id="rosterBox" style="margin-top:8px"></div>
+    <div class="msg" id="rosterMsg"></div>
+  </div>
   <div class="card">
     <b>🎯 只差一步就進候選池（先打這些）</b>
     <div class="mut" style="margin-top:3px">三個條件已中兩個，補最後一條就算候選。<b>自己開 BC 也算直推</b>（每個 BC 需購 10,000 點）。</div>
     <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>難易</th><th>姓名</th><th>線</th><th>組織</th><th>要做什麼</th></tr></thead>
+      <thead><tr><th>難易</th><th>姓名</th><th>線</th><th>組織</th><th>要做什麼</th><th></th></tr></thead>
       <tbody id="oneBody"></tbody></table></div>
   </div>
   <div class="card">
@@ -124,7 +133,7 @@ a{text-decoration:none}
     </div>
     <div class="mut" style="margin-top:4px">依「成就就緒度」排序。①持續購買 ②直推2有效 ③左右都有腳＝可查證；<b>④獨立循環／200萬點 待 9/1 fc_status 採集</b>。</div>
     <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>就緒</th><th>姓名</th><th>線</th><th>①購買</th><th>②直推</th><th>③雙腳</th><th>組織</th><th>還缺什麼</th></tr></thead>
+      <thead><tr><th>就緒</th><th>姓名</th><th>線</th><th>①購買</th><th>②直推</th><th>③雙腳</th><th>組織</th><th>還缺什麼</th><th>點將</th></tr></thead>
       <tbody id="cfcBody"></tbody></table></div>
   </div>
 </div>
@@ -527,7 +536,7 @@ async function loadCfc(){
     body:JSON.stringify({p:{...CRED}})});
   CFC=await r.json();
   if(!CFC.success){document.getElementById('cfcLadder').textContent=CFC.message||'讀取失敗';return;}
-  renderLadder(); renderCand();
+  renderLadder(); renderRoster(); renderCand();
 }
 const STAR=[[1,'一星鑽 ★'],[3,'三星鑽 ★★★'],[5,'五星鑽'],[7,'七星鑽'],[9,'九星鑽'],[12,'CFC MASTER']];
 function renderLadder(){
@@ -554,6 +563,10 @@ function renderLadder(){
            <div style="font-size:22px;font-weight:700;color:${x[3]}">${x[1]}</div>
            <div class="mut" style="font-size:12px">${x[2]}</div></div>`).join('')}
      </div>
+     ${hasRoster?`<div style="margin-top:10px;padding:9px;border:1px solid var(--acc);border-radius:8px;background:#0d1116">
+       <b>⚔️ 依你的點將名單</b>：左 ${eL} 位／右 ${eR} 位，條件已到位 <b style="color:var(--ok)">左 ${okL}／右 ${okR}</b>。
+       ${Math.min(eL,eR)>=12?'人點滿 12 了——剩下是把條件補齊。':'離 12 還要再點 <b>左 '+Math.max(0,12-eL)+'／右 '+Math.max(0,12-eR)+'</b> 位。'}
+     </div>`:''}
      <div style="margin-top:11px;font-size:15px">
        ${after>=12
          ? `<b style="color:var(--ok)">路是通的。</b>${weak}線現有 ${W.ready} 位候選，加上「只差一步」的 ${oneW.length} 位＝<b>${after} 位</b>，超過 12。<b>把下面這 ${gap} 個人補起來，門檻就到了。</b>`
@@ -569,15 +582,34 @@ function renderLadder(){
      <div class="mut" style="margin-top:8px;font-size:13px">⚠️ 上面算的是<b>基礎條件</b>（持續購買／直推2／左右有腳）。成就還有第④條「左右各 5 個獨立循環或各 200 萬點」，那要 9/1 採 fc_status 才看得到——屆時這張圖會再修正。</div>
    </div>`;
   // 星鑽階梯
+  // 點將名單推演（有點將就以點將為準）
+  const R0=CFC.roster||[], live=R0.filter(x=>x.status!=='婉拒');
+  const eL=live.filter(x=>x.leg==='左').length, eR=live.filter(x=>x.leg==='右').length;
+  const okL=live.filter(x=>x.leg==='左'&&x.done).length, okR=live.filter(x=>x.leg==='右'&&x.done).length;
+  const hasRoster=live.length>0;
   const rows=[[1,'一星鑽 ★'],[3,'三星鑽 ★★★'],[5,'五星鑽'],[7,'七星鑽'],[9,'九星鑽'],[12,'CFC MASTER']].map(([n,nm])=>{
-    const got=now>=n, poolNow=Math.min(L.ready,R.ready)>=n, poolAfter=Math.min(L.ready+one.filter(x=>x.leg==='左').length,R.ready+one.filter(x=>x.leg==='右').length)>=n;
-    return `<tr><td>${got?'✅':'⬜'} ${nm}</td><td>左右各 ${n}</td>
-      <td>${got?'<b style="color:var(--ok)">已達</b>':'左差 '+Math.max(0,n-l)+'／右差 '+Math.max(0,n-r)}</td>
-      <td>${poolNow?'<span style="color:var(--ok)">現在就夠</span>':poolAfter?'<span style="color:var(--warn)">補完一步就夠</span>':'<span style="color:var(--bad)">還要再長</span>'}</td></tr>`;}).join('');
+    const got=now>=n;
+    let col3,col4;
+    if(hasRoster){
+      const enough=Math.min(eL,eR)>=n, ready=Math.min(okL,okR)>=n;
+      col3=got?'<b style="color:var(--ok)">已達</b>':'點將 左'+eL+'／右'+eR+(enough?'':'　<span style="color:var(--bad)">左還要 '+Math.max(0,n-eL)+'／右還要 '+Math.max(0,n-eR)+'</span>');
+      col4=ready?'<span style="color:var(--ok)">名單已到位</span>'
+          :enough?'<span style="color:var(--warn)">人點夠了，條件還沒到（'+okL+'／'+okR+' 到位）</span>'
+          :'<span style="color:var(--bad)">還要再點 '+Math.max(0,n-Math.min(eL,eR))+' 位</span>';
+    }else{
+      const poolNow=Math.min(L.ready,R.ready)>=n,
+            poolAfter=Math.min(L.ready+one.filter(x=>x.leg==='左').length,R.ready+one.filter(x=>x.leg==='右').length)>=n;
+      col3=got?'<b style="color:var(--ok)">已達</b>':'左差 '+Math.max(0,n-l)+'／右差 '+Math.max(0,n-r);
+      col4=poolNow?'<span style="color:var(--ok)">現在就夠</span>':poolAfter?'<span style="color:var(--warn)">補完一步就夠</span>':'<span style="color:var(--bad)">還要再長</span>';
+    }
+    return `<tr><td>${got?'✅':'⬜'} ${nm}</td><td>左右各 ${n}</td><td>${col3}</td><td>${col4}</td></tr>`;}).join('');
   document.getElementById('cfcLadder').innerHTML=road+`
    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
      <b>🏆 星鑽階梯</b><span class="mut">目前 左 ${l}／右 ${r}（${esc(s.period||'')}｜${esc(s.source||'')}）｜資料日 ${esc(CFC.as_of||'')}</span></div>
-   <div class="scroll"><table><thead><tr><th>階</th><th>條件</th><th>還差</th><th>候選池</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="scroll"><table><thead><tr><th>階</th><th>條件</th><th>${hasRoster?'點將進度':'還差'}</th><th>${hasRoster?'名單狀態':'候選池'}</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="mut" style="margin-top:5px;font-size:13px">${hasRoster
+     ?'目前依<b>點將名單</b>推演（左 '+eL+'／右 '+eR+' 位，其中條件已到位 左 '+okL+'／右 '+okR+'）。移除全部點將會回到系統推算。'
+     :'目前依<b>系統推算</b>。點將之後這裡會改用你選的名單。'}</div>
    <div style="margin-top:14px"><b>💪 左右線體質</b>
    <div class="scroll" style="margin-top:5px"><table>
      <thead><tr><th>線</th><th>人數</th><th>9月有買</th><th>方案還有效</th><th>自動扣款</th><th>⏳倒數</th><th>候選(3條全中)</th><th>只差一步</th></tr></thead>
@@ -593,8 +625,9 @@ function renderLadder(){
     const e=ez[x.ease]||ez[4];
     return `<tr><td><span style="background:${e[0]};color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">${e[1]}</span></td>
      <td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
-     <td><b>${esc(x.leg)}</b></td><td>${x.sub_active}</td><td>${esc(x.todo)}</td></tr>`;}).join('')
-   ||'<tr><td colspan="5" class="mut">目前沒有「只差一條」的人</td></tr>';
+     <td><b>${esc(x.leg)}</b></td><td>${x.sub_active}</td><td>${esc(x.todo)}</td>
+     <td>${x.enlisted?'<span style="color:var(--ok);font-size:13px">✔已點將</span>':`<button class="btn sm" onclick="enlist('${esc(x.member_id)}',true)">⚔️點將</button>`}</td></tr>`;}).join('')
+   ||'<tr><td colspan="6" class="mut">目前沒有「只差一條」的人</td></tr>';
 }
 function cfcFilter(f){CFC_F=f;renderCand();}
 function renderCand(){
@@ -613,8 +646,49 @@ function renderCand(){
      <td>${yn(c.c_direct)} <span class="mut">${c.dir_valid}</span></td>
      <td>${yn(c.c_feet)}</td>
      <td>${c.sub_active}</td>
-     <td class="mut">${esc(c.lack||'—')}</td></tr>`;}).join('')
+     <td class="mut">${esc(c.lack||'—')}</td>
+     <td>${c.enlisted?'<span style="color:var(--ok);font-size:13px">✔</span>':`<button class="btn sm" onclick="enlist('${esc(c.member_id)}',true)">⚔️</button>`}</td></tr>`;}).join('')
    ||'<tr><td colspan="9" class="mut">無符合條件者</td></tr>';
+}
+
+
+/* ===== 點將 ===== */
+const PERIOD='2026-11-12';
+async function rosterApi(a,extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_cfc_roster',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,action:a,period:PERIOD,...(extra||{})}})});
+  return r.json();
+}
+async function enlist(id,on){
+  await rosterApi(on?'enlist':'unlist',{member_id:id});
+  loadCfc();
+}
+async function rosterSt(id,st){ await rosterApi('set_status',{member_id:id,status:st}); loadCfc(); }
+async function rosterTasks(){
+  const n=(CFC.roster||[]).filter(x=>x.todo).length;
+  if(!n){document.getElementById('rosterMsg').textContent='名單裡的人目前都沒有缺口，不用派。';return;}
+  if(!confirm('把點將名單的缺口派成任務給各自的歸戶領袖？'))return;
+  const d=await rosterApi('make_tasks',{});
+  document.getElementById('rosterMsg').textContent=d.success?('✅ 已建立 '+d.created+' 件成就衝刺任務'):(d.message||'失敗');
+}
+function renderRoster(){
+  const R=CFC.roster||[];
+  const box=document.getElementById('rosterBox');
+  if(!R.length){box.innerHTML='<div class="mut">還沒點將。到下面名單按 <b>⚔️點將</b>，這裡就會出現，星鑽階梯也會跟著改用這份名單推演。</div>';return;}
+  const st=['點將','已答應','婉拒','達成'];
+  box.innerHTML='<div class="scroll"><table><thead><tr><th>狀態</th><th>姓名</th><th>線</th><th>條件</th><th>還要做</th><th>歸戶</th><th></th></tr></thead><tbody>'+
+    R.map(x=>`<tr>
+      <td><select class="inp" style="padding:4px;font-size:13px" onchange="rosterSt('${esc(x.member_id)}',this.value)">
+        ${st.map(v=>`<option${v===x.status?' selected':''}>${v}</option>`).join('')}</select></td>
+      <td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a>
+        <br><span class="mut">${esc(x.member_id)}</span></td>
+      <td><b>${esc(x.leg)}</b></td>
+      <td>${x.done?'<b style="color:var(--ok)">3/3 已到位</b>':'<b style="color:var(--warn)">'+x.hits+'/3</b>'}</td>
+      <td>${x.todo?esc(x.todo):'<span style="color:var(--ok)">—</span>'}</td>
+      <td class="mut">${esc(x.route)}</td>
+      <td><button class="btn sm" onclick="enlist('${esc(x.member_id)}',false)">移除</button></td></tr>`).join('')+
+    '</tbody></table></div>';
 }
 
 </script></div></body></html>
