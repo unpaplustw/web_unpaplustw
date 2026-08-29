@@ -680,10 +680,8 @@ async function init() {
     // 入口固定從 LINE OA 進來：未登入就直接登入（OA 內無感、且發生在進門前→不會中途被踢回首頁）
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
-    const { data: member } = await sbMember.from('members')
-      .select('id, name, level, ai_credits')
-      .eq('line_user_id', profile.userId)
-      .single();
+    const { data: member } = await sbMember
+      .rpc('get_member_basic', { p_line_user_id: profile.userId });
     if (member) {
       // 甲：認出會員（任何 level），能不能用四刀由「點數」決定，不卡 level
       currentUser = { lineUserId: profile.userId, name: member.name, level: member.level, credits: member.ai_credits || 0 };

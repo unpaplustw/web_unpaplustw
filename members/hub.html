@@ -420,8 +420,6 @@ async function init() {
     if (error) throw error;
     ctx = data;
 
-    const updates = {};
-    if (lineProfile.pictureUrl) updates.picture_url = lineProfile.pictureUrl;
 
     // ⚠️ 不可直接 select tenants：該表 RLS 只開 authenticated，anon 永遠拿到 null
     //    → 舊寫法讓「level=0 自動改綁 OA」靜默失效（2026-08-14 查出，疑為林珊合綁錯團隊主因）
@@ -433,8 +431,10 @@ async function init() {
       if (bind?.changed) { ctx = (await sb.rpc('get_hub_context', { p_line_user_id: lineUserId })).data || ctx; }
     }
 
-    if (Object.keys(updates).length) {
-      sb.from('members').update(updates).eq('line_user_id', lineUserId).then(() => {});
+    // 2026-08-29：改走 RPC。anon 不再能直接 UPDATE members（碰不到 level / ai_credits）
+    if (lineProfile.pictureUrl) {
+      sb.rpc('sync_member_profile',
+        { p_line_user_id: lineUserId, p_picture_url: lineProfile.pictureUrl }).then(() => {});
     }
 
     route();
@@ -507,7 +507,7 @@ function showRejected() {
 }
 
 async function clearRejectedAndRetry() {
-  await sb.from('members').update({ rejected_at: null }).eq('line_user_id', lineUserId);
+  await sb.rpc('retry_after_reject', { p_line_user_id: lineUserId });
   ctx.role = 'upgrade';
   showUpgrade();
 }
@@ -624,13 +624,8 @@ async function showOaAdmin() {
   document.getElementById('oa-title').textContent = tenantNames + ' 管理';
   show('screen-oa-admin');
 
-  const tenantIds = tenants.map(t => t.id);
   const { data: members, error } = await sb
-    .from('members')
-    .select('id, line_user_id, name, np_member_code, phone, email, level, joined_at')
-    .in('tenant_id', tenantIds)
-    .order('level', { ascending: true })
-    .order('joined_at', { ascending: false });
+    .rpc('list_admin_members', { p_caller_line_id: lineUserId });
 
   if (error) { toast('載入失敗：' + error.message); return; }
 
@@ -706,29 +701,9 @@ function saTab(tab) {
 
 async function renderSaTenants() {
   const tenants = ctx.all_tenants || [];
-  const { data: members } = await sb
-    .from('members')
-    .select('tenant_id, level');
-
-  const counts = {};
-  (members || []).forEach(m => {
-    if (!m.tenant_id) return;
-    if (!counts[m.tenant_id]) counts[m.tenant_id] = { total: 0, pending: 0, approved: 0 };
-    counts[m.tenant_id].total++;
-    if (m.level >= 1) counts[m.tenant_id].approved++;
-    else counts[m.tenant_id].pending++;
-  });
-
-  // 收集所有 admin line_user_ids 查名字
-  const allAdminIds = [...new Set(tenants.flatMap(t => t.admin_ids || []))];
-  const adminNames = {};
-  if (allAdminIds.length) {
-    const { data: admins } = await sb
-      .from('members')
-      .select('line_user_id, name')
-      .in('line_user_id', allAdminIds);
-    (admins || []).forEach(a => { adminNames[a.line_user_id] = a.name; });
-  }
+  const { data: ov } = await sb.rpc('sa_tenant_overview', { p_caller_line_id: lineUserId });
+  const counts = (ov && ov.counts) || {};
+  const adminNames = (ov && ov.admin_names) || {};
 
   document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
     const c = counts[t.id] || { total: 0, pending: 0, approved: 0 };
@@ -844,10 +819,7 @@ async function confirmAssign() {
 
 async function loadSaMembers() {
   const { data, error } = await sb
-    .from('members')
-    .select('id, line_user_id, name, np_member_code, phone, email, level, ai_credits, tenant_id, joined_at, picture_url')
-    .order('level', { ascending: true })
-    .order('joined_at', { ascending: false });
+    .rpc('sa_list_members', { p_caller_line_id: lineUserId });
   if (error) { toast('載入會員失敗'); return; }
   allMembers = data || [];
   renderSaMembers();

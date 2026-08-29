@@ -547,19 +547,17 @@ function countUp(id,target,duration){
 
 async function loadStats(){
   try{
-    const [r1,r2,r3]=await Promise.all([
+    const [r1,r2]=await Promise.all([
       fetch(`${RAG.url}/rest/v1/rag_knowledge?select=hit_count`,{headers:{apikey:RAG.key,Authorization:`Bearer ${RAG.key}`}}),
-      fetch(`${MEM.url}/rest/v1/members?select=id`,{headers:{apikey:MEM.key,Authorization:`Bearer ${MEM.key}`}}),
-      fetch(`${MEM.url}/rest/v1/tenants?select=id`,{headers:{apikey:MEM.key,Authorization:`Bearer ${MEM.key}`}})
+      fetch(`${MEM.url}/rest/v1/rpc/public_site_stats`,{method:'POST',headers:{apikey:MEM.key,Authorization:`Bearer ${MEM.key}`,'Content-Type':'application/json'},body:'{}'})
     ]);
     const rag=await r1.json();
-    const members=await r2.json();
-    const tenants=await r3.json();
+    const stats=await r2.json();
     const totalHits=rag.reduce((s,r)=>s+(r.hit_count||0),0);
     countUp('s1',rag.length,1800);
     countUp('s2',totalHits,2200);
-    countUp('s3',members.length,1600);
-    countUp('s4',tenants.length,1400);
+    countUp('s3',stats.members||0,1600);
+    countUp('s4',stats.tenants||0,1400);
   } catch(e){
     countUp('s1',94,1800);
     countUp('s2',3840,2200);
