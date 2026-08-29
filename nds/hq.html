@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="zh-Hant"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NDS 戰情派工</title>
+<style>
+:root{--bg:#101418;--card:#1a2027;--line:#2a3340;--tx:#e8ecf1;--mut:#8b96a5;--acc:#4f8cff;--ok:#37c978;--warn:#ffb020;--bad:#ff5d5d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:8px 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.inp{background:#0d1116;border:1px solid var(--line);border-radius:8px;color:var(--tx);padding:9px 12px;font-size:15px}
+.btn{background:var(--acc);border:0;border-radius:8px;color:#fff;padding:9px 16px;font-size:15px;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:8px 14px;border-radius:8px;border:1px solid var(--line);cursor:pointer;color:var(--mut)}
+.tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:500;white-space:nowrap}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px}
+.p-待處理{background:#3a2f18;color:var(--warn)}.p-已聯絡{background:#16324a;color:var(--acc)}
+.p-完成{background:#173627;color:var(--ok)}.p-失聯{background:#3a1d1d;color:var(--bad)}.p-取消{background:#262c33;color:var(--mut)}
+.msg{color:var(--warn);min-height:20px;margin:6px 0}
+select.inp{padding:8px}
+.hidden{display:none}
+.mut{color:var(--mut)}
+@media(max-width:640px){.wrap{padding:8px}td,th{padding:6px}}
+</style></head><body><div class="wrap">
+<h1>🎯 NDS 戰情派工</h1>
+
+<div id="login" class="card">
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <input id="u" class="inp" placeholder="帳號">
+    <input id="pw" class="inp" type="password" placeholder="密碼">
+    <button class="btn" onclick="login()">登入</button>
+  </div>
+  <div class="msg" id="lmsg"></div>
+</div>
+
+<div id="app" class="hidden">
+<div class="tabs">
+  <div class="tab on" data-v="tasks" onclick="sw(this)">📋 任務板</div>
+  <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
+  <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
+</div>
+
+<div id="v-tasks" class="card">
+  <div style="margin-bottom:10px">
+    <select id="fstat" class="inp" onchange="loadTasks()">
+      <option value="">全部狀態</option><option>待處理</option><option>已聯絡</option>
+      <option>完成</option><option>失聯</option><option>取消</option>
+    </select>
+    <button class="btn ghost sm" onclick="loadTasks()">重新整理</button>
+  </div>
+  <div style="overflow-x:auto"><table><thead><tr>
+    <th>型別</th><th>對象</th><th>說明</th><th>負責</th><th>期限</th><th>狀態</th><th>回報</th><th></th>
+  </tr></thead><tbody id="tbody"></tbody></table></div>
+</div>
+
+<div id="v-assign" class="card hidden">
+  <div style="margin-bottom:10px">
+    <select id="ctype" class="inp"><option>倒數救援</option><option>回訪</option><option>續約</option></select>
+    <button class="btn" onclick="loadCand()">載入候選名單</button>
+    <span class="mut" id="ccount"></span>
+  </div>
+  <div style="overflow-x:auto"><table><thead><tr>
+    <th><input type="checkbox" onchange="document.querySelectorAll('.ck').forEach(c=>c.checked=this.checked)"></th>
+    <th>對象</th><th>線</th><th>說明</th><th>期限</th><th>指派給</th>
+  </tr></thead><tbody id="cbody"></tbody></table></div>
+  <div style="margin-top:12px"><button class="btn" onclick="createTasks()">建立勾選的任務</button>
+  <span class="msg" id="amsg"></span></div>
+</div>
+
+<div id="v-bind" class="card hidden">
+  <button class="btn ghost sm" onclick="loadBind()">重新整理</button>
+  <div style="overflow-x:auto"><table><thead><tr>
+    <th>LINE 名稱</th><th>申請綁定</th><th>層級</th><th>申請時間</th><th>狀態</th><th></th>
+  </tr></thead><tbody id="bbody"></tbody></table></div>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL="https://nsgqsopqlkhayuefdout.supabase.co";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
+let CRED={}, LEADERS=[
+ {id:'2758220-001',n:'張麗玲'},{id:'2758221-001',n:'張憶文'},{id:'2758843-001',n:'熊愛茶'},
+ {id:'2778705-001',n:'李晉豪'},{id:'2846880-001',n:'陳莉莉'},{id:'2854552-001',n:'黃莉芳'},
+ {id:'2893275-001',n:'李尚謙'},{id:'2787664-001',n:'黎玉嬌'}];
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+async function api(p){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_hq',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...p}})});
+  return r.json();
+}
+async function login(){
+  CRED={username:document.getElementById('u').value.trim(),password:document.getElementById('pw').value};
+  const d=await api({action:'list_tasks'});
+  if(!d.success){document.getElementById('lmsg').textContent=d.message||'登入失敗';return;}
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  renderTasks(d.rows);
+}
+function sw(el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+  ['tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+}
+async function loadTasks(){
+  const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
+  if(d.success)renderTasks(d.rows);
+}
+function renderTasks(rows){
+  const tb=document.getElementById('tbody');tb.innerHTML='';
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc(r.task_type)}</td><td>${esc(r.target_name||'')}<br><span class="mut">${esc(r.target_member_id)}</span></td>
+    <td>${esc(r.detail||'')}</td><td>${esc(r.assignee_name||'—')}</td><td>${esc(r.due_date||'')}</td>
+    <td><span class="pill p-${esc(r.status)}">${esc(r.status)}</span></td>
+    <td>${esc(r.result_note||'')}</td>
+    <td><button class="btn ghost sm" onclick="editTask(${r.id},'${esc(r.status)}')">改</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+async function editTask(id,cur){
+  const s=prompt('新狀態（待處理/已聯絡/完成/失聯/取消）',cur);if(!s)return;
+  const note=prompt('備註（可空）','');
+  const d=await api({action:'update_task',id:String(id),status:s,result_note:note||''});
+  if(d.success)loadTasks();else alert(d.message||'失敗');
+}
+async function loadCand(){
+  const d=await api({action:'candidates',type:document.getElementById('ctype').value});
+  const tb=document.getElementById('cbody');tb.innerHTML='';
+  if(!d.success){alert(d.message);return;}
+  document.getElementById('ccount').textContent=' 共 '+d.rows.length+' 筆（已排除有未結案任務者）';
+  d.rows.forEach((r,i)=>{
+    const opts=LEADERS.map(l=>`<option value="${l.id}" ${l.id===r.suggest?'selected':''}>${l.n}${l.id===r.suggest?'（建議）':''}</option>`).join('')
+      +`<option value="" ${!r.suggest?'selected':''}>游育杰自理</option>`;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><input type="checkbox" class="ck" data-i="${i}" checked></td>
+    <td>${esc(r.name)}<br><span class="mut">${esc(r.member_id)}</span></td><td>${esc(r.leg||'')}</td>
+    <td>${esc(r.detail)}</td><td>${esc(r.due_date||'')}</td>
+    <td><select class="inp asg" data-i="${i}">${opts}</select></td>`;
+    tb.appendChild(tr);
+  });
+  window.__cand=d.rows;
+}
+async function createTasks(){
+  const type=document.getElementById('ctype').value, tasks=[];
+  document.querySelectorAll('.ck:checked').forEach(c=>{
+    const i=+c.dataset.i, r=window.__cand[i];
+    const asg=document.querySelector('.asg[data-i="'+i+'"]').value;
+    tasks.push({task_type:type,target_member_id:r.member_id,target_name:r.name,
+      detail:r.detail,assignee_member_id:asg,due_date:r.due_date||''});
+  });
+  if(!tasks.length){alert('沒有勾選');return;}
+  const d=await api({action:'create_tasks',tasks});
+  document.getElementById('amsg').textContent=d.success?('已建立 '+d.created+' 件任務'):(d.message||'失敗');
+  if(d.success)loadCand();
+}
+async function loadBind(){
+  const d=await api({action:'bindings'});
+  const tb=document.getElementById('bbody');tb.innerHTML='';
+  if(!d.success)return;
+  d.rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc(r.display_name||'')}</td><td>${esc(r.leader_name)}<br><span class="mut">${esc(r.member_id)}</span></td>
+    <td>${esc(r.tier)}</td><td>${esc((r.applied_at||'').slice(0,16).replace('T',' '))}</td>
+    <td>${esc(r.status)}</td>
+    <td>${r.status==='pending'?`<button class="btn sm" onclick="setBind('${esc(r.line_user_id)}','approved')">核准</button>
+    <button class="btn ghost sm" onclick="setBind('${esc(r.line_user_id)}','rejected')">拒絕</button>`:''}</td>`;
+    tb.appendChild(tr);
+  });
+}
+async function setBind(uid,st){
+  const d=await api({action:'binding_set',line_user_id:uid,status:st});
+  if(d.success)loadBind();else alert(d.message||'失敗');
+}
+</script></div></body></html>
