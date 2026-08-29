@@ -413,6 +413,34 @@
   .field .i6 textarea { width:100%; padding:9px 10px; border:1px solid #d5d9e0;
     border-radius:8px; font-family:inherit; font-size:14.5px; line-height:1.6; resize:vertical; }
   .field .i6-warn { color:#b8960c; font-weight:700; }
+  /* 教練須知（2026-08-29）：三個身分分區，全勾才能登記——這是篩選不是形式 */
+  .pledge { border:2px solid #1a3068; border-radius:14px; padding:16px 14px; margin-bottom:20px;
+    background:#fbfcfe; }
+  .pledge-hd { font-size:17px; font-weight:900; color:#1a3068; margin-bottom:4px; }
+  .pledge-sub { font-size:13px; color:#5a6478; line-height:1.7; margin:0 0 14px; }
+  .pl-zone { margin-bottom:14px; }
+  .pl-zone-hd { font-size:14.5px; font-weight:900; color:#b8960c; margin-bottom:8px;
+    padding-bottom:5px; border-bottom:1px solid #ece5cd; }
+  .pl-zone-hd span { font-size:12px; font-weight:400; color:#8a93a5; margin-left:8px; }
+  .pl { display:flex; align-items:flex-start; gap:9px; padding:9px 10px; margin-bottom:7px;
+    border:1px solid #e3e8f0; border-radius:9px; background:#fff; cursor:pointer; }
+  .pl:has(input:checked) { border-color:#1a3068; background:#f4f7fd; }
+  .pl input[type="checkbox"] { width:18px; height:18px; min-width:18px; margin:2px 0 0;
+    padding:0; flex:0 0 auto; accent-color:#1a3068; border:0; }
+  .pl span { flex:1 1 auto; min-width:0; font-size:14px; line-height:1.55; color:#2b3445; }
+  .pl span b { color:#1a3068; }
+  .pl em { display:block; font-style:normal; font-size:12.5px; color:#6b7488;
+    line-height:1.65; margin-top:3px; }
+  .pl em b { color:#c0392b; }
+  .pl-status { text-align:center; font-size:13px; font-weight:700; color:#c0392b;
+    padding:9px; background:#fdecea; border-radius:8px; }
+  .pl-status.ok { color:#1e8449; background:#eafaf1; }
+  .pl-note { font-size:12.5px; color:#5a6478; line-height:1.75; background:#f5f7fb;
+             border-radius:8px; padding:8px 10px; margin:0 0 10px; }
+  .pl-goal { display:block; margin-top:8px; font-size:13px; font-weight:700; color:#1a3068; }
+  .pl-goal input { width:64px; margin:0 6px; padding:6px 8px; font-size:15px; font-weight:900;
+                   text-align:center; border:2px solid #d5dae6; border-radius:8px; color:#1a3068; }
+  .pl-goal input:focus { outline:none; border-color:#1a3068; }
 </style>
 </head>
 <body>
@@ -683,7 +711,82 @@
         </div>
       </div>
 
-      <button class="btn-submit" id="btn-coach-submit" onclick="handleCoachSubmit()">
+      <div class="pledge">
+        <div class="pledge-hd">📋 教練須知</div>
+        <p class="pledge-sub">教練有三個身分：帶一組人、帶一條線、帶你自己。<b>16 項逐條確認後才能登記。</b></p>
+
+        <div class="pl-zone">
+          <div class="pl-zone-hd">🎓 教練區域<span>你帶的那一組</span></div>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>① 隔天 12:00 前完成昨天的小組回饋</b>
+            <em>學員 22:00 前貼群組，你隔天中午前標完、回完、按送出——先把昨天結案。
+            ⚠️ 27 期送出率只有 <b>38%</b>（32/84），14 位裡 2 位全勤、2 位整期沒送出過。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>② 教練回饋結束後，接著貼今天的內容</b>
+            <em>回饋做完，才貼今天的指定課程與學員接龍——這樣公告是群裡最新的一則，不會被昨晚的作業洗下去。系統會產好，一鍵複製。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>③ 每週小組線上定聚 1 小時</b>
+            <em>關心近況、給方向、鼓勵組員，並與各自的上線領袖緊密配合行動。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>④ 每週五 10:00 線上教練時間</b>
+            <em>回報組員狀況，接收實戰班當週的調整與要求。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑤ 每週日實戰班之夜 20:30 準時集合</b>
+            <em>之夜 21:00 開始，提前 30 分鐘到位。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑥ 全程配合實戰班分配的任務</b>
+            <em>會的，把專業磨得更利；不會的，想辦法把能力補起來。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑦ 落實教練網頁回報</b>
+            <em>該標的標、該送出的送出——不靠記憶，靠系統。
+            ⚠️ 27 期有 9 位教練標了工卻沒送出，14 人次白做還被記點。</em></span></label>
+        </div>
+
+        <div class="pl-zone">
+          <div class="pl-zone-hd">👑 領袖區域<span>你的那條線</span></div>
+          <p class="pl-note">教練管「組」，領袖管「線」。系統會把你的下線分到<b>別人的組</b>——日常標記是那位組教練的事，你管的是你這條線的成長。</p>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑧ 讓夥伴做得到教練派的任務</b>
+            <em>組教練給你的夥伴什麼任務，你就負責讓他做得到——溝通、演練、協調、協助、關懷，一路陪到他把實戰班走完。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑨ 教練來回報，不要推回去</b>
+            <em>當教練向你反映夥伴的狀況，請正視——那是你的夥伴，不是教練的責任。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑩ 我就是最終負責人</b>
+            <em>線上還有其他領袖，不代表責任可以往下丟、往旁邊推。不能說「那是他直屬上線的事」，也不能說「教練你幫我聯絡一下」——你登記了這位夥伴，就負責到底。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑪ 每天用 LINE 官方看夥伴的回覆狀況</b>
+            <em>不是等他出事了才找他——每天看一眼，適時關心。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑫ 夥伴報件，我要按下審核</b>
+            <em>金額、等級、有沒有真的成交——你按下去才算數，榮譽榜的分數才是真的。
+            ⚠️ 27 期有人誤填大金 <b>1400 分</b>（佔全班締結 57%），是別的教練去問學員才發現的。</em></span></label>
+        </div>
+
+        <div class="pl-zone">
+          <div class="pl-zone-hd">⚡ 自我實現<span>你自己</span></div>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑬ 教練也是榜樣，自己也要交</b>
+            <em>教練同時具學員身分，每日行動回報你也要填。
+            ⚠️ 27 期 15 位教練裡 <b>5 位整期一天沒填</b>；教練佔 28% 的人數，只填了 20% 的天數。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑭ 我自己也要跑，不是只管別人</b>
+            <em>⚠️ 27 期只有 <b>3 位教練自己有締結</b>。帶人的人自己不動，組員不會動——他們看的是你做什麼，不是你說什麼。</em></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑮ 我要為自己這一期訂目標</b>
+            <em>你不是來服務別人的，你是來跟他們一起長的。這一期你自己要締結幾件，現在就寫下來——期末我們一起回頭看。</em>
+            <span class="pl-goal">這期我要締結
+              <input type="number" id="c-goal" min="1" max="99" inputmode="numeric" placeholder="—">
+              件</span></span></label>
+          <label class="pl"><input type="checkbox" class="pl-chk">
+            <span><b>⑯ 我留下的紀錄，會跟著我一輩子</b>
+            <em>每一期的行動都會累積進你的會員檔案——參加過幾期、締結幾件、開過幾家分店、帶過多少人。組織裡最好的榜樣不是講出來的，是一期一期累積出來的。</em></span></label>
+        </div>
+
+        <div class="pl-status" id="plStatus">還有 17 項未完成</div>
+      </div>
+
+      <button class="btn-submit" id="btn-coach-submit" onclick="handleCoachSubmit()" disabled>
         <span id="btn-coach-text">確認登記</span>
         <div class="loading" id="btn-coach-loading"></div>
       </button>
@@ -898,7 +1001,45 @@ async function handleStudentSubmit() {
   }
 }
 
+// 教練須知：16 項全勾 ＋ 締結目標填了，才解鎖登記鈕
+//   全勾才能報名是刻意的篩選——願意逐條看完的人，本來就是那批會做的人（2026-08-29 Randoph）
+function plRefresh() {
+  const chks = [...document.querySelectorAll('.pl-chk')];
+  if (!chks.length) return;
+  const goal = document.getElementById('c-goal');
+  const goalOk = goal && +goal.value >= 1;
+  const left = chks.filter(c => !c.checked).length + (goalOk ? 0 : 1);
+  const btn = document.getElementById('btn-coach-submit');
+  const st  = document.getElementById('plStatus');
+  if (btn) btn.disabled = left > 0;
+  if (st) {
+    st.textContent = left ? `還有 ${left} 項未完成` : `✅ ${chks.length} 項都確認了，可以登記`;
+    st.classList.toggle('ok', left === 0);
+  }
+}
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t && t.classList && (t.classList.contains('pl-chk') || t.id === 'c-goal')) plRefresh();
+});
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'c-goal') plRefresh();
+});
+
 async function handleCoachSubmit() {
+  // 16 項全勾 ＋ 締結目標，才放行——這是篩選，不是形式（2026-08-29 Randoph）
+  const chks = [...document.querySelectorAll('.pl-chk')];
+  if (chks.length && !chks.every(c => c.checked)) {
+    const e = document.getElementById('error-msg-coach') || document.getElementById('error-msg');
+    if (e) { e.textContent = '教練須知請逐條確認'; e.style.display = 'block'; }
+    return;
+  }
+  const goalEl = document.getElementById('c-goal');
+  const goalClose = goalEl ? parseInt(goalEl.value, 10) : NaN;
+  if (!(goalClose >= 1)) {
+    const e = document.getElementById('error-msg-coach') || document.getElementById('error-msg');
+    if (e) { e.textContent = '請填寫這一期你自己的締結目標'; e.style.display = 'block'; }
+    return;
+  }
   const memberCode = document.getElementById('c-member-code').value.trim();
   const name       = document.getElementById('c-name').value.trim();
   const phone      = document.getElementById('c-phone').value.trim();
@@ -940,7 +1081,8 @@ async function handleCoachSubmit() {
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 重審）
     const { error: coachErr } = await sb.from('batch_coaches').upsert({
-      batch_id: BATCH_ID, member_id: member.id, phone, rank, cfc, status: 'pending'
+      batch_id: BATCH_ID, member_id: member.id, phone, rank, cfc, status: 'pending',
+      goal_close: goalClose
     }, { onConflict: 'batch_id,member_id' });
     if (coachErr) throw coachErr;
 

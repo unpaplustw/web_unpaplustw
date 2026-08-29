@@ -358,6 +358,13 @@
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:.3s;z-index:999;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* 🔒 貼文卡上鎖（2026-08-29）：回饋沒送出前，貼文卡整組灰掉不可點 */
+  .g-gate { background:#fff4e5; border:2px solid #f0a500; border-radius:12px;
+            padding:13px 14px; margin-bottom:14px; font-size:14px; font-weight:900; color:#8a5200; }
+  .g-gate div { font-size:12.5px; font-weight:400; line-height:1.85; color:#7a5520; margin-top:6px; }
+  .g-gate-go { margin-top:10px; width:100%; padding:9px; border:none; border-radius:9px;
+               background:#f0a500; color:#fff; font-size:13.5px; font-weight:900; cursor:pointer; }
+  .gated { opacity:.32; pointer-events:none; filter:grayscale(.65); }
 </style>
 </head>
 <body>
@@ -670,6 +677,14 @@ https://ppt.cc/fJAcix
       <div class="guide-phase-sub">8/3 ～ 9/1 結業</div>
       <div class="guide-body" id="guideDuring">
 
+        <!-- 🔒 沒送出就不給貼：動線是 標記→回覆→送出→才貼今天（2026-08-29 Randoph） -->
+        <div class="g-gate" id="gGate" style="display:none">
+          🔒 <b>先把 <span id="gGateDay">昨天</span> 的回饋送出</b>
+          <div>到「👥 組員」把大家標完、回完，按下<b>送出</b>，這裡才會開。<br>
+          貼文要在回饋<b>之後</b>——這樣公告才會是群裡最新的一則，不會被昨晚的作業洗下去。</div>
+          <button class="g-gate-go" onclick="gotoSubmit()">→ 去完成回饋</button>
+        </div>
+
         <!-- 行動週專用：課表跑完後（8/21 起）這裡才有東西，學習週隱藏 -->
         <div id="actGuide" style="display:none">
           <div class="g-step g-act">
@@ -698,7 +713,7 @@ https://ppt.cc/fJAcix
 
         <div class="g-step" id="gStepHw1">
           <div class="g-step-hd"><span class="g-step-n">1</span><span class="g-step-t">貼作業內容到小組群</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b><b>睡前</b>貼，讓學員知道<b>明天</b>要交什麼。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群。</div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>做完昨天的回饋、按下「送出」<b>之後</b>，貼<b>今天</b>要交的。<br>👉 <b>怎麼做：</b>按一下複製，直接貼到你的小組群。</div>
           <div class="g-step-body">
             <div class="g-copybox">
 <pre class="g-text" id="cpHomework">載入中…</pre>
@@ -963,6 +978,7 @@ async function loadSubmits() {
   if (error) throw new Error('送出紀錄：' + error.message);
   submitMap = {};
   (data || []).forEach(r => { submitMap[r.log_date] = r; });
+  applyPostGate();   // 送出後貼文卡要立刻解鎖
 }
 const isSubmitted = ds => !!submitMap[ds];
 function overDeadline(ds) {              // 是否已過隔天 12:00
@@ -1800,7 +1816,26 @@ function showGuidePhase(phase) {
   });
 }
 
-function initGuidePhase() { renderRollcall(); showGuidePhase(currentGuidePhase()); }
+// 🔒 貼文卡上鎖（2026-08-29 Randoph）
+//   動線是有先後的：標記 → 回覆 → 送出 → 才貼今天的公告。
+//   介面直接擋順序，教練不用記——記不住的規則等於沒有規則。
+function applyPostGate() {
+  const gate = document.getElementById('gGate');
+  if (!gate) return;
+  const p = pendingSubmitDays()[0];
+  gate.style.display = p ? 'block' : 'none';
+  if (p) {
+    const d = new Date(p + 'T00:00:00');
+    const el = document.getElementById('gGateDay');
+    if (el) el.textContent = `${d.getMonth()+1}/${d.getDate()}（${['日','一','二','三','四','五','六'][d.getDay()]}）`;
+  }
+  ['actGuide', 'gStepHw1', 'gStepHw2'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) c.classList.toggle('gated', !!p);
+  });
+}
+
+function initGuidePhase() { renderRollcall(); applyPostGate(); showGuidePhase(currentGuidePhase()); }
 
 // ══════════════════════════════════════════════════════════
 // 🚪 退班文案（2026-08-23 Randoph 提供，逐字不改）
@@ -2052,9 +2087,10 @@ ${foot}`;
 
 // ── 教練指南：一鍵複製（LINE webview 可能擋 clipboard API，故備援 execCommand）──
 // ── 開班中：作業文案＋接龍範本，教練一鍵複製貼群（課表來源 units.js，改課表不必動這裡）──
-// 🔴 2026-08-23 移除「今天的／明天的」切換（Randoph）：
-//   作業貼文的設計本來就是「睡前預告明天要交什麼」，多一個「今天的」只會讓教練
-//   早上打開時以為現在才要貼——但學員昨晚就該知道了。少一個選項＝少一個出錯的地方。
+// 🔴 2026-08-29 定案（Randoph）：貼文的時間點是「教練回饋結束後」，貼的是**今天**要交的。
+//   為什麼不是睡前貼明天：睡前貼完，學員接著繳當天的作業，群組馬上被洗下去，
+//   隔天早上根本沒人看得到。回饋做完才貼，公告就會是群裡最新的一則。
+//   （8/23 曾改成「睡前貼明天」，實際跑過一輪後推翻）
 const WD_TW = ['日','一','二','三','四','五','六'];
 
 // 把【錄音1分鐘】這種標記轉成好讀的「🎙 錄音 1 分鐘」
@@ -2069,7 +2105,7 @@ function renderRollcall() {
   if (!hwBox || !rcBox || typeof unitsOfDay !== 'function') return;
 
   const base = new Date();
-  base.setDate(base.getDate() + 1);          // 固定明天：睡前貼的是明天要交的作業
+  // 🔴 2026-08-29 改為「今天」：睡前貼明天的作業，會被學員當晚的繳交洗掉（Randoph）
   const d = base.getFullYear() + '-' + String(base.getMonth()+1).padStart(2,'0') + '-' + String(base.getDate()).padStart(2,'0');
   const md = `${base.getMonth()+1}/${base.getDate()}（${WD_TW[base.getDay()]}）`;
   const units = unitsOfDay(d);
