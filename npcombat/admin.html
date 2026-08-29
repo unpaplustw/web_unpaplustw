@@ -493,11 +493,11 @@ async function init() {
 
 async function load() {
   const { data: s } = await sb.from('batch_students')
-    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, dropped_at, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, track, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, dropped_at, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
     .eq('batch_id', bid);
   students = s || [];
   const { data: c } = await sb.from('batch_coaches')
-    .select('id, member_id, phone, rank, cfc, group_name, status, created_at, members_master(name, member_code)')
+    .select('id, member_id, phone, rank, cfc, group_name, goal_close, status, created_at, members_master(name, member_code)')
     .eq('batch_id', bid);
   coaches = c || [];
   const { data: br } = await sb.from('bonus_rules')
@@ -556,6 +556,11 @@ const refDayLabel = () => ((SCHEDULE || {})[lastWeekday()] || []).length ? '上�
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'邀約見面', present:'邀請溝通本', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
 const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組'];
+// 28 期三種組：組別（第 N 組）是編制，track 是目標——兩件事，分開存（2026-08-29）
+const TRACKS = { learn:'初階學習組', action:'初階行動組', elite:'初階菁英組' };
+const trackName = t => TRACKS[t] || '—';
+// 只有行動組／菁英組要交自我定位；學習組（直推 1）不用
+const needsIntro = s => s.track === 'action' || s.track === 'elite';
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
 const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 
@@ -1844,6 +1849,7 @@ function renderReview() {
         <div class="card-left">
           <div class="card-name">${nm(c)}${mc(c)}</div>
           <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+          <div class="card-meta">這期締結目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '<span style="color:var(--muted)">未填</span>'}</div>
         </div>
         <div class="acts">${bdg(c.status)}
           ${isReadonly ? '' : `<button class="btn btn-ok" onclick="approveCoach('${c.id}')">批准</button>
@@ -1860,9 +1866,8 @@ function renderReview() {
       <div class="card">
         <div class="card-left">
           <div class="card-name">${nm(s)}${mc(s)}</div>
-          <div class="card-meta">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
-          ${s.name_list?`<div class="card-meta">名單：${nl(s.name_list)}</div>`:''}
-          ${s.introduction?`<div class="card-meta">自我定位：${s.introduction}</div>`:''}
+          <div class="card-meta">電話：${s.phone||'—'} ｜ 報名組別：<b>${trackName(s.track)}</b> ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
+          ${needsIntro(s) ? (s.introduction ? `<div class="card-meta">自我定位：${s.introduction}</div>` : '<div class="card-meta" style="color:var(--yellow)">⚠️ 行動／菁英組必須交自我定位，這位還沒交</div>') : ''}
         </div>
         <div class="acts">${bdg(s.status)}
           ${isReadonly ? '' : `<button class="btn btn-ok" onclick="approveStudent('${s.id}')">批准</button>
@@ -1887,7 +1892,10 @@ function renderRosterSection() {
   let cList = ac;
   if (rosterSearch) {
     const t = rosterSearch.toLowerCase();
-    sList = sList.filter(s => (nm(s)+mc(s)+(s.phone||'')+(s.group_name||'')).toLowerCase().includes(t));
+    sList = sList.filter(s => {
+      const co = s.coach_id ? coaches.find(c => c.id === s.coach_id) : null;
+      return (nm(s)+mc(s)+(s.phone||'')+(co?.group_name||'')+trackName(s.track)).toLowerCase().includes(t);
+    });
     cList = cList.filter(c => (nm(c)+mc(c)+(c.phone||'')+(c.rank||'')).toLowerCase().includes(t));
   }
   if (rosterFilter === 'no-phone') cList = cList.filter(c => !c.phone);
@@ -1911,7 +1919,7 @@ function renderRosterSection() {
           <div class="roster-top">
             <div>
               <div class="card-name">${nm(c)}${mc(c)}</div>
-              <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+              <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'} ｜ 這期目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '未填'}</div>
               <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>組別：</span>${isReadonly
                 ? `<span style="font-size:12px">${c.group_name||'未分組'}</span>`
                 : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select>`}<span>｜ 學員 ${pairedStudents(c.id).length} 名</span></div>
@@ -1934,7 +1942,7 @@ function renderRosterSection() {
     sList.forEach(s => {
       const coachObj = s.coach_id ? coaches.find(c => c.id === s.coach_id) : null;
       const coachName = coachObj ? nm(coachObj) : '未配對';
-      const hasList = s.name_list && (Array.isArray(s.name_list) ? s.name_list.length > 0 : String(s.name_list).trim());
+      const grp = coachObj?.group_name || '未分組';   // 🔴 組別跟著教練走：batch_students.group_name 全班同值（「啟動班」），不是組別
       const hasIntro = s.introduction && String(s.introduction).trim();
       const gone = !!s.dropped_at;
       h += `
@@ -1942,11 +1950,13 @@ function renderRosterSection() {
         <div class="roster-top">
           <div>
             <div class="card-name">${nm(s)}${mc(s)}</div>
-            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${s.group_name||'—'} ｜ 教練：${coachName}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
-            <div class="roster-checks">
-              <span class="roster-check" onclick="showDetail('${s.id}','name_list')"><span class="${hasList?'has':'no'}">${hasList?'✓':'✗'}</span> 名單</span>
+            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
+            <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>報名組別：</span>${isReadonly
+              ? `<span style="font-size:12px">${trackName(s.track)}</span>`
+              : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setStudentTrack('${s.id}',this.value)"><option value="">未指定</option>${Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${s.track===k?' selected':''}>${v}</option>`).join('')}</select>`}</div>
+            ${needsIntro(s) ? `<div class="roster-checks">
               <span class="roster-check" onclick="showDetail('${s.id}','introduction')"><span class="${hasIntro?'has':'no'}">${hasIntro?'✓':'✗'}</span> 自我定位</span>
-            </div>
+            </div>` : ''}
           </div>
           ${isReadonly ? '' : `<div style="display:flex;gap:6px">
             ${gone
@@ -2034,7 +2044,6 @@ function showEdit(sid) {
   const el = document.getElementById('edit-' + sid);
   el.innerHTML = `<div class="edit-row">
     <div class="edit-field"><label>電話</label><input id="ef-phone-${sid}" value="${s.phone||''}"></div>
-    <div class="edit-field"><label>組別</label><input id="ef-group-${sid}" value="${s.group_name||''}"></div>
     <button class="btn-save" onclick="saveEdit('${sid}')">儲存</button>
     <button class="btn-cancel" onclick="renderReview()">取消</button>
   </div>`;
@@ -2042,8 +2051,7 @@ function showEdit(sid) {
 
 async function saveEdit(sid) {
   const phone = document.getElementById('ef-phone-' + sid).value.trim();
-  const group_name = document.getElementById('ef-group-' + sid).value.trim();
-  const { error } = await sb.from('batch_students').update({ phone, group_name }).eq('id', sid);
+  const { error } = await sb.from('batch_students').update({ phone }).eq('id', sid);
   if (error) return alert('儲存失敗：' + error.message);
   toast('資料已更新'); await load();
 }
@@ -2327,6 +2335,13 @@ async function setCoachGroup(cid, groupName) {
   const { error } = await sb.from('batch_coaches').update({ group_name: groupName || null }).eq('id', cid);
   if (error) return alert('組別更新失敗：' + error.message);
   toast('組別已更新'); await load();
+}
+
+// 報名組別（學習／行動／菁英）——菁英面試沒過改行動組，就靠這裡（2026-08-29）
+async function setStudentTrack(sid, track) {
+  const { error } = await sb.from('batch_students').update({ track: track || null }).eq('id', sid);
+  if (error) return alert('組別更新失敗：' + error.message);
+  toast('報名組別已更新'); await load();
 }
 
 // ════════════════════════════════════════════
