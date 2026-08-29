@@ -271,6 +271,14 @@ body {
         <label>他原話補充（選填）</label>
         <input type="text" class="styled-input" id="intentDetail" placeholder="例：晚上睡不好，起來好幾次">
       </div>
+      <div class="form-group">
+        <label>這是誰說的</label>
+        <div class="btn-group">
+          <input type="radio" name="bySelf" id="bs0" value="0" checked><label for="bs0">我轉述的</label>
+          <input type="radio" name="bySelf" id="bs1" value="1"><label for="bs1">他本人當場說</label>
+        </div>
+        <div class="hint">回訪時語氣會不同：本人說的可以直接引用，轉述的要先確認。</div>
+      </div>
     </div>
 
     <button type="submit" id="submitBtn" class="submit-btn" disabled>
@@ -526,9 +534,10 @@ function toggleTopic(el){
 }
 function intentPayload(mid,by){
   if(!INTENT_CAT) return null;
+  const bs=document.querySelector('input[name="bySelf"]:checked');
   return { member_id:mid, category:INTENT_CAT, topics:[...INTENT_TOPICS],
            detail:(document.getElementById('intentDetail').value||'').trim(),
-           source:'入會回報', reported_by:by||'' };
+           source:'入會回報', reported_by:by||'', by_self: bs ? bs.value==='1' : false };
 }
 document.addEventListener('DOMContentLoaded',loadIntentOptions);
 

@@ -331,7 +331,7 @@ function renderCard(d){
   const dead=b.payment_method===0;
   document.getElementById('mcHead').innerHTML=
     `<div style="font-size:20px;font-weight:700">${esc(b.name)} ${dead?'<span style="color:var(--bad);font-size:13px">已解約</span>':''}</div>
-     <div class="mut">${esc(b.member_id)}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）｜歸戶 <b>${esc(b.route_leader)}</b></div>`;
+     <div class="mut">${esc(b.member_id)}${b.verify_status?' <span style="background:#3a2f18;color:var(--warn);border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">⚠️ 待核對</span>':''}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）｜歸戶 <b>${esc(b.route_leader)}</b></div>`;
   const dot=v=>v==='1'?'<span style="color:var(--ok)">●</span>':'<span style="color:#484f58">○</span>';
   const cd=b.auto_cancel_days?`<div style="background:#3d1418;border:1px solid var(--bad);border-radius:8px;padding:9px;margin-bottom:10px">
      🚨 <b style="color:var(--bad)">自動解約倒數 ${esc(b.auto_cancel_days)}</b>　<span class="mut">歸零後位置永久消失、編號不可回收</span></div>`:'';
@@ -715,11 +715,13 @@ function intentBox(d){
   return `<div class="card" style="background:#0d1116;margin-bottom:12px;border-color:var(--acc)">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
       <b>💬 他為什麼加入</b>
-      <span class="mut" style="font-size:12.5px">${esc(i.asked_at||'')}｜${esc(i.source||'')}${i.reported_by?'｜'+esc(i.reported_by)+' 填':''}${n>1?'｜共 '+n+' 次記錄':''}</span>
+      <span class="mut" style="font-size:12.5px">${esc(i.asked_at||'')}｜${esc(i.source||'')}${i.reported_by?'｜'+esc(i.reported_by)+(i.by_self?' 記錄（本人說）':' 轉述'):''}${n>1?'｜共 '+n+' 次記錄':''}</span>
     </div>
     <div style="margin-top:6px;font-size:16px"><b style="color:var(--acc)">${esc(i.category||'')}</b>${t?'　'+t:''}</div>
     ${i.detail?`<div style="margin-top:6px;padding:8px;border-left:3px solid var(--acc);background:#0f1a2e">「${esc(i.detail)}」</div>`:''}
-    <div class="mut" style="margin-top:6px;font-size:13px">回訪就從這裡開口：<b>「當初你說${esc((i.topics&&i.topics[0])||i.category)}，現在怎麼樣？」</b></div>
+    <div class="mut" style="margin-top:6px;font-size:13px">${i.by_self
+      ?`回訪直接引用：<b>「當初你說${esc((i.topics&&i.topics[0])||i.category)}，現在怎麼樣？」</b>`
+      :`<b style="color:var(--warn)">這是 ${esc(i.reported_by||'他人')} 轉述的，先確認再用</b>：「聽說你比較在意${esc((i.topics&&i.topics[0])||i.category)}，對嗎？」`}</div>
   </div>`;
 }
 
