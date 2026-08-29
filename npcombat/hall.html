@@ -67,7 +67,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 .board-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
 .board-t{font-size:19px;font-weight:900}
 .board-d{font-size:12.5px;color:var(--txt2)}
-.board-cov{font-size:11.5px;color:var(--txt3);margin-bottom:12px}
+.board-cov{font-size:11.5px;color:var(--txt3);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.legend{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;
+  background:#fffbeb;border:1px solid var(--gold2);color:var(--gold3);font-weight:700}
 
 .row{display:flex;align-items:center;gap:11px;padding:11px 13px;background:var(--card);
   border:1px solid var(--border);border-radius:11px;margin-bottom:7px;
@@ -214,7 +217,9 @@ function render(scroll) {
   document.getElementById('bD').textContent = def[3];
 
   const cov = (HALL.cover[cur] || []).map(b => (HALL.batches[b] || {}).n).filter(Boolean);
-  document.getElementById('bC').textContent = cov.length ? `收錄：${cov.join('、')}` : '';
+  document.getElementById('bC').innerHTML =
+    (cov.length ? `<span>收錄：${cov.join('、')}</span>` : '') +
+    '<span class="legend">👑 當過教練</span>';
 
   const L = document.getElementById('list');
   if (!rows.length) {
@@ -238,7 +243,7 @@ function render(scroll) {
   if (th) bits.push(`<b>第 ${rows.length} 名的門檻：${th}</b>`);
   else if (rows.length) bits.push(`目前 <b>${rows.length}</b> 人在榜——現在進來還很容易，之後會越來越擠`);
   if (HALL.notes[cur]) bits.push('⚠️ ' + HALL.notes[cur]);
-  bits.push('👑 ＝ 當過教練。0 不進榜，沒出手的人不佔位置。每期結業重算一次，不動的人會被擠下去。');
+  bits.push('0 不進榜——沒出手的人不佔位置。每期結業重算一次，不動的人會被擠下去。');
   document.getElementById('foot').innerHTML = bits.join('<br>');
 
   if (scroll && hitCode) {
