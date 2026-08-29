@@ -109,6 +109,16 @@ select.inp{padding:8px}
 </div>
 </div>
 
+<div id="mcard" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99;overflow:auto;padding:16px">
+ <div style="max-width:820px;margin:0 auto;background:var(--card,#161b22);border:1px solid #30363d;border-radius:12px;padding:18px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div id="mcHead"></div>
+    <button class="btn sm" onclick="closeCard()">✕ 關閉</button>
+  </div>
+  <div id="mcBody" style="margin-top:12px"></div>
+ </div>
+</div>
+
 <script>
 const SUPABASE_URL="https://nsgqsopqlkhayuefdout.supabase.co";
 const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
@@ -144,7 +154,7 @@ function renderTasks(rows){
   const tb=document.getElementById('tbody');tb.innerHTML='';
   rows.forEach(r=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${esc(r.task_type)}</td><td>${esc(r.target_name||'')}<br><span class="mut">${esc(r.target_member_id)}</span></td>
+    tr.innerHTML=`<td>${esc(r.task_type)}</td><td><a href="javascript:openCard('${esc(r.target_member_id)}')" style="color:#58a6ff;font-weight:600">${esc(r.target_name||'')}</a><br><span class="mut">${esc(r.target_member_id)}</span></td>
     <td>${esc(r.detail||'')}</td><td>${esc(r.assignee_name||'—')}</td><td>${esc(r.due_date||'')}</td>
     <td><span class="pill p-${esc(r.status)}">${esc(r.status)}</span></td>
     <td>${esc(r.result_note||'')}</td>
@@ -227,10 +237,10 @@ async function loadOv(){
   });
   document.getElementById('ovLegNote').textContent='第一性原理：①循環購買 ②直推2（有效）。右線兩項皆遠低於左線＝CFC 瓶頸。';
   const cd=document.getElementById('ovCd');cd.innerHTML='';
-  (d.countdown_top||[]).forEach(x=>{cd.innerHTML+=`<tr><td>${esc(x.name)}<br><span class="mut">${esc(x.member_id)}</span></td>
+  (d.countdown_top||[]).forEach(x=>{cd.innerHTML+=`<tr><td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:#58a6ff;font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
     <td>${esc(x.leg)}</td><td style="color:var(--bad,#ff5d5d);font-weight:700">${esc(x.auto_cancel_days)}</td><td>${esc(x.route)}</td></tr>`;});
   const rn=document.getElementById('ovRn');rn.innerHTML='';
-  (d.renewal30||[]).forEach(x=>{rn.innerHTML+=`<tr><td>${esc(x.name)}<br><span class="mut">${esc(x.member_id)}</span></td>
+  (d.renewal30||[]).forEach(x=>{rn.innerHTML+=`<tr><td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:#58a6ff;font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
     <td>${esc(x.leg)}</td><td>${esc(x.plan_code||'')}</td><td>${esc(x.until)}</td></tr>`;});
   const ld=document.getElementById('ovLd');ld.innerHTML='';
   (d.leaders||[]).forEach(x=>{ld.innerHTML+=`<tr><td>${esc(x.name)}</td><td>${esc(x.tier)}</td>
@@ -245,6 +255,79 @@ async function autoAssign(){
   document.getElementById('ovMsg').textContent=d.success?
     ('✅ 已建立 倒數救援 '+d.countdown_created+' 件、續約 '+d.renewal_created+' 件'):(d.message||'失敗');
   if(d.success)loadOv();
+}
+
+
+function openCard(id){
+  document.getElementById('mcard').classList.remove('hidden');
+  document.getElementById('mcHead').innerHTML='<b>載入中…</b>';
+  document.getElementById('mcBody').innerHTML='';
+  fetch(SUPABASE_URL+'/rest/v1/rpc/nds_member_card',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,member_id:id}})}).then(r=>r.json()).then(renderCard);
+}
+function closeCard(){document.getElementById('mcard').classList.add('hidden');}
+function pm(n){return {0:'❌已解約',1:'自動扣款',2:'匯款',3:'預購一次付',4:'信用卡'}[n]||('代碼'+n);}
+function renderCard(d){
+  if(!d.success){document.getElementById('mcHead').innerHTML='<b>'+esc(d.message||'讀取失敗')+'</b>';return;}
+  const b=d.base, isBC=b.sponsor_member_id&&b.sponsor_member_id.split('-')[0]===b.member_id.split('-')[0];
+  const dead=b.payment_method===0;
+  document.getElementById('mcHead').innerHTML=
+    `<div style="font-size:20px;font-weight:700">${esc(b.name)} ${dead?'<span style="color:#ff5d5d;font-size:13px">已解約</span>':''}</div>
+     <div class="mut">${esc(b.member_id)}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）
+     ｜歸戶 <b>${esc(b.route_leader)}</b></div>`;
+  // 消費三月燈號
+  const dot=v=>v==='1'?'<span style="color:#3fb950">●</span>':'<span style="color:#484f58">○</span>';
+  const cd=b.auto_cancel_days?`<div style="background:#3d1418;border:1px solid #ff5d5d;border-radius:8px;padding:8px;margin-bottom:10px">
+     🚨 <b style="color:#ff5d5d">自動解約倒數 ${esc(b.auto_cancel_days)}</b>　歸零後位置永久消失、編號不可回收</div>`:'';
+  // 子樹
+  let tree='<div class="mut">此位置底下無安置人員（末端位置）</div>';
+  if((d.tree||[]).length){
+    tree='<table><thead><tr><th>子樹</th><th>總位置</th><th>未解約</th><th>本月有效</th><th>9月有買</th></tr></thead><tbody>'+
+      d.tree.map(t=>`<tr><td><b>${esc(t.side||'?')}</b></td><td>${t.total}</td><td>${t.active}</td><td>${t.valid}</td><td>${t.bought_m9}</td></tr>`).join('')+
+      '</tbody></table>';
+  }
+  // 直推
+  let dir='<div class="mut">尚無直接推薦</div>';
+  if((d.directs||[]).length){
+    dir=d.directs.map(x=>`<span class="pill" onclick="openCard('${esc(x.member_id)}')" style="cursor:pointer;display:inline-block;border:1px solid #30363d;border-radius:14px;padding:3px 10px;margin:3px 4px 0 0">
+      ${x.cancelled?'❌':(x.is_valid?'✅':'⚠️')} ${esc(x.name)}</span>`).join('');
+  }
+  // 同主編號
+  let hs='<div class="mut">此人只有這一個位置</div>';
+  if((d.household||[]).length){
+    hs='<table><thead><tr><th>分號</th><th>狀態</th><th>方案</th><th>9月</th><th>倒數</th></tr></thead><tbody>'+
+      d.household.map(h=>`<tr><td><a href="javascript:openCard('${esc(h.member_id)}')" style="color:#58a6ff">${esc(h.member_id)}</a></td>
+      <td>${h.cancelled?'<span style="color:#ff5d5d">已解約</span>':(h.is_valid?'✅有效':'⚠️未達')}</td>
+      <td>${esc(h.plan_code||'—')}</td><td>${dot(h.m9)}</td>
+      <td>${h.auto_cancel_days?'<span style="color:#ff5d5d">'+esc(h.auto_cancel_days)+'</span>':'—'}</td></tr>`).join('')+
+      '</tbody></table>';
+  }
+  document.getElementById('mcBody').innerHTML = cd + `
+   <div style="display:flex;gap:14px;flex-wrap:wrap">
+     <div style="flex:1;min-width:250px">
+       <b>💳 方案與消費</b>
+       <table><tbody>
+        <tr><td class="mut">付款別</td><td>${esc(pm(b.payment_method))}</td></tr>
+        <tr><td class="mut">方案</td><td>${esc(b.plan_code||'—')}${b.plan_until?'（至 '+esc(b.plan_until)+'）':''}</td></tr>
+        <tr><td class="mut">商品</td><td>${esc(b.goods_name||'—')}</td></tr>
+        <tr><td class="mut">7/8/9 月購買</td><td>${dot(b.m7)} ${dot(b.m8)} ${dot(b.m9)}</td></tr>
+        <tr><td class="mut">最後購買</td><td>${esc(b.last_purchase_month||'—')}</td></tr>
+        <tr><td class="mut">本期有效資格</td><td>${b.is_valid?'✅ 有效':'⚠️ 未達 10,000 點'}</td></tr>
+       </tbody></table>
+     </div>
+     <div style="flex:1;min-width:250px">
+       <b>🌳 位置關係</b>
+       <table><tbody>
+        <tr><td class="mut">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:#58a6ff">${esc(b.sponsor_name||b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人，此為 BC 分身)</span>':''):'—'}</td></tr>
+        <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:#58a6ff">${esc(b.placement_parent_name||b.placement_parent_id)}</a>`:'—'} ${esc(b.placement_position||'')}</td></tr>
+       </tbody></table>
+       <div style="margin-top:8px"><b>底下組織</b>${tree}</div>
+     </div>
+   </div>
+   <div style="margin-top:12px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div>
+     <div class="mut" style="margin-top:4px">第一性原理：直推 ≥2 有效才跑得動獨立循環（BC 自推也算）</div></div>
+   <div style="margin-top:12px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div></div>`;
 }
 
 </script></div></body></html>
