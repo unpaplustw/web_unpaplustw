@@ -464,14 +464,14 @@ function readOut(b,d){
   const say=[];
   // 本人
   if(b.payment_method===0) say.push(['bad','這個位置已解約，編號不可回收——組織仍掛在下面，但本人不再產生點數。']);
-  else if(b.auto_cancel_days) say.push(['bad',`本人倒數 ${b.auto_cancel_days}：歸零就永久失去這個位置，底下 ${tot} 個位置的上手會斷。**先救這一個**。`]);
+  else if(b.auto_cancel_days) say.push(['bad',`本人倒數 ${b.auto_cancel_days}：歸零就永久失去這個位置，底下 ${tot} 個位置的上手會斷。<b>先救這一個</b>。`]);
   else if(!b.is_valid) say.push(['warn','本人本期未達 10,000 點＝沒有有效期間，這段時間底下的點數對他不計獎。']);
   else say.push(['ok','本人資格正常。']);
   // 雙軌平衡
   if(tot===0) say.push(['mut','底下還沒有人——這是末端位置，要嘛他去推薦，要嘛上手把新人排到他下面。']);
   else if(L.total===0||R.total===0){
     const empty=L.total===0?'左':'右';
-    say.push(['bad',`**單邊組織**：${empty}腳是空的（另一邊 ${Math.max(L.total,R.total)} 人）。雙軌只算弱腿對碰，這樣<b>一毛對碰獎金都跑不出來</b>——新人優先排 ${empty} 邊。`]);
+    say.push(['bad',`<b>單邊組織</b>：${empty}腳是空的（另一邊 ${Math.max(L.total,R.total)} 人）。雙軌只算弱腿對碰，這樣<b>一毛對碰獎金都跑不出來</b>——新人優先排 ${empty} 邊。`]);
   } else {
     const big=L.total>=R.total?L:R, sml=L.total>=R.total?R:L;
     const bn=L.total>=R.total?'左':'右', sn=L.total>=R.total?'右':'左';
