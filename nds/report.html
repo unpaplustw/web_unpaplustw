@@ -265,6 +265,7 @@ body {
 
     <!-- D. 入會期待 -->
     <div class="section-label">D · 他為什麼加入</div>
+    <div id="quickBind" style="display:none" class="form-group"></div>
     <div id="intentKnown" style="display:none" class="form-group"></div>
     <div id="intentAsk">
       <div class="form-group">
@@ -409,6 +410,7 @@ async function initializeLiff(liffId){
     document.getElementById('userName').textContent = p.displayName;
     document.getElementById('lineId').value = p.userId;
     document.getElementById('displayName').value = p.displayName;
+    checkWhoami();
     document.getElementById('oaId').value = getOaFromUrl();
     document.getElementById('submitBtn').disabled = false;
   } catch(err){
@@ -508,28 +510,19 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     btn.style.background='linear-gradient(135deg,#00b09b,#96c93d)';
 
     const isSelf = (document.querySelector('input[name="whoFills"]:checked')||{}).value==='self';
-    if(isSelf){
-      /* 本人填的：手上這支 LINE 就是他的，直接綁 */
-      const tk = await rpc('nds_bind_issue', { member_id: payload.member_id, created_by:'本人填寫' });
-      if(tk && tk.success){
-        const bd = await rpc('nds_bind_confirm', { token:tk.token,
-          line_uid: payload.line_id, line_name: payload.line_name });
-        showResult(bd&&bd.success ? '✅ 回報成功，已綁定你的 LINE。'
-                                  : '回報成功，但 LINE 綁定失敗：'+((bd&&bd.message)||'請聯絡總部'),
-                   bd&&bd.success?'success':'warning');
-      }
-      setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },2600);
+    if(isSelf && payload.line_id){
+      const bd = await rpc('nds_bind_self', { member_id: payload.member_id,
+        line_uid: payload.line_id, line_name: payload.line_name });
+      showResult(bd&&bd.success
+        ? '✅ 回報成功，已綁定你的 LINE（'+bd.positions+' 個位置）。之後通知都會發到這裡。'
+        : '✅ 回報成功。LINE 綁定未完成：'+((bd&&bd.message)||'請聯絡總部'),
+        bd&&bd.success?'success':'warning');
     } else {
-      /* 代填：發一條一次性連結，請他傳給本人 */
-      const tk = await rpc('nds_bind_issue', { member_id: payload.member_id, created_by: payload.line_name });
-      if(tk && tk.success){
-        const url = location.origin + '/nds/bind.html?t=' + tk.token;
-        showBindLink(tk.name, url);
-      } else {
-        showResult('回報成功。（綁定連結產生失敗，可稍後在戰情台補發）','warning');
-        setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },2200);
-      }
+      showResult('✅ 回報成功。\n請提醒 '+(document.getElementById('name').value||'新人')
+        +' 加入官方帳號，他自己從選單進來就能綁定。', 'success');
     }
+    setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },3200);
+
   } catch(err){ console.error('submit error',err); showResult('送出失敗：'+err.message,'error'); resetBtn(); }
 });
 
@@ -573,6 +566,22 @@ function intentPayload(mid,by){
 }
 document.addEventListener('DOMContentLoaded',loadIntentOptions);
 
+/* 進來先看這支 LINE 綁了誰 */
+let BOUND=null;
+async function checkWhoami(){
+  const uid=document.getElementById('lineId').value;
+  if(!uid) return;
+  BOUND=await rpc('nds_whoami',{line_uid:uid});
+  if(BOUND&&BOUND.bound){
+    // 已綁定 → 這支 LINE 是老會員，預設就是幫別人填
+    document.getElementById('wf0').checked=true;
+    document.getElementById('whoHint').innerHTML=
+      '這支 LINE 已綁定為 <b>'+BOUND.name+'</b>，所以是幫別人回報。';
+    document.getElementById('wf1').disabled=true;
+    document.getElementById('wf1').parentElement.querySelector('label[for="wf1"]').style.opacity=.4;
+  }
+}
+
 
 /* ===== 同一個人開分店：自動帶入，不要重問 ===== */
 let PERSON=null;
@@ -597,6 +606,20 @@ async function lookupPerson(){
   const mb=document.getElementById('midBranch');
   if(mb&&(!mb.value||mb.value==='001')&&PERSON.next_branch) mb.value=PERSON.next_branch;
 
+  // 本人自己進來，而且資料已經被代填過 → 直接綁，不用重填
+  const isSelfNow=(document.querySelector('input[name="whoFills"]:checked')||{}).value==='self';
+  const kb=document.getElementById('quickBind');
+  if(isSelfNow && !(BOUND&&BOUND.bound)){
+    kb.style.display='';
+    kb.innerHTML=`<div class="intent-known">
+      <div style="font-weight:800;font-size:1.05rem">資料已經有了：${P.name||''}</div>
+      <div style="margin-top:4px;opacity:.8">已有 ${(PERSON.branches||[]).length} 個位置。你只要綁定就好，不用重填。</div>
+      <button type="button" class="btn yes" style="width:100%;margin-top:12px;border:0;border-radius:14px;
+        padding:16px;font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#00b09b,#96c93d);color:#fff;cursor:pointer"
+        onclick="quickBind('${(PERSON.branches&&PERSON.branches[0])?main+'-'+PERSON.branches[0]:''}')">
+        這就是我，綁定我的 LINE</button></div>`;
+  } else { kb.style.display='none'; }
+
   const I=PERSON.intent;
   if(I){
     // 已問過 → 整段收起來，只顯示已知
@@ -620,6 +643,16 @@ async function lookupPerson(){
     }
   }
 }
+async function quickBind(mid){
+  if(!mid){ alert('缺少會員編號'); return; }
+  const uid=document.getElementById('lineId').value;
+  const d=await rpc('nds_bind_self',{member_id:mid,line_uid:uid,
+    line_name:document.getElementById('displayName').value});
+  if(d&&d.success){
+    showResult('✅ 綁定完成，'+d.name+' 你好！共 '+d.positions+' 個位置。之後通知都會發到這裡。','success');
+    setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },3000);
+  } else showResult(( d&&d.message)||'綁定失敗，請聯絡總部','warning');
+}
 function reAskIntent(){
   document.getElementById('intentKnown').style.display='none';
   document.getElementById('intentAsk').style.display='';
@@ -638,36 +671,13 @@ async function rpc(fn,body){
     return await r.json();
   }catch(e){ console.warn(fn+' failed',e); return null; }
 }
-function showBindLink(name,url){
-  const b=document.getElementById('resultBox');
-  b.className='result-box success'; b.style.display='block';
-  b.innerHTML=`<div style="font-weight:800;font-size:1.1rem">✅ 回報成功</div>
-    <div style="margin-top:8px">把這條連結傳給 <b>${name}</b>，他點一下就完成 LINE 綁定：</div>
-    <div style="margin-top:8px;padding:10px;background:rgba(0,0,0,.35);border-radius:10px;
-                word-break:break-all;font-size:.9rem">${url}</div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <span class="topic-chip" onclick="copyBind('${url}')">🔗 複製連結</span>
-      <span class="topic-chip" onclick="shareBind('${name}','${url}')">💬 傳給他</span>
-    </div>
-    <div style="margin-top:8px;font-size:.85rem;opacity:.75">連結 24 小時內有效，只能用一次。過期或綁錯可在戰情台重發。</div>`;
-  b.scrollIntoView({behavior:'smooth',block:'center'});
-}
-function copyBind(url){
-  navigator.clipboard.writeText(url).then(()=>alert('已複製，貼給他就好'))
-    .catch(()=>prompt('複製這條連結：',url));
-}
-function shareBind(name,url){
-  const msg=name+' 你好，點這條連結完成 LINE 綁定（24小時內有效）：\n'+url;
-  if(typeof liff!=='undefined' && liff.isApiAvailable && liff.isApiAvailable('shareTargetPicker')){
-    liff.shareTargetPicker([{type:'text',text:msg}]).catch(()=>copyBind(url));
-  } else copyBind(url);
-}
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('input[name="whoFills"]').forEach(r=>r.addEventListener('change',()=>{
     const self=document.getElementById('wf1').checked;
     document.getElementById('whoHint').textContent = self
-      ? '你自己填的話，送出當下就直接綁定你的 LINE，不用再點連結。'
-      : '代填的話，送出後會給你一條連結，傳給他點一下就完成綁定。';
+      ? '你自己填的話，送出當下就直接綁定你的 LINE。'
+      : '代填的話，送出後請提醒他自己加入官方帳號，他從選單進來就能綁定。';
+    lookupPerson();
   }));
 });
 
