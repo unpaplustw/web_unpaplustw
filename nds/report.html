@@ -154,6 +154,15 @@ body {
   <div class="result-box" id="resultBox"></div>
 
   <form id="ndsForm">
+    <div class="section-label">這張表是誰在填？</div>
+    <div class="form-group">
+      <div class="btn-group">
+        <input type="radio" name="whoFills" id="wf0" value="proxy" checked><label for="wf0">我幫他填</label>
+        <input type="radio" name="whoFills" id="wf1" value="self"><label for="wf1">我就是這位新人</label>
+      </div>
+      <div class="hint" id="whoHint">代填的話，送出後會給你一條連結，傳給他點一下就完成綁定。</div>
+    </div>
+
     <input type="hidden" id="lineId">
     <input type="hidden" id="displayName">
     <input type="hidden" id="oaId">
@@ -497,7 +506,30 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     document.getElementById('btnText').textContent='回報成功！';
     document.getElementById('btnSpinner').style.display='none';
     btn.style.background='linear-gradient(135deg,#00b09b,#96c93d)';
-    setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },1800);
+
+    const isSelf = (document.querySelector('input[name="whoFills"]:checked')||{}).value==='self';
+    if(isSelf){
+      /* 本人填的：手上這支 LINE 就是他的，直接綁 */
+      const tk = await rpc('nds_bind_issue', { member_id: payload.member_id, created_by:'本人填寫' });
+      if(tk && tk.success){
+        const bd = await rpc('nds_bind_confirm', { token:tk.token,
+          line_uid: payload.line_id, line_name: payload.line_name });
+        showResult(bd&&bd.success ? '✅ 回報成功，已綁定你的 LINE。'
+                                  : '回報成功，但 LINE 綁定失敗：'+((bd&&bd.message)||'請聯絡總部'),
+                   bd&&bd.success?'success':'warning');
+      }
+      setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },2600);
+    } else {
+      /* 代填：發一條一次性連結，請他傳給本人 */
+      const tk = await rpc('nds_bind_issue', { member_id: payload.member_id, created_by: payload.line_name });
+      if(tk && tk.success){
+        const url = location.origin + '/nds/bind.html?t=' + tk.token;
+        showBindLink(tk.name, url);
+      } else {
+        showResult('回報成功。（綁定連結產生失敗，可稍後在戰情台補發）','warning');
+        setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },2200);
+      }
+    }
   } catch(err){ console.error('submit error',err); showResult('送出失敗：'+err.message,'error'); resetBtn(); }
 });
 
@@ -595,6 +627,48 @@ function reAskIntent(){
 document.addEventListener('DOMContentLoaded',()=>{
   const el=document.getElementById('midMain');
   if(el){ el.addEventListener('blur',lookupPerson); el.addEventListener('change',lookupPerson); }
+});
+
+
+async function rpc(fn,body){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+      body:JSON.stringify({p:body})});
+    return await r.json();
+  }catch(e){ console.warn(fn+' failed',e); return null; }
+}
+function showBindLink(name,url){
+  const b=document.getElementById('resultBox');
+  b.className='result-box success'; b.style.display='block';
+  b.innerHTML=`<div style="font-weight:800;font-size:1.1rem">✅ 回報成功</div>
+    <div style="margin-top:8px">把這條連結傳給 <b>${name}</b>，他點一下就完成 LINE 綁定：</div>
+    <div style="margin-top:8px;padding:10px;background:rgba(0,0,0,.35);border-radius:10px;
+                word-break:break-all;font-size:.9rem">${url}</div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="topic-chip" onclick="copyBind('${url}')">🔗 複製連結</span>
+      <span class="topic-chip" onclick="shareBind('${name}','${url}')">💬 傳給他</span>
+    </div>
+    <div style="margin-top:8px;font-size:.85rem;opacity:.75">連結 24 小時內有效，只能用一次。過期或綁錯可在戰情台重發。</div>`;
+  b.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function copyBind(url){
+  navigator.clipboard.writeText(url).then(()=>alert('已複製，貼給他就好'))
+    .catch(()=>prompt('複製這條連結：',url));
+}
+function shareBind(name,url){
+  const msg=name+' 你好，點這條連結完成 LINE 綁定（24小時內有效）：\n'+url;
+  if(typeof liff!=='undefined' && liff.isApiAvailable && liff.isApiAvailable('shareTargetPicker')){
+    liff.shareTargetPicker([{type:'text',text:msg}]).catch(()=>copyBind(url));
+  } else copyBind(url);
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('input[name="whoFills"]').forEach(r=>r.addEventListener('change',()=>{
+    const self=document.getElementById('wf1').checked;
+    document.getElementById('whoHint').textContent = self
+      ? '你自己填的話，送出當下就直接綁定你的 LINE，不用再點連結。'
+      : '代填的話，送出後會給你一條連結，傳給他點一下就完成綁定。';
+  }));
 });
 
 </script>
