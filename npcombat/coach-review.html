@@ -1510,7 +1510,10 @@ function dayList() {                       // 開班日到今天的平日，再�
   if (sc === 'verify') return out;                    // 締結核對不吃日期軸
   for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= today; d.setDate(d.getDate() + 1)) {
     const w = d.getDay();
-    if (w < 1 || w > 5) continue;
+    // 🔴 行動不是只有平日在做——2026-08-29（六）有 15 人填報、12 個行動，跟平日一樣多。
+    //    但那天教練的一覽表看不到，也標不到。所以行動表含週末，作業表維持只有平日
+    //    （課表本來就只排平日）。送出制不變：教練週末不用送出（見 pendingSubmitDays）。
+    if (sc !== 'action' && (w < 1 || w > 5)) continue;
     const ds = dateStrOf(d);
     if (sc === 'study'  && !(dayUnitsOf(ds) || []).length) continue;   // 沒排課的日子不進作業表
     if (sc === 'action' && actFrom && ds < actFrom) continue;          // 行動週之前不進行動表
