@@ -78,6 +78,7 @@ a{text-decoration:none}
   <div class="tab" data-v="cfc" onclick="sw(this)">🏆 CFC 佈局</div>
   <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
   <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
+  <div class="tab" data-v="qa" onclick="sw(this)">🧪 隔離區</div>
   <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
 </div>
 
@@ -137,6 +138,19 @@ a{text-decoration:none}
       <thead><tr><th>級</th><th>姓名</th><th>線</th><th>底氣 左／右</th><th>①購買</th><th>②直推</th><th>組織</th><th>還缺什麼</th><th>點將</th></tr></thead>
       <tbody id="cfcBody"></tbody></table></div>
   </div>
+</div>
+<div id="v-qa" class="card hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <b>🧪 隔離區（人工回報緩衝）</b>
+    <button class="btn sm" onclick="loadQa()">🔄 重新整理</button>
+  </div>
+  <div class="mut" style="margin-top:4px">
+    回報一律先落這裡，<b>不會直接污染正式資料</b>。流程：⏳待審 → ✅OA審核過（此時才寫入正式表）→ 🏁你終審後從清單消失。
+  </div>
+  <div class="msg" id="qaMsg"></div>
+  <div class="scroll" style="margin-top:8px"><table>
+    <thead><tr><th>狀態</th><th>對象</th><th>回報</th><th>方案</th><th>推薦人</th><th>審核紀錄</th><th>動作</th></tr></thead>
+    <tbody id="qaBody"></tbody></table></div>
 </div>
 <div id="v-tasks" class="card hidden">
   <div style="margin-bottom:10px">
@@ -207,8 +221,8 @@ async function login(){
 }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['ov','cfc','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
-  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+  ['ov','cfc','qa','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
@@ -723,6 +737,55 @@ function intentBox(d){
       ?`回訪直接引用：<b>「當初你說${esc((i.topics&&i.topics[0])||i.category)}，現在怎麼樣？」</b>`
       :`<b style="color:var(--warn)">這是 ${esc(i.reported_by||'他人')} 轉述的，先確認再用</b>：「聽說你比較在意${esc((i.topics&&i.topics[0])||i.category)}，對嗎？」`}</div>
   </div>`;
+}
+
+
+/* ===== 隔離區 ===== */
+async function qaApi(a,extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_quarantine',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,action:a,...(extra||{})}})});
+  return r.json();
+}
+async function loadQa(){
+  const d=await qaApi('list');
+  const tb=document.getElementById('qaBody');
+  if(!d.success){ tb.innerHTML='<tr><td colspan="7" class="mut">'+esc(d.message||'讀取失敗')+'</td></tr>'; return; }
+  const S={'待審':['#ffb020','⏳ 待審'],'OA已審':['#37c978','✅ OA審核過'],'退回':['#ff5d5d','↩ 已退回']};
+  tb.innerHTML=(d.rows||[]).map(r=>{
+    const st=S[r.status]||['#8b96a5',r.status];
+    let act='';
+    if(r.status==='待審')
+      act=`<button class="btn sm" onclick="qaDo('oa_approve',${r.id})">✅ 審核通過</button>
+           <button class="btn sm" style="background:transparent;border:1px solid var(--line);color:var(--mut)" onclick="qaReject(${r.id})">↩ 退回</button>`;
+    else if(r.status==='OA已審')
+      act=`<button class="btn sm" onclick="qaDo('final',${r.id})">🏁 確認無誤，清掉</button>`;
+    else act=`<span class="mut">${esc(r.reject_reason||'')}</span>`;
+    return `<tr>
+      <td><span style="background:${st[0]};color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">${st[1]}</span></td>
+      <td><b>${esc(r.name||'')}</b><br><span class="mut">${esc(r.member_id)}</span>
+        ${r.已在正式表?'<br><span style="color:var(--ok);font-size:12px">已在正式表</span>':''}</td>
+      <td>${esc((r.reported_at||'').slice(5,10))}<br><span class="mut">${esc(r.reporter_line||'')}</span></td>
+      <td>${esc(r.product_code||'')} ${esc(r.plan_length||'')}</td>
+      <td class="mut">${esc(r.sponsor||'')}</td>
+      <td class="mut" style="font-size:12.5px">${r.oa_reviewer?esc(r.oa_reviewer)+' '+esc((r.oa_reviewed_at||'').slice(5,10)):'—'}</td>
+      <td>${act}</td></tr>`;}).join('')
+   ||'<tr><td colspan="7" class="mut">隔離區沒有待處理的資料。</td></tr>';
+}
+async function qaDo(action,id){
+  const msg=action==='final'?'確認這筆無誤？確認後會從隔離清單消失（原始資料仍保留可追溯）。'
+                            :'審核通過？通過後會寫入正式會員表。';
+  if(!confirm(msg))return;
+  const d=await qaApi(action,{id});
+  document.getElementById('qaMsg').textContent=d.success?'✅ 完成':(d.message||'失敗');
+  loadQa();
+}
+async function qaReject(id){
+  const reason=prompt('退回原因（會留在紀錄上）：');
+  if(reason===null)return;
+  const d=await qaApi('reject',{id,reason});
+  document.getElementById('qaMsg').textContent=d.success?'已退回':(d.message||'失敗');
+  loadQa();
 }
 
 </script></div></body></html>

@@ -506,18 +506,6 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     const result = await res.json();
     if(result && result.success===false){ showResult(result.message||'送出失敗，請聯絡管理者。','warning'); resetBtn(); return; }
 
-    /* 入會期待：主回報成功後才寫，寫失敗不影響回報結果 */
-    const ip = intentPayload(payload.member_id, payload.line_name || payload.sponsor_member_id);
-    if(ip){
-      try{
-        const ir = await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_intent_submit',{method:'POST',
-          headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
-          body: JSON.stringify({ p: ip })});
-        const ires = await ir.json();
-        if(ires && ires.success===false) console.warn('intent 寫入失敗（回報已成功）', ires.message);
-      }catch(e){ console.warn('intent 寫入例外（回報已成功）', e); }
-    }
-
     /* 次要通知：原 n8n webhook 保留，非阻塞（掛掉不影響回報成功） */
     const oaKey = getOaFromUrl() || DEFAULT_OA;
     const notifyUrl = OA_ENDPOINTS[oaKey] || OA_ENDPOINTS[DEFAULT_OA];
@@ -530,16 +518,16 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
 
     const mode = whoMode();
     if(mode==='branch'){
-      showResult('✅ 分店回報成功（'+payload.member_id+'）。','success');
+      showResult('✅ 分店回報已送出（'+payload.member_id+'），等審核通過就會進系統。','success');
     } else if(mode==='self' && payload.line_id){
       const bd = await rpc('nds_bind_self', { member_id: payload.member_id,
         line_uid: payload.line_id, line_name: payload.line_name });
       showResult(bd&&bd.success
-        ? '✅ 回報成功，已綁定你的 LINE（'+bd.positions+' 個位置）。之後通知都會發到這裡。'
-        : '✅ 回報成功。LINE 綁定未完成：'+((bd&&bd.message)||'請聯絡總部'),
+        ? '✅ 已送出，等審核通過就會進系統。你的 LINE 已綁定（'+bd.positions+' 個位置）。'
+        : '✅ 已送出，等審核通過。LINE 綁定未完成：'+((bd&&bd.message)||'請聯絡總部'),
         bd&&bd.success?'success':'warning');
     } else {
-      showResult('✅ 回報成功。\n請提醒 '+(document.getElementById('name').value||'新人')
+      showResult('✅ 已送出，等審核通過就會進系統。\n請提醒 '+(document.getElementById('name').value||'新人')
         +' 加入官方帳號，他自己從選單進來就能綁定。', 'success');
     }
     setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },3200);
