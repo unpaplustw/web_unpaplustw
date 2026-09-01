@@ -497,7 +497,7 @@ async function load() {
     .eq('batch_id', bid);
   students = s || [];
   const { data: c } = await sb.from('batch_coaches')
-    .select('id, member_id, phone, rank, cfc, group_name, goal_close, status, created_at, members_master(name, member_code)')
+    .select('id, member_id, phone, rank, cfc, group_name, track, goal_close, status, created_at, members_master(name, member_code)')
     .eq('batch_id', bid);
   coaches = c || [];
   const { data: br } = await sb.from('bonus_rules')
@@ -1922,7 +1922,9 @@ function renderRosterSection() {
               <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'} ｜ 這期目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '未填'}</div>
               <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>組別：</span>${isReadonly
                 ? `<span style="font-size:12px">${c.group_name||'未分組'}</span>`
-                : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select>`}<span>｜ 學員 ${pairedStudents(c.id).length} 名</span></div>
+                : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select>`}<span>班別：</span>${isReadonly
+                ? `<span style="font-size:12px">${trackName(c.track)}</span>`
+                : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachTrack('${c.id}',this.value)"><option value="">未設定（比照學習組）</option>${Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${c.track===k?' selected':''}>${v}</option>`).join('')}</select>`}<span>｜ 學員 ${pairedStudents(c.id).length} 名</span></div>
             </div>
             ${isReadonly ? '' : `<div style="display:flex;gap:6px">
               <button class="btn-edit" onclick="showEditCoach('${c.id}')">編輯</button>
@@ -2335,6 +2337,16 @@ async function setCoachGroup(cid, groupName) {
   const { error } = await sb.from('batch_coaches').update({ group_name: groupName || null }).eq('id', cid);
   if (error) return alert('組別更新失敗：' + error.message);
   toast('組別已更新'); await load();
+}
+
+// 🔴 班別掛在「組」上，不是掛在學員身上（2026-09-02 Randoph）
+//   「其實就是第一組到最後一組，只是我 admin 管理後台要能排定什麼班別，
+//     這樣才能讓系統自動派作業」
+//   教練頁靠這個決定：這一組今天要發作業，還是直接發行動。
+async function setCoachTrack(cid, track) {
+  const { error } = await sb.from('batch_coaches').update({ track: track || null }).eq('id', cid);
+  if (error) return alert('班別更新失敗：' + error.message);
+  toast('班別已更新'); await load();
 }
 
 // 報名組別（學習／行動／精英）——精英面試沒過改行動組，就靠這裡（2026-08-29）

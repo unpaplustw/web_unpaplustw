@@ -851,6 +851,11 @@ let currentIdx = -1;
 let currentDay = 'today';
 let batchDates = { start: null, end: null, studyStart: null, studyEnd: null }; // 班期起訖＋學習週
 let coachMode = 'simple';                       // full=審核制(26期) / simple=信任制+有回應(27期起)
+let myTrack = null;                             // 🔴 班別掛在「組」上（batch_coaches.track）：
+                                                //   null／learn＝初階學習組，要上課、要發作業
+                                                //   action／elite＝開班就直接跑，整期不發作業
+                                                //   （2026-09-02 Randoph：admin 排定班別 → 系統自動派作業）
+const isLearnGroup = () => !myTrack || myTrack === 'learn';
 // student_id -> { homework, homework_replied }；2026-08-13 起只用這一組（engaged 兩欄已停用）
 let engToday = {}, engYesterday = {};
 
@@ -1047,9 +1052,10 @@ async function init() {
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
 
     // 查本期教練身份
-    const { data: coach } = await sb.from('batch_coaches').select('id, status, group_name')
+    const { data: coach } = await sb.from('batch_coaches').select('id, status, group_name, track')
       .eq('batch_id', BATCH_ID).eq('member_id', coachMemberId).single();
     myGroupName = coach?.group_name || '';   // 戰報標題用，同一個查詢帶回不多一次往返
+    myTrack = coach?.track || null;          // 這一組的班別：null／learn＝要上課發作業
     if (!coach || coach.status !== 'approved') {
       document.getElementById('coachName').textContent = member.name;
       toast('非本期已批准教練'); return;
@@ -1467,7 +1473,7 @@ const activeStudents = () => studentList.filter(s => !s.dropped_at);
 // 📚 只有初階學習組要交作業（進階行動組／高階精英組開班就直接跑）。
 //   前兩週過後全班都進行動期，那時 isActionWeek() 會把整張作業卡收起來，
 //   所以這裡只管「前兩週誰要交作業」。（2026-09-02 Randoph）
-const learnStudents = () => activeStudents().filter(s => !s.track || s.track === 'learn');
+const learnStudents = () => activeStudents();   // 班別看組不看人，整組同一種
 // 組別小標籤：27 期以前 track 是 null，不顯示（避免整排無意義的標籤）
 const TRACK_TAG = { learn: '📚 學習', action: '🏃 行動', elite: '⚡ 精英' };
 const trackTag = s => s.track ? `<span class="tk tk-${s.track}">${TRACK_TAG[s.track] || ''}</span>` : '';
@@ -1624,9 +1630,8 @@ function renderHw() {
   });
   h += '</tr>';
   const missing = [];
-  // 📚 作業分頁只列初階學習組（行動組／精英組不用交作業，列出來會變成假缺件）；
-  //    🏃 行動分頁全員都要列。（2026-09-02 Randoph）
-  (isAct ? studentList : studentList.filter(s => (s.track || 'learn') === 'learn')).forEach(stu => {
+  // 一覽表全員都列——班別是整組的，不會有「同組不同班別」的情況
+  studentList.forEach(stu => {
     // 一覽表保留退班的人——歷史紀錄還在，只是標記出來
     const gone = stu.dropped_at
       ? ` <span style="font-size:11px;opacity:.55">🚪${(d => `${d.getMonth()+1}/${d.getDate()}`)(new Date(stu.dropped_at + 'T00:00:00'))}退</span>`
@@ -1942,6 +1947,8 @@ let actStatLoaded = false;
 let myGroupName = '';        // 教練自己的組別（第X組），init 帶回
 
 function inActionWeek() {
+  // 行動組／精英組整期都是行動週——他們不上課，沒有學習階段可言
+  if (!isLearnGroup()) return true;
   return !!batchDates.studyEnd && getDateStr('today') >= actionViewFrom();
 }
 
@@ -2123,6 +2130,14 @@ function renderRollcall() {
   const rcBox = document.getElementById('cpRollcall');
   if (!hwBox || !rcBox || typeof unitsOfDay !== 'function') return;
 
+  // 行動組／精英組整期不上課——連作業文案都不用產（2026-09-02）
+  if (!isLearnGroup()) {
+    const msg = '你這一組是' + (myTrack === 'elite' ? '高階精英組' : '進階行動組')
+              + '，開班就直接跑，不用發作業。';
+    hwBox.textContent = msg; rcBox.textContent = msg;
+    return;
+  }
+
   const base = new Date();
   // 🔴 2026-08-29 改為「今天」：睡前貼明天的作業，會被學員當晚的繳交洗掉（Randoph）
   const d = base.getFullYear() + '-' + String(base.getMonth()+1).padStart(2,'0') + '-' + String(base.getDate()).padStart(2,'0');
@@ -2170,15 +2185,14 @@ ${tip}
 💪 一天一步，我們一起完成`;
 
   // ② 作業接龍
-  // 📚 作業接龍只列初階學習組——行動組／精英組不用交作業
-  const learners = learnStudents();
-  if (!learners.length) {
-    rcBox.textContent = activeStudents().length
-      ? '你這一組沒有初階學習組的學員，不用貼作業接龍。'
-      : '你的小組還沒有學員資料';
+  // 📚 這一組不是初階學習組就不用貼作業（班別在 admin 設定，見 isLearnGroup）
+  if (!isLearnGroup()) {
+    rcBox.textContent = '你這一組是' + (myTrack === 'elite' ? '高階精英組' : '進階行動組')
+      + '，不用上課，也不用貼作業接龍。';
     return;
   }
-  const names = learners.map((s, i) => `${i+1}.${s.name}`).join('\n');
+  if (!activeStudents().length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
+  const names = activeStudents().map((s, i) => `${i+1}.${s.name}`).join('\n');
   rcBox.textContent = `${base.getMonth()+1}/${base.getDate()}作業完成請打✅\n\n`
     + units.map(u => `《${String(u.no).padStart(2,'0')}${u.n}》\n${names}`).join('\n\n');
 }
