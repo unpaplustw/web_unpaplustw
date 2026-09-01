@@ -392,7 +392,7 @@ function buildCertHTML(d) {
     <div class="ct-section-l">🎖️ 歷程投入</div>
     <div class="ct-stats">
       <div class="ct-stat"><div class="ct-stat-n">${d.reportDays}</div><div class="ct-stat-l">填報天數</div></div>
-      <div class="ct-stat"><div class="ct-stat-n">${d.streak}</div><div class="ct-stat-l">最長連續</div></div>
+      <div class="ct-stat"><div class="ct-stat-n">${d.streak}</div><div class="ct-stat-l">最長連續填報</div></div>
       <div class="ct-stat"><div class="ct-stat-n">${d.totalActs}</div><div class="ct-stat-l">總行動次數</div></div>
       <div class="ct-stat"><div class="ct-stat-n">${d.closeCount}</div><div class="ct-stat-l">締結件數</div></div>
     </div>
@@ -434,7 +434,7 @@ function strengthBars(posPts) {
 function heatmapHTML(heat, active) {
   if (!heat || !heat.length) return '';
   const cells = heat.map((v, i) => `<div class="ct-hm-c ${v ? 'on' : 'off'}" style="animation-delay:${i*18}ms"></div>`).join('');
-  return `<div class="ct-hm-cap">出席 <b>${active}/${heat.length}</b> 天　·　最長連續 <b>${certStreakFromHeat(heat)}</b> 天 🔥</div>
+  return `<div class="ct-hm-cap">有出手 <b>${active}/${heat.length}</b> 天　·　連續出手最長 <b>${certStreakFromHeat(heat)}</b> 天 🔥</div>
     <div class="ct-hm-strip">${cells}</div>`;
 }
 function certStreakFromHeat(heat) {
@@ -454,6 +454,15 @@ function milestoneHTML(ms) {
 function certComment(d) {
   // 個人化評語（batch_students.cert_comment，逐人手動撰寫）；沒有才退回規則拼句版
   if (d.customComment) return d.customComment;
+
+  // 🔴 零填報的人不能套「這 0 天你從未缺席」——27 期有 12 位整期沒填過。
+  //    證書照樣要發，但話要說得對：不假裝他做了，也不指責他沒做（2026-09-01）
+  if (!d.reportDays) {
+    return `${memberName}，這一期你走到了結業。` +
+           `行動的紀錄還是空白的——那不是結論，是還沒開始寫。` +
+           `下一期，讓我們看見你的第一步。🌱`;
+  }
+
   const bits = [];
   if (d.streak >= 14) bits.push('你用連續的堅持證明了什麼叫不間斷的行動力');
   else if (d.streak >= 7) bits.push('連續七天以上的回報，是自律最好的勳章');
@@ -462,7 +471,8 @@ function certComment(d) {
   if (d.totals.meet >= 30) bits.push('主動認識新朋友，你的世界正在變大');
   if (!bits.length) bits.push('每一次填報，都是你對自己的承諾');
   const grew = d.weekly && d.weekly.length >= 2 && d.weekly[d.weekly.length-1].pts > d.weekly[0].pts;
-  const head = grew ? `${memberName}，你一週比一週更強。` : `${memberName}，這 ${d.reportDays} 天你從未缺席自己的成長。`;
+  const head = grew ? `${memberName}，你一週比一週更強。`
+                    : `${memberName}，這 ${d.reportDays} 天你從未缺席自己的成長。`;
   return `${head}${bits.slice(0,2).join('，')}。願你帶著這份戰績，走向下一個高峰。🏆`;
 }
 
