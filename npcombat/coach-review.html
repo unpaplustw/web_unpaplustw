@@ -365,6 +365,12 @@
   .g-gate-go { margin-top:10px; width:100%; padding:9px; border:none; border-radius:9px;
                background:#f0a500; color:#fff; font-size:13.5px; font-weight:900; cursor:pointer; }
   .gated { opacity:.32; pointer-events:none; filter:grayscale(.65); }
+  /* 組別小標籤（28 期三組）：27 期以前 track 是 null，不顯示 */
+  .tk{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:5px;
+      font-size:10.5px;font-weight:700;vertical-align:middle;white-space:nowrap}
+  .tk-learn{background:#e8f0fe;color:#1a56b8}
+  .tk-action{background:#fff1e0;color:#b8690c}
+  .tk-elite{background:#f3e8ff;color:#7c3aed}
 </style>
 </head>
 <body>
@@ -1079,7 +1085,7 @@ async function init() {
     studentsLoaded = false;
     // 查配對學員（只撈已批准）
     // ⚠️ batch_id 一定要帶（wiki 硬規定）——coach_id 雖然每期獨立，但少帶就是隱患
-    const { data: students } = await sb.from('batch_students').select('id, member_id, dropped_at')
+    const { data: students } = await sb.from('batch_students').select('id, member_id, dropped_at, track')
       .eq('batch_id', BATCH_ID).eq('coach_id', coachId).eq('status', 'approved');
     if (!students || students.length === 0) { studentsLoaded = true; toast('目前無配對學員'); renderReview(); return; }
 
@@ -1143,6 +1149,7 @@ async function init() {
         id: stu.id,
         member_id: stu.member_id,
         dropped_at: stu.dropped_at || null,   // 有值＝已退班，不進每日回報
+        track: stu.track || null,             // 28 期三組；27 期以前是 null＝比照學習組
         name: info.name || '未知',
         code: info.member_code || '',
         today: buildDayData(todayLog, todayCloses),
@@ -1457,6 +1464,13 @@ function refreshTodo() { renderRecBadge(); renderTodoBar(); }
 //   status 維持 approved（那是白名單，一改所有查詢都會漏），改用 dropped_at 控制顯示。
 //   退班文案的下拉仍列全部——教練可能還沒貼完。
 const activeStudents = () => studentList.filter(s => !s.dropped_at);
+// 📚 只有初階學習組要交作業（進階行動組／高階精英組開班就直接跑）。
+//   前兩週過後全班都進行動期，那時 isActionWeek() 會把整張作業卡收起來，
+//   所以這裡只管「前兩週誰要交作業」。（2026-09-02 Randoph）
+const learnStudents = () => activeStudents().filter(s => !s.track || s.track === 'learn');
+// 組別小標籤：27 期以前 track 是 null，不顯示（避免整排無意義的標籤）
+const TRACK_TAG = { learn: '📚 學習', action: '🏃 行動', elite: '⚡ 精英' };
+const trackTag = s => s.track ? `<span class="tk tk-${s.track}">${TRACK_TAG[s.track] || ''}</span>` : '';
 const droppedStudents = () => studentList.filter(s => s.dropped_at);
 
 // 🔴 預設停在「該處理的那一天」（2026-08-25 Randoph）
@@ -1610,12 +1624,14 @@ function renderHw() {
   });
   h += '</tr>';
   const missing = [];
-  studentList.forEach(stu => {
+  // 📚 作業分頁只列初階學習組（行動組／精英組不用交作業，列出來會變成假缺件）；
+  //    🏃 行動分頁全員都要列。（2026-09-02 Randoph）
+  (isAct ? studentList : studentList.filter(s => (s.track || 'learn') === 'learn')).forEach(stu => {
     // 一覽表保留退班的人——歷史紀錄還在，只是標記出來
     const gone = stu.dropped_at
       ? ` <span style="font-size:11px;opacity:.55">🚪${(d => `${d.getMonth()+1}/${d.getDate()}`)(new Date(stu.dropped_at + 'T00:00:00'))}退</span>`
       : '';
-    h += `<tr><td class="hw-nm">${stu.name}${gone}</td>`;
+    h += `<tr><td class="hw-nm">${stu.name}${trackTag(stu)}${gone}</td>`;
     const miss = [];
     days.forEach(ds => {
       // 🚪 退班日（含）之後：顯示「—」，不算缺件也不進清單
@@ -2154,8 +2170,15 @@ ${tip}
 💪 一天一步，我們一起完成`;
 
   // ② 作業接龍
-  if (!activeStudents().length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
-  const names = activeStudents().map((s, i) => `${i+1}.${s.name}`).join('\n');
+  // 📚 作業接龍只列初階學習組——行動組／精英組不用交作業
+  const learners = learnStudents();
+  if (!learners.length) {
+    rcBox.textContent = activeStudents().length
+      ? '你這一組沒有初階學習組的學員，不用貼作業接龍。'
+      : '你的小組還沒有學員資料';
+    return;
+  }
+  const names = learners.map((s, i) => `${i+1}.${s.name}`).join('\n');
   rcBox.textContent = `${base.getMonth()+1}/${base.getDate()}作業完成請打✅\n\n`
     + units.map(u => `《${String(u.no).padStart(2,'0')}${u.n}》\n${names}`).join('\n\n');
 }
@@ -2539,7 +2562,7 @@ function renderEngagement() {
     h += `<div class="eng-item">
       <div class="eng-row">
         <span class="eng-name tap" onclick="toggleEngDetail('${stu.id}')">
-          <span class="sym ${filled ? '' : 'no'}">${filled ? '📝' : '⬜'}</span>${stu.name}${stu.code ? `<span class="code">${stu.code}</span>` : ''}<span class="caret">›</span>
+          <span class="sym ${filled ? '' : 'no'}">${filled ? '📝' : '⬜'}</span>${stu.name}${trackTag(stu)}${stu.code ? `<span class="code">${stu.code}</span>` : ''}<span class="caret">›</span>
         </span>
         <span class="eng-toggle">
           ${closed
