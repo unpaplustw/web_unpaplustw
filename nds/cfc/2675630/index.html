@@ -60,6 +60,17 @@ a{text-decoration:none}
   #mcard{padding:0}
   #mcard>div{border-radius:0;min-height:100vh;padding:12px}
 }
+#importModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;z-index:50;}
+.modal-card{background:#121a2b;border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:600px;}
+.wide{max-width:1100px;}
+.diffsec{margin-top:18px;}
+.difftbl{width:100%;border-collapse:collapse;max-height:260px;display:block;overflow:auto;}
+.count{color:var(--muted);font-size:.9rem;}
+.sub{color:var(--muted);font-size:.78rem;margin-bottom:8px;}
+.msub{color:var(--muted);font-size:.85rem;margin-bottom:14px;}
+.locked-note{color:var(--muted);font-size:.78rem;margin:6px 0;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.btn.ghost{background:rgba(255,255,255,0.12);}
 </style></head><body><div class="wrap">
 <h1>🎯 CFC 戰情台 <span style="color:#8b96a5;font-size:14px;font-weight:400">2675630 組織</span></h1>
 
@@ -79,6 +90,7 @@ a{text-decoration:none}
   <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
   <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
   <div class="tab" data-v="qa" onclick="sw(this)">🧪 隔離區</div>
+  <div class="tab" data-v="imp" onclick="sw(this)">📥 CSV匯入</div>
   <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
 </div>
 
@@ -152,6 +164,48 @@ a{text-decoration:none}
     <thead><tr><th>狀態</th><th>對象</th><th>回報</th><th>方案</th><th>推薦人</th><th>審核紀錄</th><th>動作</th></tr></thead>
     <tbody id="qaBody"></tbody></table></div>
 </div>
+<div id="v-imp" class="card hidden">
+  <div>
+    <h2>📥 CSV 匯入比對</h2>
+    <div class="msub">上傳 NDS 組織圖 CSV，只比對「方案/購買資料」欄位；<b>姓名一旦已是真實姓名就永久鎖定，不會被 CSV 覆蓋</b>。全部需勾選確認才會寫入。</div>
+    <div class="msg" id="impMsg"></div>
+    <input type="file" id="importFile" class="inp" accept=".csv" onchange="handleImportFile(event)">
+    <div id="importResult" class="hidden">
+
+      <div class="diffsec">
+        <h3>🆕 新會員（CSV 有、DB 沒有）<span class="count" id="cntNew"></span>
+          <button class="btn sm ghost" onclick="toggleAll('new',true)">全選</button>
+          <button class="btn sm ghost" onclick="toggleAll('new',false)">全不選</button>
+        </h3>
+        <div class="sub">CSV 姓名顯示 ******** 代表<b>該會員名下位置已全數解約</b>，公司收回姓名顯示（手冊 p22）——不是隱私遮罩。星號不會存進資料庫（存為空白），先用編號建檔回追，之後再人工補真名。</div>
+        <div class="difftbl"><table><thead><tr><th></th><th>編號</th><th>姓名</th><th>資格</th><th>登錄日</th><th>最終購買</th></tr></thead><tbody id="tblNew"></tbody></table></div>
+      </div>
+
+      <div class="diffsec">
+        <h3>✍️ 姓名補值（DB 目前空白，CSV 有真實姓名）<span class="count" id="cntName"></span>
+          <button class="btn sm ghost" onclick="toggleAll('name',true)">全選</button>
+          <button class="btn sm ghost" onclick="toggleAll('name',false)">全不選</button>
+        </h3>
+        <div class="difftbl"><table><thead><tr><th></th><th>編號</th><th>DB現況</th><th>CSV建議姓名</th></tr></thead><tbody id="tblName"></tbody></table></div>
+      </div>
+
+      <div class="diffsec">
+        <h3>🕓 方案/購買資料待審<span class="count" id="cntPlan"></span>
+          <button class="btn sm ghost" onclick="toggleAll('plan',true)">全選</button>
+          <button class="btn sm ghost" onclick="toggleAll('plan',false)">全不選</button>
+        </h3>
+        <div class="sub">NDS 系統更新步調不穩，逐筆列出異動內容，人工確認後才套用。</div>
+        <div class="difftbl"><table><thead><tr><th></th><th>編號</th><th>姓名</th><th>異動內容</th></tr></thead><tbody id="tblPlan"></tbody></table></div>
+      </div>
+
+      <div class="locked-note" id="lockedNote"></div>
+    </div>
+    <div class="modal-actions">
+      
+      <button class="btn" id="applyImportBtn" onclick="applyImport()" style="display:none;">套用勾選項目</button>
+    </div>
+  </div>
+</div>
 <div id="v-tasks" class="card hidden">
   <div style="margin-bottom:10px">
     <select id="fstat" class="inp" onchange="loadTasks()">
@@ -221,7 +275,7 @@ async function login(){
 }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['ov','cfc','qa','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  ['ov','cfc','qa','imp','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
   if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
 }
 async function loadTasks(){
@@ -788,4 +842,153 @@ async function qaReject(id){
   loadQa();
 }
 
+
+/* ===== CSV 匯入（自 corp.html 搬入，2026-09-02）===== */
+async function impApi(p){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_import',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...p}})});
+  return r.json();
+}
+function parseNdsCsv(text){
+  text = text.replace(/^﻿/,'');
+  const lines = text.split(/\r\n|\n/).map(l=>l.split(','));
+  const rows=[];
+  for(const l of lines){
+    if(l.length<16) continue;
+    const id=(l[2]||'').trim();
+    if(!/^\d+-\d+$/.test(id)) continue;
+    const name=(l[3]||'').trim();
+    const country=(l[4]||'').trim();
+    const registered_at=toIsoDate((l[5]||'').trim());
+    const pay=(l[6]||'').trim();
+    const bcp=(l[7]||'').trim();
+    const sp=(l[11]||'').trim();
+    const effective_purchase_date=(l[14]||'').trim();
+    const last_purchase_date=(l[15]||'').trim();
+    let payment_method='', product_code='';
+    if(pay.includes(':')){ const parts=pay.split(':'); payment_method=parts[0].trim(); product_code=(parts[1]||'').trim(); }
+    /* 第13欄「有效日」：空白=資格有效、0=已失效 */
+    const vd=(l[13]||'').trim();
+    const is_valid = vd==='' ? true : (vd==='0' ? false : null);
+    rows.push({ member_id:id, name, country, registered_at, bcp, sp, payment_method, product_code, effective_purchase_date, last_purchase_date, is_valid });
+  }
+  return rows;
+}
+
+async function handleImportFile(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const impMsg=document.getElementById('impMsg'); impMsg.style.display='none';
+  try{
+    const text=await file.text();
+    const csvRows=parseNdsCsv(text);
+    if(!csvRows.length){ impMsg.className='msg err'; impMsg.textContent='沒有解析到任何會員資料，確認檔案格式'; impMsg.style.display='block'; return; }
+    const d=await impApi({action:'list', filter:'all', limit:5000});
+    if(d.success===false){ impMsg.className='msg err'; impMsg.textContent=d.message||'讀取 DB 失敗'; impMsg.style.display='block'; return; }
+    IMPORT_DIFF = buildDiff(csvRows, d.rows||[]);
+    renderImportDiff(csvRows.length, (d.rows||[]).length);
+  }catch(e){ impMsg.className='msg err'; impMsg.textContent='解析失敗：'+e.message; impMsg.style.display='block'; }
+}
+
+function buildDiff(csvRows, dbRows){
+  const dbMap={}; dbRows.forEach(r=>dbMap[r.member_id]=r);
+  const newMembers=[], nameFills=[], planDiffs=[];
+  const cmpNum=(a,b)=>{ const na=(a===''||a==null)?null:Number(a); const nb=(b===''||b==null)?null:Number(b); return na!==null && na!==nb; };
+  const cmpStr=(a,b)=>{ if(!a) return false; return a!==(b||''); };
+
+  csvRows.forEach(c=>{
+    const d=dbMap[c.member_id];
+    if(!d){ newMembers.push(c); return; }
+    const dbNameEmpty = !d.name || d.name==='********';
+    if(dbNameEmpty && c.name && c.name!=='********' && c.name!==d.name){
+      nameFills.push({ member_id:c.member_id, old:d.name||'（空）', new:c.name });
+    }
+    const changes=[];
+    if(cmpStr(c.registered_at, d.registered_at)) changes.push({field:'registered_at', old:d.registered_at, new:c.registered_at});
+    if(cmpNum(c.bcp, d.bcp)) changes.push({field:'bcp', old:d.bcp, new:c.bcp});
+    if(cmpNum(c.sp, d.sp)) changes.push({field:'sp', old:d.sp, new:c.sp});
+    if(cmpNum(c.payment_method, d.payment_method)) changes.push({field:'payment_method', old:d.payment_method, new:c.payment_method});
+    if(cmpStr(c.product_code, d.product_code)) changes.push({field:'product_code', old:d.product_code, new:c.product_code});
+    if(cmpStr(c.effective_purchase_date, d.effective_purchase_date)) changes.push({field:'effective_purchase_date', old:d.effective_purchase_date, new:c.effective_purchase_date});
+    if(cmpStr(c.last_purchase_date, d.last_purchase_date)) changes.push({field:'last_purchase_date', old:d.last_purchase_date, new:c.last_purchase_date});
+    if(c.is_valid!==null && c.is_valid!==d.is_valid) changes.push({field:'is_valid', old:d.is_valid, new:c.is_valid});
+    if(changes.length) planDiffs.push({ member_id:c.member_id, name:d.name||c.name, changes });
+  });
+  return { newMembers, nameFills, planDiffs };
+}
+
+function renderImportDiff(csvCount, dbCount){
+  document.getElementById('importResult').classList.remove('hidden');
+  document.getElementById('applyImportBtn').style.display='inline-block';
+
+  const tblNew=document.getElementById('tblNew'); tblNew.innerHTML='';
+  IMPORT_DIFF.newMembers.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const maskedNote = /^\*+$/.test(r.name||'') ? '<span class="warn-mask">********（已解約·存為空白）</span>' : esc(r.name||'－');
+    tr.innerHTML=`<td><input type="checkbox" class="chk-new" data-i="${i}" checked></td><td>${esc(r.member_id)}</td><td>${maskedNote}</td><td>${validHtml(r.is_valid)}</td><td>${esc(r.registered_at)}</td><td>${esc(r.last_purchase_date)}</td>`;
+    tblNew.appendChild(tr);
+  });
+  document.getElementById('cntNew').textContent=' 共 '+IMPORT_DIFF.newMembers.length+' 筆';
+
+  const tblName=document.getElementById('tblName'); tblName.innerHTML='';
+  IMPORT_DIFF.nameFills.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><input type="checkbox" class="chk-name" data-i="${i}" checked></td><td>${esc(r.member_id)}</td><td>${esc(r.old)}</td><td>${esc(r.new)}</td>`;
+    tblName.appendChild(tr);
+  });
+  document.getElementById('cntName').textContent=' 共 '+IMPORT_DIFF.nameFills.length+' 筆';
+
+  const tblPlan=document.getElementById('tblPlan'); tblPlan.innerHTML='';
+  IMPORT_DIFF.planDiffs.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const changesHtml=r.changes.map(c=>`<span class="changetag">${PLAN_FIELD_LABELS[c.field]||c.field}：${esc(fmtVal(c.old))} → ${esc(fmtVal(c.new))}</span>`).join('');
+    tr.innerHTML=`<td><input type="checkbox" class="chk-plan" data-i="${i}" checked></td><td>${esc(r.member_id)}</td><td>${esc(r.name)}</td><td>${changesHtml}</td>`;
+    tblPlan.appendChild(tr);
+  });
+  document.getElementById('cntPlan').textContent=' 共 '+IMPORT_DIFF.planDiffs.length+' 筆';
+
+  const lockedSkipped = csvCount - IMPORT_DIFF.newMembers.length - IMPORT_DIFF.planDiffs.length; // 粗估：其餘視為姓名已鎖定/資料相同
+  document.getElementById('lockedNote').textContent=`CSV 共 ${csvCount} 筆、DB 現有 ${dbCount} 筆。姓名鎖定規則：已是真實姓名的會員，CSV 姓名差異一律忽略、不列入待審。`;
+}
+
+async function applyImport(){
+  const impMsg=document.getElementById('impMsg');
+  const inserts=[]; document.querySelectorAll('.chk-new:checked').forEach(c=>inserts.push(IMPORT_DIFF.newMembers[+c.dataset.i]));
+  const name_fills=[]; document.querySelectorAll('.chk-name:checked').forEach(c=>{ const r=IMPORT_DIFF.nameFills[+c.dataset.i]; name_fills.push({member_id:r.member_id, name:r.new}); });
+  const updates=[]; document.querySelectorAll('.chk-plan:checked').forEach(c=>{
+    const r=IMPORT_DIFF.planDiffs[+c.dataset.i];
+    const fields={}; r.changes.forEach(ch=>fields[ch.field]=ch.new);
+    updates.push({member_id:r.member_id, fields});
+  });
+  if(!inserts.length && !name_fills.length && !updates.length){
+    impMsg.className='msg err'; impMsg.textContent='沒有勾選任何項目'; impMsg.style.display='block'; return;
+  }
+  try{
+    const d=await impApi({action:'import_apply', inserts, name_fills, updates});
+    if(d.success){
+      impMsg.className='msg ok';
+      impMsg.textContent=`已套用：新增 ${d.inserted} 筆／姓名補值 ${d.name_filled} 筆／方案更新 ${d.updated} 筆`;
+      impMsg.style.display='block';
+      loadData();
+    }else{ impMsg.className='msg err'; impMsg.textContent=d.message||'套用失敗'; impMsg.style.display='block'; }
+  }catch(e){ impMsg.className='msg err'; impMsg.textContent='失敗：'+e.message; impMsg.style.display='block'; }
+}
+
+function toggleAll(kind, checked){
+  document.querySelectorAll('.chk-'+kind).forEach(c=>c.checked=checked);
+}
+
+
+
+
+
+function toIsoDate(yyMmDd){
+  const m=String(yyMmDd||'').trim().match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if(!m) return '';
+  const yy=parseInt(m[1],10);
+  const year = yy<70?2000+yy:1900+yy;
+  return `${year}-${m[2]}-${m[3]}`;
+}
+
+function prefixOf(id){ return String(id||'').split('-')[0]; }
 </script></div></body></html>
