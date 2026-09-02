@@ -462,7 +462,10 @@ async function init() {
   }
 
   // ── 原始初始化 ──
-  const { data: batches } = await sb.from('batches').select('*').order('id', { ascending: false });
+  // 🔴 已歸檔的期別不進下拉：活動層已清空，點進去只會看到空的名冊與 0 筆資料，
+  //    真正的資料在 wiki 的「{N}期原始數據.md」與名人堂。（2026-09-02 Randoph：「26期選單可以刪掉」）
+  const { data: allB } = await sb.from('batches').select('*').order('id', { ascending: false });
+  const batches = (allB || []).filter(b => !b.archived_at);
   const sel = document.getElementById('selBatch');
   sel.innerHTML = (batches || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('');
   // 預設選當期（is_active），沒有才退回最新一期。下拉可自由切換看歷屆
