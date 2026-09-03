@@ -76,6 +76,12 @@ body::before{
 .fade-up:nth-child(3){animation-delay:.2s}
 .fade-up:nth-child(4){animation-delay:.3s}
 .fade-up:nth-child(5){animation-delay:.4s}
+  .cd-title{text-align:center;margin-top:24px;margin-bottom:6px;font-size:12px;
+    font-weight:700;letter-spacing:3px;text-transform:uppercase}
+  .en-note{text-align:center;margin-top:10px;font-size:13px;color:var(--txt2)}
+  .en-note b{color:var(--gold3)}
+  .badge-open{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;
+    background:var(--gold);color:#fff;font-size:12px;font-weight:700;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -86,6 +92,25 @@ body::before{
     <div class="motto">「一個人玩不是玩，一群人玩才是玩。」</div>
   </div>
 
+  <!-- 🎯 招生中模板：下一期還沒開班時顯示這一段，開班中那三塊（圓環／倒數／統計）隱藏。
+       判斷看日期不看人工切換：有 registration_open 的期別且今天 < 開班日 → 招生中。 -->
+  <div id="enrollBox" style="display:none">
+    <div class="cd-title" style="color:var(--gold)">報名倒數</div>
+    <div class="countdown-bar fade-up">
+      <div class="cd-item"><span class="cd-num" id="enDays">--</span><span class="cd-unit">天</span></div>
+      <div class="cd-item"><span class="cd-num" id="enHrs">--</span><span class="cd-unit">時</span></div>
+      <div class="cd-item"><span class="cd-num" id="enMins">--</span><span class="cd-unit">分</span></div>
+      <div class="cd-item"><span class="cd-num" id="enSecs">--</span><span class="cd-unit">秒</span></div>
+    </div>
+    <div class="en-note" id="enDeadline">—</div>
+    <div class="stats-row fade-up">
+      <div class="stat-card"><div class="stat-num" id="enOpen">--</div><div class="stat-label">開班日</div></div>
+      <div class="stat-card"><div class="stat-num" id="enWeeks">--</div><div class="stat-label">課程長度</div></div>
+      <div class="stat-card"><div class="stat-num" id="enFee">--</div><div class="stat-label">報名費</div></div>
+    </div>
+  </div>
+
+  <div id="runBox">
   <div class="ring-section fade-up">
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 220 220" width="220" height="220">
@@ -129,6 +154,7 @@ body::before{
       <div class="stat-label">本週活躍人數</div>
     </div>
   </div>
+  </div><!-- /runBox -->
 
   <div class="nav-grid fade-up">
     <a class="nav-card" href="brochure.html">
@@ -283,7 +309,55 @@ function currentWeekRange() {
   return { start: localDateStr(s), end: localDateStr(e > batchEnd ? batchEnd : e) };
 }
 
+// 🎯 招生中 vs 開班中：兩套模板，判斷看日期不看人工切換（2026-09-03 Randoph）
+//   27 期 9/1 結業、28 期 9/13 開班——中間這 12 天首頁若還顯示「本週填報率」
+//   和「結業倒數 0 天」就是廢話。招生期該講的是「還剩幾天報名」。
+// 招生中模板：拿掉圓環與週統計，改成報名倒數＋這一期的基本盤
+function renderEnroll(b) {
+  document.getElementById('runBox').style.display = 'none';
+  document.getElementById('enrollBox').style.display = '';
+  document.getElementById('batchName').innerHTML =
+    b.name + '<span class="badge-open">招生中</span>';
+  document.title = b.name + ' 招生中';
+
+  const open = new Date(b.start_date + 'T00:00:00');
+  const end  = new Date(b.end_date + 'T00:00:00');
+  const weeks = Math.round((end - open) / 604800000);
+  const md = d => (d.getMonth() + 1) + '/' + d.getDate();
+  document.getElementById('enOpen').textContent  = md(open);
+  document.getElementById('enWeeks').textContent = weeks + ' 週';
+  document.getElementById('enFee').textContent   = 'NT$450';
+
+  // 報名截止＝開班前 3 天 21:00（28 期是 9/10 21:00）
+  const dl = new Date(open); dl.setDate(dl.getDate() - 3); dl.setHours(21, 0, 0, 0);
+  const wd = '日一二三四五六'[dl.getDay()];
+  document.getElementById('enDeadline').innerHTML =
+    `報名截止 <b>${md(dl)}（${wd}）21:00</b>　·　<b>${md(open)}</b> 開班`;
+
+  const tick = () => {
+    let s = Math.floor((dl - new Date()) / 1000);
+    if (s < 0) s = 0;
+    const set = (id, v) => document.getElementById(id).textContent = String(v).padStart(2, '0');
+    document.getElementById('enDays').textContent = Math.floor(s / 86400);
+    set('enHrs',  Math.floor(s % 86400 / 3600));
+    set('enMins', Math.floor(s % 3600 / 60));
+    set('enSecs', s % 60);
+  };
+  tick(); setInterval(tick, 1000);
+}
+
+
 async function init() {
+  // 先看有沒有正在招生、而且還沒開班的期別
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const { data: enroll } = await sb.from('batches')
+    .select('id, name, start_date, end_date')
+    .eq('registration_open', true).maybeSingle();
+  if (enroll && new Date(enroll.start_date) > today) {
+    renderEnroll(enroll);
+    return;
+  }
+
   // 當期批次（is_active）→ 換屆只改 DB，不改碼
   const { data: batch } = await sb.from('batches')
     .select('id, name, event_name, start_date, end_date')
