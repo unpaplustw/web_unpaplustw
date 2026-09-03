@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="zh-Hant"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>我的健康紀錄</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,#1a1f3a,#2d1b4e);color:#fff;min-height:100vh;
+  font:17px/1.7 -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;padding:16px}
+.wrap{max-width:520px;margin:0 auto}
+h1{font-size:1.4rem;margin:6px 0 4px}
+.sub{opacity:.7;font-size:.95rem;margin-bottom:16px}
+.card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+  border-radius:16px;padding:16px;margin-bottom:14px}
+.metric{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.12)}
+.metric:last-child{border:0}
+.mname{font-size:1.05rem}
+.mval{font-size:1.5rem;font-weight:800}
+.chg{font-size:.9rem;padding:2px 9px;border-radius:999px;margin-left:8px}
+.up{background:rgba(55,201,120,.25);color:#7ee787}
+.down{background:rgba(255,176,32,.22);color:#ffcf70}
+.flat{background:rgba(255,255,255,.12);opacity:.8}
+.date{opacity:.6;font-size:.85rem}
+.inp{width:100%;background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.25);
+  border-radius:12px;color:#fff;padding:14px;font-size:1.2rem;font-weight:700}
+.row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.row label{flex:0 0 96px;font-size:1rem}
+.btn{width:100%;border:0;border-radius:14px;padding:17px;font-size:1.2rem;font-weight:800;
+  background:linear-gradient(135deg,#00b09b,#96c93d);color:#fff;cursor:pointer;margin-top:8px}
+.msg{padding:13px;border-radius:12px;margin-top:12px;display:none}
+.ok{background:rgba(0,176,155,.22);border:1px solid #00b09b}
+.err{background:rgba(255,93,93,.16);border:1px solid #ff5d5d}
+.priv{font-size:.85rem;opacity:.65;margin-top:14px;text-align:center;line-height:1.6}
+details>summary{cursor:pointer;font-weight:700;padding:6px 0;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"▾";float:right;opacity:.6}
+details[open]>summary::after{transform:rotate(180deg);display:inline-block}
+</style></head><body><div class="wrap">
+<div id="loading"><h1>載入中…</h1></div>
+<div id="app" style="display:none">
+  <h1 id="hi">我的健康紀錄</h1>
+  <div class="sub">只有你自己看得到完整數字</div>
+  <div class="card" id="latest"></div>
+  <div class="card">
+    <details><summary>➕ 記一次新的</summary>
+      <div id="inputs" style="margin-top:12px"></div>
+      <button class="btn" onclick="save()">儲存這次紀錄</button>
+    </details>
+  </div>
+  <div class="card"><details><summary>📜 歷次紀錄</summary>
+    <div id="history" style="margin-top:10px"></div></details></div>
+  <div class="priv">🔒 完整數字只有你自己看得到。<br>
+    你的推薦人／領袖只會看到「該關心你了」這類提醒，<b>看不到任何數值</b>。</div>
+</div>
+<div class="msg" id="msg"></div>
+</div>
+<script>
+const SUPABASE_URL="https://nsgqsopqlkhayuefdout.supabase.co";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
+const LIFF_ID="REPLACE_WITH_LIFF_ID";
+const $=i=>document.getElementById(i);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+let UID=null, DATA=null;
+function say(t,ok){const m=$('msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;m.style.display='block';}
+async function rpc(body){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_my_health',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{line_uid:UID,...body}})});
+  return r.json();
+}
+async function boot(){
+  try{
+    if(!LIFF_ID.startsWith('REPLACE')){
+      await liff.init({liffId:LIFF_ID});
+      if(!liff.isLoggedIn()){liff.login();return;}
+      UID=(await liff.getProfile()).userId;
+    }
+  }catch(e){console.warn('liff',e);}
+  DATA=await rpc({});
+  $('loading').style.display='none';
+  if(!DATA||!DATA.success){say((DATA&&DATA.message)||'讀取失敗',false);return;}
+  $('app').style.display='';
+  $('hi').textContent=(DATA.name||'')+' 的健康紀錄';
+  render();
+}
+function render(){
+  const defs=DATA.defs||{}, rows=DATA.rows||[];
+  // 每個項目取最新兩筆
+  const by={}; rows.forEach(r=>{(by[r.metric]=by[r.metric]||[]).push(r);});
+  const keys=Object.keys(by);
+  $('latest').innerHTML = keys.length ? keys.map(k=>{
+    const a=by[k][0], b=by[k][1];
+    let chip='';
+    if(b){
+      const dir=(defs[k]||{}).better||'up';
+      const diff=a.value-b.value;
+      const good=(dir==='up'&&diff>0)||(dir==='down'&&diff<0);
+      const pct=Math.round(Math.abs(diff)/Math.abs(b.value||1)*100);
+      chip = diff===0 ? '<span class="chg flat">持平</span>'
+        : `<span class="chg ${good?'up':'down'}">${good?'▲ 進步':'▼'} ${pct}%</span>`;
+    }
+    return `<div class="metric"><div><div class="mname">${esc(k)}</div>
+      <div class="date">${esc(a.measured_on)}</div></div>
+      <div><span class="mval">${a.value}</span>${esc(a.unit||'')}${chip}</div></div>`;
+  }).join('') : '<div class="date">還沒有紀錄，往下記第一筆吧。</div>';
+
+  $('inputs').innerHTML = Object.keys(defs).map(k=>
+    `<div class="row"><label>${esc(k)}</label>
+      <input class="inp" inputmode="decimal" id="in_${esc(k)}" placeholder="${esc((defs[k]||{}).unit||'')}"></div>`).join('');
+
+  $('history').innerHTML = rows.length ? rows.map(r=>
+    `<div class="metric"><div><div class="mname">${esc(r.metric)}</div>
+      <div class="date">${esc(r.measured_on)}${r.measured_by?'｜'+esc(r.measured_by):''}</div></div>
+     <div><span style="font-size:1.15rem;font-weight:700">${r.value}</span>${esc(r.unit||'')}</div></div>`
+    ).join('') : '<div class="date">尚無紀錄</div>';
+}
+async function save(){
+  const defs=DATA.defs||{}, items=[];
+  Object.keys(defs).forEach(k=>{
+    const v=($('in_'+k)||{}).value;
+    if(v&&v.trim()!=='') items.push({metric:k, value:v.trim(), unit:(defs[k]||{}).unit||''});
+  });
+  if(!items.length){say('至少填一項再儲存',false);return;}
+  const d=await rpc({action:'add', items});
+  if(d&&d.success){DATA=d;render();say('✅ 已記錄，'+items.length+' 項',true);
+    Object.keys(defs).forEach(k=>{const el=$('in_'+k); if(el) el.value='';});}
+  else say((d&&d.message)||'儲存失敗',false);
+}
+boot();
+</script></body></html>
