@@ -106,6 +106,22 @@ body::before{
   .hp-hl{margin-top:11px;padding-top:11px;border-top:1px solid var(--border);
     font-size:13px;color:var(--txt2);min-height:20px;transition:opacity .4s}
   .hp-hl b{color:var(--gold3)}
+  /* 📖 報名簡章：招生期唯一的主要行動，視覺層級要壓過其他卡
+     實心金 > 成長歷程（淺金）> 其餘（白）。脈動只動陰影，不動版面，不會吵。 */
+  .nav-card.enroll{background:linear-gradient(135deg,#96790a,#d4af37);
+    border-color:transparent;animation:enrollPulse 2.6s ease-in-out infinite}
+  .nav-card.enroll .nav-title{color:#fff}
+  .nav-card.enroll .nav-desc{color:rgba(255,255,255,.88)}
+  .nav-card.enroll .nav-arrow{color:#fff;opacity:.9}
+  .nav-card.enroll:hover{transform:translateX(4px) scale(1.01);border-color:transparent}
+  .enroll-tag{display:inline-block;margin-left:7px;padding:1px 8px;border-radius:999px;
+    background:rgba(255,255,255,.95);color:#96790a;font-size:11px;font-weight:900;
+    vertical-align:middle}
+  @keyframes enrollPulse{
+    0%,100%{box-shadow:0 4px 18px rgba(184,150,12,.32)}
+    50%    {box-shadow:0 6px 30px rgba(184,150,12,.62)}
+  }
+  @media (prefers-reduced-motion:reduce){.nav-card.enroll{animation:none}}
 </style>
 </head>
 <body>
@@ -197,10 +213,10 @@ body::before{
   </div><!-- /runBox -->
 
   <div class="nav-grid fade-up">
-    <a class="nav-card" href="brochure.html">
+    <a class="nav-card enroll" href="brochure.html">
       <div class="nav-icon">📖</div>
       <div class="nav-info">
-        <div class="nav-title">28 期報名簡章</div>
+        <div class="nav-title">28 期報名簡章<span class="enroll-tag">招生中</span></div>
         <div class="nav-desc">四週三組・9/13 開班・報名至 9/10</div>
       </div>
       <div class="nav-arrow">›</div>
