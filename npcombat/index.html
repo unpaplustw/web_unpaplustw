@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>實戰班</title>
+<script src="hall-data.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -82,6 +83,20 @@ body::before{
   .en-note b{color:var(--gold3)}
   .badge-open{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;
     background:var(--gold);color:#fff;font-size:12px;font-weight:700;vertical-align:middle}
+  /* 📊 累積漏斗（招生期） */
+  .fn-box{margin-top:18px;background:var(--card);border:1px solid var(--border);
+    border-radius:16px;padding:14px 16px 12px;box-shadow:var(--shadow)}
+  .fn-hd{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--txt2);
+    text-align:center;margin-bottom:10px}
+  .fn-hd b{color:var(--gold3)}
+  .fn-svg{width:100%;height:96px;display:block}
+  .fn-legend{display:flex;justify-content:space-between;margin-top:8px;gap:4px}
+  .fn-lg{flex:1;text-align:center;min-width:0}
+  .fn-lg-n{font-size:15px;font-weight:900;color:var(--gold3);line-height:1.2}
+  .fn-lg-l{font-size:10.5px;color:var(--txt2);white-space:nowrap}
+  .fn-note{margin-top:9px;padding-top:9px;border-top:1px solid var(--border);
+    font-size:12px;color:var(--txt2);text-align:center;line-height:1.7}
+  .fn-note b{color:var(--gold3);font-weight:900}
 </style>
 </head>
 <body>
@@ -107,6 +122,15 @@ body::before{
       <div class="stat-card"><div class="stat-num" id="enOpen">--</div><div class="stat-label">開班日</div></div>
       <div class="stat-card"><div class="stat-num" id="enWeeks">--</div><div class="stat-label">課程長度</div></div>
       <div class="stat-card"><div class="stat-num" id="enFee">--</div><div class="stat-label">報名費</div></div>
+    </div>
+
+    <!-- 📊 累積漏斗：邀約→溝通本→說明會→締結。數字讀 hall-data.js，0 次資料庫查詢。
+         Randoph：「就是數據圖呈現，這樣才會覺得很酷但是又不佔太多畫面」 -->
+    <div class="fn-box fade-up" id="fnBox" style="display:none">
+      <div class="fn-hd"><span id="fnTitle">—</span></div>
+      <svg class="fn-svg" id="fnSvg" viewBox="0 0 320 96" preserveAspectRatio="none"></svg>
+      <div class="fn-legend" id="fnLegend"></div>
+      <div class="fn-note" id="fnNote"></div>
     </div>
   </div>
 
@@ -313,6 +337,64 @@ function currentWeekRange() {
 //   27 期 9/1 結業、28 期 9/13 開班——中間這 12 天首頁若還顯示「本週填報率」
 //   和「結業倒數 0 天」就是廢話。招生期該講的是「還剩幾天報名」。
 // 招生中模板：拿掉圓環與週統計，改成報名倒數＋這一期的基本盤
+// 📊 累積漏斗：邀約 → 溝通本 → 說明會 → 締結
+//   資料來自 hall-data.js（名人堂那份，跨期累積），**不查資料庫**。
+//   每期結案跑一次 名人堂重生.py，這裡的數字自己會更新。
+function renderFunnel() {
+  if (typeof HALL === 'undefined') return;
+  const b = HALL.boards || {};
+  const sum = k => (b[k] || []).reduce((a, r) => a + r[2], 0);
+  const steps = [
+    { k: 'invite',  l: '邀約',   v: sum('invite')  },
+    { k: 'present', l: '溝通本', v: sum('present') },
+    { k: 'seminar', l: '說明會', v: sum('seminar') },
+    { k: 'close',   l: '締結',   v: sum('close')   }
+  ];
+  if (!steps[0].v) return;
+
+  const W = 320, H = 96, top = steps[0].v;
+  const seg = W / steps.length;
+  // 高度取 0.4 次方——線性的話 132/1733 細到看不見，平方根又讓後三段擠成一團。
+  // 「邀約到溝通本掉得最兇」正是 26 期實測的結論：溝通場次才是締結的真門檻。
+  // 形狀本身就是洞察，不是裝飾。
+  const hOf = v => Math.max(10, Math.pow(v / top, 0.4) * (H - 12));
+  const ys = steps.map(s => hOf(s.v)); ys.push(hOf(steps[3].v) * 0.9);
+  // 用貝茲曲線接每一段，收窄才不會像折斷的紙板
+  let up = `M0,${(H - ys[0]) / 2}`, dn = '';
+  for (let i = 0; i < steps.length; i++) {
+    const x2 = (i + 1) * seg, mid = i * seg + seg / 2;
+    up += ` C${mid},${(H - ys[i]) / 2} ${mid},${(H - ys[i+1]) / 2} ${x2},${(H - ys[i+1]) / 2}`;
+  }
+  for (let i = steps.length - 1; i >= 0; i--) {
+    const x1 = i * seg, mid = i * seg + seg / 2;
+    dn += ` C${mid},${(H + ys[i+1]) / 2} ${mid},${(H + ys[i]) / 2} ${x1},${(H + ys[i]) / 2}`;
+  }
+  const path = `<path d="${up} L${W},${(H + ys[4]) / 2}${dn} Z" fill="url(#fnGrad)"/>` +
+    steps.slice(1).map((_, i) => {
+      const x = (i + 1) * seg, h = ys[i + 1];
+      return `<line x1="${x}" y1="${(H - h) / 2}" x2="${x}" y2="${(H + h) / 2}" stroke="#fff" stroke-width="1.5" opacity=".5"/>`;
+    }).join('');
+  document.getElementById('fnSvg').innerHTML =
+    `<defs><linearGradient id="fnGrad" x1="0" y1="0" x2="1" y2="0">
+       <stop offset="0%" stop-color="#d4af37"/><stop offset="55%" stop-color="#b8960c"/>
+       <stop offset="100%" stop-color="#96790a"/>
+     </linearGradient></defs>` + path;
+
+  document.getElementById('fnLegend').innerHTML = steps.map(s =>
+    `<div class="fn-lg"><div class="fn-lg-n">${s.v.toLocaleString()}</div>` +
+    `<div class="fn-lg-l">${s.l}</div></div>`).join('');
+
+  const gh = sum('ghost'), people = HALL.total || 0;
+  const cohorts = Object.keys(HALL.batches || {}).length;
+  document.getElementById('fnTitle').innerHTML =
+    `${cohorts} 期累積　·　<b>${people}</b> 位夥伴走過`;
+  // 被放鳥不是插曲，是這條路的一部分——放在收尾講最有力
+  if (gh) document.getElementById('fnNote').innerHTML =
+    `一路上被放鳥 <b>${gh}</b> 次，還是走到了 <b>${steps[3].v}</b> 件締結。`;
+  document.getElementById('fnBox').style.display = '';
+}
+
+
 function renderEnroll(b) {
   document.getElementById('runBox').style.display = 'none';
   document.getElementById('enrollBox').style.display = '';
@@ -327,6 +409,7 @@ function renderEnroll(b) {
   document.getElementById('enOpen').textContent  = md(open);
   document.getElementById('enWeeks').textContent = weeks + ' 週';
   document.getElementById('enFee').textContent   = 'NT$450';
+  renderFunnel();
 
   // 報名截止＝開班前 3 天 21:00（28 期是 9/10 21:00）
   const dl = new Date(open); dl.setDate(dl.getDate() - 3); dl.setHours(21, 0, 0, 0);
