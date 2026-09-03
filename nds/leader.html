@@ -94,6 +94,7 @@ async function loadTasks(){
       ${t.due_date?'<span class="due">期限 '+esc(t.due_date)+'</span>':''}</div>
       <div class="big" style="margin:6px 0">${esc(t.target_name||t.target_member_id)}</div>
       <div class="mut">${esc(t.target_member_id)}｜${esc(t.detail||'')}${t.status==='已聯絡'?'｜🔵已聯絡':''}</div>
+      ${t.health_topic?`<div style="margin-top:8px;padding:11px;background:rgba(79,140,255,.12);border-left:4px solid #4f8cff;border-radius:8px;font-size:15px;line-height:1.6">💬 <b>建議話題</b><br>${esc(t.health_topic).replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')}</div>`:''}
       <div style="margin-top:10px">
         <button class="btn row b-call" onclick="rep(${t.id},'已聯絡')">📞 已聯絡</button>
         <button class="btn row b-done" onclick="rep(${t.id},'完成')">✅ 完成</button>

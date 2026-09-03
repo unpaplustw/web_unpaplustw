@@ -435,7 +435,7 @@ function renderCard(d){
       <td>${t.max_depth?t.max_depth+' 代':'—'}</td></tr>`).join('')+'</tbody></table></div>'
       +(dTot?'<div class="mut" style="font-size:13px;margin-top:4px">另有 '+dTot+' 個已解約位置，不列入計算</div>':'');
   }
-  document.getElementById('mcBody').innerHTML = cd + intentBox(d) + readOut(b,d) + `
+  document.getElementById('mcBody').innerHTML = cd + intentBox(d) + healthBox(d) + readOut(b,d) + `
    <div class="card" style="margin-bottom:12px"><b>🎯 機會名單（先打這些）</b><div style="margin-top:6px">${hope}</div></div>
    <div class="card" style="margin-bottom:12px"><b>💳 方案與消費</b>
      <div class="scroll"><table><tbody>
@@ -991,4 +991,26 @@ function toIsoDate(yyMmDd){
 }
 
 function prefixOf(id){ return String(id||'').split('-')[0]; }
+
+function healthBox(d){
+  const h=d.health, t=d.health_topic;
+  if(!h){  // 非 owner 登入：完全不顯示健康資料
+    return '';
+  }
+  const rows=(h.latest||[]);
+  if(!rows.length) return `<div class="card" style="background:#0d1116;margin-bottom:12px;border-color:#3a2f18">
+    <b>🩺 健康紀錄</b><div class="mut" style="margin-top:4px">尚無檢測紀錄。${esc(t||'')}</div></div>`;
+  const chips=rows.map(r=>`<span style="display:inline-block;background:#0f2e17;color:#7ee787;border-radius:12px;
+    padding:3px 11px;margin:3px 5px 0 0;font-size:13px">${esc(r.metric)} <b>${r.value}</b>${esc(r.unit||'')}</span>`).join('');
+  const last=rows.map(r=>r.measured_on).sort().reverse()[0];
+  return `<div class="card" style="background:#0d1116;margin-bottom:12px;border-color:var(--ok)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
+      <b>🩺 健康紀錄</b>
+      <span class="mut" style="font-size:12.5px">最近 ${esc(last||'')}｜共 ${h.count} 筆　🔒 僅你可見</span>
+    </div>
+    <div style="margin-top:6px">${chips}</div>
+    <div class="mut" style="margin-top:6px;font-size:13px">派給領袖時只會看到：「${esc(t||'')}」<b>不含數字</b></div>
+  </div>`;
+}
+
 </script></div></body></html>
