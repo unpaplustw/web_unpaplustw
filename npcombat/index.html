@@ -83,20 +83,29 @@ body::before{
   .en-note b{color:var(--gold3)}
   .badge-open{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;
     background:var(--gold);color:#fff;font-size:12px;font-weight:700;vertical-align:middle}
-  /* 📊 累積漏斗（招生期） */
-  .fn-box{margin-top:18px;background:var(--card);border:1px solid var(--border);
-    border-radius:16px;padding:14px 16px 12px;box-shadow:var(--shadow)}
-  .fn-hd{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--txt2);
-    text-align:center;margin-bottom:10px}
-  .fn-hd b{color:var(--gold3)}
-  .fn-svg{width:100%;height:96px;display:block}
-  .fn-legend{display:flex;justify-content:space-between;margin-top:8px;gap:4px}
-  .fn-lg{flex:1;text-align:center;min-width:0}
-  .fn-lg-n{font-size:15px;font-weight:900;color:var(--gold3);line-height:1.2}
-  .fn-lg-l{font-size:10.5px;color:var(--txt2);white-space:nowrap}
-  .fn-note{margin-top:9px;padding-top:9px;border-top:1px solid var(--border);
-    font-size:12px;color:var(--txt2);text-align:center;line-height:1.7}
-  .fn-note b{color:var(--gold3);font-weight:900}
+  /* ✨ 招生期成果區：講希望不講恐懼 */
+  .hp-box{margin-top:18px;background:var(--card);border:1px solid var(--border);
+    border-radius:16px;padding:16px;box-shadow:var(--shadow);text-align:center}
+  .hp-hd{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--txt2);margin-bottom:10px}
+  .hp-hd b{color:var(--gold3)}
+  .hp-big{font-size:46px;font-weight:900;line-height:1;
+    background:linear-gradient(135deg,var(--gold3),var(--gold2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hp-big small{font-size:17px;margin-left:3px;-webkit-text-fill-color:var(--gold3)}
+  .hp-cap{font-size:13px;color:var(--txt2);margin-top:2px;font-weight:700}
+  .hp-bar{position:relative;height:26px;border-radius:13px;background:#ece7db;
+    margin-top:12px;overflow:hidden}
+  .hp-bar-fill{height:100%;width:0;border-radius:13px;
+    background:linear-gradient(90deg,var(--gold2),var(--gold3));
+    transition:width 1.4s cubic-bezier(.22,1,.36,1)}
+  .hp-bar-txt{position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:flex-start;padding-left:14px;font-size:12.5px;font-weight:900;
+    color:#fff;text-shadow:0 1px 4px rgba(90,66,0,.55);white-space:nowrap}
+  .hp-sub{font-size:13px;color:var(--txt);margin-top:9px;line-height:1.7}
+  .hp-sub b{color:var(--gold3)}
+  .hp-hl{margin-top:11px;padding-top:11px;border-top:1px solid var(--border);
+    font-size:13px;color:var(--txt2);min-height:20px;transition:opacity .4s}
+  .hp-hl b{color:var(--gold3)}
 </style>
 </head>
 <body>
@@ -126,11 +135,18 @@ body::before{
 
     <!-- 📊 累積漏斗：邀約→溝通本→說明會→締結。數字讀 hall-data.js，0 次資料庫查詢。
          Randoph：「就是數據圖呈現，這樣才會覺得很酷但是又不佔太多畫面」 -->
-    <div class="fn-box fade-up" id="fnBox" style="display:none">
-      <div class="fn-hd"><span id="fnTitle">—</span></div>
-      <svg class="fn-svg" id="fnSvg" viewBox="0 0 320 96" preserveAspectRatio="none"></svg>
-      <div class="fn-legend" id="fnLegend"></div>
-      <div class="fn-note" id="fnNote"></div>
+    <!-- ✨ 招生期的中段：講「有多少人做到了」，不是「有多少人被拒絕」。
+         Randoph：「第一次來參加的學員是要看到希望而不是看到恐懼」 -->
+    <div class="hp-box fade-up" id="fnBox" style="display:none">
+      <div class="hp-hd" id="hpHd">—</div>
+      <div class="hp-main">
+        <div class="hp-big"><span id="hpDone">0</span><small>位</small></div>
+        <div class="hp-cap">完成了締結</div>
+      </div>
+      <div class="hp-bar"><div class="hp-bar-fill" id="hpFill"></div>
+        <span class="hp-bar-txt" id="hpPct">—</span></div>
+      <div class="hp-sub" id="hpSub">—</div>
+      <div class="hp-hl" id="hpHl"></div>
     </div>
   </div>
 
@@ -340,57 +356,57 @@ function currentWeekRange() {
 // 📊 累積漏斗：邀約 → 溝通本 → 說明會 → 締結
 //   資料來自 hall-data.js（名人堂那份，跨期累積），**不查資料庫**。
 //   每期結案跑一次 名人堂重生.py，這裡的數字自己會更新。
+// ✨ 招生期的成果區：講「有多少人做到了」，不是「有多少人被拒絕」。
+//   Randoph 2026-09-03：「應該呈現締結的高光時刻的保證感覺…第一次來參加的學員
+//   是要看到希望而不是看到恐懼」——第一版做成漏斗（1733 邀約→132 締結），
+//   對老手是勵志，對新人是勸退。數字一樣，講法完全相反。
+//   資料讀 hall-data.js（名人堂那份），不查資料庫。
 function renderFunnel() {
   if (typeof HALL === 'undefined') return;
   const b = HALL.boards || {};
-  const sum = k => (b[k] || []).reduce((a, r) => a + r[2], 0);
-  const steps = [
-    { k: 'invite',  l: '邀約',   v: sum('invite')  },
-    { k: 'present', l: '溝通本', v: sum('present') },
-    { k: 'seminar', l: '說明會', v: sum('seminar') },
-    { k: 'close',   l: '締結',   v: sum('close')   }
-  ];
-  if (!steps[0].v) return;
+  const close = b.close || [];
+  if (!close.length) return;
 
-  const W = 320, H = 96, top = steps[0].v;
-  const seg = W / steps.length;
-  // 高度取 0.4 次方——線性的話 132/1733 細到看不見，平方根又讓後三段擠成一團。
-  // 「邀約到溝通本掉得最兇」正是 26 期實測的結論：溝通場次才是締結的真門檻。
-  // 形狀本身就是洞察，不是裝飾。
-  const hOf = v => Math.max(10, Math.pow(v / top, 0.4) * (H - 12));
-  const ys = steps.map(s => hOf(s.v)); ys.push(hOf(steps[3].v) * 0.9);
-  // 用貝茲曲線接每一段，收窄才不會像折斷的紙板
-  let up = `M0,${(H - ys[0]) / 2}`, dn = '';
-  for (let i = 0; i < steps.length; i++) {
-    const x2 = (i + 1) * seg, mid = i * seg + seg / 2;
-    up += ` C${mid},${(H - ys[i]) / 2} ${mid},${(H - ys[i+1]) / 2} ${x2},${(H - ys[i+1]) / 2}`;
-  }
-  for (let i = steps.length - 1; i >= 0; i--) {
-    const x1 = i * seg, mid = i * seg + seg / 2;
-    dn += ` C${mid},${(H + ys[i+1]) / 2} ${mid},${(H + ys[i]) / 2} ${x1},${(H + ys[i]) / 2}`;
-  }
-  const path = `<path d="${up} L${W},${(H + ys[4]) / 2}${dn} Z" fill="url(#fnGrad)"/>` +
-    steps.slice(1).map((_, i) => {
-      const x = (i + 1) * seg, h = ys[i + 1];
-      return `<line x1="${x}" y1="${(H - h) / 2}" x2="${x}" y2="${(H + h) / 2}" stroke="#fff" stroke-width="1.5" opacity=".5"/>`;
-    }).join('');
-  document.getElementById('fnSvg').innerHTML =
-    `<defs><linearGradient id="fnGrad" x1="0" y1="0" x2="1" y2="0">
-       <stop offset="0%" stop-color="#d4af37"/><stop offset="55%" stop-color="#b8960c"/>
-       <stop offset="100%" stop-color="#96790a"/>
-     </linearGradient></defs>` + path;
-
-  document.getElementById('fnLegend').innerHTML = steps.map(s =>
-    `<div class="fn-lg"><div class="fn-lg-n">${s.v.toLocaleString()}</div>` +
-    `<div class="fn-lg-l">${s.l}</div></div>`).join('');
-
-  const gh = sum('ghost'), people = HALL.total || 0;
+  const people = HALL.total || 0;
+  const done   = close.length;                       // 有締結的人數
+  const items  = close.reduce((a, r) => a + r[2], 0);
+  const three  = close.filter(r => r[2] >= 3).length;
+  const pct    = Math.round(done / people * 100);
   const cohorts = Object.keys(HALL.batches || {}).length;
-  document.getElementById('fnTitle').innerHTML =
-    `${cohorts} 期累積　·　<b>${people}</b> 位夥伴走過`;
-  // 被放鳥不是插曲，是這條路的一部分——放在收尾講最有力
-  if (gh) document.getElementById('fnNote').innerHTML =
-    `一路上被放鳥 <b>${gh}</b> 次，還是走到了 <b>${steps[3].v}</b> 件締結。`;
+
+  document.getElementById('hpHd').innerHTML =
+    `${cohorts} 期以來　·　<b>${people}</b> 位夥伴走過這裡`;
+  document.getElementById('hpSub').innerHTML =
+    `其中 <b>${three}</b> 位締結 3 件以上，累積成交 <b>${items}</b> 件`;
+
+  // 數字跑上去，比直接顯示有份量
+  const el = document.getElementById('hpDone');
+  let n = 0;
+  const step = () => { n += Math.max(1, Math.ceil(done / 22));
+    if (n >= done) { n = done; } else { requestAnimationFrame(step); }
+    el.textContent = n; };
+  requestAnimationFrame(step);
+  setTimeout(() => {
+    document.getElementById('hpFill').style.width = pct + '%';
+    document.getElementById('hpPct').textContent = pct + '% 的人拿到成果';
+  }, 120);
+
+  // 💫 高光時刻：具體的人、具體的事，輪播。名字比數字有溫度。
+  const top = (k, f) => (b[k] || [])[0] ? f((b[k][0])) : null;
+  const hl = [
+    top('close',  r => `<b>${r[0]}</b> 累積締結 <b>${r[2]}</b> 件`),
+    top('days',   r => `<b>${r[0]}</b> 一期出手 <b>${r[2]}</b> 天，天天都在跑`),
+    top('invite', r => `<b>${r[0]}</b> 約了 <b>${r[2]}</b> 個人出來見面`),
+    top('lead',   r => `<b>${r[0]}</b> 帶了 <b>${r[2]}</b> 位夥伴進來一起拚`)
+  ].filter(Boolean);
+  const box = document.getElementById('hpHl');
+  let i = 0;
+  const show = () => {
+    box.style.opacity = 0;
+    setTimeout(() => { box.innerHTML = '💫 ' + hl[i % hl.length]; box.style.opacity = 1; i++; }, 350);
+  };
+  show(); if (hl.length > 1) setInterval(show, 4200);
+
   document.getElementById('fnBox').style.display = '';
 }
 
