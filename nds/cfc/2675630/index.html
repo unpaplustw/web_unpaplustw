@@ -87,6 +87,7 @@ a{text-decoration:none}
 <div class="tabs">
   <div class="tab on" data-v="ov" onclick="sw(this)">📊 總覽</div>
   <div class="tab" data-v="cfc" onclick="sw(this)">🏆 CFC 佈局</div>
+  <div class="tab" data-v="water" onclick="sw(this)">💧 水位</div>
   <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
   <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
   <div class="tab" data-v="qa" onclick="sw(this)">🧪 隔離區</div>
@@ -150,6 +151,21 @@ a{text-decoration:none}
       <thead><tr><th>級</th><th>姓名</th><th>線</th><th>底氣 左／右</th><th>①購買</th><th>②直推</th><th>組織</th><th>還缺什麼</th><th>點將</th></tr></thead>
       <tbody id="cfcBody"></tbody></table></div>
   </div>
+</div>
+<div id="v-water" class="card hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <b>💧 水位（再購窗口）</b>
+    <button class="btn sm" onclick="loadWater()">🔄 重新整理</button>
+  </div>
+  <div class="mut" style="margin-top:4px">
+    再購方案只能在<b>入會後 18 個月內</b>購買。窗口關了就只剩 24M（每月扣款），穩定度看付款方式。
+    <br>🔴 &lt;90天　🟠 &lt;180天　⚫ 窗口已關　⏳ 倒數中
+  </div>
+  <div id="waterSum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
+  <div class="msg" id="waterMsg"></div>
+  <div class="scroll" style="margin-top:8px"><table>
+    <thead><tr><th>急</th><th>對象</th><th>線</th><th>窗口剩</th><th>方案</th><th>方案到期</th><th>倒數</th><th>建議動作</th><th>歸戶領袖</th></tr></thead>
+    <tbody id="waterBody"></tbody></table></div>
 </div>
 <div id="v-qa" class="card hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -275,8 +291,8 @@ async function login(){
 }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['ov','cfc','qa','imp','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
-  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+  ['ov','cfc','water','qa','imp','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='water')loadWater(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
@@ -355,6 +371,44 @@ async function api2(p){
     body:JSON.stringify({p:{...CRED,...p}})});
   return r.json();
 }
+async function loadWater(){
+  const msg=document.getElementById('waterMsg'); msg.textContent='載入中…';
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_water',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED}})});
+  const d=await r.json();
+  if(!d||!d.success){msg.textContent=(d&&d.message)||'讀取失敗';return;}
+  msg.textContent='';
+  const S=d.summary||{}, lab={A:'✅ 有方案',B:'🔴 窗口<90天',C:'🟠 窗口<180天',D:'⚫ 窗口已關',E:'⚪ 還早'};
+  const box=document.getElementById('waterSum'); box.innerHTML='';
+  ['B','C','D','A','E'].forEach(k=>{
+    const s=S[k]; if(!s)return;
+    const el=document.createElement('div');
+    el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px';
+    el.innerHTML='<div class="mut" style="font-size:12px">'+lab[k]+'</div>'+
+      '<div style="font-size:22px;font-weight:700">'+s.n+'</div>'+
+      '<div class="mut" style="font-size:12px">左 '+s.l+' ・ 右 '+s.r+'</div>';
+    box.appendChild(el);
+  });
+  const tb=document.getElementById('waterBody'); tb.innerHTML='';
+  (d.rows||[]).forEach(x=>{
+    const icon = x.bucket==='B'?'🔴':x.bucket==='C'?'🟠':x.bucket==='D'?'⚫':'⏳';
+    const act = x.bucket==='D' ? '只能簽 24M（確認刷卡/轉帳）'
+              : x.has_plan ? '方案續期／確認扣款'
+              : (x.days_left<=90 ? '最後機會：簽再購或 24M' : '催再購（12+2 或 6+1）');
+    const win = x.days_left==null?'—':(x.days_left<0?'已關 '+(-x.days_left)+' 天':x.days_left+' 天');
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+icon+'</td>'+
+      '<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(x.name||'')+'</a><br><span class="mut">'+esc(x.member_id)+'</span></td>'+
+      '<td>'+esc(x.leg||'')+'</td><td>'+win+'</td>'+
+      '<td>'+esc(x.plan_code||'—')+'</td><td>'+esc(x.plan_until||'—')+'</td>'+
+      '<td>'+esc(x.auto_cancel_days||'')+'</td>'+
+      '<td>'+act+'</td><td>'+esc(x.leader_name||'—')+'</td>';
+    tb.appendChild(tr);
+  });
+  if(!(d.rows||[]).length) msg.textContent='目前沒有待處理的水位風險。';
+}
+
 async function loadOv(){
   return api2({action:'overview'}).then(d=>{
     if(!d.success)return;
