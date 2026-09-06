@@ -100,7 +100,7 @@ a{text-decoration:none}
         <button class="btn sm" onclick="loadCh()">🔄</button>
       </div>
     </div>
-    <div class="mut" style="margin-top:4px">左右各 8+4+2+1 格骨架，由你排。🏆左5右5成就 🟢循環跟得上時間 🟡落後 🔴本期難 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位。<b>底層 8 格做起來，上面 7 格會自己長。</b></div>
+    <div class="mut" style="margin-top:4px">你決定「誰」，格子系統照安置樹自動排（上下、左右都是他們本來的位置）。🏆左5右5成就 🟢循環跟得上時間 🟡落後 🔴本期難 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位。<b>底層 8 格做起來，上面 7 格會自己長。</b></div>
     <div id="chGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
   </div>
   <div class="card">
@@ -109,8 +109,8 @@ a{text-decoration:none}
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🧭 候選（硬條件已成立，還沒排進骨架）</b>
-      <span class="mut">依延伸代數＋水位排序；點「排入」選格子</span>
+      <b>🧭 候選（硬條件已成立）— 按「選入」就進骨架</b>
+      <span class="mut">依循環數＋延伸＋水位排序</span>
     </div>
     <div class="scroll" style="margin-top:8px"><table>
       <thead><tr><th>姓名</th><th>線</th><th>直推</th><th>延伸</th><th>循環 左/右</th><th>水位 左/右</th><th>組織有方案 左/右</th><th></th></tr></thead>
@@ -453,31 +453,29 @@ async function loadCh(){
     ol.appendChild(li);
   });
   if(!(d.actions||[]).length) ol.innerHTML='<li class="mut">骨架還沒排。先從下面候選「排入」。</li>';
+  if((d.overflow||[]).length){const li=document.createElement('li');li.innerHTML='<span class="mut">格子不夠放：'+d.overflow.map(o=>esc(o.side)+' '+esc(o.member_id)).join('、')+'（同一層選太多人）</span>';ol.appendChild(li);}
   // 候選
   const tb=document.getElementById('chCand'); tb.innerHTML='';
   (d.candidates||[]).forEach(c=>{
     const tr=document.createElement('tr');
+    if(c.picked) tr.style.background='rgba(63,185,80,.08)';
     tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(c.name||'')+'</a><br><span class="mut">'+esc(c.member_id)+'</span></td>'
       +'<td>'+esc(c.leg||'')+'</td><td>'+c.intro+'</td><td>第 '+c.depth+' 代</td>'
       +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td><td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td><td>'+c.l_plan+' / '+c.r_plan+'</td>'
-      +'<td><button class="btn sm" onclick="chPick(\''+esc(c.member_id)+'\',\''+esc(c.name||'')+'\')">排入</button></td>';
+      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="chToggle(\''+esc(c.member_id)+'\',false)">✓ 已選 移出</button>':'<button class="btn sm" onclick="chToggle(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
     tb.appendChild(tr);
   });
   if(!(d.candidates||[]).length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有硬條件成立的候選。</td></tr>';
 }
-function chPick(id,name){
-  CH_PICK=id;
-  const empties=(CH.skeleton||[]).filter(x=>!x.member_id);
-  const opts=empties.map(x=>x.side+' 第'+x.layer+'層 #'+x.slot).join('\n');
-  const ans=prompt('把 '+name+' 排到哪一格？輸入「左 4 1」這種格式（線 層 格）。空格：\n'+opts,'左 4 1');
-  if(!ans)return; const m=ans.trim().split(/\s+/); if(m.length<3){alert('格式：線 層 格');return;}
-  chApi({action:'set',side:m[0],layer:m[1],slot:m[2],member_id:id}).then(d=>{ if(d&&d.success===false)alert(d.message||'失敗'); loadCh(); });
+async function chToggle(id,on){
+  const d=await chApi({action:on?'pick':'unpick',member_id:id});
+  if(d&&d.success===false){alert(d.message||'失敗');return;}
+  loadCh();
 }
 function chOpen(x){
   const b=document.getElementById('chCardBody');
   if(!x.member_id){
-    b.innerHTML='<b>'+x.side+'線 第'+x.layer+'層 #'+x.slot+'</b><div class="mut" style="margin:6px 0 10px">空位。從候選名單「排入」，或直接輸入編號。</div>'
-      +'<input id="chManual" placeholder="會員編號 2675630-001" style="width:220px"> <button class="btn sm" onclick="chSetManual(\''+x.side+'\','+x.layer+','+x.slot+')">排入</button>';
+    b.innerHTML='<b>'+x.side+'線 第'+x.layer+'層 #'+x.slot+'</b><div class="mut" style="margin:6px 0 10px">空位。到下面候選名單按「選入」，系統會照他在安置樹的位置自動放進來。</div>';
     document.getElementById('chCard').classList.remove('hidden'); return;
   }
   const A=x.hardA||{}, B=x.hardB||{}, C=x.cyc||{}, W=x.water||{}, O=x.org||{}, E=x.ext||{};
@@ -506,13 +504,9 @@ function chOpen(x){
     +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
     +'<button class="btn sm" onclick="goAssign(\''+esc(x.member_id)+'\',\''+esc(x.name||'')+'\',\'\')">派工</button>'
     +'<button class="btn sm ghost" onclick="openCard(\''+esc(x.member_id)+'\')">底下組織</button>'
-    +'<button class="btn sm ghost" onclick="chApi({action:\'set\',side:\''+x.side+'\',layer:'+x.layer+',slot:'+x.slot+',member_id:\'\'}).then(()=>{document.getElementById(\'chCard\').classList.add(\'hidden\');loadCh();})">移出骨架</button>'
+    +'<button class="btn sm ghost" onclick="document.getElementById(\'chCard\').classList.add(\'hidden\');chToggle(\''+esc(x.member_id)+'\',false)">移出骨架</button>'
     +'</div>';
   document.getElementById('chCard').classList.remove('hidden');
-}
-function chSetManual(side,layer,slot){
-  const id=(document.getElementById('chManual').value||'').trim(); if(!id)return;
-  chApi({action:'set',side,layer,slot,member_id:id}).then(d=>{ if(d&&d.success===false){alert(d.message||'失敗');return;} document.getElementById('chCard').classList.add('hidden'); loadCh(); });
 }
 async function goAssign(id,name,detail){
   document.getElementById('chCard').classList.add('hidden');
