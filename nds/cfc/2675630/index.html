@@ -109,11 +109,12 @@ a{text-decoration:none}
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🧭 候選（硬條件已成立）— 按「選入」就進骨架</b>
-      <span class="mut">依循環數＋延伸＋水位排序</span>
+      <b>🧭 候選 — 按「選入」就進骨架</b>
+      <span class="mut">A 可衝／B 差一腳／C 在長；「還缺什麼」來自 CFC 佈局的判定</span>
+    </div><div style="margin-top:6px"><button class="btn sm" onclick="chF('all')">全部</button> <button class="btn sm" onclick="chF('AB')">A+B 級</button> <button class="btn sm" onclick="chF('右')">只看右線</button> <button class="btn sm" onclick="chF('picked')">已選入</button>
     </div>
     <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>姓名</th><th>線</th><th>直推</th><th>延伸</th><th>循環 左/右</th><th>水位 左/右</th><th>組織有方案 左/右</th><th></th></tr></thead>
+      <thead><tr><th>級</th><th>姓名</th><th>線</th><th>硬條件</th><th>還缺什麼</th><th>循環 左/右</th><th>水位 左/右</th><th>延伸</th><th>底下有方案 左/右</th><th></th></tr></thead>
       <tbody id="chCand"></tbody></table></div>
   </div>
 </div>
@@ -433,10 +434,38 @@ async function chApi(extra){
   return r.json();
 }
 function wan(v){return v==null?'—':(Math.round(v/10000)+'萬');}
+let CH_CFC=null, CH_OV=null, CH_F='all';
+function chF(f){CH_F=f;renderChCand();}
+function renderChCand(){
+  const d=CH||{}; const tb=document.getElementById('chCand'); tb.innerHTML='';
+  const G={A:['#37c978','A 可衝'],B:['#ffb020','B 差一腳'],C:['#4f8cff','C 在長'],D:['#484f58','D']};
+  const byId={}; ((CH_CFC||{}).candidates||[]).forEach(c=>byId[c.member_id]=c);
+  const seen={}; let rows=(d.candidates||[]).map(c=>{const k=byId[c.member_id]||{}; seen[c.member_id]=1; return {...c, grade:k.grade||(c.hard_ok?'C':'D'), lack:k.lack||'', lc:k.lc, rc:k.rc};});
+  Object.values(byId).forEach(k=>{ if(!seen[k.member_id] && (k.grade==='A'||k.grade==='B')) rows.push({member_id:k.member_id,name:k.name,leg:k.leg,grade:k.grade,lack:k.lack||'',lc:k.lc,rc:k.rc,hard_ok:!!(k.c_supply&&k.c_direct),intro:k.dir_valid,depth:null,l_plan:null,r_plan:null,fc_l:null,fc_r:null,water_l:null,water_r:null,picked:!!k.enlisted}); });
+  const gv={A:0,B:1,C:2,D:3};
+  rows.sort((a,b)=>(gv[a.grade]-gv[b.grade])||((b.score||0)-(a.score||0)));
+  if(CH_F==='AB')rows=rows.filter(r=>r.grade==='A'||r.grade==='B'); else if(CH_F==='右')rows=rows.filter(r=>r.leg==='右'); else if(CH_F==='picked')rows=rows.filter(r=>r.picked);
+  rows.slice(0,80).forEach(c=>{
+    const g=G[c.grade]||G.D; const tr=document.createElement('tr'); if(c.picked) tr.style.background='rgba(63,185,80,.08)';
+    tr.innerHTML='<td><span style="background:'+g[0]+';color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">'+g[1]+'</span></td>'
+      +'<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(c.name||'')+'</a><br><span class="mut">'+esc(c.member_id)+'</span></td>'
+      +'<td>'+esc(c.leg||'')+'</td>'
+      +'<td>'+(c.hard_ok?'<span style="color:#3fb950">✅</span>':'<span style="color:#f85149">缺</span>')+' <span class="mut">直推 '+(c.intro??'—')+'</span></td>'
+      +'<td class="mut">'+esc(c.lack||(c.hard_ok?'—':''))+'</td>'
+      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td>'
+      +'<td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td>'
+      +'<td>'+(c.depth==null?'<span class="mut">—</span>':'第 '+c.depth+' 代')+'</td>'
+      +'<td>'+(c.l_plan==null?'<span class="mut">底氣 '+(c.lc??'—')+'／'+(c.rc??'—')+'</span>':c.l_plan+' / '+c.r_plan)+'</td>'
+      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="chToggle(\''+esc(c.member_id)+'\',false)">✓ 已選 移出</button>':'<button class="btn sm" onclick="chToggle(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
+    tb.appendChild(tr);
+  });
+  if(!rows.length) tb.innerHTML='<tr><td colspan="10" class="mut">沒有候選。</td></tr>';
+}
+
 async function loadCh(){
-  const d=await chApi({});
+  const [d,cfcR,ovR]=await Promise.all([chApi({}), fetch(SUPABASE_URL+'/rest/v1/rpc/nds_cfc_plan',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},body:JSON.stringify({p:{...CRED}})}).then(r=>r.json()).catch(()=>null), api2({action:'overview'}).catch(()=>null)]);
   if(!d||!d.success){document.getElementById('chActs').innerHTML='<li>'+esc((d&&d.message)||'讀取失敗')+'</li>';return;}
-  CH=d;
+  CH=d; CH_CFC=(cfcR&&cfcR.success)?cfcR:null; CH_OV=(ovR&&ovR.success)?ovR:null;
   const P=d.period||{}, T=d.target||{};
   document.getElementById('chPeriod').textContent='本期 '+(P.start||'')+' ～ '+(P.end||'')+' ・ 剩 '+(P.days_left??'—')+' 天';
   document.getElementById('chAsof').textContent='（組織 '+(d.as_of||'')+' ・ 循環數 '+(P.cycle_asof||'—')+' ・ 水位 '+(P.water_asof||'—')+'）';
@@ -464,6 +493,15 @@ async function loadCh(){
   });
   // 今天動誰
   const ol=document.getElementById('chActs'); ol.innerHTML='';
+  const addLi=(html)=>{const li=document.createElement('li');li.innerHTML=html;ol.appendChild(li);};
+  const link=(id,name,detail)=>' <a href="javascript:openCard(\''+esc(id)+'\')" style="color:#58a6ff">卡片</a> <a href="javascript:goAssign(\''+esc(id)+'\',\''+esc(name)+'\',\''+esc(detail)+'\')" style="color:#58a6ff">派工</a>';
+  if(CH_OV){
+    (CH_OV.countdown_top||[]).slice(0,5).forEach(x=>addLi('⏳ <b style="color:#f85149">倒數 '+esc(x.auto_cancel_days)+'</b> '+esc(x.name)+'（'+esc(x.leg)+'）'+link(x.member_id,x.name,'倒數 '+x.auto_cancel_days+' 要救')));
+    (CH_OV.renewal30||[]).slice(0,5).forEach(x=>addLi('📄 30 天內方案到期 '+esc(x.name)+'（'+esc(x.plan_code||'')+' 到 '+esc(x.until)+'）'+link(x.member_id,x.name,'方案 '+(x.plan_code||'')+' '+x.until+' 到期，續約')));
+  }
+  if(CH_CFC){
+    (CH_CFC.onestep||[]).slice(0,6).forEach(x=>addLi('🎯 <b>只差一步</b> '+esc(x.name)+'（底氣 '+x.lc+'／'+x.rc+'）：'+esc(x.todo||'')+link(x.member_id,x.name,x.todo||'')));
+  }
   (d.actions||[]).forEach(a=>{
     const li=document.createElement('li');
     li.innerHTML=esc(a.text)+(a.member_id?' <a href="javascript:openCard(\''+esc(a.member_id)+'\')" style="color:#58a6ff">卡片</a> <a href="javascript:goAssign(\''+esc(a.member_id)+'\',\''+esc((a.text||'').split('：')[0])+'\',\''+esc(a.text||'')+'\')" style="color:#58a6ff">派工</a>':'');
@@ -471,18 +509,9 @@ async function loadCh(){
   });
   if(!(d.actions||[]).length) ol.innerHTML='<li class="mut">骨架還沒排。先從下面候選「排入」。</li>';
   if((d.overflow||[]).length){const li=document.createElement('li');li.innerHTML='<span class="mut">格子不夠放：'+d.overflow.map(o=>esc(o.side)+' '+esc(o.member_id)).join('、')+'（同一層選太多人）</span>';ol.appendChild(li);}
+  if(CH_OV&&(CH_OV.leaders||[]).length){addLi('<span class="mut">👥 領袖出勤：'+CH_OV.leaders.map(l=>esc(l.name)+' 未結 '+l.open_tasks+'／完成 '+l.done).join('　')+'</span>');}
   // 候選
-  const tb=document.getElementById('chCand'); tb.innerHTML='';
-  (d.candidates||[]).forEach(c=>{
-    const tr=document.createElement('tr');
-    if(c.picked) tr.style.background='rgba(63,185,80,.08)';
-    tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(c.name||'')+'</a><br><span class="mut">'+esc(c.member_id)+'</span></td>'
-      +'<td>'+esc(c.leg||'')+'</td><td>'+c.intro+'</td><td>第 '+c.depth+' 代</td>'
-      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td><td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td><td>'+c.l_plan+' / '+c.r_plan+'</td>'
-      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="chToggle(\''+esc(c.member_id)+'\',false)">✓ 已選 移出</button>':'<button class="btn sm" onclick="chToggle(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
-    tb.appendChild(tr);
-  });
-  if(!(d.candidates||[]).length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有硬條件成立的候選。</td></tr>';
+  renderChCand();
 }
 async function chToggle(id,on){
   const d=await chApi({action:on?'pick':'unpick',member_id:id});
