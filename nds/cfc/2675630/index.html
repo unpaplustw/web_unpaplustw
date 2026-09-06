@@ -87,13 +87,8 @@ a{text-decoration:none}
 <div class="tabs">
   <div class="tab on" data-v="ch" onclick="sw(this)">🎯 挑戰台</div>
   <div class="tab" data-v="water" onclick="sw(this)">💧 水位</div>
-  <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
-  <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
-  <div class="tab" data-v="ov" onclick="sw(this)">📊 總覽</div>
-  <div class="tab" data-v="cfc" onclick="sw(this)">🏆 CFC 佈局</div>
-  <div class="tab" data-v="qa" onclick="sw(this)">🧪 隔離區</div>
-  <div class="tab" data-v="imp" onclick="sw(this)">📥 CSV匯入</div>
-  <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
+  <div class="tab" data-v="work" onclick="sw(this)">📋 派工</div>
+  <div class="tab" data-v="data" onclick="sw(this)">⚙️ 資料</div>
 </div>
 
 <div id="v-ch">
@@ -197,6 +192,7 @@ a{text-decoration:none}
     <thead><tr><th>急</th><th>對象</th><th>線</th><th>窗口剩</th><th>方案</th><th>方案到期</th><th>倒數</th><th>建議動作</th><th>歸戶領袖</th></tr></thead>
     <tbody id="waterBody"></tbody></table></div>
 </div>
+<div id="dataSub" class="hidden" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm" onclick="swData('qa')">🧪 隔離區</button><button class="btn sm" onclick="swData('imp')">📥 CSV匯入</button><button class="btn sm" onclick="swData('bind')">👥 綁定審核</button><button class="btn sm ghost" onclick="swData('ov')">📊 總覽（舊）</button><button class="btn sm ghost" onclick="swData('cfc')">🏆 CFC 佈局（舊）</button></div>
 <div id="v-qa" class="card hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <b>🧪 隔離區（人工回報緩衝）</b>
@@ -319,10 +315,21 @@ async function login(){
   document.getElementById('app').classList.remove('hidden');
   renderTasks(d.rows); loadCh();
 }
+const PANES=['ch','ov','cfc','water','qa','imp','tasks','assign','bind'];
+const GROUPS={ch:['ch'],water:['water'],work:['tasks','assign'],data:[]};
+let DATA_SUB='qa';
+function showPanes(list){ PANES.forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',!list.includes(v))); }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['ch','ov','cfc','water','qa','imp','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
-  if(el.dataset.v==='ch')loadCh(); if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='water')loadWater(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+  const v=el.dataset.v;
+  document.getElementById('dataSub').classList.toggle('hidden',v!=='data');
+  if(v==='data'){ swData(DATA_SUB); return; }
+  showPanes(GROUPS[v]);
+  if(v==='ch')loadCh(); if(v==='water')loadWater(); if(v==='work')loadTasks();
+}
+function swData(sub){
+  DATA_SUB=sub; showPanes([sub]);
+  if(sub==='qa')loadQa(); if(sub==='bind')loadBind(); if(sub==='ov')loadOv(); if(sub==='cfc')loadCfc();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
