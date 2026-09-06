@@ -177,20 +177,37 @@ a{text-decoration:none}
       <tbody id="cfcBody"></tbody></table></div>
   </div>
 </div>
-<div id="v-water" class="card hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-    <b>💧 水位（再購窗口）</b>
-    <button class="btn sm" onclick="loadWater()">🔄 重新整理</button>
+<div id="v-water" class="hidden">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><b>💧 水位</b> <span class="mut" id="waterAsof"></span></div>
+      <span>
+        <button class="btn sm" onclick="waterSort('weak')">弱邊最高</button>
+        <button class="btn sm" onclick="waterSort('to_next')">最接近下一循環</button>
+        <button class="btn sm" onclick="waterSort('gap')">左右最不平</button>
+        <button class="btn sm" onclick="loadWater()">🔄</button>
+      </span>
+    </div>
+    <div class="mut" style="margin-top:4px">每個位置<b>左右兩邊的循環點數高度</b>（公司預測累積 P-200，本期含已排定定期單）。每 25 萬一個循環、125 萬成就線。弱邊決定循環，先補弱邊。</div>
+    <div id="waterLsum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
+    <div class="scroll" style="margin-top:8px"><table>
+      <thead><tr><th>對象</th><th>線</th><th>左水位</th><th>右水位</th><th>弱邊</th><th>距下一循環</th><th>循環 左/右</th><th>底下有方案 左/右</th></tr></thead>
+      <tbody id="waterLevels"></tbody></table></div>
+    <div class="mut" id="waterNote" style="margin-top:6px"></div>
   </div>
-  <div class="mut" style="margin-top:4px">
-    再購方案只能在<b>入會後 18 個月內</b>購買。窗口關了就只剩 24M（每月扣款），穩定度看付款方式。
-    <br>🔴 &lt;90天　🟠 &lt;180天　⚫ 窗口已關　⏳ 倒數中
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>🩸 漏水口（再購窗口）</b>
+    </div>
+    <div class="mut" style="margin-top:4px">
+      再購方案只能在<b>入會後 18 個月內</b>買。窗口關了只剩 24M（每月扣款）。🔴 &lt;90天　🟠 &lt;180天　⚫ 已關　⏳ 倒數中
+    </div>
+    <div id="waterSum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
+    <div class="msg" id="waterMsg"></div>
+    <div class="scroll" style="margin-top:8px"><table>
+      <thead><tr><th>急</th><th>對象</th><th>線</th><th>窗口剩</th><th>方案</th><th>方案到期</th><th>倒數</th><th>建議動作</th><th>歸戶領袖</th></tr></thead>
+      <tbody id="waterBody"></tbody></table></div>
   </div>
-  <div id="waterSum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
-  <div class="msg" id="waterMsg"></div>
-  <div class="scroll" style="margin-top:8px"><table>
-    <thead><tr><th>急</th><th>對象</th><th>線</th><th>窗口剩</th><th>方案</th><th>方案到期</th><th>倒數</th><th>建議動作</th><th>歸戶領袖</th></tr></thead>
-    <tbody id="waterBody"></tbody></table></div>
 </div>
 <div id="dataSub" class="hidden" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm" onclick="swData('qa')">🧪 隔離區</button><button class="btn sm" onclick="swData('imp')">📥 CSV匯入</button><button class="btn sm" onclick="swData('bind')">👥 綁定審核</button><button class="btn sm ghost" onclick="swData('ov')">📊 總覽（舊）</button><button class="btn sm ghost" onclick="swData('cfc')">🏆 CFC 佈局（舊）</button></div>
 <div id="v-qa" class="card hidden">
@@ -518,6 +535,30 @@ async function goAssign(id,name,detail){
   alert(d&&d.success?'已建立任務':((d&&d.message)||'失敗'));
 }
 
+let WATER=null, WATER_SORT='weak';
+function waterSort(k){WATER_SORT=k;renderLevels();}
+function renderLevels(){
+  if(!WATER)return;
+  const rows=(WATER.levels||[]).slice();
+  if(WATER_SORT==='weak') rows.sort((a,b)=>(b.weak||0)-(a.weak||0));
+  if(WATER_SORT==='to_next') rows.sort((a,b)=>(a.to_next||9e9)-(b.to_next||9e9));
+  if(WATER_SORT==='gap') rows.sort((a,b)=>(b.gap||0)-(a.gap||0));
+  const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
+  const tb=document.getElementById('waterLevels'); tb.innerHTML='';
+  rows.forEach(x=>{
+    const tr=document.createElement('tr');
+    const ws = x.weak_side==='平'?'平':(x.weak_side+' '+wan(x.weak));
+    tr.innerHTML='<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(x.name||'')+'</a><br><span class="mut">'+esc(x.member_id)+'</span></td>'
+      +'<td>'+esc(x.leg||'')+'</td><td>'+wb(x.l)+'</td><td>'+wb(x.r)+'</td>'
+      +'<td>'+ws+(x.balance!=null?'<br><span class="mut">平衡 '+Math.round(x.balance*100)+'%</span>':'')+'</td>'
+      +'<td>'+(x.weak>=1250000?'🏆 過成就線':('弱邊再 '+wan(x.to_next)))+'</td>'
+      +'<td>'+(x.fc_l==null?'<span class="mut">—</span>':x.fc_l+' / '+x.fc_r)+'</td>'
+      +'<td>'+x.l_plan+'/'+x.l_n+' ・ '+x.r_plan+'/'+x.r_n+(x.leak?' <span style="color:#f85149">漏'+x.leak+'</span>':'')+'</td>';
+    tb.appendChild(tr);
+  });
+  if(!rows.length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有水位資料。</td></tr>';
+}
+
 async function loadWater(){
   const msg=document.getElementById('waterMsg'); msg.textContent='載入中…';
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_water',{method:'POST',
@@ -526,6 +567,13 @@ async function loadWater(){
   const d=await r.json();
   if(!d||!d.success){msg.textContent=(d&&d.message)||'讀取失敗';return;}
   msg.textContent='';
+  WATER=d; renderLevels();
+  document.getElementById('waterAsof').textContent='（水位 '+((d.period||{}).water_asof||'—')+' ・ 循環數 '+((d.period||{}).cycle_asof||'—')+'）';
+  const LS=d.level_summary||{}; const ls=document.getElementById('waterLsum'); ls.innerHTML='';
+  [['公司頁有水位的位置',LS.n],['弱邊 ≥25萬（有循環）',LS.both_over_25],['弱邊 ≥125萬（成就線）',LS.both_over_125],['弱邊在左',LS.weak_left],['弱邊在右',LS.weak_right]].forEach(([k,v])=>{
+    const el=document.createElement('div'); el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:110px';
+    el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700">'+(v??0)+'</div>'; ls.appendChild(el); });
+  document.getElementById('waterNote').textContent='沒列出的位置＝公司預測表沒排進前 40 名／邊；要全部有數字得補「方案×商品→每月點數」表。';
   const S=d.summary||{}, lab={A:'✅ 有方案',B:'🔴 窗口<90天',C:'🟠 窗口<180天',D:'⚫ 窗口已關',E:'⚪ 還早'};
   const box=document.getElementById('waterSum'); box.innerHTML='';
   ['B','C','D','A','E'].forEach(k=>{
