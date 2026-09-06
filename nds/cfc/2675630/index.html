@@ -105,7 +105,7 @@ a{text-decoration:none}
         <button class="btn sm" onclick="loadCh()">🔄</button>
       </div>
     </div>
-    <div class="mut" style="margin-top:4px">左右各 8+4+2+1 格骨架，由你排。🏆成就 🟢跟得上 🟡落後 🔴本期難 ⚫硬條件缺 ⚪無本期資料 ⬜空位。<b>底層 8 格做起來，上面 7 格會自己長。</b></div>
+    <div class="mut" style="margin-top:4px">左右各 8+4+2+1 格骨架，由你排。🏆左5右5成就 🟢循環跟得上時間 🟡落後 🔴本期難 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位。<b>底層 8 格做起來，上面 7 格會自己長。</b></div>
     <div id="chGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
   </div>
   <div class="card">
@@ -118,7 +118,7 @@ a{text-decoration:none}
       <span class="mut">依延伸代數＋水位排序；點「排入」選格子</span>
     </div>
     <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>姓名</th><th>線</th><th>直推</th><th>延伸</th><th>水位 左/右</th><th>本期</th><th></th></tr></thead>
+      <thead><tr><th>姓名</th><th>線</th><th>直推</th><th>延伸</th><th>循環 左/右</th><th>水位 左/右</th><th>組織有方案 左/右</th><th></th></tr></thead>
       <tbody id="chCand"></tbody></table></div>
   </div>
 </div>
@@ -415,7 +415,7 @@ async function loadCh(){
   CH=d;
   const P=d.period||{}, T=d.target||{};
   document.getElementById('chPeriod').textContent='本期 '+(P.start||'')+' ～ '+(P.end||'')+' ・ 剩 '+(P.days_left??'—')+' 天';
-  document.getElementById('chAsof').textContent='（組織 '+(d.as_of||'')+' ・ 公司累積 '+(P.fc_asof||'—')+'）';
+  document.getElementById('chAsof').textContent='（組織 '+(d.as_of||'')+' ・ 循環數 '+(P.cycle_asof||'—')+' ・ 水位 '+(P.water_asof||'—')+'）';
   document.getElementById('chTarget').innerHTML='左 <span style="color:#3fb950">'+(T.left_done||0)+'</span>/12 ・ 右 <span style="color:#3fb950">'+(T.right_done||0)+'</span>/12'
     +' <span class="mut" style="font-size:13px">（有希望 左'+(T.left_hope||0)+' 右'+(T.right_hope||0)+'）</span>';
   // 骨架
@@ -451,12 +451,12 @@ async function loadCh(){
   (d.candidates||[]).forEach(c=>{
     const tr=document.createElement('tr');
     tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(c.name||'')+'</a><br><span class="mut">'+esc(c.member_id)+'</span></td>'
-      +'<td>'+esc(c.leg||'')+'</td><td>'+c.intro+'</td><td>第 '+c.depth+' 代</td><td>'+c.l_plan+' / '+c.r_plan+'</td>'
-      +'<td>'+(c.pct==null?'<span class="mut">—</span>':Math.round(c.pct*100)+'%')+'</td>'
+      +'<td>'+esc(c.leg||'')+'</td><td>'+c.intro+'</td><td>第 '+c.depth+' 代</td>'
+      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td><td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td><td>'+c.l_plan+' / '+c.r_plan+'</td>'
       +'<td><button class="btn sm" onclick="chPick(\''+esc(c.member_id)+'\',\''+esc(c.name||'')+'\')">排入</button></td>';
     tb.appendChild(tr);
   });
-  if(!(d.candidates||[]).length) tb.innerHTML='<tr><td colspan="7" class="mut">沒有硬條件成立的候選。</td></tr>';
+  if(!(d.candidates||[]).length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有硬條件成立的候選。</td></tr>';
 }
 function chPick(id,name){
   CH_PICK=id;
@@ -473,8 +473,10 @@ function chOpen(x){
       +'<input id="chManual" placeholder="會員編號 2675630-001" style="width:220px"> <button class="btn sm" onclick="chSetManual(\''+x.side+'\','+x.layer+','+x.slot+')">排入</button>';
     document.getElementById('chCard').classList.remove('hidden'); return;
   }
-  const A=x.hardA||{}, B=x.hardB||{}, P=x.prog||{}, W=x.water||{}, E=x.ext||{};
+  const A=x.hardA||{}, B=x.hardB||{}, C=x.cyc||{}, W=x.water||{}, O=x.org||{}, E=x.ext||{};
   const bar=(pct)=>{const n=Math.max(0,Math.min(10,Math.round((pct||0)*10)));return '▓'.repeat(n)+'░'.repeat(10-n);};
+  const dots=(n)=>{n=Math.max(0,Math.min(5,n||0));return '●'.repeat(n)+'○'.repeat(5-n)+(n>=5?' ✅':'');};
+  const wbar=(v)=>bar((v||0)/1250000);
   const tp=(CH.period||{}).time_pct||0;
   b.innerHTML=
     '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">'+x.light+' '+esc(x.name)+'</b>'
@@ -482,10 +484,15 @@ function chOpen(x){
     +'<table style="margin-top:10px"><tbody>'
     +'<tr><th style="width:80px">硬條件</th><td>循環購買 '+(A.ok?'✅ '+esc(A.plan||'有方案')+(A.until?' 到 '+esc(A.until):''):'❌ 沒有方案')+' ・ '+esc(pm(A.pay))
       +'<br>直推 '+(B.ok?'✅':'❌')+' '+B.intro+'/2</td></tr>'
-    +'<tr><th>本期</th><td>'+(P.l==null?'<span class="mut">公司累積表沒有這個位置（前 40 名以外）</span>':
-        bar(P.pct)+' 左 '+wan(P.l)+' ・ 右 '+wan(P.r)+' ／ 各 125 萬<br>已 '+P.cycles+'/5 循環 ・ 進度 '+Math.round(P.pct*100)+'% vs 時間 '+Math.round(tp*100)+'%'
-        +(P.align?'<br>⚠️ '+esc(P.align)+' → 本期要對齊':''))+'</td></tr>'
-    +'<tr><th>水位</th><td>左 '+W.l_plan+'/'+W.l_n+' 人有方案 ・ 右 '+W.r_plan+'/'+W.r_n+' 人有方案'+(W.leak?' ・ <span style="color:#f85149">漏水 '+W.leak+' 人</span>':'')+'</td></tr>'
+    +'<tr><th>循環</th><td>'+(C.l==null?'<span class="mut">公司 status 頁沒有這個位置</span>':
+        '左 '+dots(C.l)+' '+C.l+'/5 　右 '+dots(C.r)+' '+C.r+'/5'
+        +'<br><span class="mut">本期時間已過 '+Math.round(tp*100)+'%</span>'
+        +(C.align?'<br>⚠️ '+esc(C.align)+' → 先補那邊':'')+(C.l>=5&&C.r>=5?'<br>🏆 成就':''))+'</td></tr>'
+    +'<tr><th>水位</th><td>'+(W.l==null?'<span class="mut">公司預測表沒有這個位置（前 40 名以外）</span>':
+        '左 '+wbar(W.l)+' '+wan(W.l)+'<br>右 '+wbar(W.r)+' '+wan(W.r)
+        +'<br><span class="mut">─ ─ 成就線 125 萬（每 25 萬一個循環）・預測含已排定定期單</span>'
+        +(W.note?'<br>'+esc(W.note):''))+'</td></tr>'
+    +'<tr><th>組織</th><td>左 '+O.l_plan+'/'+O.l_n+' 人有方案 ・ 右 '+O.r_plan+'/'+O.r_n+' 人有方案'+(O.leak?' ・ <span style="color:#f85149">漏水 '+O.leak+' 人</span>':'')+'</td></tr>'
     +'<tr><th>延伸</th><td>'+bar(E.depth/7)+' 第 '+E.depth+' 代（'+(E.gens||[]).join('／')+'）'
       +(E.eagle?'<br>🦅 第 '+E.eagle.gen+' 代 '+esc(E.eagle.name):'<br><span class="mut">七代內還沒有老鷹</span>')+'</td></tr>'
     +'</tbody></table>'
