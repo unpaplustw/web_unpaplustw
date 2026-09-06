@@ -85,17 +85,47 @@ a{text-decoration:none}
 
 <div id="app" class="hidden">
 <div class="tabs">
-  <div class="tab on" data-v="ov" onclick="sw(this)">📊 總覽</div>
-  <div class="tab" data-v="cfc" onclick="sw(this)">🏆 CFC 佈局</div>
+  <div class="tab on" data-v="ch" onclick="sw(this)">🎯 挑戰台</div>
   <div class="tab" data-v="water" onclick="sw(this)">💧 水位</div>
   <div class="tab" data-v="tasks" onclick="sw(this)">📋 任務板</div>
   <div class="tab" data-v="assign" onclick="sw(this)">➕ 派工</div>
+  <div class="tab" data-v="ov" onclick="sw(this)">📊 總覽</div>
+  <div class="tab" data-v="cfc" onclick="sw(this)">🏆 CFC 佈局</div>
   <div class="tab" data-v="qa" onclick="sw(this)">🧪 隔離區</div>
   <div class="tab" data-v="imp" onclick="sw(this)">📥 CSV匯入</div>
   <div class="tab" data-v="bind" onclick="sw(this)">👥 綁定審核</div>
 </div>
 
-<div id="v-ov">
+<div id="v-ch">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><b id="chPeriod">本期</b> <span class="mut" id="chAsof"></span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <b id="chTarget" style="font-size:18px"></b>
+        <button class="btn sm" onclick="loadCh()">🔄</button>
+      </div>
+    </div>
+    <div class="mut" style="margin-top:4px">左右各 8+4+2+1 格骨架，由你排。🏆成就 🟢跟得上 🟡落後 🔴本期難 ⚫硬條件缺 ⚪無本期資料 ⬜空位。<b>底層 8 格做起來，上面 7 格會自己長。</b></div>
+    <div id="chGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <b>📌 今天動誰</b>
+    <ol id="chActs" style="margin:8px 0 0 18px;line-height:1.9"></ol>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>🧭 候選（硬條件已成立，還沒排進骨架）</b>
+      <span class="mut">依延伸代數＋水位排序；點「排入」選格子</span>
+    </div>
+    <div class="scroll" style="margin-top:8px"><table>
+      <thead><tr><th>姓名</th><th>線</th><th>直推</th><th>延伸</th><th>水位 左/右</th><th>本期</th><th></th></tr></thead>
+      <tbody id="chCand"></tbody></table></div>
+  </div>
+</div>
+<div id="chCard" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:98;overflow:auto;padding:16px" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="card" style="max-width:720px;margin:20px auto" id="chCardBody"></div>
+</div>
+<div id="v-ov" class="hidden">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
       <b style="font-size:17px">⚡ 今天／這週要動的</b>
@@ -287,12 +317,12 @@ async function login(){
   if(!d.success){document.getElementById('lmsg').textContent=d.message||'登入失敗';return;}
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  renderTasks(d.rows); loadOv();
+  renderTasks(d.rows); loadCh();
 }
 function sw(el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['ov','cfc','water','qa','imp','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
-  if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='water')loadWater(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
+  ['ch','ov','cfc','water','qa','imp','tasks','assign','bind'].forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',v!==el.dataset.v));
+  if(el.dataset.v==='ch')loadCh(); if(el.dataset.v==='ov')loadOv(); if(el.dataset.v==='cfc')loadCfc(); if(el.dataset.v==='water')loadWater(); if(el.dataset.v==='qa')loadQa(); if(el.dataset.v==='tasks')loadTasks(); if(el.dataset.v==='bind')loadBind();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
@@ -371,6 +401,115 @@ async function api2(p){
     body:JSON.stringify({p:{...CRED,...p}})});
   return r.json();
 }
+let CH=null, CH_PICK=null;
+async function chApi(extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_challenge',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...(extra||{})}})});
+  return r.json();
+}
+function wan(v){return v==null?'—':(Math.round(v/10000)+'萬');}
+async function loadCh(){
+  const d=await chApi({});
+  if(!d||!d.success){document.getElementById('chActs').innerHTML='<li>'+esc((d&&d.message)||'讀取失敗')+'</li>';return;}
+  CH=d;
+  const P=d.period||{}, T=d.target||{};
+  document.getElementById('chPeriod').textContent='本期 '+(P.start||'')+' ～ '+(P.end||'')+' ・ 剩 '+(P.days_left??'—')+' 天';
+  document.getElementById('chAsof').textContent='（組織 '+(d.as_of||'')+' ・ 公司累積 '+(P.fc_asof||'—')+'）';
+  document.getElementById('chTarget').innerHTML='左 <span style="color:#3fb950">'+(T.left_done||0)+'</span>/12 ・ 右 <span style="color:#3fb950">'+(T.right_done||0)+'</span>/12'
+    +' <span class="mut" style="font-size:13px">（有希望 左'+(T.left_hope||0)+' 右'+(T.right_hope||0)+'）</span>';
+  // 骨架
+  const g=document.getElementById('chGrid'); g.innerHTML='';
+  ['左','右'].forEach(side=>{
+    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;min-width:300px';
+    col.innerHTML='<b>'+side+'線</b>';
+    [1,2,3,4].forEach(layer=>{
+      const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;justify-content:center';
+      (d.skeleton||[]).filter(x=>x.side===side&&x.layer===layer).forEach(x=>{
+        const c=document.createElement('div');
+        const w = layer===4?34:layer===3?70:layer===2?142:286;
+        c.style.cssText='width:'+w+'px;height:34px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;overflow:hidden;white-space:nowrap';
+        c.title=(x.name||'空位')+(x.member_id?' '+x.member_id:'');
+        c.innerHTML=x.light+(layer<4&&x.name?' <span style="font-size:12px">'+esc(x.name)+'</span>':'');
+        c.onclick=()=>chOpen(x);
+        row.appendChild(c);
+      });
+      col.appendChild(row);
+    });
+    g.appendChild(col);
+  });
+  // 今天動誰
+  const ol=document.getElementById('chActs'); ol.innerHTML='';
+  (d.actions||[]).forEach(a=>{
+    const li=document.createElement('li');
+    li.innerHTML=esc(a.text)+(a.member_id?' <a href="javascript:openCard(\''+esc(a.member_id)+'\')" style="color:#58a6ff">卡片</a> <a href="javascript:goAssign(\''+esc(a.member_id)+'\',\''+esc((a.text||'').split('：')[0])+'\',\''+esc(a.text||'')+'\')" style="color:#58a6ff">派工</a>':'');
+    ol.appendChild(li);
+  });
+  if(!(d.actions||[]).length) ol.innerHTML='<li class="mut">骨架還沒排。先從下面候選「排入」。</li>';
+  // 候選
+  const tb=document.getElementById('chCand'); tb.innerHTML='';
+  (d.candidates||[]).forEach(c=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(c.name||'')+'</a><br><span class="mut">'+esc(c.member_id)+'</span></td>'
+      +'<td>'+esc(c.leg||'')+'</td><td>'+c.intro+'</td><td>第 '+c.depth+' 代</td><td>'+c.l_plan+' / '+c.r_plan+'</td>'
+      +'<td>'+(c.pct==null?'<span class="mut">—</span>':Math.round(c.pct*100)+'%')+'</td>'
+      +'<td><button class="btn sm" onclick="chPick(\''+esc(c.member_id)+'\',\''+esc(c.name||'')+'\')">排入</button></td>';
+    tb.appendChild(tr);
+  });
+  if(!(d.candidates||[]).length) tb.innerHTML='<tr><td colspan="7" class="mut">沒有硬條件成立的候選。</td></tr>';
+}
+function chPick(id,name){
+  CH_PICK=id;
+  const empties=(CH.skeleton||[]).filter(x=>!x.member_id);
+  const opts=empties.map(x=>x.side+' 第'+x.layer+'層 #'+x.slot).join('\n');
+  const ans=prompt('把 '+name+' 排到哪一格？輸入「左 4 1」這種格式（線 層 格）。空格：\n'+opts,'左 4 1');
+  if(!ans)return; const m=ans.trim().split(/\s+/); if(m.length<3){alert('格式：線 層 格');return;}
+  chApi({action:'set',side:m[0],layer:m[1],slot:m[2],member_id:id}).then(d=>{ if(d&&d.success===false)alert(d.message||'失敗'); loadCh(); });
+}
+function chOpen(x){
+  const b=document.getElementById('chCardBody');
+  if(!x.member_id){
+    b.innerHTML='<b>'+x.side+'線 第'+x.layer+'層 #'+x.slot+'</b><div class="mut" style="margin:6px 0 10px">空位。從候選名單「排入」，或直接輸入編號。</div>'
+      +'<input id="chManual" placeholder="會員編號 2675630-001" style="width:220px"> <button class="btn sm" onclick="chSetManual(\''+x.side+'\','+x.layer+','+x.slot+')">排入</button>';
+    document.getElementById('chCard').classList.remove('hidden'); return;
+  }
+  const A=x.hardA||{}, B=x.hardB||{}, P=x.prog||{}, W=x.water||{}, E=x.ext||{};
+  const bar=(pct)=>{const n=Math.max(0,Math.min(10,Math.round((pct||0)*10)));return '▓'.repeat(n)+'░'.repeat(10-n);};
+  const tp=(CH.period||{}).time_pct||0;
+  b.innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">'+x.light+' '+esc(x.name)+'</b>'
+    +'<span class="mut">'+x.side+'線 第'+x.layer+'層 #'+x.slot+' ・ '+esc(x.member_id)+'</span></div>'
+    +'<table style="margin-top:10px"><tbody>'
+    +'<tr><th style="width:80px">硬條件</th><td>循環購買 '+(A.ok?'✅ '+esc(A.plan||'有方案')+(A.until?' 到 '+esc(A.until):''):'❌ 沒有方案')+' ・ '+esc(pm(A.pay))
+      +'<br>直推 '+(B.ok?'✅':'❌')+' '+B.intro+'/2</td></tr>'
+    +'<tr><th>本期</th><td>'+(P.l==null?'<span class="mut">公司累積表沒有這個位置（前 40 名以外）</span>':
+        bar(P.pct)+' 左 '+wan(P.l)+' ・ 右 '+wan(P.r)+' ／ 各 125 萬<br>已 '+P.cycles+'/5 循環 ・ 進度 '+Math.round(P.pct*100)+'% vs 時間 '+Math.round(tp*100)+'%'
+        +(P.align?'<br>⚠️ '+esc(P.align)+' → 本期要對齊':''))+'</td></tr>'
+    +'<tr><th>水位</th><td>左 '+W.l_plan+'/'+W.l_n+' 人有方案 ・ 右 '+W.r_plan+'/'+W.r_n+' 人有方案'+(W.leak?' ・ <span style="color:#f85149">漏水 '+W.leak+' 人</span>':'')+'</td></tr>'
+    +'<tr><th>延伸</th><td>'+bar(E.depth/7)+' 第 '+E.depth+' 代（'+(E.gens||[]).join('／')+'）'
+      +(E.eagle?'<br>🦅 第 '+E.eagle.gen+' 代 '+esc(E.eagle.name):'<br><span class="mut">七代內還沒有老鷹</span>')+'</td></tr>'
+    +'</tbody></table>'
+    +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn sm" onclick="goAssign(\''+esc(x.member_id)+'\',\''+esc(x.name||'')+'\',\'\')">派工</button>'
+    +'<button class="btn sm ghost" onclick="openCard(\''+esc(x.member_id)+'\')">底下組織</button>'
+    +'<button class="btn sm ghost" onclick="chApi({action:\'set\',side:\''+x.side+'\',layer:'+x.layer+',slot:'+x.slot+',member_id:\'\'}).then(()=>{document.getElementById(\'chCard\').classList.add(\'hidden\');loadCh();})">移出骨架</button>'
+    +'</div>';
+  document.getElementById('chCard').classList.remove('hidden');
+}
+function chSetManual(side,layer,slot){
+  const id=(document.getElementById('chManual').value||'').trim(); if(!id)return;
+  chApi({action:'set',side,layer,slot,member_id:id}).then(d=>{ if(d&&d.success===false){alert(d.message||'失敗');return;} document.getElementById('chCard').classList.add('hidden'); loadCh(); });
+}
+async function goAssign(id,name,detail){
+  document.getElementById('chCard').classList.add('hidden');
+  const t=prompt('任務內容（給領袖看的一句話）',detail||''); if(t===null)return;
+  const who=(LEADERS||[]).map(l=>l.member_id+' '+(l.name||l.display_name||'')).join('\n');
+  const asg=prompt('指派給誰？輸入領袖會員編號，空白＝依歸戶自動派\n'+who,'');
+  if(asg===null)return;
+  const d=await api({action:'create_tasks',tasks:[{task_type:'CFC骨架',target_member_id:id,target_name:name||'',detail:t,assignee_member_id:asg||'',due_date:''}]});
+  alert(d&&d.success?'已建立任務':((d&&d.message)||'失敗'));
+}
+
 async function loadWater(){
   const msg=document.getElementById('waterMsg'); msg.textContent='載入中…';
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_water',{method:'POST',
