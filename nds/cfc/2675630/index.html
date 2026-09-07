@@ -560,7 +560,7 @@ function renderTacCand(){
 }
 async function tacPick(id,on){
   const d=await tacApi({action:on?'pick':'unpick',target:id});
-  if(d&&d.success===false){alert(d.message||'失敗');return;}
+  if(!d||d.success!==true){alert((d&&d.message)||'失敗');return;}
   const sel=document.getElementById('tacWho'); if(sel)sel.dataset.sig='';
   loadTac();
 }
