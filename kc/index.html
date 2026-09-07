@@ -185,10 +185,10 @@ h2{font-size:1.25rem;font-weight:700}
 
 <script>
 // ══════════════ 設定 ══════════════
-// ⚠️ 目前借用 checker 的 LIFF，端點不是 /kc/。建好專屬 LIFF（端點 https://unpaplus.com.tw/kc/）後：
-//    ① 換掉 LIFF_ID ② 把 LIFF_READY 改成 true
-const LIFF_ID = '2009692859-BQQEkAa8';
-const LIFF_READY = false;
+// LIFF：KC檢測（2026-09-07 建於既有 LINE Login channel 2009692859，Full，scopes profile+openid，Add friend 關）
+//    公開頁：載入時不強制登入，只有按「用 LINE 登入保存紀錄」才 liff.login()
+const LIFF_ID = '2009692859-s9PI4B7B';
+const LIFF_READY = true;
 const SB_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
@@ -240,6 +240,7 @@ async function init(){
 }
 function doLogin(){
   if (!LIFF_READY) { toast('LINE 登入即將開放，先用「試試看」體驗一次'); return; }
+  // per-page LIFF：Endpoint 就是本頁，login() 不帶 redirectUri（帶了會觸發 relay → 無限登入迴圈）
   try { liff.login(); } catch(e) { toast('請從 LINE 開啟這個頁面'); }
 }
 function beginTest(){
