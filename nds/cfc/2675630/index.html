@@ -124,6 +124,15 @@ a{text-decoration:none}
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>🌳 他底下的組織</b>
+      <span><button class="btn sm" id="tsL" onclick="tacSide('左')">左線</button> <button class="btn sm ghost" id="tsR" onclick="tacSide('右')">右線</button>
+      深度 <select id="tacDepth" class="inp" onchange="loadTac()" style="width:70px"><option>3</option><option selected>5</option><option>7</option></select></span>
+    </div>
+    <div class="mut" style="margin-top:4px">● 有方案　○ 沒方案　⚠ 倒數中　綠框＝已點將。點節點看會員卡。</div>
+    <div id="tacTree" class="scroll" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <b>② 先處理誰</b><span class="mut">倒數 → 將卡住 → 弱邊 → 到期 → 窗口</span>
     </div>
     <div id="tacTodo" style="margin-top:8px"></div>
@@ -468,7 +477,7 @@ let TAC=null, TAC_WHO=null;
 async function tacApi(extra){
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_tactic',{method:'POST',
     headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
-    body:JSON.stringify({p:{...CRED,member_id:TAC_WHO||'',...(extra||{})}})});
+    body:JSON.stringify({p:{...CRED,member_id:TAC_WHO||'',depth:(document.getElementById('tacDepth')||{}).value||'5',...(extra||{})}})});
   return r.json();
 }
 function nmb(name,id){const bc=String(id||'').split('-')[1];return esc(name||'')+(bc?'-'+bc:'');}
@@ -534,7 +543,7 @@ async function loadTac(who){
       +'<td>'+(s.fc_l==null?'—':s.fc_l+' / '+s.fc_r)+'</td><td>'+(s.p200_l==null?'—':wan(s.p200_l)+' / '+wan(s.p200_r))+'</td>'
       +'<td><button class="btn sm" onclick="loadTac(\''+esc(s.member_id)+'\')">打開</button> <button class="btn sm ghost" onclick="tacPick(\''+esc(s.member_id)+'\',false)">移出</button></td></tr>').join('')+'</tbody></table></div>'
     :'<div class="mut">還沒選將。從下面「從他底下選將」挑。</div>';
-  renderTacCand();
+  renderTacTree(); renderTacCand();
 
   // ④ 推薦
   const need = (R.need_intro||0) + (R.weak_gap||0);
@@ -545,6 +554,48 @@ async function loadTac(who){
     +'<tr><th>放哪邊</th><td><b>'+esc(R.weak_side||'—')+'</b> 線（弱邊）</td></tr>'
     +'<tr><th>暖名單</th><td>'+((R.warm||[]).length?'<div class="scroll"><table><tbody>'+R.warm.map(w=>'<tr><td><input type="checkbox" class="tck-推薦" data-id="'+esc(w.member_id)+'" data-detail="'+esc(w.why)+'"></td><td><a href="javascript:openCard(\''+esc(w.member_id)+'\')" style="color:#58a6ff">'+nmb(w.name,w.member_id)+'</a> <span class="mut">'+esc(w.side)+'</span></td><td class="mut">'+esc(w.why)+'</td></tr>').join('')+'</tbody></table></div><button class="btn sm" style="margin-top:6px" onclick="tacIssue(\'推薦\')">發令 勾選的</button>':'<span class="mut">目前沒有暖名單（來源：有買未訂閱鐵粉頻道）</span>')+'</td></tr>'
     +'</tbody></table>';
+}
+let TAC_SIDE='左';
+function tacSide(s){TAC_SIDE=s;
+  document.getElementById('tsL').className='btn sm'+(s==='左'?'':' ghost');
+  document.getElementById('tsR').className='btn sm'+(s==='右'?'':' ghost');
+  renderTacTree();}
+function renderTacTree(){
+  const d=TAC||{}, box=document.getElementById('tacTree'); if(!box)return;
+  const all=(d.tree||[]).filter(n=>n.side===TAC_SIDE);
+  if(!all.length){box.innerHTML='<div class="mut" style="padding:14px">'+TAC_SIDE+'邊沒有人。<b style="color:#3fb950">這是空位——新人排這邊。</b></div>';return;}
+  const root=(d.me||{}).member_id;
+  const kids={}; all.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
+  const byId={}; all.forEach(n=>byId[n.member_id]=n);
+  const BW=92,BH=32,GX=12,GY=52; let col=0; const pos={};
+  (function lay(id,dep){
+    const k=kids[id]||{}, Lc=k['左'], Rc=k['右'];
+    if(!Lc&&!Rc){pos[id]={x:col++,d:dep};return;}
+    if(Lc)lay(Lc.member_id,dep+1);
+    if(!Lc||!Rc)col++;
+    if(Rc)lay(Rc.member_id,dep+1);
+    const xs=[]; if(Lc)xs.push(pos[Lc.member_id].x); if(Rc)xs.push(pos[Rc.member_id].x);
+    pos[id]={x:xs.length===2?(xs[0]+xs[1])/2:(Lc?xs[0]+0.6:xs[0]-0.6),d:dep};
+  })(root,0);
+  const vals=Object.values(pos); const minX=Math.min(...vals.map(p=>p.x));
+  if(minX<0)vals.forEach(p=>p.x-=minX);
+  const maxX=Math.max(...vals.map(p=>p.x)), maxD=Math.max(...vals.map(p=>p.d));
+  const W=Math.max(320,(maxX+1)*(BW+GX)+GX*2), H=(maxD+1)*GY+16;
+  const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+6;
+  let lines='',boxes='';
+  Object.keys(pos).forEach(id=>{
+    const n=byId[id], p=pos[id];
+    if(n&&pos[n.parent]){const pp=pos[n.parent];
+      lines+='<path d="M'+(X(pp)+BW/2)+','+(Y(pp)+BH)+' V'+(Y(p)-8)+' H'+(X(p)+BW/2)+' V'+Y(p)+'" fill="none" stroke="#2a3340" stroke-width="1.5"/>';}
+    const isRoot=!n;
+    const mark = isRoot?'':(n.cd?'⚠':(n.has_plan?'●':'○'));
+    const stroke = isRoot?'#8b949e':(n.picked?'#3fb950':(n.cd?'#f85149':(n.has_plan?'#2f81f7':'#30363d')));
+    const label = isRoot? ((d.me||{}).name||'') : (n.name+'-'+String(n.member_id).split('-')[1]);
+    boxes+='<g style="cursor:pointer" onclick="openCard(\''+(isRoot?root:n.member_id)+'\')">'
+      +'<rect x="'+X(p)+'" y="'+Y(p)+'" width="'+BW+'" height="'+BH+'" rx="6" fill="#161b22" stroke="'+stroke+'" stroke-width="'+(n&&n.picked?2:1)+'"/>'
+      +'<text x="'+(X(p)+6)+'" y="'+(Y(p)+20)+'" font-size="11" fill="#c9d1d9">'+mark+' '+label.slice(0,8)+'</text></g>';
+  });
+  box.innerHTML='<svg width="'+W+'" height="'+H+'" style="min-width:'+W+'px">'+lines+boxes+'</svg>';
 }
 let TAC_TYPE='全部';
 function renderTacCand(){
