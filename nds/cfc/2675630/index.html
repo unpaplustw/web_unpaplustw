@@ -106,8 +106,8 @@ a{text-decoration:none}
       <b>⚔️ 將的藍圖</b>
       <span class="mut">點格子＝打開他的戰術板；選將在各自的戰術板 ③</span>
     </div>
-    <div class="mut" style="margin-top:4px">左右各 8+4+2+1。你只挑「誰」，位置照安置樹自動排。🏆左5右5 🟢接近 🟡在長 🔴剛起步 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位</div>
-    <div id="warGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
+    <div class="mut" style="margin-top:4px">左右兩線，依你組織裡真實的上下線關係排（縮排＝在誰底下）。🏆左5右5 🟢接近 🟡在長 🔴剛起步 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位</div>
+    <div id="warGrid" style="display:flex;gap:20px;flex-wrap:wrap;margin-top:12px"></div>
   </div>
   <div class="card">
     <b>📡 通報流</b>
@@ -401,25 +401,34 @@ async function chalApi(extra){
   return r.json();
 }
 async function loadGrid(){ try{
-  const d=await chalApi({}); if(!d||!d.success)return; PICK=d;
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_generals',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED}})});
+  const d=await r.json();
   const g=document.getElementById('warGrid'); g.innerHTML='';
+  if(!d||d.success!==true){g.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>';return;}
+  const rows=(d.tree||[]);
   ['左','右'].forEach(side=>{
-    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;min-width:300px';
-    col.innerHTML='<b>'+side+'線</b>';
-    [1,2,3,4].forEach(layer=>{
-      const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;justify-content:center';
-      (d.skeleton||[]).filter(x=>x.side===side&&x.layer===layer).forEach(x=>{
-        const w = layer===4?34:layer===3?70:layer===2?142:286;
-        const c=document.createElement('div');
-        c.style.cssText='width:'+w+'px;height:34px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;overflow:hidden;white-space:nowrap';
-        c.title=x.member_id?(x.name+' '+x.member_id):'空位 — 按「選將」加人';
-        c.innerHTML=x.light+(layer<4&&x.name?' <span style="font-size:12px">'+nmb(x.name,x.member_id)+'</span>':'');
-        c.onclick=()=>{ if(x.member_id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t); loadTac(x.member_id); } else alert('空位：到上一層那位將的戰術板 ③ 選將'); };
-        row.appendChild(c);
-      });
-      col.appendChild(row);
+    const list=rows.filter(x=>x.side===side);
+    const col=document.createElement('div');
+    col.style.cssText='flex:1;min-width:340px;border:1px solid var(--line);border-radius:10px;padding:10px';
+    const done=list.filter(x=>x.fc_l>=5&&x.fc_r>=5).length;
+    col.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline"><b>'+side+'線</b>'
+      +'<span class="mut">成就 '+done+'/12 ・ 已點將 '+list.length+' 位</span></div>';
+    if(!list.length){col.innerHTML+='<div class="mut" style="margin-top:8px">還沒點將。到戰術板 ③ 選。</div>';g.appendChild(col);return;}
+    const tb=document.createElement('table'); tb.style.marginTop='8px';
+    tb.innerHTML='<thead><tr><th>將</th><th style="width:96px">成就 左/右</th><th style="width:150px">還差什麼</th></tr></thead>';
+    const body=document.createElement('tbody');
+    list.forEach(x=>{
+      const tr=document.createElement('tr');
+      const pad=(x.ups||0);
+      const cyc = x.fc_l==null? '<span class="mut">—</span>' : (x.fc_l+' / '+x.fc_r);
+      tr.innerHTML='<td style="padding-left:'+(4+pad*18)+'px">'+(pad?'<span class="mut">└ </span>':'')+x.light+' '
+        +'<a href="javascript:openTac(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a></td>'
+        +'<td>'+cyc+'</td><td class="mut">'+esc(x.lack||'')+'</td>';
+      body.appendChild(tr);
     });
-    g.appendChild(col);
+    tb.appendChild(body); col.appendChild(tb); g.appendChild(col);
   });
 }catch(e){console.error('loadGrid',e); const g=document.getElementById('warGrid'); if(g)g.innerHTML='<span class="mut">藍圖載入失敗：'+esc(String(e.message||e))+'</span>';}}
 
@@ -464,6 +473,7 @@ async function tacApi(extra){
 }
 function nmb(name,id){const bc=String(id||'').split('-')[1];return esc(name||'')+(bc?'-'+bc:'');}
 function lamps(n,need){n=Math.max(0,Math.min(need,n||0));return '<span style="font-size:18px;letter-spacing:2px">'+'🟢'.repeat(n)+'⚪'.repeat(need-n)+'</span> <b>'+n+'/'+need+'</b>';}
+function openTac(id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t); loadTac(id); }
 function bcSummary(M){const b=(M.bcs||[]);const done=b.filter(x=>x.fc_l>=5&&x.fc_r>=5).length;const has=b.filter(x=>x.fc_l!=null);return '<b>你是起點（'+esc(M.member_id)+'），成就要看你名下各分店</b>'+'<div class="mut" style="margin-top:4px">名下 '+b.length+' 個分店，公司頁有循環數的 '+has.length+' 個，已達成就 '+done+' 個</div>'+'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+b.map(x=>'<span style="border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12px">'+esc(x.member_id.split('-')[1])+' '+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+(x.picked?' ⚔️':'')+'</span>').join('')+'</div>';}
 async function loadCh(){ if(!TAC_WHO)TAC_WHO=''; await loadTac(TAC_WHO); }
 async function loadTac(who){
