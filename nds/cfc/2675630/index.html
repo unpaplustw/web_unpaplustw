@@ -85,13 +85,35 @@ a{text-decoration:none}
 
 <div id="app" class="hidden">
 <div class="tabs">
-  <div class="tab on" data-v="ch" onclick="sw(this)">🎯 挑戰台</div>
+  <div class="tab on" data-v="war" onclick="sw(this)">🏛 戰情室</div>
+  <div class="tab" data-v="ch" onclick="sw(this)">🎯 戰術板</div>
   <div class="tab" data-v="water" onclick="sw(this)">💧 水位</div>
-  <div class="tab" data-v="work" onclick="sw(this)">📋 派工</div>
+  <div class="tab" data-v="work" onclick="sw(this)">📜 命令紀錄</div>
   <div class="tab" data-v="data" onclick="sw(this)">⚙️ 資料</div>
 </div>
 
-<div id="v-ch">
+<div id="v-war">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>🏛 戰情室 — 我離目標多遠</b><span class="mut" id="warAsof"></span>
+    </div>
+    <div class="scroll" style="margin-top:8px"><table id="warBoard"></table></div>
+    <div class="mut" style="margin-top:4px">本期＝公司 FC数 實績（左5右5）。下期＝骨架裡硬條件成立且循環≥2 或弱邊水位≥50 萬的推估。下下期＝全組織硬條件成立人數上限推估。<b>推估只是方向，不是承諾。</b></div>
+    <div id="warStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>⚡ 今日命令</b><span class="mut">六種業務；按「發令」＝建任務給歸戶領袖，期限本期末</span>
+    </div>
+    <div id="warCmd" style="margin-top:8px"></div>
+    <div class="msg" id="warMsg"></div>
+  </div>
+  <div class="card">
+    <b>📡 通報流</b>
+    <div id="warFeed" style="margin-top:8px;line-height:1.8;max-height:420px;overflow:auto"></div>
+  </div>
+</div>
+<div id="v-ch" class="hidden">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div><b id="chPeriod">本期</b> <span class="mut" id="chAsof"></span></div>
@@ -120,63 +142,6 @@ a{text-decoration:none}
 </div>
 <div id="chCard" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:98;overflow:auto;padding:16px" onclick="if(event.target===this)this.classList.add('hidden')">
   <div class="card" style="max-width:720px;margin:20px auto" id="chCardBody"></div>
-</div>
-<div id="v-ov" class="hidden">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
-      <b style="font-size:17px">⚡ 今天／這週要動的</b>
-      <span class="mut" id="ovAsof"></span>
-    </div>
-    <div class="mut" style="margin-top:4px">這頁只放「現在要處理的事」。目標與路線在 <b>🏆 CFC 佈局</b>。</div>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <b>💡 建議任務</b>
-      <button class="btn sm" onclick="autoAssign()">⚡ 一鍵建立（倒數全部＋30天內續約，自動歸戶）</button>
-    </div>
-    <div class="msg" id="ovMsg"></div>
-    <div class="cols" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
-      <div style="flex:1;min-width:280px"><b class="mut">🚨 倒數最急</b><div class="scroll"><table>
-        <thead><tr><th>對象</th><th>線</th><th>剩</th><th>建議負責</th></tr></thead><tbody id="ovCd"></tbody></table></div></div>
-      <div style="flex:1;min-width:280px"><b class="mut">📄 30天內方案到期</b><div class="scroll"><table>
-        <thead><tr><th>對象</th><th>線</th><th>方案</th><th>到期</th></tr></thead><tbody id="ovRn"></tbody></table></div></div>
-    </div></div>
-  <div class="card"><b>👥 領袖出勤</b><div class="scroll" style="margin-top:8px"><table>
-    <thead><tr><th>領袖</th><th>層級</th><th>未結案任務</th><th>已完成</th></tr></thead>
-    <tbody id="ovLd"></tbody></table></div>
-    <div class="mut" id="ovTk" style="margin-top:6px"></div></div>
-</div>
-<div id="v-cfc" class="hidden">
-  <div class="card"><div id="cfcLadder">載入中…</div></div>
-  <div class="card" id="rosterCard">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>⚔️ 點將名單（11-12 月期）</b>
-      <button class="btn sm" onclick="rosterTasks()">📤 把缺口全部派成任務</button>
-    </div>
-    <div class="mut" style="margin-top:3px">你點名要拚的人。星鑽階梯會依這份名單推演，不是依系統猜。</div>
-    <div id="rosterBox" style="margin-top:8px"></div>
-    <div class="msg" id="rosterMsg"></div>
-  </div>
-  <div class="card">
-    <b>🎯 差臨門一腳（底氣已夠，只缺一條）</b>
-    <div class="mut" style="margin-top:3px">這些人<b>底下已經有足夠的獨立循環位置</b>，只差自己的一個條件。補完就是 A 級。<b>自己開 BC 也算直推</b>（每個 BC 需購 10,000 點）。</div>
-    <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>難易</th><th>姓名</th><th>線</th><th>底氣 左／右</th><th>要做什麼</th><th></th></tr></thead>
-      <tbody id="oneBody"></tbody></table></div>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🎖️ 成就候選排行</b>
-      <span><button class="btn sm" onclick="cfcFilter('all')">全部</button>
-      <button class="btn sm" onclick="cfcFilter('右')">只看右線</button>
-      <button class="btn sm" onclick="cfcFilter('ready')">A+B 級</button>
-      <button class="btn sm" onclick="cfcFilter('C')">C 級（明年主力）</button></span>
-    </div>
-    <div class="mut" style="margin-top:4px">依<b>底氣</b>（左右子樹各有幾個位置自己直推≥2）排序——這是成就第④(a)條的代理指標，也是唯一有鑑別力的一項。「左右都有腳」這種弱指標已移除。</div>
-    <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>級</th><th>姓名</th><th>線</th><th>底氣 左／右</th><th>①購買</th><th>②直推</th><th>組織</th><th>還缺什麼</th><th>點將</th></tr></thead>
-      <tbody id="cfcBody"></tbody></table></div>
-  </div>
 </div>
 <div id="v-water" class="hidden">
   <div class="card">
@@ -210,7 +175,7 @@ a{text-decoration:none}
       <tbody id="waterBody"></tbody></table></div>
   </div>
 </div>
-<div id="dataSub" class="hidden" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm" onclick="swData('qa')">🧪 隔離區</button><button class="btn sm" onclick="swData('imp')">📥 CSV匯入</button><button class="btn sm" onclick="swData('bind')">👥 綁定審核</button><button class="btn sm ghost" onclick="swData('ov')">📊 總覽（舊）</button><button class="btn sm ghost" onclick="swData('cfc')">🏆 CFC 佈局（舊）</button></div>
+<div id="dataSub" class="hidden" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm" onclick="swData('qa')">🧪 隔離區</button><button class="btn sm" onclick="swData('imp')">📥 CSV匯入</button><button class="btn sm" onclick="swData('bind')">👥 綁定審核</button></div>
 <div id="v-qa" class="card hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <b>🧪 隔離區（人工回報緩衝）</b>
@@ -331,10 +296,10 @@ async function login(){
   if(!d.success){document.getElementById('lmsg').textContent=d.message||'登入失敗';return;}
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  renderTasks(d.rows); loadCh();
+  renderTasks(d.rows); loadWar();
 }
-const PANES=['ch','ov','cfc','water','qa','imp','tasks','assign','bind'];
-const GROUPS={ch:['ch'],water:['water'],work:['tasks','assign'],data:[]};
+const PANES=['war','ch','water','qa','imp','tasks','assign','bind'];
+const GROUPS={war:['war'],ch:['ch'],water:['water'],work:['tasks','assign'],data:[]};
 let DATA_SUB='qa';
 function showPanes(list){ PANES.forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',!list.includes(v))); }
 function sw(el){
@@ -343,11 +308,11 @@ function sw(el){
   document.getElementById('dataSub').classList.toggle('hidden',v!=='data');
   if(v==='data'){ swData(DATA_SUB); return; }
   showPanes(GROUPS[v]);
-  if(v==='ch')loadCh(); if(v==='water')loadWater(); if(v==='work')loadTasks();
+  if(v==='war')loadWar(); if(v==='ch')loadCh(); if(v==='water')loadWater(); if(v==='work')loadTasks();
 }
 function swData(sub){
   DATA_SUB=sub; showPanes([sub]);
-  if(sub==='qa')loadQa(); if(sub==='bind')loadBind(); if(sub==='ov')loadOv(); if(sub==='cfc')loadCfc();
+  if(sub==='qa')loadQa(); if(sub==='bind')loadBind();
 }
 async function loadTasks(){
   const d=await api({action:'list_tasks',status:document.getElementById('fstat').value});
@@ -426,6 +391,59 @@ async function api2(p){
     body:JSON.stringify({p:{...CRED,...p}})});
   return r.json();
 }
+let WAR=null;
+async function warApi(extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_warroom',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...(extra||{})}})});
+  return r.json();
+}
+async function loadWar(){
+  const d=await warApi({}); if(!d||!d.success){document.getElementById('warMsg').textContent=(d&&d.message)||'讀取失敗';return;}
+  WAR=d; const B=d.board||{}, S=d.stats||{}, c=B.cur||{}, n=B.next||{}, n2=B.next2||{};
+  document.getElementById('warAsof').textContent='（組織 '+(S.org_asof||'')+' ・ 循環數 '+(S.cycle_asof||'')+' ・ 水位 '+(S.water_asof||'')+'）';
+  const pct=(l,r)=>Math.round(((l||0)+(r||0))/24*100)+'%';
+  const cell=(v,hope)=>'<b style="font-size:20px">'+(v||0)+'</b><span class="mut">/12</span>'+(hope?' <span class="mut" style="font-size:12px">＋有希望 '+hope+'</span>':'');
+  document.getElementById('warBoard').innerHTML=
+    '<thead><tr><th></th><th>本期 '+esc(c.start||'')+'～'+esc(c.end||'')+'<br><span class="mut">剩 '+(c.days_left??'—')+' 天</span></th><th>下期 11–12 月<br><span class="mut">CFC 挑戰期（推估）</span></th><th>下下期 1–2 月<br><span class="mut">（推估上限）</span></th></tr></thead>'
+    +'<tbody><tr><th>左 成就位置</th><td>'+cell(c.l_done,c.l_hope)+'</td><td>'+cell(n.l_est)+' <span class="mut" style="font-size:12px">骨架 '+(n.l_picked||0)+' 格</span></td><td>'+cell(n2.l_est)+'</td></tr>'
+    +'<tr><th>右 成就位置</th><td>'+cell(c.r_done,c.r_hope)+'</td><td>'+cell(n.r_est)+' <span class="mut" style="font-size:12px">骨架 '+(n.r_picked||0)+' 格</span></td><td>'+cell(n2.r_est)+'</td></tr>'
+    +'<tr><th>達標率</th><td><b>'+pct(c.l_done,c.r_done)+'</b></td><td><b>'+pct(n.l_est,n.r_est)+'</b></td><td><b>'+pct(n2.l_est,n2.r_est)+'</b></td></tr></tbody>';
+  const st=document.getElementById('warStats'); st.innerHTML='';
+  [['骨架硬條件缺',n.hard_missing,'#f85149'],['倒數中',S.countdown,'#f85149'],['再購窗口 <180 天',S.window_c,'#d29922'],['窗口已關無方案',S.window_closed,'#8b949e'],['30 天內方案到期',S.renew30,'#d29922'],['隔離區待審',S.qa_pending,'#58a6ff'],['綁定待審',S.bind_pending,'#58a6ff'],['命令未結',S.open_actions,'#58a6ff']].forEach(([k,v,col])=>{
+    const el=document.createElement('div'); el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:110px';
+    el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700;color:'+col+'">'+(v??0)+'</div>'; st.appendChild(el); });
+  // 命令
+  const C=d.commands||{}; const box=document.getElementById('warCmd'); box.innerHTML='';
+  const order=['救倒數','補弱邊','補直推','催再購','簽24M','續約'];
+  order.forEach(g=>{
+    const items=C[g]||[]; if(!items.length)return;
+    const det=document.createElement('details'); det.open = (g==='救倒數'||g==='補弱邊'||g==='補直推');
+    det.innerHTML='<summary style="cursor:pointer;padding:6px 0"><b>'+g+'</b> <span class="mut">('+items.length+')</span> <button class="btn sm" style="margin-left:8px" onclick="event.preventDefault();warIssue(\''+g+'\')">發令 全部</button></summary>'
+      +'<div class="scroll"><table><tbody>'+items.map(x=>'<tr><td style="width:24px"><input type="checkbox" class="wck-'+g+'" data-id="'+esc(x.member_id)+'" data-detail="'+esc(x.detail||'')+'" checked></td>'
+        +'<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(x.name||'')+'</a> <span class="mut">'+esc(x.leg||'')+'</span></td>'
+        +'<td>'+esc(x.detail||'')+'</td><td class="mut">→ '+esc(x.leader||'未歸戶')+'</td></tr>').join('')+'</tbody></table></div>';
+    box.appendChild(det);
+  });
+  if(!box.children.length) box.innerHTML='<div class="mut">目前沒有待發的命令。</div>';
+  // 通報流
+  const fd=document.getElementById('warFeed'); fd.innerHTML='';
+  (d.feed||[]).forEach(f=>{
+    const ts=(f.ts||'').slice(0,16).replace('T',' ');
+    const div=document.createElement('div');
+    div.innerHTML='<span class="mut" style="font-family:monospace">'+esc(ts)+'</span>　'+esc(f.kind||'')+'　'+esc(f.text||'')+(f.member_id?' <a href="javascript:openCard(\''+esc(f.member_id)+'\')" style="color:#58a6ff">卡片</a>':'');
+    fd.appendChild(div);
+  });
+}
+async function warIssue(g){
+  const items=[...document.querySelectorAll('.wck-'+g+':checked')].map(c=>({member_id:c.dataset.id,detail:c.dataset.detail}));
+  if(!items.length){alert('沒有勾選');return;}
+  if(!confirm('發出「'+g+'」'+items.length+' 條命令？'))return;
+  const d=await warApi({action:'issue',group:g,items});
+  document.getElementById('warMsg').textContent=d&&d.success?('已發 '+(d.created||0)+' 條（已存在的不重複）'):((d&&d.message)||'失敗');
+  loadWar();
+}
+
 let CH=null, CH_PICK=null;
 async function chApi(extra){
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_challenge',{method:'POST',
