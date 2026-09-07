@@ -712,29 +712,12 @@ async function loadWater(){
   if(!(d.rows||[]).length) msg.textContent='目前沒有待處理的水位風險。';
 }
 
-async function loadOv(){
-  return api2({action:'overview'}).then(d=>{
-    if(!d.success)return;
-    document.getElementById('ovAsof').textContent='資料日 '+(d.as_of||'');
-    const cd=document.getElementById('ovCd');cd.innerHTML='';
-    (d.countdown_top||[]).forEach(x=>{cd.innerHTML+=`<tr><td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
-      <td>${esc(x.leg)}</td><td style="color:var(--bad);font-weight:700">${esc(x.auto_cancel_days)}</td><td>${esc(x.route)}</td></tr>`;});
-    const rn=document.getElementById('ovRn');rn.innerHTML='';
-    (d.renewal30||[]).forEach(x=>{rn.innerHTML+=`<tr><td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
-      <td>${esc(x.leg)}</td><td>${esc(x.plan_code||'')}</td><td>${esc(x.until)}</td></tr>`;});
-    const ld=document.getElementById('ovLd');ld.innerHTML='';
-    (d.leaders||[]).forEach(x=>{ld.innerHTML+=`<tr><td>${esc(x.name)}</td><td>${esc(x.tier)}</td><td>${x.open_tasks}</td><td>${x.done}</td></tr>`;});
-    const tk=d.tasks||{};
-    document.getElementById('ovTk').textContent='任務統計：'+(Object.keys(tk).length?
-      Object.entries(tk).map(([k,v])=>k+' '+v).join('｜'):'尚未建立任務——按上方「⚡ 一鍵建立」開始');
-  });
-}
 async function autoAssign(){
   if(!confirm('將建立：全部倒數救援＋30天內續約任務，並自動歸戶給領袖。確定？'))return;
   const d=await api2({action:'auto_assign'});
   document.getElementById('ovMsg').textContent=d.success?
     ('✅ 已建立 倒數救援 '+d.countdown_created+' 件、續約 '+d.renewal_created+' 件'):(d.message||'失敗');
-  if(d.success)loadOv();
+  if(d.success)loadWar();
 }
 
 
@@ -956,181 +939,9 @@ function readOut(b,d){
 
 /* ===== CFC 佈局 ===== */
 let CFC=null, CFC_F='all';
-async function loadCfc(){
-  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_cfc_plan',{method:'POST',
-    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
-    body:JSON.stringify({p:{...CRED}})});
-  CFC=await r.json();
-  if(!CFC.success){document.getElementById('cfcLadder').textContent=CFC.message||'讀取失敗';return;}
-  renderLadder(); renderRoster(); renderCand();
-}
 const STAR=[[1,'一星鑽 ★'],[3,'三星鑽 ★★★'],[5,'五星鑽'],[7,'七星鑽'],[9,'九星鑽'],[12,'CFC MASTER']];
-function renderLadder(){
-  const s=CFC.star, l=s.l??0, r=s.r??0, now=Math.min(l,r);
-  const body=CFC.body||[], one=CFC.onestep||[];
-  const B=g=>body.find(x=>x.leg===g)||{people:0,m9:0,plan_ok:0,autopay:0,countdown:0,ga:0,gb:0,gc:0,p3:0,p1:0};
-  const L=B('左'), R=B('右');
-  const R0=CFC.roster||[], live=R0.filter(x=>x.status!=='婉拒');
-  const eL=live.filter(x=>x.leg==='左').length, eR=live.filter(x=>x.leg==='右').length;
-  const okL=live.filter(x=>x.leg==='左'&&x.done).length, okR=live.filter(x=>x.leg==='右'&&x.done).length;
-  const hasRoster=live.length>0;
-  // 實力＝A級（底氣夠且條件到位）；潛力＝A+B；苗＝C
-  const aMin=Math.min(L.ga,R.ga), abMin=Math.min(L.ga+L.gb,R.ga+R.gb),
-        allMin=Math.min(L.ga+L.gb+L.gc,R.ga+R.gb+R.gc);
-  const STARS=[[1,'一星鑽 ★'],[3,'三星鑽 ★★★'],[5,'五星鑽'],[7,'七星鑽'],[9,'九星鑽'],[12,'CFC MASTER']];
-  const reach=STARS.filter(x=>aMin>=x[0]).pop();
-  const nextS=STARS.find(x=>aMin<x[0]) || STARS[STARS.length-1];
-  const nd=nextS[0];
-  const road=`
-   <div style="border:1px solid var(--acc);border-radius:10px;padding:13px;background:#0f1a2e">
-     <b style="font-size:17px">🚩 攻頂路線圖</b>
-     <div style="margin-top:9px;display:flex;gap:9px;flex-wrap:wrap">
-       ${[['現在打得到',reach?reach[1]:'尚未到一星','A 級 左'+L.ga+'／右'+R.ga,reach?'var(--ok)':'var(--bad)'],
-          ['下一階',nextS[1],'需左右各 '+nd,'var(--warn)'],
-          ['還差',(Math.max(0,nd-L.ga))+' / '+(Math.max(0,nd-R.ga)),'左 / 右','var(--acc)'],
-          ['候補來源',(L.gb+L.gc)+' / '+(R.gb+R.gc),'左 / 右（B+C 級）',(Math.min(L.gb+L.gc,R.gb+R.gc)>=nd-aMin)?'var(--ok)':'var(--warn)']]
-         .map(x=>`<div style="flex:1;min-width:126px;border:1px solid var(--line);border-radius:8px;padding:9px;background:#0d1116">
-           <div class="mut" style="font-size:12.5px">${x[0]}</div>
-           <div style="font-size:19px;font-weight:700;color:${x[3]}">${x[1]}</div>
-           <div class="mut" style="font-size:12px">${x[2]}</div></div>`).join('')}
-     </div>
-     <div style="margin-top:11px;font-size:15px">
-       ${reach
-         ? `<b style="color:var(--ok)">${reach[1]} 現在就構得到</b>——左右都已有 A 級。往上一階 <b>${nextS[1]}</b> 還差 <b>左 ${Math.max(0,nd-L.ga)}／右 ${Math.max(0,nd-R.ga)}</b>，來源是下面 B 級（底氣夠、只缺一條）和 C 級（底氣在長）。`
-         : `左右都要至少 1 位 A 級才有一星鑽。目前左 ${L.ga}／右 ${R.ga}。`}
-     </div>
-     <div style="margin-top:10px;padding:9px;border:1px solid var(--warn);border-radius:8px;background:#231c0d;font-size:14px">
-       <b style="color:var(--warn)">⚠️ 關於 CFC MASTER（左右各 12）</b><br>
-       以現有資料估，左線最多 ${L.ga+L.gb+L.gc} 位、右線最多 ${R.ga+R.gb+R.gc} 位有機會走到成就，<b>11-12 月期湊不到 12</b>。
-       務實的做法是<b>先把 ${nextS[1]} 拿下</b>，CFC MASTER 當 2027 年度目標。
-     </div>
-     <div style="margin-top:11px"><b>三個月時間表</b>
-       <table style="margin-top:4px"><tbody>
-        <tr><td style="width:74px"><b>9 月</b></td><td>把 <b>B 級</b>（底氣夠、只缺一條）補完——多數是再補 1 位直推，自開 BC 也算。同時救 ${L.countdown+R.countdown} 個倒數位置。</td></tr>
-        <tr><td><b>10 月</b></td><td>把 <b>C 級</b>往上推（他們缺的是底下的獨立循環位置，要幫他們的下線補直推）。右線目前自動扣款只有 ${R.autopay} 人，該轉的轉掉。</td></tr>
-        <tr><td><b>11-12 月</b></td><td>成就期要<b>完整兩個月不中斷</b>，斷一天失格。這兩個月是守，不是衝。</td></tr>
-       </tbody></table>
-     </div>
-     ${hasRoster?`<div style="margin-top:10px;padding:9px;border:1px solid var(--acc);border-radius:8px;background:#0d1116">
-       <b>⚔️ 你的點將名單</b>：左 ${eL} 位／右 ${eR} 位，其中已達 A 級 <b style="color:var(--ok)">左 ${okL}／右 ${okR}</b>。</div>`:''}
-     <div class="mut" style="margin-top:8px;font-size:13px">
-       「底氣」＝左右子樹各有幾個位置<b>自己直推≥2</b>，用來估成就第④(a)條「左右各 5 個獨立循環」。
-       這是<b>樂觀上限</b>——有直推 2 不等於真的跑完循環，實際只會更少。第④(b)「各 200 萬點」要 9/1 採 fc_status 才看得到。
-     </div>
-   </div>`;
-  const rows=STARS.map(([n,nm])=>{
-    const got=now>=n, byA=aMin>=n, byAB=abMin>=n, byAll=allMin>=n;
-    let col3,col4;
-    if(hasRoster){
-      col3=got?'<b style="color:var(--ok)">已達</b>':'點將 左'+eL+'／右'+eR;
-      col4=Math.min(okL,okR)>=n?'<span style="color:var(--ok)">名單已到位</span>'
-          :Math.min(eL,eR)>=n?'<span style="color:var(--warn)">人點夠了，條件還沒到</span>'
-          :'<span style="color:var(--bad)">還要再點 '+Math.max(0,n-Math.min(eL,eR))+' 位</span>';
-    }else{
-      col3=got?'<b style="color:var(--ok)">已達</b>':'左差 '+Math.max(0,n-L.ga)+'／右差 '+Math.max(0,n-R.ga);
-      col4=byA?'<span style="color:var(--ok)">A 級就夠</span>'
-          :byAB?'<span style="color:var(--warn)">補完 B 級可到</span>'
-          :byAll?'<span style="color:#d29922">要連 C 級都養起來</span>'
-          :'<span style="color:var(--bad)">人數不夠，非本期目標</span>';
-    }
-    return `<tr><td>${got?'✅':(byA?'🟢':'⬜')} ${nm}</td><td>左右各 ${n}</td><td>${col3}</td><td>${col4}</td></tr>`;}).join('');
-  document.getElementById('cfcLadder').innerHTML=road+`
-   <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
-     <b>🏆 星鑽階梯</b><span class="mut">公司紀錄 左 ${l}／右 ${r}（${esc(s.period||'')}｜${esc(s.source||'')}）｜資料日 ${esc(CFC.as_of||'')}</span></div>
-   <div class="scroll"><table><thead><tr><th>階</th><th>條件</th><th>${hasRoster?'點將進度':'還差'}</th><th>${hasRoster?'名單狀態':'夠不夠'}</th></tr></thead><tbody>${rows}</tbody></table></div>
-   <div style="margin-top:14px"><b>💪 左右線實力盤點</b>
-   <div class="scroll" style="margin-top:5px"><table>
-     <thead><tr><th>線</th><th>人數</th><th>9月有買</th><th>自動扣款</th><th>⏳倒數</th>
-       <th style="color:var(--ok)">A 可衝</th><th style="color:var(--warn)">B 差一腳</th><th>C 在長</th></tr></thead>
-     <tbody>${body.map(x=>`<tr><td><b>${esc(x.leg)}</b></td><td>${x.people}</td><td>${x.m9}</td>
-       <td>${x.autopay}</td><td style="color:var(--bad)">${x.countdown}</td>
-       <td><b style="color:var(--ok)">${x.ga}</b></td><td><b style="color:var(--warn)">${x.gb}</b></td>
-       <td>${x.gc}</td></tr>`).join('')}</tbody></table></div>
-   <div class="mut" style="margin-top:4px">A＝底氣夠且條件到位｜B＝底氣夠、只缺一條（<b>最該投資源</b>）｜C＝底氣還在長</div></div>`;
-  // 差臨門一腳名單
-  const ez={1:['#37c978','最好補'],2:['#ffb020','要催購買'],3:['#4f8cff','要找2位']};
-  const oneSorted=(one||[]).slice().sort((a,b)=>(a.ease-b.ease)||(b.power-a.power));
-  document.getElementById('oneBody').innerHTML=oneSorted.map(x=>{
-    const e=ez[x.ease]||ez[3];
-    return `<tr><td><span style="background:${e[0]};color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">${e[1]}</span></td>
-     <td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a><br><span class="mut">${esc(x.member_id)}</span></td>
-     <td><b>${esc(x.leg)}</b></td><td>${x.lc}／${x.rc}</td><td>${esc(x.todo)}</td>
-     <td>${x.enlisted?'<span style="color:var(--ok);font-size:13px">✔已點將</span>':`<button class="btn sm" onclick="enlist('${esc(x.member_id)}',true)">⚔️點將</button>`}</td></tr>`;}).join('')
-   ||'<tr><td colspan="6" class="mut">目前沒有「底氣夠、只缺一條」的人。要先把 C 級養起來（見下方排行）。</td></tr>';
-}
-function cfcFilter(f){CFC_F=f;renderCand();}
-function renderCand(){
-  const G={A:['#37c978','A 可衝'],B:['#ffb020','B 差一腳'],C:['#4f8cff','C 在長'],D:['#484f58','D 規模不足']};
-  let rows=(CFC.candidates||[]).slice();
-  if(CFC_F==='右')rows=rows.filter(c=>c.leg==='右');
-  else if(CFC_F==='ready')rows=rows.filter(c=>c.grade==='A'||c.grade==='B');
-  else if(CFC_F==='C')rows=rows.filter(c=>c.grade==='C');
-  rows.sort((a,b)=>(b.power-a.power)||(b.sub_active-a.sub_active)).splice(60);
-  const yn=v=>v?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--bad)">✕</span>';
-  document.getElementById('cfcBody').innerHTML=rows.map(c=>{
-    const g=G[c.grade]||G.D;
-    return `<tr>
-     <td><span style="background:${g[0]};color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">${g[1]}</span></td>
-     <td><a href="javascript:openCard('${esc(c.member_id)}')" style="color:var(--acc);font-weight:600">${esc(c.name)}</a>
-         <br><span class="mut">${esc(c.member_id)}</span></td>
-     <td><b>${esc(c.leg)}</b></td>
-     <td><b style="color:${c.power>=5?'var(--ok)':c.power?'var(--warn)':'var(--mut)'}">${c.lc}／${c.rc}</b></td>
-     <td>${yn(c.c_supply)}</td>
-     <td>${yn(c.c_direct)} <span class="mut">${c.dir_valid}</span></td>
-     <td>${c.sub_active}</td>
-     <td class="mut">${esc(c.lack||'—')}</td>
-     <td>${c.enlisted?'<span style="color:var(--ok);font-size:13px">✔</span>':`<button class="btn sm" onclick="enlist('${esc(c.member_id)}',true)">⚔️</button>`}</td></tr>`;}).join('')
-   ||'<tr><td colspan="9" class="mut">無符合條件者</td></tr>';
-}
-
-
 /* ===== 點將 ===== */
 const PERIOD='2026-11-12';
-async function rosterApi(a,extra){
-  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_cfc_roster',{method:'POST',
-    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
-    body:JSON.stringify({p:{...CRED,action:a,period:PERIOD,...(extra||{})}})});
-  return r.json();
-}
-async function enlist(id,on){
-  const d=await rosterApi(on?'enlist':'unlist',{member_id:id});
-  if(d&&d.success===false){alert('點將失敗：'+(d.message||''));return;}
-  await loadCfc();
-}
-async function rosterSt(id,st){ await rosterApi('set_status',{member_id:id,status:st}); await loadCfc(); }
-async function rosterTasks(){
-  const n=(CFC.roster||[]).filter(x=>x.todo).length;
-  if(!n){document.getElementById('rosterMsg').textContent='名單裡的人目前都沒有缺口，不用派。';return;}
-  if(!confirm('把點將名單的缺口派成任務給各自的歸戶領袖？'))return;
-  const d=await rosterApi('make_tasks',{});
-  document.getElementById('rosterMsg').textContent=d.success?('✅ 已建立 '+d.created+' 件成就衝刺任務'):(d.message||'失敗');
-}
-function renderRoster(){
-  const G={A:['#37c978','A 可衝'],B:['#ffb020','B 差一腳'],C:['#4f8cff','C 在長'],D:['#484f58','D 規模不足']};
-  const R=(CFC.roster||[]).slice().sort((a,b)=>
-    ('ABCD'.indexOf(a.grade)-'ABCD'.indexOf(b.grade))||((b.power||0)-(a.power||0))||((b.sub_active||0)-(a.sub_active||0)));
-  const box=document.getElementById('rosterBox');
-  if(!R.length){box.innerHTML='<div class="mut">還沒點將。到下面名單按 <b>⚔️點將</b>，這裡就會出現，星鑽階梯也會跟著改用這份名單推演。</div>';return;}
-  const st=['點將','已答應','婉拒','達成'];
-  const nA=R.filter(x=>x.grade==='A').length;
-  box.innerHTML=`<div class="mut" style="margin-bottom:6px">名單 ${R.length} 位，其中 <b style="color:var(--ok)">A 級 ${nA} 位</b>（底氣≥5 且條件到位）。</div>`+
-    '<div class="scroll"><table><thead><tr><th>狀態</th><th>姓名</th><th>線</th><th>級</th><th>底氣 左／右</th><th>還要做</th><th>歸戶</th><th></th></tr></thead><tbody>'+
-    R.map(x=>{const g=G[x.grade]||G.D;
-    return `<tr>
-      <td><select class="inp" style="padding:4px;font-size:13px" onchange="rosterSt('${esc(x.member_id)}',this.value)">
-        ${st.map(v=>`<option${v===x.status?' selected':''}>${v}</option>`).join('')}</select></td>
-      <td><a href="javascript:openCard('${esc(x.member_id)}')" style="color:var(--acc);font-weight:600">${esc(x.name)}</a>
-        <br><span class="mut">${esc(x.member_id)}</span></td>
-      <td><b>${esc(x.leg)}</b></td>
-      <td><span style="background:${g[0]};color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">${g[1]}</span></td>
-      <td><b style="color:${x.power>=5?'var(--ok)':x.power?'var(--warn)':'var(--mut)'}">${x.lc??0}／${x.rc??0}</b></td>
-      <td>${x.todo?esc(x.todo):'<span style="color:var(--ok)">條件都到位了</span>'}</td>
-      <td class="mut">${esc(x.route)}</td>
-      <td><button class="btn sm" onclick="enlist('${esc(x.member_id)}',false)">移除</button></td></tr>`;}).join('')+
-    '</tbody></table></div>';
-}
-
-
 function intentBox(d){
   const i=d.intent, n=(d.intent_history||[]).length;
   if(!i) return `<div class="card" style="background:#0d1116;margin-bottom:12px;border-color:#3a2f18">
