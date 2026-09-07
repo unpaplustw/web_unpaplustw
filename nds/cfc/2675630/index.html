@@ -486,6 +486,7 @@ function openTac(id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t)
 function bcSummary(M){const b=(M.bcs||[]);const done=b.filter(x=>x.fc_l>=5&&x.fc_r>=5).length;const has=b.filter(x=>x.fc_l!=null);return '<b>你是起點（'+esc(M.member_id)+'），成就要看你名下各分店</b>'+'<div class="mut" style="margin-top:4px">名下 '+b.length+' 個分店，公司頁有循環數的 '+has.length+' 個，已達成就 '+done+' 個</div>'+'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+b.map(x=>'<span style="border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12px">'+esc(x.member_id.split('-')[1])+' '+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+(x.picked?' ⚔️':'')+'</span>').join('')+'</div>';}
 async function loadCh(){ if(!TAC_WHO)TAC_WHO=''; await loadTac(TAC_WHO); }
 async function loadTac(who){
+  if(who===''||who===undefined&&!TAC_WHO){ const dd=document.getElementById('tacDepth'); if(dd&&dd.value==='5')dd.value='7'; }
   if(who!==undefined)TAC_WHO=who;
   const d=await tacApi({});
   if(!d||!d.success){document.getElementById('tacMe').textContent=(d&&d.message)||'讀取失敗';return;}
@@ -504,8 +505,7 @@ async function loadTac(who){
       +(R3.length?'<optgroup label="右線">'+R3.map(opt).join('')+'</optgroup>':'');
     sel.dataset.sig=sig;
   }
-  sel.value = (M.member_id===(d.root_member_id||'')) ? '' : M.member_id;
-  if(!sel.value && !R2.some(x=>x.member_id===M.member_id)) sel.value='';
+  if(M.is_root){ sel.value=''; sel.selectedIndex=0; } else { sel.value=M.member_id; }
   sel.value=M.member_id;
   const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
   const done=(M.fc_l>=5&&M.fc_r>=5);
@@ -565,7 +565,7 @@ function renderTacTree(){
   const all=(d.tree||[]).filter(n=>n.side===TAC_SIDE);
   if(!all.length){box.innerHTML='<div class="mut" style="padding:14px">'+TAC_SIDE+'邊沒有人。<b style="color:#3fb950">這是空位——新人排這邊。</b></div>';return;}
   const root=(d.me||{}).member_id;
-  const kids={}; all.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
+  const kids={}; all.forEach(n=>{const k=(kids[n.parent]=kids[n.parent]||{}); const ps=n.pos||n.side||'左'; k[ps]=k[ps]||n;});
   const byId={}; all.forEach(n=>byId[n.member_id]=n);
   const BW=92,BH=32,GX=12,GY=52; let col=0; const pos={};
   (function lay(id,dep){
