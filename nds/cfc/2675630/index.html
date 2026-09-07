@@ -438,6 +438,7 @@ async function tacApi(extra){
     body:JSON.stringify({p:{...CRED,member_id:TAC_WHO||'',...(extra||{})}})});
   return r.json();
 }
+function nmb(name,id){const bc=String(id||'').split('-')[1];return esc(name||'')+(bc?'-'+bc:'');}
 function lamps(n,need){n=Math.max(0,Math.min(need,n||0));return '<span style="font-size:18px;letter-spacing:2px">'+'🟢'.repeat(n)+'⚪'.repeat(need-n)+'</span> <b>'+n+'/'+need+'</b>';}
 function bcSummary(M){const b=(M.bcs||[]);const done=b.filter(x=>x.fc_l>=5&&x.fc_r>=5).length;const has=b.filter(x=>x.fc_l!=null);return '<b>你是起點（'+esc(M.member_id)+'），成就要看你名下各分店</b>'+'<div class="mut" style="margin-top:4px">名下 '+b.length+' 個分店，公司頁有循環數的 '+has.length+' 個，已達成就 '+done+' 個</div>'+'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+b.map(x=>'<span style="border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12px">'+esc(x.member_id.split('-')[1])+' '+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+(x.picked?' ⚔️':'')+'</span>').join('')+'</div>';}
 async function loadCh(){ if(!TAC_WHO)TAC_WHO=''; await loadTac(TAC_WHO); }
@@ -454,7 +455,7 @@ async function loadTac(who){
   const sig=R2.map(x=>x.member_id).join(',')+'|'+M.member_id;
   if(sel.dataset.sig!==sig){
     const L2=R2.filter(x=>x.leg==='左'), R3=R2.filter(x=>x.leg==='右');
-    const opt=x=>'<option value="'+esc(x.member_id)+'">'+x.light+' '+esc(x.name)+'（'+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+'）</option>';
+    const opt=x=>'<option value="'+esc(x.member_id)+'">'+x.light+' '+nmb(x.name,x.member_id)+'（'+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+'）</option>';
     sel.innerHTML='<option value="">🏛 我自己（全樹）</option>'
       +(L2.length?'<optgroup label="左線">'+L2.map(opt).join('')+'</optgroup>':'')
       +(R3.length?'<optgroup label="右線">'+R3.map(opt).join('')+'</optgroup>':'');
@@ -466,7 +467,7 @@ async function loadTac(who){
   const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
   const done=(M.fc_l>=5&&M.fc_r>=5);
   document.getElementById('tacMe').innerHTML=
-    '<div style="font-size:17px;font-weight:700">'+(done?'🏆 ':'')+esc(M.name||'')+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(M.member_id||'')+' ・ '+esc(M.leg||'')+'線'+(M.picked?' ・ 已點將':'')+'</span></div>'
+    '<div style="font-size:17px;font-weight:700">'+(done?'🏆 ':'')+nmb(M.name,M.member_id)+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(M.member_id||'')+' ・ '+esc(M.leg||'')+'線'+(M.picked?' ・ 已點將':'')+'</span></div>'
     +'<table style="margin-top:10px"><tbody>'
     +'<tr><th style="width:92px">① 成就</th><td>'+(M.fc_l==null?(M.is_root?bcSummary(M):'<span class="mut">公司頁沒有列這個位置的循環數（只列前 40 名／邊）</span>'):
         '左線 '+lamps(M.fc_l,5)+'　　右線 '+lamps(M.fc_r,5)
@@ -487,7 +488,7 @@ async function loadTac(who){
       +(g==='補弱邊'?'':' <button class="btn sm" style="margin-left:8px" onclick="event.preventDefault();tacIssue(\''+g+'\')">發令 勾選的</button>')+'</summary>'
       +'<div class="scroll"><table><tbody>'+items.map(x=>'<tr>'
         +(g==='補弱邊'?'<td style="width:24px"></td>':'<td style="width:24px"><input type="checkbox" class="tck-'+esc(g)+'" data-id="'+esc(x.member_id)+'" data-detail="'+esc(x.detail||'')+'" checked></td>')
-        +'<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(x.name||'')+'</a> <span class="mut">'+esc(x.side||'')+'</span></td>'
+        +'<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.side||'')+'</span></td>'
         +'<td>'+esc(x.detail||'')+'</td></tr>').join('')+'</tbody></table></div>';
     box.appendChild(det);
   });
@@ -495,7 +496,7 @@ async function loadTac(who){
   // ③ 他的將
   const sb=document.getElementById('tacSubs');
   sb.innerHTML=(d.subs||[]).length?'<div class="scroll"><table><thead><tr><th></th><th>姓名</th><th>邊</th><th>層</th><th>成就 左/右</th><th>水位 左/右</th><th></th></tr></thead><tbody>'
-    +d.subs.map(s=>'<tr><td>'+s.light+'</td><td>'+esc(s.name||'')+'<br><span class="mut">'+esc(s.member_id)+'</span></td><td>'+esc(s.side||'')+'</td><td>'+s.depth+'</td>'
+    +d.subs.map(s=>'<tr><td>'+s.light+'</td><td>'+nmb(s.name,s.member_id)+'<br><span class="mut">'+esc(s.member_id)+'</span></td><td>'+esc(s.side||'')+'</td><td>'+s.depth+'</td>'
       +'<td>'+(s.fc_l==null?'—':s.fc_l+' / '+s.fc_r)+'</td><td>'+(s.p200_l==null?'—':wan(s.p200_l)+' / '+wan(s.p200_r))+'</td>'
       +'<td><button class="btn sm" onclick="loadTac(\''+esc(s.member_id)+'\')">打開</button></td></tr>').join('')+'</tbody></table></div>'
     :'<div class="mut">他底下沒有被點將的人。到戰情室骨架選將。</div>';
@@ -504,9 +505,9 @@ async function loadTac(who){
   document.getElementById('tacRecruit').innerHTML=
     '<table><tbody>'
     +'<tr><th style="width:92px">要推幾個</th><td><b style="font-size:18px">'+need+'</b> 位　<span class="mut">直推缺 '+(R.need_intro||0)+' ＋ 弱邊還缺 '+(R.weak_gap||0)+' 個位置達循環</span></td></tr>'
-    +'<tr><th>已推</th><td>'+(R.done_this_period||0)+' 位'+((R.recent||[]).length?'　<span class="mut">'+R.recent.map(x=>esc(x.name)+'（'+esc(x.at)+'）').join('、')+'</span>':'')+'</td></tr>'
+    +'<tr><th>已推</th><td>'+(R.done_this_period||0)+' 位'+((R.recent||[]).length?'　<span class="mut">'+R.recent.map(x=>nmb(x.name,x.member_id)+'（'+esc(x.at)+'）').join('、')+'</span>':'')+'</td></tr>'
     +'<tr><th>放哪邊</th><td><b>'+esc(R.weak_side||'—')+'</b> 線（弱邊）</td></tr>'
-    +'<tr><th>暖名單</th><td>'+((R.warm||[]).length?'<div class="scroll"><table><tbody>'+R.warm.map(w=>'<tr><td><input type="checkbox" class="tck-推薦" data-id="'+esc(w.member_id)+'" data-detail="'+esc(w.why)+'"></td><td><a href="javascript:openCard(\''+esc(w.member_id)+'\')" style="color:#58a6ff">'+esc(w.name)+'</a> <span class="mut">'+esc(w.side)+'</span></td><td class="mut">'+esc(w.why)+'</td></tr>').join('')+'</tbody></table></div><button class="btn sm" style="margin-top:6px" onclick="tacIssue(\'推薦\')">發令 勾選的</button>':'<span class="mut">目前沒有暖名單（來源：有買未訂閱鐵粉頻道）</span>')+'</td></tr>'
+    +'<tr><th>暖名單</th><td>'+((R.warm||[]).length?'<div class="scroll"><table><tbody>'+R.warm.map(w=>'<tr><td><input type="checkbox" class="tck-推薦" data-id="'+esc(w.member_id)+'" data-detail="'+esc(w.why)+'"></td><td><a href="javascript:openCard(\''+esc(w.member_id)+'\')" style="color:#58a6ff">'+nmb(w.name,w.member_id)+'</a> <span class="mut">'+esc(w.side)+'</span></td><td class="mut">'+esc(w.why)+'</td></tr>').join('')+'</tbody></table></div><button class="btn sm" style="margin-top:6px" onclick="tacIssue(\'推薦\')">發令 勾選的</button>':'<span class="mut">目前沒有暖名單（來源：有買未訂閱鐵粉頻道）</span>')+'</td></tr>'
     +'</tbody></table>';
 }
 async function tacIssue(g){
