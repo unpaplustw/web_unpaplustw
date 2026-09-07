@@ -126,7 +126,7 @@ a{text-decoration:none}
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <b>🌳 他底下的組織</b>
       <span><button class="btn sm" id="tsL" onclick="tacSide('左')">左線</button> <button class="btn sm ghost" id="tsR" onclick="tacSide('右')">右線</button>
-      深度 <select id="tacDepth" class="inp" onchange="loadTac()" style="width:70px"><option>3</option><option selected>5</option><option>7</option></select></span>
+      深度 <select id="tacDepth" class="inp" onchange="loadTac()" style="width:70px"><option>3</option><option selected>5</option><option>7</option><option>10</option><option>15</option></select></span>
     </div>
     <div class="mut" style="margin-top:4px">● 有方案　○ 沒方案　⚠ 倒數中　綠框＝已點將　灰點＝已解約（只當橋接）。點節點看會員卡。</div>
     <div id="tacTree" class="scroll" style="margin-top:8px"></div>
@@ -486,7 +486,7 @@ function openTac(id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t)
 function bcSummary(M){const b=(M.bcs||[]);const done=b.filter(x=>x.fc_l>=5&&x.fc_r>=5).length;const has=b.filter(x=>x.fc_l!=null);return '<b>你是起點（'+esc(M.member_id)+'），成就要看你名下各分店</b>'+'<div class="mut" style="margin-top:4px">名下 '+b.length+' 個分店，公司頁有循環數的 '+has.length+' 個，已達成就 '+done+' 個</div>'+'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+b.map(x=>'<span style="border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12px">'+esc(x.member_id.split('-')[1])+' '+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+(x.picked?' ⚔️':'')+'</span>').join('')+'</div>';}
 async function loadCh(){ if(!TAC_WHO)TAC_WHO=''; await loadTac(TAC_WHO); }
 async function loadTac(who){
-  if(who===''||who===undefined&&!TAC_WHO){ const dd=document.getElementById('tacDepth'); if(dd&&dd.value==='5')dd.value='7'; }
+  if(who===''||who===undefined&&!TAC_WHO){ const dd=document.getElementById('tacDepth'); if(dd&&dd.value==='5')dd.value='10'; }
   if(who!==undefined)TAC_WHO=who;
   const d=await tacApi({});
   if(!d||!d.success){document.getElementById('tacMe').textContent=(d&&d.message)||'讀取失敗';return;}
@@ -505,7 +505,8 @@ async function loadTac(who){
       +(R3.length?'<optgroup label="右線">'+R3.map(opt).join('')+'</optgroup>':'');
     sel.dataset.sig=sig;
   }
-  if(M.is_root){ sel.value=''; sel.selectedIndex=0; } else { sel.value=M.member_id; }
+  const isRootNow = !!M.is_root || (M.member_id && M.member_id===d.root_member_id);
+  if(isRootNow){ sel.selectedIndex=0; } else { sel.value=M.member_id; if(sel.selectedIndex<0) sel.selectedIndex=0; }
   sel.value=M.member_id;
   const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
   const done=(M.fc_l>=5&&M.fc_r>=5);
