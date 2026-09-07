@@ -439,6 +439,7 @@ async function tacApi(extra){
   return r.json();
 }
 function lamps(n,need){n=Math.max(0,Math.min(need,n||0));return '<span style="font-size:18px;letter-spacing:2px">'+'🟢'.repeat(n)+'⚪'.repeat(need-n)+'</span> <b>'+n+'/'+need+'</b>';}
+function bcSummary(M){const b=(M.bcs||[]);const done=b.filter(x=>x.fc_l>=5&&x.fc_r>=5).length;const has=b.filter(x=>x.fc_l!=null);return '<b>你是起點（'+esc(M.member_id)+'），成就要看你名下各分店</b>'+'<div class="mut" style="margin-top:4px">名下 '+b.length+' 個分店，公司頁有循環數的 '+has.length+' 個，已達成就 '+done+' 個</div>'+'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+b.map(x=>'<span style="border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12px">'+esc(x.member_id.split('-')[1])+' '+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+(x.picked?' ⚔️':'')+'</span>').join('')+'</div>';}
 async function loadCh(){ if(!TAC_WHO)TAC_WHO=''; await loadTac(TAC_WHO); }
 async function loadTac(who){
   if(who!==undefined)TAC_WHO=who;
@@ -447,20 +448,27 @@ async function loadTac(who){
   TAC=d; const M=d.me||{}, P=d.period||{}, R=d.recruit||{};
   TAC_WHO=M.member_id;
   document.getElementById('tacAsof').textContent='本期剩 '+(P.days_left??'—')+' 天（循環數 '+(P.cycle_asof||'')+' ・ 水位 '+(P.water_asof||'')+'）';
-  // 選將下拉
+  // 選將下拉：全部點將的人
   const sel=document.getElementById('tacWho');
-  if(!sel.options.length || sel.dataset.n!=String((d.subs||[]).length)){
-    const opts=[{member_id:M.member_id,name:M.name+'（現在）'}].concat((d.subs||[]).map(s=>({member_id:s.member_id,name:'　└ '+s.name})));
-    sel.innerHTML=opts.map(o=>'<option value="'+esc(o.member_id)+'">'+esc(o.name)+'</option>').join('');
-    sel.dataset.n=String((d.subs||[]).length);
+  const R2=(d.roster||[]);
+  const sig=R2.map(x=>x.member_id).join(',')+'|'+M.member_id;
+  if(sel.dataset.sig!==sig){
+    const L2=R2.filter(x=>x.leg==='左'), R3=R2.filter(x=>x.leg==='右');
+    const opt=x=>'<option value="'+esc(x.member_id)+'">'+x.light+' '+esc(x.name)+'（'+(x.fc_l==null?'—':x.fc_l+'/'+x.fc_r)+'）</option>';
+    sel.innerHTML='<option value="">🏛 我自己（全樹）</option>'
+      +(L2.length?'<optgroup label="左線">'+L2.map(opt).join('')+'</optgroup>':'')
+      +(R3.length?'<optgroup label="右線">'+R3.map(opt).join('')+'</optgroup>':'');
+    sel.dataset.sig=sig;
   }
+  sel.value = (M.member_id===(d.root_member_id||'')) ? '' : M.member_id;
+  if(!sel.value && !R2.some(x=>x.member_id===M.member_id)) sel.value='';
   sel.value=M.member_id;
   const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
   const done=(M.fc_l>=5&&M.fc_r>=5);
   document.getElementById('tacMe').innerHTML=
     '<div style="font-size:17px;font-weight:700">'+(done?'🏆 ':'')+esc(M.name||'')+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(M.member_id||'')+' ・ '+esc(M.leg||'')+'線'+(M.picked?' ・ 已點將':'')+'</span></div>'
     +'<table style="margin-top:10px"><tbody>'
-    +'<tr><th style="width:92px">① 成就</th><td>'+(M.fc_l==null?'<span class="mut">公司頁沒有這個位置的循環數</span>':
+    +'<tr><th style="width:92px">① 成就</th><td>'+(M.fc_l==null?(M.is_root?bcSummary(M):'<span class="mut">公司頁沒有列這個位置的循環數（只列前 40 名／邊）</span>'):
         '左線 '+lamps(M.fc_l,5)+'　　右線 '+lamps(M.fc_r,5)
         +'<br><span class="mut">亮 ＝ 該線上已完成獨立循環的位置數</span>'
         +(done?'<br>🏆 左右都滿 5，成就達成':'<br>還要：左 '+Math.max(0,5-M.fc_l)+' 個 ・ 右 '+Math.max(0,5-M.fc_r)+' 個位置'))+'</td></tr>'
