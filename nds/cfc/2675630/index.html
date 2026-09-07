@@ -102,8 +102,28 @@ a{text-decoration:none}
     <div id="warStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
   </div>
   <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>⚔️ 將的藍圖</b>
+      <span><button class="btn sm" onclick="warPick()">＋ 選將／換將</button> <span class="mut">點格子＝打開他的戰術板</span></span>
+    </div>
+    <div class="mut" style="margin-top:4px">左右各 8+4+2+1。你只挑「誰」，位置照安置樹自動排。🏆左5右5 🟢接近 🟡在長 🔴剛起步 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位</div>
+    <div id="warGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
+  </div>
+  <div class="card">
     <b>📡 通報流</b>
     <div id="warFeed" style="margin-top:8px;line-height:1.8;max-height:420px;overflow:auto"></div>
+  </div>
+</div>
+<div id="pickBox" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:98;overflow:auto;padding:16px" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="card" style="max-width:820px;margin:20px auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>⚔️ 選將</b>
+      <span><button class="btn sm" onclick="pickF('all')">全部</button> <button class="btn sm" onclick="pickF('AB')">硬條件已成立</button> <button class="btn sm" onclick="pickF('右')">只看右線</button> <button class="btn sm" onclick="pickF('picked')">已選</button> <button class="btn sm ghost" onclick="document.getElementById('pickBox').classList.add('hidden')">關閉</button></span>
+    </div>
+    <div class="mut" style="margin-top:4px">依循環數＋延伸代數＋水位排序。選入後位置自動排，不用指定格子。</div>
+    <div class="scroll" style="margin-top:8px;max-height:60vh"><table>
+      <thead><tr><th>姓名</th><th>線</th><th>硬條件</th><th>循環 左/右</th><th>水位 左/右</th><th>延伸</th><th></th></tr></thead>
+      <tbody id="pickBody"></tbody></table></div>
   </div>
 </div>
 <div id="v-ch" class="hidden">
@@ -378,7 +398,60 @@ async function api2(p){
     body:JSON.stringify({p:{...CRED,...p}})});
   return r.json();
 }
-let WAR=null;
+let WAR=null, PICK=null, PICK_F='all';
+async function chalApi(extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_challenge',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...(extra||{})}})});
+  return r.json();
+}
+async function loadGrid(){
+  const d=await chalApi({}); if(!d||!d.success)return; PICK=d;
+  const g=document.getElementById('warGrid'); g.innerHTML='';
+  ['左','右'].forEach(side=>{
+    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;min-width:300px';
+    col.innerHTML='<b>'+side+'線</b>';
+    [1,2,3,4].forEach(layer=>{
+      const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;justify-content:center';
+      (d.skeleton||[]).filter(x=>x.side===side&&x.layer===layer).forEach(x=>{
+        const w = layer===4?34:layer===3?70:layer===2?142:286;
+        const c=document.createElement('div');
+        c.style.cssText='width:'+w+'px;height:34px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;overflow:hidden;white-space:nowrap';
+        c.title=x.member_id?(x.name+' '+x.member_id):'空位 — 按「選將」加人';
+        c.innerHTML=x.light+(layer<4&&x.name?' <span style="font-size:12px">'+nmb(x.name,x.member_id)+'</span>':'');
+        c.onclick=()=>{ if(x.member_id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t); loadTac(x.member_id); } else warPick(); };
+        row.appendChild(c);
+      });
+      col.appendChild(row);
+    });
+    g.appendChild(col);
+  });
+}
+function warPick(){ document.getElementById('pickBox').classList.remove('hidden'); renderPick(); }
+function pickF(f){ PICK_F=f; renderPick(); }
+function renderPick(){
+  if(!PICK)return; const tb=document.getElementById('pickBody'); tb.innerHTML='';
+  let rows=(PICK.candidates||[]).slice();
+  if(PICK_F==='AB')rows=rows.filter(c=>c.hard_ok); else if(PICK_F==='右')rows=rows.filter(c=>c.leg==='右'); else if(PICK_F==='picked')rows=rows.filter(c=>c.picked);
+  rows.slice(0,120).forEach(c=>{
+    const tr=document.createElement('tr'); if(c.picked)tr.style.background='rgba(63,185,80,.08)';
+    tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(c.name,c.member_id)+'</a></td>'
+      +'<td>'+esc(c.leg||'')+'</td>'
+      +'<td>'+(c.hard_ok?'<span style="color:#3fb950">✅</span>':'<span style="color:#f85149">缺</span>')+' <span class="mut">直推 '+(c.intro??'—')+'</span></td>'
+      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td>'
+      +'<td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td>'
+      +'<td>'+(c.depth==null?'—':'第 '+c.depth+' 代')+'</td>'
+      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="pickSet(\''+esc(c.member_id)+'\',false)">移出</button>':'<button class="btn sm" onclick="pickSet(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
+    tb.appendChild(tr);
+  });
+  if(!rows.length) tb.innerHTML='<tr><td colspan="7" class="mut">沒有符合的人。</td></tr>';
+}
+async function pickSet(id,on){
+  const d=await chalApi({action:on?'pick':'unpick',member_id:id});
+  if(d&&d.success===false){alert(d.message||'失敗');return;}
+  PICK=d; renderPick(); loadGrid(); if(typeof TAC_WHO!=='undefined'){const sel=document.getElementById('tacWho'); if(sel)sel.dataset.sig='';}
+}
+
 async function warApi(extra){
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_warroom',{method:'POST',
     headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
@@ -421,6 +494,7 @@ async function loadWar(){
     div.innerHTML='<span class="mut" style="font-family:monospace">'+esc(ts)+'</span>　'+esc(f.kind||'')+'　'+esc(f.text||'')+(f.member_id?' <a href="javascript:openCard(\''+esc(f.member_id)+'\')" style="color:#58a6ff">卡片</a>':'');
     fd.appendChild(div);
   });
+  loadGrid();
 }
 async function warIssue(g){
   const items=[...document.querySelectorAll('.wck-'+g+':checked')].map(c=>({member_id:c.dataset.id,detail:c.dataset.detail}));
