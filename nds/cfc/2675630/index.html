@@ -128,7 +128,7 @@ a{text-decoration:none}
       <span><button class="btn sm" id="tsL" onclick="tacSide('左')">左線</button> <button class="btn sm ghost" id="tsR" onclick="tacSide('右')">右線</button>
       深度 <select id="tacDepth" class="inp" onchange="loadTac()" style="width:70px"><option>3</option><option selected>5</option><option>7</option></select></span>
     </div>
-    <div class="mut" style="margin-top:4px">● 有方案　○ 沒方案　⚠ 倒數中　綠框＝已點將。點節點看會員卡。</div>
+    <div class="mut" style="margin-top:4px">● 有方案　○ 沒方案　⚠ 倒數中　綠框＝已點將　灰點＝已解約（只當橋接）。點節點看會員卡。</div>
     <div id="tacTree" class="scroll" style="margin-top:8px"></div>
   </div>
   <div class="card">
@@ -588,6 +588,7 @@ function renderTacTree(){
     if(n&&pos[n.parent]){const pp=pos[n.parent];
       lines+='<path d="M'+(X(pp)+BW/2)+','+(Y(pp)+BH)+' V'+(Y(p)-8)+' H'+(X(p)+BW/2)+' V'+Y(p)+'" fill="none" stroke="#2a3340" stroke-width="1.5"/>';}
     const isRoot=!n;
+    if(n&&n.dead){ boxes+='<g onclick="openCard(\''+n.member_id+'\')" style="cursor:pointer"><circle cx="'+(X(p)+BW/2)+'" cy="'+(Y(p)+BH/2)+'" r="5" fill="#30363d"/><title>已解約 '+esc(n.name||'')+' '+n.member_id+'</title></g>'; return; }
     const mark = isRoot?'':(n.cd?'⚠':(n.has_plan?'●':'○'));
     const stroke = isRoot?'#8b949e':(n.picked?'#3fb950':(n.cd?'#f85149':(n.has_plan?'#2f81f7':'#30363d')));
     const label = isRoot? ((d.me||{}).name||'') : (n.name+'-'+String(n.member_id).split('-')[1]);
