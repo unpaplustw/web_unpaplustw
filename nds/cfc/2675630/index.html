@@ -507,7 +507,6 @@ async function loadTac(who){
   }
   const isRootNow = !!M.is_root || (M.member_id && M.member_id===d.root_member_id);
   if(isRootNow){ sel.selectedIndex=0; } else { sel.value=M.member_id; if(sel.selectedIndex<0) sel.selectedIndex=0; }
-  sel.value=M.member_id;
   const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
   const done=(M.fc_l>=5&&M.fc_r>=5);
   document.getElementById('tacMe').innerHTML=
