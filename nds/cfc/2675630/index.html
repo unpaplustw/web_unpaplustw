@@ -414,7 +414,7 @@ async function loadGrid(){ try{
         c.style.cssText='width:'+w+'px;height:34px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;overflow:hidden;white-space:nowrap';
         c.title=x.member_id?(x.name+' '+x.member_id):'空位 — 按「選將」加人';
         c.innerHTML=x.light+(layer<4&&x.name?' <span style="font-size:12px">'+nmb(x.name,x.member_id)+'</span>':'');
-        c.onclick=()=>{ if(x.member_id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t); loadTac(x.member_id); } else warPick(); };
+        c.onclick=()=>{ if(x.member_id){ const t=document.querySelector('.tab[data-v="ch"]'); sw(t); loadTac(x.member_id); } else alert('空位：到上一層那位將的戰術板 ③ 選將'); };
         row.appendChild(c);
       });
       col.appendChild(row);
