@@ -430,7 +430,7 @@ async function warApi(extra){
   return r.json();
 }
 async function loadWar(){
-  const d=await warApi({}); if(!d||!d.success){document.getElementById('warMsg').textContent=(d&&d.message)||'讀取失敗';return;}
+  const d=await warApi({}); if(!d||!d.success){document.getElementById('warBoard').innerHTML=(d&&d.message)||'讀取失敗';return;}
   WAR=d; const B=d.board||{}, S=d.stats||{}, c=B.cur||{}, n=B.next||{}, n2=B.next2||{};
   document.getElementById('warAsof').textContent='（組織 '+(S.org_asof||'')+' ・ 循環數 '+(S.cycle_asof||'')+' ・ 水位 '+(S.water_asof||'')+'）';
   const pct=(l,r)=>Math.round(((l||0)+(r||0))/24*100)+'%';
@@ -444,19 +444,6 @@ async function loadWar(){
   [['骨架硬條件缺',n.hard_missing,'#f85149'],['倒數中',S.countdown,'#f85149'],['再購窗口 <180 天',S.window_c,'#d29922'],['窗口已關無方案',S.window_closed,'#8b949e'],['30 天內方案到期',S.renew30,'#d29922'],['隔離區待審',S.qa_pending,'#58a6ff'],['綁定待審',S.bind_pending,'#58a6ff'],['命令未結',S.open_actions,'#58a6ff']].forEach(([k,v,col])=>{
     const el=document.createElement('div'); el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:110px';
     el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700;color:'+col+'">'+(v??0)+'</div>'; st.appendChild(el); });
-  // 命令
-  const C=d.commands||{}; const box=document.getElementById('warCmd'); box.innerHTML='';
-  const order=['救倒數','補弱邊','補直推','催再購','簽24M','續約'];
-  order.forEach(g=>{
-    const items=C[g]||[]; if(!items.length)return;
-    const det=document.createElement('details'); det.open = (g==='救倒數'||g==='補弱邊'||g==='補直推');
-    det.innerHTML='<summary style="cursor:pointer;padding:6px 0"><b>'+g+'</b> <span class="mut">('+items.length+')</span> <button class="btn sm" style="margin-left:8px" onclick="event.preventDefault();warIssue(\''+g+'\')">發令 全部</button></summary>'
-      +'<div class="scroll"><table><tbody>'+items.map(x=>'<tr><td style="width:24px"><input type="checkbox" class="wck-'+g+'" data-id="'+esc(x.member_id)+'" data-detail="'+esc(x.detail||'')+'" checked></td>'
-        +'<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(x.name||'')+'</a> <span class="mut">'+esc(x.leg||'')+'</span></td>'
-        +'<td>'+esc(x.detail||'')+'</td><td class="mut">→ '+esc(x.leader||'未歸戶')+'</td></tr>').join('')+'</tbody></table></div>';
-    box.appendChild(det);
-  });
-  if(!box.children.length) box.innerHTML='<div class="mut">目前沒有待發的命令。</div>';
   // 通報流
   const fd=document.getElementById('warFeed'); fd.innerHTML='';
   (d.feed||[]).forEach(f=>{
@@ -466,14 +453,6 @@ async function loadWar(){
     fd.appendChild(div);
   });
   loadGrid();
-}
-async function warIssue(g){
-  const items=[...document.querySelectorAll('.wck-'+g+':checked')].map(c=>({member_id:c.dataset.id,detail:c.dataset.detail}));
-  if(!items.length){alert('沒有勾選');return;}
-  if(!confirm('發出「'+g+'」'+items.length+' 條命令？'))return;
-  const d=await warApi({action:'issue',group:g,items});
-  document.getElementById('warMsg').textContent=d&&d.success?('已發 '+(d.created||0)+' 條（已存在的不重複）'):((d&&d.message)||'失敗');
-  loadWar();
 }
 
 let TAC=null, TAC_WHO=null;
