@@ -104,7 +104,7 @@ a{text-decoration:none}
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <b>⚔️ 將的藍圖</b>
-      <span><button class="btn sm" onclick="warPick()">＋ 選將／換將</button> <span class="mut">點格子＝打開他的戰術板</span></span>
+      <span class="mut">點格子＝打開他的戰術板；選將在各自的戰術板 ③</span>
     </div>
     <div class="mut" style="margin-top:4px">左右各 8+4+2+1。你只挑「誰」，位置照安置樹自動排。🏆左5右5 🟢接近 🟡在長 🔴剛起步 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位</div>
     <div id="warGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
@@ -112,18 +112,6 @@ a{text-decoration:none}
   <div class="card">
     <b>📡 通報流</b>
     <div id="warFeed" style="margin-top:8px;line-height:1.8;max-height:420px;overflow:auto"></div>
-  </div>
-</div>
-<div id="pickBox" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:98;overflow:auto;padding:16px" onclick="if(event.target===this)this.classList.add('hidden')">
-  <div class="card" style="max-width:820px;margin:20px auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>⚔️ 選將</b>
-      <span><button class="btn sm" onclick="pickF('all')">全部</button> <button class="btn sm" onclick="pickF('AB')">硬條件已成立</button> <button class="btn sm" onclick="pickF('右')">只看右線</button> <button class="btn sm" onclick="pickF('picked')">已選</button> <button class="btn sm ghost" onclick="document.getElementById('pickBox').classList.add('hidden')">關閉</button></span>
-    </div>
-    <div class="mut" style="margin-top:4px">依循環數＋延伸代數＋水位排序。選入後位置自動排，不用指定格子。</div>
-    <div class="scroll" style="margin-top:8px;max-height:60vh"><table>
-      <thead><tr><th>姓名</th><th>線</th><th>硬條件</th><th>循環 左/右</th><th>水位 左/右</th><th>延伸</th><th></th></tr></thead>
-      <tbody id="pickBody"></tbody></table></div>
   </div>
 </div>
 <div id="v-ch" class="hidden">
@@ -144,6 +132,13 @@ a{text-decoration:none}
   <div class="card">
     <b>③ 他的將</b>
     <div id="tacSubs" style="margin-top:8px"></div>
+    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b>從他底下選將</b><span id="tacTabs"></span>
+    </div>
+    <div class="mut" style="margin-top:4px">只列他安置樹底下的人。循環購買：🟦穩（有方案）🟨扣款（自動扣款／信用卡）⬜無。直推：總數（有效）。</div>
+    <div class="scroll" style="margin-top:8px"><table>
+      <thead><tr><th>姓名-BC</th><th>邊</th><th>循環購買</th><th>直推</th><th>底下 左/右</th><th>循環 左/右</th><th>戰略位置</th><th></th></tr></thead>
+      <tbody id="tacCand"></tbody></table></div>
   </div>
   <div class="card">
     <b>④ 推薦目標（本期）</b>
@@ -405,7 +400,7 @@ async function chalApi(extra){
     body:JSON.stringify({p:{...CRED,...(extra||{})}})});
   return r.json();
 }
-async function loadGrid(){
+async function loadGrid(){ try{
   const d=await chalApi({}); if(!d||!d.success)return; PICK=d;
   const g=document.getElementById('warGrid'); g.innerHTML='';
   ['左','右'].forEach(side=>{
@@ -426,31 +421,7 @@ async function loadGrid(){
     });
     g.appendChild(col);
   });
-}
-function warPick(){ document.getElementById('pickBox').classList.remove('hidden'); renderPick(); }
-function pickF(f){ PICK_F=f; renderPick(); }
-function renderPick(){
-  if(!PICK)return; const tb=document.getElementById('pickBody'); tb.innerHTML='';
-  let rows=(PICK.candidates||[]).slice();
-  if(PICK_F==='AB')rows=rows.filter(c=>c.hard_ok); else if(PICK_F==='右')rows=rows.filter(c=>c.leg==='右'); else if(PICK_F==='picked')rows=rows.filter(c=>c.picked);
-  rows.slice(0,120).forEach(c=>{
-    const tr=document.createElement('tr'); if(c.picked)tr.style.background='rgba(63,185,80,.08)';
-    tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(c.name,c.member_id)+'</a></td>'
-      +'<td>'+esc(c.leg||'')+'</td>'
-      +'<td>'+(c.hard_ok?'<span style="color:#3fb950">✅</span>':'<span style="color:#f85149">缺</span>')+' <span class="mut">直推 '+(c.intro??'—')+'</span></td>'
-      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td>'
-      +'<td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td>'
-      +'<td>'+(c.depth==null?'—':'第 '+c.depth+' 代')+'</td>'
-      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="pickSet(\''+esc(c.member_id)+'\',false)">移出</button>':'<button class="btn sm" onclick="pickSet(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
-    tb.appendChild(tr);
-  });
-  if(!rows.length) tb.innerHTML='<tr><td colspan="7" class="mut">沒有符合的人。</td></tr>';
-}
-async function pickSet(id,on){
-  const d=await chalApi({action:on?'pick':'unpick',member_id:id});
-  if(d&&d.success===false){alert(d.message||'失敗');return;}
-  PICK=d; renderPick(); loadGrid(); if(typeof TAC_WHO!=='undefined'){const sel=document.getElementById('tacWho'); if(sel)sel.dataset.sig='';}
-}
+}catch(e){console.error('loadGrid',e); const g=document.getElementById('warGrid'); if(g)g.innerHTML='<span class="mut">藍圖載入失敗：'+esc(String(e.message||e))+'</span>';}}
 
 async function warApi(extra){
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_warroom',{method:'POST',
@@ -567,13 +538,15 @@ async function loadTac(who){
     box.appendChild(det);
   });
   if(!box.children.length) box.innerHTML='<div class="mut">這條線目前沒有待處理的事。</div>';
-  // ③ 他的將
+  // ③ 他的將：已選
   const sb=document.getElementById('tacSubs');
-  sb.innerHTML=(d.subs||[]).length?'<div class="scroll"><table><thead><tr><th></th><th>姓名</th><th>邊</th><th>層</th><th>成就 左/右</th><th>水位 左/右</th><th></th></tr></thead><tbody>'
-    +d.subs.map(s=>'<tr><td>'+s.light+'</td><td>'+nmb(s.name,s.member_id)+'<br><span class="mut">'+esc(s.member_id)+'</span></td><td>'+esc(s.side||'')+'</td><td>'+s.depth+'</td>'
+  sb.innerHTML=(d.subs||[]).length?'<div class="scroll"><table><thead><tr><th></th><th>姓名-BC</th><th>邊</th><th>層</th><th>成就 左/右</th><th>水位 左/右</th><th></th></tr></thead><tbody>'
+    +d.subs.map(s=>'<tr><td>'+s.light+'</td><td>'+nmb(s.name,s.member_id)+'</td><td>'+esc(s.side||'')+'</td><td>'+s.depth+'</td>'
       +'<td>'+(s.fc_l==null?'—':s.fc_l+' / '+s.fc_r)+'</td><td>'+(s.p200_l==null?'—':wan(s.p200_l)+' / '+wan(s.p200_r))+'</td>'
-      +'<td><button class="btn sm" onclick="loadTac(\''+esc(s.member_id)+'\')">打開</button></td></tr>').join('')+'</tbody></table></div>'
-    :'<div class="mut">他底下沒有被點將的人。到戰情室骨架選將。</div>';
+      +'<td><button class="btn sm" onclick="loadTac(\''+esc(s.member_id)+'\')">打開</button> <button class="btn sm ghost" onclick="tacPick(\''+esc(s.member_id)+'\',false)">移出</button></td></tr>').join('')+'</tbody></table></div>'
+    :'<div class="mut">還沒選將。從下面「從他底下選將」挑。</div>';
+  renderTacCand();
+
   // ④ 推薦
   const need = (R.need_intro||0) + (R.weak_gap||0);
   document.getElementById('tacRecruit').innerHTML=
@@ -583,6 +556,34 @@ async function loadTac(who){
     +'<tr><th>放哪邊</th><td><b>'+esc(R.weak_side||'—')+'</b> 線（弱邊）</td></tr>'
     +'<tr><th>暖名單</th><td>'+((R.warm||[]).length?'<div class="scroll"><table><tbody>'+R.warm.map(w=>'<tr><td><input type="checkbox" class="tck-推薦" data-id="'+esc(w.member_id)+'" data-detail="'+esc(w.why)+'"></td><td><a href="javascript:openCard(\''+esc(w.member_id)+'\')" style="color:#58a6ff">'+nmb(w.name,w.member_id)+'</a> <span class="mut">'+esc(w.side)+'</span></td><td class="mut">'+esc(w.why)+'</td></tr>').join('')+'</tbody></table></div><button class="btn sm" style="margin-top:6px" onclick="tacIssue(\'推薦\')">發令 勾選的</button>':'<span class="mut">目前沒有暖名單（來源：有買未訂閱鐵粉頻道）</span>')+'</td></tr>'
     +'</tbody></table>';
+}
+let TAC_TYPE='全部';
+function renderTacCand(){
+  const rows=((TAC||{}).candidates||[]);
+  const types=['只差直推','只差一邊','兩邊在長','剛起步'];
+  const cnt={}; rows.forEach(r=>cnt[r.type]=(cnt[r.type]||0)+1);
+  document.getElementById('tacTabs').innerHTML=['全部'].concat(types).map(t=>'<button class="btn sm'+(TAC_TYPE===t?'':' ghost')+'" onclick="TAC_TYPE=\''+t+'\';renderTacCand()">'+t+(t==='全部'?' '+rows.length:' '+(cnt[t]||0))+'</button>').join(' ');
+  const tb=document.getElementById('tacCand'); tb.innerHTML='';
+  const buy={'穩':'🟦 穩','扣款':'🟨 扣款','無':'⬜ 無'};
+  rows.filter(r=>TAC_TYPE==='全部'||r.type===TAC_TYPE).slice(0,80).forEach(c=>{
+    const tr=document.createElement('tr'); if(c.picked)tr.style.background='rgba(63,185,80,.08)';
+    tr.innerHTML='<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(c.name,c.member_id)+'</a></td>'
+      +'<td>'+esc(c.side||'')+'</td>'
+      +'<td>'+(buy[c.buy]||c.buy)+(c.plan_code?' <span class="mut">'+esc(c.plan_code)+(c.plan_until?' 到 '+esc(String(c.plan_until).slice(0,7)):'')+'</span>':'')+'</td>'
+      +'<td>'+c.intro_all+'（有效 '+c.intro+'）</td>'
+      +'<td>'+c.sub_l+' / '+c.sub_r+'</td>'
+      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td>'
+      +'<td>'+esc(c.type)+'</td>'
+      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="tacPick(\''+esc(c.member_id)+'\',false)">移出</button>':'<button class="btn sm" onclick="tacPick(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
+    tb.appendChild(tr);
+  });
+  if(!rows.length) tb.innerHTML='<tr><td colspan="8" class="mut">他底下沒有可選的人。</td></tr>';
+}
+async function tacPick(id,on){
+  const d=await tacApi({action:on?'pick':'unpick',target:id});
+  if(d&&d.success===false){alert(d.message||'失敗');return;}
+  const sel=document.getElementById('tacWho'); if(sel)sel.dataset.sig='';
+  loadTac();
 }
 async function tacIssue(g){
   const items=[...document.querySelectorAll('.tck-'+g+':checked')].map(c=>({member_id:c.dataset.id,detail:c.dataset.detail}));
