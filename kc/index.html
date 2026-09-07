@@ -70,6 +70,27 @@ input.txt:focus{outline:0;border-color:var(--gold)}
 .navrow .btn{margin:0}
 .navrow .back{flex:0 0 30%}
 
+/* 三段步驟 */
+.steps{display:flex;gap:6px;margin:4px 0 18px}
+.steps div{flex:1;text-align:center;font-size:.85rem;color:var(--txt2);padding-bottom:8px;border-bottom:4px solid rgba(0,0,0,.08)}
+.steps div.on{color:var(--gold3);font-weight:700;border-bottom-color:var(--gold)}
+.qblock{margin-bottom:28px}
+.qlabel{font-size:1.25rem;font-weight:900;margin-bottom:12px}
+.qblock.bad .qlabel{color:var(--red)}
+.qerr{display:none;color:var(--red);font-size:.95rem;margin-top:8px}
+.qblock.bad .qerr{display:block}
+
+/* 滾輪 */
+.wheels{display:flex;gap:10px;justify-content:center}
+.wheel{position:relative;height:200px;overflow:hidden;flex:1;max-width:160px}
+.wheel .scroller{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none}
+.wheel .scroller::-webkit-scrollbar{display:none}
+.wheel .it{height:60px;display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:900;color:#c9c5b6;scroll-snap-align:center;cursor:pointer}
+.wheel .it.cur{color:var(--gold3)}
+.wheel .band{position:absolute;left:0;right:0;top:70px;height:60px;border-top:2px solid var(--gold);border-bottom:2px solid var(--gold);pointer-events:none}
+.wpad{height:70px}
+
+
 /* 結果 */
 .big{font-size:5rem;font-weight:900;line-height:1;text-align:center;letter-spacing:2px}
 .light{width:120px;height:120px;border-radius:50%;margin:8px auto 4px;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:900;color:#fff}
@@ -130,7 +151,7 @@ input.txt:focus{outline:0;border-color:var(--gold)}
 
   <div id="home-guest">
     <div class="card">
-      <p style="font-size:1.05rem;margin-bottom:8px">不用登入，30 秒點完，不留姓名電話。</p>
+      <p style="font-size:1.05rem;margin-bottom:8px">不用登入，30 秒點完。只留手機，方便一個月後回頭比較。</p>
       <p class="sub">用 LINE 開啟才能保存自己的紀錄、看每次的變化。</p>
     </div>
     <button class="btn btn-gold" onclick="startSurvey('guest')">📝 開始填寫</button>
@@ -140,15 +161,14 @@ input.txt:focus{outline:0;border-color:var(--gold)}
 
 <!-- ═══ 問卷 ═══ -->
 <section id="s-survey" class="screen">
-  <div class="prog"><span id="prog-txt">第 1 題</span><div class="bar"><i id="prog-bar" style="width:0"></i></div><span id="prog-total"></span></div>
-  <div class="sect" id="q-sect"></div>
-  <div class="q" id="q-title"></div>
+  <div class="steps" id="steps"></div>
   <div id="q-body"></div>
   <div class="navrow">
-    <button class="btn btn-ghost back" onclick="prevQ()" id="q-back">← 上一題</button>
-    <button class="btn btn-gold" id="q-next" onclick="nextQ()" disabled>下一題</button>
+    <button class="btn btn-ghost back" onclick="prevStep()" id="q-back">← 上一步</button>
+    <button class="btn btn-gold" id="q-next" onclick="nextStep()">下一步</button>
   </div>
 </section>
+
 
 <!-- ═══ 結果 ═══ -->
 <section id="s-result" class="screen">
@@ -264,35 +284,38 @@ async function loadHome(){
     </div>`).join('');
 }
 
-// ══════════════ 問卷定義 ══════════════
+// ══════════════ 問卷定義（三段，一段一畫面）══════════════
 const ANS = {};       // 本次答案
 let MODE = 'guest';   // guest | self | proxy
-let QUEUE = [];       // 本次要問的題目
-let QI = 0;
-let retestSubject = null; // 幫既有的人回測時帶入
+let STEP = 0;
+let retestSubject = null;
+let PREFILLED = new Set();
 
-const QUESTIONS = [
-  { id:'phone', sect:'基本資料', title:'手機號碼？', type:'phone' },
-  { id:'nickname', sect:'基本資料', title:'他／她的稱呼？', type:'text', ph:'例：阿珍、王大哥', only:['proxy'] },
-  { id:'is_member', sect:'基本資料', title:'是綠佳利會員嗎？', type:'choice', cols:2, opts:[[false,'還不是'],[true,'是會員']], only:['proxy'] },
-  { id:'gender', sect:'基本資料', title:'性別？', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
-  { id:'birth_year', sect:'基本資料', title:'幾年次的？', type:'year' },
-  { id:'occupation', sect:'基本資料', title:'平常做什麼？', type:'choice', cols:2, opts:Object.entries(OCC) },
-  { id:'veggie_servings', sect:'生活習慣', title:'平常一天吃幾份蔬果？', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
-  { id:'sleep_hours', sect:'生活習慣', title:'昨晚睡了幾小時？', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
-  { id:'nocturia_times', sect:'生活習慣', title:'晚上起來上廁所幾次？', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
-  { id:'smoke_drink', sect:'生活習慣', title:'有抽菸或常喝酒嗎？', type:'choice', cols:2, opts:[['none','都沒有'],['smoke','有抽菸'],['drink','常喝酒'],['both','都有']] },
-  { id:'chronic_meds', sect:'生活習慣', title:'有在吃慢性病的藥嗎？', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
-  { id:'is_taking', sect:'綠佳利', title:'有在吃綠佳利的產品嗎？', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']] },
-  { id:'daily_units', sect:'綠佳利', title:'一天吃幾單位？', type:'choice', cols:3, opts:[['1','1'],['2','2'],['3','3'],['4','4'],['5+','5 以上']], when:()=>ANS.is_taking===true },
-  { id:'taking_months', sect:'綠佳利', title:'吃多久了？', type:'choice', cols:2, opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']], when:()=>ANS.is_taking===true },
-  { id:'score', sect:'檢測', title:'機器測出來的 KC 是？', type:'score' },
+const ITEMS = [
+  // ── 第 1 段 基本資料 ──
+  { id:'phone', step:0, label:'手機號碼', type:'phone', hint:'一個月後回頭比較時，靠它認出是同一個人。只有本人和幫他測的人看得到。', skip:m=>m==='self', optional:()=>!!retestSubject },
+  { id:'nickname', step:0, label:'怎麼稱呼他（可不填）', type:'text', ph:'例：阿珍、王大哥', only:'proxy', optional:true },
+  { id:'is_member', step:0, label:'是綠佳利會員嗎', type:'choice', cols:2, opts:[[false,'還不是'],[true,'是會員']], only:'proxy' },
+  { id:'gender', step:0, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
+  { id:'birth_year', step:0, label:'幾年次的', type:'year' },
+  { id:'occupation', step:0, label:'平常做什麼', type:'choice', cols:2, opts:Object.entries(OCC) },
+  // ── 第 2 段 生活習慣 ──
+  { id:'veggie_servings', step:1, label:'平常一天吃幾份蔬果', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
+  { id:'sleep_hours', step:1, label:'昨晚睡了幾小時', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
+  { id:'nocturia_times', step:1, label:'晚上起來上廁所幾次', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
+  { id:'smoke_drink', step:1, label:'有抽菸或常喝酒嗎', type:'choice', cols:2, opts:[['none','都沒有'],['smoke','有抽菸'],['drink','常喝酒'],['both','都有']] },
+  { id:'chronic_meds', step:1, label:'有在吃慢性病的藥嗎', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
+  // ── 第 3 段 綠佳利與檢測 ──
+  { id:'is_taking', step:2, label:'有在吃綠佳利的產品嗎', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']] },
+  { id:'daily_units', step:2, label:'一天吃幾單位', type:'choice', cols:3, opts:[['1','1'],['2','2'],['3','3'],['4','4'],['5+','5 以上']], when:()=>ANS.is_taking===true },
+  { id:'taking_months', step:2, label:'吃多久了', type:'choice', cols:2, opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']], when:()=>ANS.is_taking===true },
+  { id:'score', step:2, label:'機器測出來的 KC', type:'score', hint:'轉到機器上的數字' },
 ];
+const STEP_NAMES = ['基本資料', '生活習慣', '綠佳利與檢測'];
 
 function startSurvey(mode, subject){
   MODE = mode; retestSubject = subject || null;
   for (const k in ANS) delete ANS[k];
-  // 會員本人 / 回測既有的人：帶入已知資料，跳過那幾題
   const known = subject ? subject : (mode==='self' ? profile : null);
   if (known) {
     if (known.gender) ANS.gender = known.gender;
@@ -301,82 +324,132 @@ function startSurvey(mode, subject){
     if (known.phone) ANS.phone = known.phone;
     if (subject && !subject.is_self) { ANS.nickname = subject.nickname; ANS.is_member = subject.is_member; }
   }
-  QUEUE = QUESTIONS.filter(q => (!q.only || q.only.includes(mode)) && !(q.id in ANS));
-  QI = 0; go('survey'); renderQ();
+  PREFILLED = new Set(Object.keys(ANS));   // 開場就帶入的（會員資料／回測既有的人）→ 不再問
+  STEP = firstStep(); go('survey'); renderStep();
 }
-function visibleQueue(){ return QUEUE.filter(q => !q.when || q.when()); }
-function renderQ(){
-  const vq = visibleQueue(); const q = vq[QI];
-  $('prog-txt').textContent = `第 ${QI+1} 題`; $('prog-total').textContent = `共 ${vq.length} 題`;
-  $('prog-bar').style.width = Math.round(QI/vq.length*100)+'%';
-  $('q-sect').textContent = q.sect; $('q-title').textContent = q.title;
-  $('q-back').style.visibility = QI===0 ? 'hidden' : 'visible';
-  $('q-next').textContent = QI===vq.length-1 ? '送出' : '下一題';
-  const b = $('q-body'); b.innerHTML = '';
+// 這一段有哪些題要問（會員可能整段跳過）
+function isOptional(q){ return typeof q.optional === 'function' ? q.optional() : !!q.optional; }
+function stepItems(s){
+  return ITEMS.filter(q => q.step===s
+    && (!q.only || q.only===MODE)
+    && !(q.skip && q.skip(MODE))
+    && !PREFILLED.has(q.id)
+    && (!q.when || q.when()));
+}
+function firstStep(){ for (let s=0;s<3;s++) if (stepItems(s).length) return s; return 2; }
+function lastStep(){ for (let s=2;s>=0;s--) if (stepItems(s).length) return s; return 2; }
+
+function renderStep(){
+  const items = stepItems(STEP);
+  $('steps').innerHTML = STEP_NAMES.map((n,i)=>`<div class="${i===STEP?'on':''}">${n}</div>`).join('');
+  $('q-back').style.visibility = STEP===firstStep() ? 'hidden' : 'visible';
+  $('q-next').textContent = STEP===lastStep() ? '送出' : '下一步';
+  $('q-body').innerHTML = items.map(q => `
+    <div class="qblock" id="qb-${q.id}">
+      <div class="qlabel">${q.label}${isOptional(q) && !/可不填/.test(q.label) ? '（可不填）' : ''}</div>
+      ${q.hint?`<p class="hint" style="text-align:left;margin:-6px 0 12px">${q.hint}</p>`:''}
+      <div id="qc-${q.id}"></div>
+      <div class="qerr">這題還沒填</div>
+    </div>`).join('');
+  items.forEach(q => buildControl(q));
+  window.scrollTo(0,0);
+}
+function buildControl(q){
+  const host = $('qc-'+q.id);
   if (q.type==='choice') {
-    const d = document.createElement('div'); d.className = 'opts' + (q.cols===2?' g2':q.cols===3?' g3':'');
-    q.opts.forEach(([v,l]) => { const o=document.createElement('button'); o.className='opt'+(ANS[q.id]===v?' sel':''); o.textContent=l;
-      o.onclick=()=>{ ANS[q.id]=v; d.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); setTimeout(nextQ,180); }; d.appendChild(o); });
-    b.appendChild(d); $('q-next').disabled = !(q.id in ANS);
+    host.className = 'opts' + (q.cols===2?' g2':q.cols===3?' g3':'');
+    q.opts.forEach(([v,l]) => {
+      const o = document.createElement('button');
+      o.className = 'opt' + (ANS[q.id]===v?' sel':''); o.textContent = l;
+      o.onclick = () => {
+        ANS[q.id] = v;
+        $('qb-'+q.id).classList.remove('bad');
+        host.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel');
+        if (q.id==='is_taking') renderStep();   // 連動題出現／消失
+      };
+      host.appendChild(o);
+    });
   } else if (q.type==='text') {
-    b.innerHTML = `<input class="txt" id="q-txt" maxlength="12" placeholder="${q.ph}" value="${ANS[q.id]||''}">`;
-    const i=$('q-txt'); i.oninput=()=>{ ANS[q.id]=i.value.trim(); $('q-next').disabled=!ANS[q.id]; }; $('q-next').disabled=!ANS[q.id]; setTimeout(()=>i.focus(),50);
-  } else if (q.type==='year') renderYear(b);
-  else if (q.type==='phone') renderPhone(b);
-  else if (q.type==='score') renderScore(b);
+    host.innerHTML = `<input class="txt" id="in-${q.id}" maxlength="12" placeholder="${q.ph||''}" value="${ANS[q.id]||''}">`;
+    $('in-'+q.id).oninput = e => { ANS[q.id] = e.target.value.trim(); };
+  } else if (q.type==='phone') {
+    host.innerHTML = `<input class="txt" id="in-phone" type="tel" inputmode="numeric" autocomplete="tel"
+      maxlength="10" placeholder="09xxxxxxxx" value="${ANS.phone||''}" style="letter-spacing:2px">
+      <p class="hint" id="phone-msg" style="margin-top:8px"></p>`;
+    const inp = $('in-phone'), msg = $('phone-msg');
+    const check = () => {
+      const v = inp.value.replace(/[^0-9]/g,''); inp.value = v;
+      if (/^09\d{8}$/.test(v)) { ANS.phone = v; msg.textContent = '可以了'; $('qb-phone').classList.remove('bad'); }
+      else { delete ANS.phone; msg.textContent = v ? (v.length<10 ? `再 ${10-v.length} 碼` : '要 09 開頭的 10 碼') : ''; }
+    };
+    inp.oninput = check; check();
+  } else if (q.type==='year') {
+    host.innerHTML = `<div class="wheels"><div class="wheel" id="w-year"></div></div>
+      <p class="hint" id="year-msg" style="margin-top:10px">上下轉，或直接點想要的年次</p>`;
+    const vals = [{label:'—', value:null}];
+    for (let y=20; y<=105; y++) vals.push({ label:'民國 '+y, value:1911+y });
+    const cur = ANS.birth_year ? vals.findIndex(v=>v.value===ANS.birth_year) : 0;
+    makeWheel($('w-year'), vals, cur<0?0:cur, v => {
+      const m = $('year-msg'), qb = $('qb-birth_year');
+      if (v) { ANS.birth_year = v; if (m) m.textContent = `西元 ${v} 年出生`; if (qb) qb.classList.remove('bad'); }
+      else { delete ANS.birth_year; if (m) m.textContent = '上下轉，或直接點想要的年次'; }
+    });
+  } else if (q.type==='score') {
+    host.innerHTML = `<div class="disp" id="s-disp"></div>
+      <div class="wheels">
+        <div class="wheel" id="w-int"></div>
+        <div class="wheel" id="w-dec" style="max-width:120px"></div>
+      </div>`;
+    const ints = [{label:'—', value:null}]; for (let i=1;i<=12;i++) ints.push({label:String(i), value:i});
+    const decs = []; for (let d=0;d<=9;d++) decs.push({label:'.'+d, value:d});
+    let iv = ANS.score!=null ? Math.floor(ANS.score) : null;
+    let dv = ANS.score!=null ? Math.round((ANS.score-Math.floor(ANS.score))*10) : 0;
+    let decW = null;
+    const paint = () => {
+      const d = $('s-disp'), qb = $('qb-score'); if (!d) return;
+      if (iv==null) { delete ANS.score; d.innerHTML = `<small>還沒選</small>`; return; }
+      if (iv===12 && dv>0) { dv = 0; if (decW) decW.set(0); }
+      ANS.score = +(iv + dv/10).toFixed(1);
+      d.innerHTML = `${ANS.score.toFixed(1)}<small>${LIGHT_NAME[lightOf(ANS.score)]}</small>`;
+      if (qb) qb.classList.remove('bad');
+    };
+    makeWheel($('w-int'), ints, iv==null?0:iv, v => { iv = v; paint(); });
+    decW = makeWheel($('w-dec'), decs, dv, v => { dv = v; paint(); });
+    paint();
+  }
 }
-// 手機數字盤：回追蹤用的鑰匙，同手機＝同一人
-function renderPhone(b){
-  let v = ANS.phone || '';
-  b.innerHTML = `<div class="disp" id="p-disp" style="font-size:2.2rem;letter-spacing:3px"></div>
-    <div class="hint">回追蹤用。只有本人和幫他測的人看得到，不會公開。</div><div class="pad c3" id="p-pad"></div>`;
-  const keys = ['1','2','3','4','5','6','7','8','9','⌫','0',''];
-  const paint = () => {
-    const shown = v ? (v.slice(0,4) + (v.length>4?' '+v.slice(4,7):'') + (v.length>7?' '+v.slice(7):'')) : '';
-    const ok = /^09\d{8}$/.test(v);
-    $('p-disp').innerHTML = shown ? `${shown}<small>${ok?'可以了':v.length<10?'再 '+(10-v.length)+' 碼':'要 09 開頭'}</small>` : `<small>09 開頭，共 10 碼</small>`;
-    $('p-pad').innerHTML = keys.map(k => k==='' ? '<span></span>' : `<button class="key" onclick="pickPhone('${k}')">${k}</button>`).join('');
-    if (ok) { ANS.phone = v; $('q-next').disabled = false; } else { delete ANS.phone; $('q-next').disabled = true; }
-  };
-  window.pickPhone = (k) => { if (k==='⌫') v = v.slice(0,-1); else if (v.length<10) v += k; paint(); };
-  paint();
+// 滾輪：CSS scroll-snap 吸附，滑過頭會自己回到最近的刻度；也可以直接點
+function makeWheel(host, vals, initIdx, onChange){
+  const H = 60;
+  host.innerHTML = `<div class="scroller"><div class="wpad"></div>` +
+    vals.map((v,i)=>`<div class="it" data-i="${i}">${v.label}</div>`).join('') +
+    `<div class="wpad"></div></div><div class="band"></div>`;
+  const sc = host.querySelector('.scroller');
+  let idx = initIdx;
+  const mark = () => host.querySelectorAll('.it').forEach((e,i)=>e.classList.toggle('cur', i===idx));
+  const apply = i => { idx = Math.max(0, Math.min(vals.length-1, i)); mark(); onChange(vals[idx].value, idx); };
+  const set = (i) => { idx = Math.max(0, Math.min(vals.length-1, i)); sc.scrollTop = idx*H; mark(); onChange(vals[idx].value, idx); };  // 一律瞬間定位：平滑捲動會被頁面捲動打斷，造成「顯示的值」和「輪子位置」不一致
+  let t;
+  sc.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => {
+    if (!host.isConnected) return;
+    const i = Math.round(sc.scrollTop / H); if (i !== idx) apply(i);
+  }, 110); });
+  sc.addEventListener('click', e => { const it = e.target.closest('.it'); if (it) set(+it.dataset.i); });
+  sc.scrollTop = initIdx * H; mark();
+  return { set, get: () => vals[idx].value };
+}
+function prevStep(){ for (let s=STEP-1;s>=0;s--) if (stepItems(s).length) { STEP=s; renderStep(); return; } }
+function nextStep(){
+  const miss = stepItems(STEP).filter(q => !isOptional(q) && !(q.id in ANS));
+  if (miss.length) {
+    miss.forEach(q => $('qb-'+q.id).classList.add('bad'));
+    $('qb-'+miss[0].id).scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+  for (let s=STEP+1;s<3;s++) if (stepItems(s).length) { STEP=s; renderStep(); return; }
+  submit();
 }
 
-// 出生年兩段撥盤：年代（民國）→ 個位
-function renderYear(b){
-  let dec = ANS._dec ?? null, one = ANS._one ?? null;
-  b.innerHTML = `<div class="disp" id="y-disp"></div><div class="hint">先點年代，再點個位數</div>
-    <div class="pad c4" id="y-dec"></div><div class="hint" style="margin-top:14px">個位數</div><div class="pad c5" id="y-one"></div>`;
-  const decs=[30,40,50,60,70,80,90];
-  const paint=()=>{
-    $('y-dec').innerHTML = decs.map(d=>`<button class="key ${dec===d?'sel':''}" onclick="pickYear('dec',${d})">${d}</button>`).join('');
-    $('y-one').innerHTML = [0,1,2,3,4,5,6,7,8,9].map(o=>`<button class="key ${one===o?'sel':''}" onclick="pickYear('one',${o})">${o}</button>`).join('');
-    if (dec!==null && one!==null) { const y = dec+one; ANS.birth_year = y+1911; $('y-disp').innerHTML = `民國 ${y} 年次<small>西元 ${y+1911} 年</small>`; $('q-next').disabled=false; }
-    else { $('y-disp').innerHTML = `<small>民國 幾 年次</small>`; $('q-next').disabled=true; }
-  };
-  window.pickYear=(k,v)=>{ if(k==='dec'){dec=v;ANS._dec=v;} else {one=v;ANS._one=v;} paint(); };
-  paint();
-}
-// KC 分數兩段：整數 1–12 → 小數 .0–.9
-function renderScore(b){
-  let int = ANS._int ?? null, dec = ANS._sdec ?? null;
-  b.innerHTML = `<div class="disp" id="s-disp"></div><div class="hint">先點整數，再點小數</div>
-    <div class="pad c4" id="s-int"></div><div class="hint" style="margin-top:14px">小數點後</div><div class="pad c5" id="s-dec"></div>`;
-  const paint=()=>{
-    $('s-int').innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12].map(i=>`<button class="key ${int===i?'sel':''}" onclick="pickScore('int',${i})">${i}</button>`).join('');
-    $('s-dec').innerHTML = [0,1,2,3,4,5,6,7,8,9].map(d=>`<button class="key ${dec===d?'sel':''}" onclick="pickScore('dec',${d})" ${int===12&&d>0?'disabled style="opacity:.3"':''}>.${d}</button>`).join('');
-    if (int!==null && dec!==null) { ANS.score = +(int + dec/10).toFixed(1); $('s-disp').innerHTML = `${ANS.score.toFixed(1)}<small>${LIGHT_NAME[lightOf(ANS.score)]}</small>`; $('q-next').disabled=false; }
-    else if (int!==null) { $('s-disp').innerHTML = `${int}.<small>再點小數</small>`; $('q-next').disabled=true; }
-    else { $('s-disp').innerHTML = `<small>機器上的數字</small>`; $('q-next').disabled=true; }
-  };
-  window.pickScore=(k,v)=>{ if(k==='int'){int=v;ANS._int=v; if(v===12){dec=0;ANS._sdec=0;}} else {dec=v;ANS._sdec=v;} paint(); };
-  paint();
-}
-function prevQ(){ if (QI>0){ QI--; renderQ(); } }
-function nextQ(){
-  const vq = visibleQueue();
-  if (QI < vq.length-1) { QI++; renderQ(); } else submit();
-}
 
 // ══════════════ 送出 ══════════════
 async function submit(){
