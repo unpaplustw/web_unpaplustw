@@ -95,18 +95,11 @@ a{text-decoration:none}
 <div id="v-war">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🏛 戰情室 — 我離目標多遠</b><span class="mut" id="warAsof"></span>
+      <b>🏛 戰情室 — 我離目標多遠（命令在戰術板發）</b><span class="mut" id="warAsof"></span>
     </div>
     <div class="scroll" style="margin-top:8px"><table id="warBoard"></table></div>
     <div class="mut" style="margin-top:4px">本期＝公司 FC数 實績（左5右5）。下期＝骨架裡硬條件成立且循環≥2 或弱邊水位≥50 萬的推估。下下期＝全組織硬條件成立人數上限推估。<b>推估只是方向，不是承諾。</b></div>
     <div id="warStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>⚡ 今日命令</b><span class="mut">六種業務；按「發令」＝建任務給歸戶領袖，期限本期末</span>
-    </div>
-    <div id="warCmd" style="margin-top:8px"></div>
-    <div class="msg" id="warMsg"></div>
   </div>
   <div class="card">
     <b>📡 通報流</b>
@@ -116,32 +109,26 @@ a{text-decoration:none}
 <div id="v-ch" class="hidden">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><b id="chPeriod">本期</b> <span class="mut" id="chAsof"></span></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <b id="chTarget" style="font-size:18px"></b>
-        <button class="btn sm" onclick="loadCh()">🔄</button>
-      </div>
+      <div><b>🎯 戰術板</b> <select id="tacWho" class="inp" onchange="loadTac(this.value)" style="min-width:220px"></select></div>
+      <div><span class="mut" id="tacAsof"></span> <button class="btn sm" onclick="loadTac()">🔄</button></div>
     </div>
-    <div class="mut" style="margin-top:4px">你決定「誰」，格子系統照安置樹自動排（上下、左右都是他們本來的位置）。🏆左5右5成就 🟢循環跟得上時間 🟡落後 🔴本期難 ⚫硬條件缺 ⚪公司頁沒列 ⬜空位。<b>底層 8 格做起來，上面 7 格會自己長。</b></div>
-    <div id="chGrid" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:12px"></div>
-  </div>
-  <div class="card">
-    <b>📌 今天動誰</b>
-    <ol id="chActs" style="margin:8px 0 0 18px;line-height:1.9"></ol>
+    <div id="tacMe" style="margin-top:10px"></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🧭 候選 — 按「選入」就進骨架</b>
-      <span class="mut">A 可衝／B 差一腳／C 在長；「還缺什麼」來自 CFC 佈局的判定</span>
-    </div><div style="margin-top:6px"><button class="btn sm" onclick="chF('all')">全部</button> <button class="btn sm" onclick="chF('AB')">A+B 級</button> <button class="btn sm" onclick="chF('右')">只看右線</button> <button class="btn sm" onclick="chF('picked')">已選入</button>
+      <b>② 先處理誰</b><span class="mut">倒數 → 將卡住 → 弱邊 → 到期 → 窗口</span>
     </div>
-    <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>級</th><th>姓名</th><th>線</th><th>硬條件</th><th>還缺什麼</th><th>循環 左/右</th><th>水位 左/右</th><th>延伸</th><th>底下有方案 左/右</th><th></th></tr></thead>
-      <tbody id="chCand"></tbody></table></div>
+    <div id="tacTodo" style="margin-top:8px"></div>
+    <div class="msg" id="tacMsg"></div>
   </div>
-</div>
-<div id="chCard" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:98;overflow:auto;padding:16px" onclick="if(event.target===this)this.classList.add('hidden')">
-  <div class="card" style="max-width:720px;margin:20px auto" id="chCardBody"></div>
+  <div class="card">
+    <b>③ 他的將</b>
+    <div id="tacSubs" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <b>④ 推薦目標（本期）</b>
+    <div id="tacRecruit" style="margin-top:8px"></div>
+  </div>
 </div>
 <div id="v-water" class="hidden">
   <div class="card">
@@ -444,7 +431,85 @@ async function warIssue(g){
   loadWar();
 }
 
-let CH=null, CH_PICK=null;
+let TAC=null, TAC_WHO=null;
+async function tacApi(extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_tactic',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,member_id:TAC_WHO||'',...(extra||{})}})});
+  return r.json();
+}
+function lamps(n,need){n=Math.max(0,Math.min(need,n||0));return '<span style="font-size:18px;letter-spacing:2px">'+'🟢'.repeat(n)+'⚪'.repeat(need-n)+'</span> <b>'+n+'/'+need+'</b>';}
+async function loadCh(){ if(!TAC_WHO)TAC_WHO=''; await loadTac(TAC_WHO); }
+async function loadTac(who){
+  if(who!==undefined)TAC_WHO=who;
+  const d=await tacApi({});
+  if(!d||!d.success){document.getElementById('tacMe').textContent=(d&&d.message)||'讀取失敗';return;}
+  TAC=d; const M=d.me||{}, P=d.period||{}, R=d.recruit||{};
+  TAC_WHO=M.member_id;
+  document.getElementById('tacAsof').textContent='本期剩 '+(P.days_left??'—')+' 天（循環數 '+(P.cycle_asof||'')+' ・ 水位 '+(P.water_asof||'')+'）';
+  // 選將下拉
+  const sel=document.getElementById('tacWho');
+  if(!sel.options.length || sel.dataset.n!=String((d.subs||[]).length)){
+    const opts=[{member_id:M.member_id,name:M.name+'（現在）'}].concat((d.subs||[]).map(s=>({member_id:s.member_id,name:'　└ '+s.name})));
+    sel.innerHTML=opts.map(o=>'<option value="'+esc(o.member_id)+'">'+esc(o.name)+'</option>').join('');
+    sel.dataset.n=String((d.subs||[]).length);
+  }
+  sel.value=M.member_id;
+  const wb=(v)=>{const n=Math.max(0,Math.min(10,Math.round((v||0)/125000)));return '<span style="font-family:monospace">'+'▓'.repeat(n)+'░'.repeat(10-n)+'</span> '+wan(v);};
+  const done=(M.fc_l>=5&&M.fc_r>=5);
+  document.getElementById('tacMe').innerHTML=
+    '<div style="font-size:17px;font-weight:700">'+(done?'🏆 ':'')+esc(M.name||'')+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(M.member_id||'')+' ・ '+esc(M.leg||'')+'線'+(M.picked?' ・ 已點將':'')+'</span></div>'
+    +'<table style="margin-top:10px"><tbody>'
+    +'<tr><th style="width:92px">① 成就</th><td>'+(M.fc_l==null?'<span class="mut">公司頁沒有這個位置的循環數</span>':
+        '左線 '+lamps(M.fc_l,5)+'　　右線 '+lamps(M.fc_r,5)
+        +'<br><span class="mut">亮 ＝ 該線上已完成獨立循環的位置數</span>'
+        +(done?'<br>🏆 左右都滿 5，成就達成':'<br>還要：左 '+Math.max(0,5-M.fc_l)+' 個 ・ 右 '+Math.max(0,5-M.fc_r)+' 個位置'))+'</td></tr>'
+    +'<tr><th>水位</th><td>'+(M.p200_l==null?'<span class="mut">—</span>':
+        '左 '+wb(M.p200_l)+'<br>右 '+wb(M.p200_r)+'<br><span class="mut">累積P-200（本期預測，含已排定定期單）＝底氣：水夠底下才跑得動</span>')+'</td></tr>'
+    +'<tr><th>硬條件</th><td>循環購買 '+(M.has_plan?'✅ '+esc(M.plan_code||'')+(M.plan_until?' 到 '+esc(M.plan_until):''):'❌')
+      +'　直推 '+(M.intro>=2?'✅':'❌')+' '+M.intro+'/2</td></tr>'
+    +'<tr><th>底下</th><td>左 '+M.sub_l_plan+'/'+M.sub_l+' 人有方案 ・ 右 '+M.sub_r_plan+'/'+M.sub_r+' 人有方案</td></tr>'
+    +'</tbody></table>';
+  // ② 先處理誰
+  const box=document.getElementById('tacTodo'); box.innerHTML='';
+  const groups={}; (d.todo||[]).forEach(t=>{(groups[t.group]=groups[t.group]||[]).push(t);});
+  Object.entries(groups).forEach(([g,items])=>{
+    const det=document.createElement('details'); det.open=(g==='救倒數'||g==='補直推'||g==='補弱邊');
+    det.innerHTML='<summary style="cursor:pointer;padding:6px 0"><b>'+esc(g)+'</b> <span class="mut">('+items.length+')</span>'
+      +(g==='補弱邊'?'':' <button class="btn sm" style="margin-left:8px" onclick="event.preventDefault();tacIssue(\''+g+'\')">發令 勾選的</button>')+'</summary>'
+      +'<div class="scroll"><table><tbody>'+items.map(x=>'<tr>'
+        +(g==='補弱邊'?'<td style="width:24px"></td>':'<td style="width:24px"><input type="checkbox" class="tck-'+esc(g)+'" data-id="'+esc(x.member_id)+'" data-detail="'+esc(x.detail||'')+'" checked></td>')
+        +'<td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(x.name||'')+'</a> <span class="mut">'+esc(x.side||'')+'</span></td>'
+        +'<td>'+esc(x.detail||'')+'</td></tr>').join('')+'</tbody></table></div>';
+    box.appendChild(det);
+  });
+  if(!box.children.length) box.innerHTML='<div class="mut">這條線目前沒有待處理的事。</div>';
+  // ③ 他的將
+  const sb=document.getElementById('tacSubs');
+  sb.innerHTML=(d.subs||[]).length?'<div class="scroll"><table><thead><tr><th></th><th>姓名</th><th>邊</th><th>層</th><th>成就 左/右</th><th>水位 左/右</th><th></th></tr></thead><tbody>'
+    +d.subs.map(s=>'<tr><td>'+s.light+'</td><td>'+esc(s.name||'')+'<br><span class="mut">'+esc(s.member_id)+'</span></td><td>'+esc(s.side||'')+'</td><td>'+s.depth+'</td>'
+      +'<td>'+(s.fc_l==null?'—':s.fc_l+' / '+s.fc_r)+'</td><td>'+(s.p200_l==null?'—':wan(s.p200_l)+' / '+wan(s.p200_r))+'</td>'
+      +'<td><button class="btn sm" onclick="loadTac(\''+esc(s.member_id)+'\')">打開</button></td></tr>').join('')+'</tbody></table></div>'
+    :'<div class="mut">他底下沒有被點將的人。到戰情室骨架選將。</div>';
+  // ④ 推薦
+  const need = (R.need_intro||0) + (R.weak_gap||0);
+  document.getElementById('tacRecruit').innerHTML=
+    '<table><tbody>'
+    +'<tr><th style="width:92px">要推幾個</th><td><b style="font-size:18px">'+need+'</b> 位　<span class="mut">直推缺 '+(R.need_intro||0)+' ＋ 弱邊還缺 '+(R.weak_gap||0)+' 個位置達循環</span></td></tr>'
+    +'<tr><th>已推</th><td>'+(R.done_this_period||0)+' 位'+((R.recent||[]).length?'　<span class="mut">'+R.recent.map(x=>esc(x.name)+'（'+esc(x.at)+'）').join('、')+'</span>':'')+'</td></tr>'
+    +'<tr><th>放哪邊</th><td><b>'+esc(R.weak_side||'—')+'</b> 線（弱邊）</td></tr>'
+    +'<tr><th>暖名單</th><td>'+((R.warm||[]).length?'<div class="scroll"><table><tbody>'+R.warm.map(w=>'<tr><td><input type="checkbox" class="tck-推薦" data-id="'+esc(w.member_id)+'" data-detail="'+esc(w.why)+'"></td><td><a href="javascript:openCard(\''+esc(w.member_id)+'\')" style="color:#58a6ff">'+esc(w.name)+'</a> <span class="mut">'+esc(w.side)+'</span></td><td class="mut">'+esc(w.why)+'</td></tr>').join('')+'</tbody></table></div><button class="btn sm" style="margin-top:6px" onclick="tacIssue(\'推薦\')">發令 勾選的</button>':'<span class="mut">目前沒有暖名單（來源：有買未訂閱鐵粉頻道）</span>')+'</td></tr>'
+    +'</tbody></table>';
+}
+async function tacIssue(g){
+  const items=[...document.querySelectorAll('.tck-'+g+':checked')].map(c=>({member_id:c.dataset.id,detail:c.dataset.detail}));
+  if(!items.length){alert('沒有勾選');return;}
+  if(!confirm('發出「'+g+'」'+items.length+' 條命令？指派給 '+((TAC.me||{}).name||'')))return;
+  const d=await tacApi({action:'issue',group:g,items});
+  document.getElementById('tacMsg').textContent=d&&d.success?('已發 '+(d.created||0)+' 條'):((d&&d.message)||'失敗');
+  loadTac();
+}
+
 async function chApi(extra){
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_challenge',{method:'POST',
     headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
@@ -452,135 +517,6 @@ async function chApi(extra){
   return r.json();
 }
 function wan(v){return v==null?'—':(Math.round(v/10000)+'萬');}
-let CH_CFC=null, CH_OV=null, CH_F='all';
-function chF(f){CH_F=f;renderChCand();}
-function renderChCand(){
-  const d=CH||{}; const tb=document.getElementById('chCand'); tb.innerHTML='';
-  const G={A:['#37c978','A 可衝'],B:['#ffb020','B 差一腳'],C:['#4f8cff','C 在長'],D:['#484f58','D']};
-  const byId={}; ((CH_CFC||{}).candidates||[]).forEach(c=>byId[c.member_id]=c);
-  const seen={}; let rows=(d.candidates||[]).map(c=>{const k=byId[c.member_id]||{}; seen[c.member_id]=1; return {...c, grade:k.grade||(c.hard_ok?'C':'D'), lack:k.lack||'', lc:k.lc, rc:k.rc};});
-  Object.values(byId).forEach(k=>{ if(!seen[k.member_id] && (k.grade==='A'||k.grade==='B')) rows.push({member_id:k.member_id,name:k.name,leg:k.leg,grade:k.grade,lack:k.lack||'',lc:k.lc,rc:k.rc,hard_ok:!!(k.c_supply&&k.c_direct),intro:k.dir_valid,depth:null,l_plan:null,r_plan:null,fc_l:null,fc_r:null,water_l:null,water_r:null,picked:!!k.enlisted}); });
-  const gv={A:0,B:1,C:2,D:3};
-  rows.sort((a,b)=>(gv[a.grade]-gv[b.grade])||((b.score||0)-(a.score||0)));
-  if(CH_F==='AB')rows=rows.filter(r=>r.grade==='A'||r.grade==='B'); else if(CH_F==='右')rows=rows.filter(r=>r.leg==='右'); else if(CH_F==='picked')rows=rows.filter(r=>r.picked);
-  rows.slice(0,80).forEach(c=>{
-    const g=G[c.grade]||G.D; const tr=document.createElement('tr'); if(c.picked) tr.style.background='rgba(63,185,80,.08)';
-    tr.innerHTML='<td><span style="background:'+g[0]+';color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">'+g[1]+'</span></td>'
-      +'<td><a href="javascript:openCard(\''+esc(c.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+esc(c.name||'')+'</a><br><span class="mut">'+esc(c.member_id)+'</span></td>'
-      +'<td>'+esc(c.leg||'')+'</td>'
-      +'<td>'+(c.hard_ok?'<span style="color:#3fb950">✅</span>':'<span style="color:#f85149">缺</span>')+' <span class="mut">直推 '+(c.intro??'—')+'</span></td>'
-      +'<td class="mut">'+esc(c.lack||(c.hard_ok?'—':''))+'</td>'
-      +'<td>'+(c.fc_l==null?'<span class="mut">—</span>':c.fc_l+' / '+c.fc_r)+'</td>'
-      +'<td>'+(c.water_l==null?'<span class="mut">—</span>':wan(c.water_l)+' / '+wan(c.water_r))+'</td>'
-      +'<td>'+(c.depth==null?'<span class="mut">—</span>':'第 '+c.depth+' 代')+'</td>'
-      +'<td>'+(c.l_plan==null?'<span class="mut">底氣 '+(c.lc??'—')+'／'+(c.rc??'—')+'</span>':c.l_plan+' / '+c.r_plan)+'</td>'
-      +'<td>'+(c.picked?'<button class="btn sm ghost" onclick="chToggle(\''+esc(c.member_id)+'\',false)">✓ 已選 移出</button>':'<button class="btn sm" onclick="chToggle(\''+esc(c.member_id)+'\',true)">選入</button>')+'</td>';
-    tb.appendChild(tr);
-  });
-  if(!rows.length) tb.innerHTML='<tr><td colspan="10" class="mut">沒有候選。</td></tr>';
-}
-
-async function loadCh(){
-  const [d,cfcR,ovR]=await Promise.all([chApi({}), fetch(SUPABASE_URL+'/rest/v1/rpc/nds_cfc_plan',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},body:JSON.stringify({p:{...CRED}})}).then(r=>r.json()).catch(()=>null), api2({action:'overview'}).catch(()=>null)]);
-  if(!d||!d.success){document.getElementById('chActs').innerHTML='<li>'+esc((d&&d.message)||'讀取失敗')+'</li>';return;}
-  CH=d; CH_CFC=(cfcR&&cfcR.success)?cfcR:null; CH_OV=(ovR&&ovR.success)?ovR:null;
-  const P=d.period||{}, T=d.target||{};
-  document.getElementById('chPeriod').textContent='本期 '+(P.start||'')+' ～ '+(P.end||'')+' ・ 剩 '+(P.days_left??'—')+' 天';
-  document.getElementById('chAsof').textContent='（組織 '+(d.as_of||'')+' ・ 循環數 '+(P.cycle_asof||'—')+' ・ 水位 '+(P.water_asof||'—')+'）';
-  document.getElementById('chTarget').innerHTML='左 <span style="color:#3fb950">'+(T.left_done||0)+'</span>/12 ・ 右 <span style="color:#3fb950">'+(T.right_done||0)+'</span>/12'
-    +' <span class="mut" style="font-size:13px">（有希望 左'+(T.left_hope||0)+' 右'+(T.right_hope||0)+'）</span>';
-  // 骨架
-  const g=document.getElementById('chGrid'); g.innerHTML='';
-  ['左','右'].forEach(side=>{
-    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;min-width:300px';
-    col.innerHTML='<b>'+side+'線</b>';
-    [1,2,3,4].forEach(layer=>{
-      const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;justify-content:center';
-      (d.skeleton||[]).filter(x=>x.side===side&&x.layer===layer).forEach(x=>{
-        const c=document.createElement('div');
-        const w = layer===4?34:layer===3?70:layer===2?142:286;
-        c.style.cssText='width:'+w+'px;height:34px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;overflow:hidden;white-space:nowrap';
-        c.title=(x.name||'空位')+(x.member_id?' '+x.member_id:'');
-        c.innerHTML=x.light+(layer<4&&x.name?' <span style="font-size:12px">'+esc(x.name)+'</span>':'');
-        c.onclick=()=>chOpen(x);
-        row.appendChild(c);
-      });
-      col.appendChild(row);
-    });
-    g.appendChild(col);
-  });
-  // 今天動誰
-  const ol=document.getElementById('chActs'); ol.innerHTML='';
-  const addLi=(html)=>{const li=document.createElement('li');li.innerHTML=html;ol.appendChild(li);};
-  const link=(id,name,detail)=>' <a href="javascript:openCard(\''+esc(id)+'\')" style="color:#58a6ff">卡片</a> <a href="javascript:goAssign(\''+esc(id)+'\',\''+esc(name)+'\',\''+esc(detail)+'\')" style="color:#58a6ff">派工</a>';
-  if(CH_OV){
-    (CH_OV.countdown_top||[]).slice(0,5).forEach(x=>addLi('⏳ <b style="color:#f85149">倒數 '+esc(x.auto_cancel_days)+'</b> '+esc(x.name)+'（'+esc(x.leg)+'）'+link(x.member_id,x.name,'倒數 '+x.auto_cancel_days+' 要救')));
-    (CH_OV.renewal30||[]).slice(0,5).forEach(x=>addLi('📄 30 天內方案到期 '+esc(x.name)+'（'+esc(x.plan_code||'')+' 到 '+esc(x.until)+'）'+link(x.member_id,x.name,'方案 '+(x.plan_code||'')+' '+x.until+' 到期，續約')));
-  }
-  if(CH_CFC){
-    (CH_CFC.onestep||[]).slice(0,6).forEach(x=>addLi('🎯 <b>只差一步</b> '+esc(x.name)+'（底氣 '+x.lc+'／'+x.rc+'）：'+esc(x.todo||'')+link(x.member_id,x.name,x.todo||'')));
-  }
-  (d.actions||[]).forEach(a=>{
-    const li=document.createElement('li');
-    li.innerHTML=esc(a.text)+(a.member_id?' <a href="javascript:openCard(\''+esc(a.member_id)+'\')" style="color:#58a6ff">卡片</a> <a href="javascript:goAssign(\''+esc(a.member_id)+'\',\''+esc((a.text||'').split('：')[0])+'\',\''+esc(a.text||'')+'\')" style="color:#58a6ff">派工</a>':'');
-    ol.appendChild(li);
-  });
-  if(!(d.actions||[]).length) ol.innerHTML='<li class="mut">骨架還沒排。先從下面候選「排入」。</li>';
-  if((d.overflow||[]).length){const li=document.createElement('li');li.innerHTML='<span class="mut">格子不夠放：'+d.overflow.map(o=>esc(o.side)+' '+esc(o.member_id)).join('、')+'（同一層選太多人）</span>';ol.appendChild(li);}
-  if(CH_OV&&(CH_OV.leaders||[]).length){addLi('<span class="mut">👥 領袖出勤：'+CH_OV.leaders.map(l=>esc(l.name)+' 未結 '+l.open_tasks+'／完成 '+l.done).join('　')+'</span>');}
-  // 候選
-  renderChCand();
-}
-async function chToggle(id,on){
-  const d=await chApi({action:on?'pick':'unpick',member_id:id});
-  if(d&&d.success===false){alert(d.message||'失敗');return;}
-  loadCh();
-}
-function chOpen(x){
-  const b=document.getElementById('chCardBody');
-  if(!x.member_id){
-    b.innerHTML='<b>'+x.side+'線 第'+x.layer+'層 #'+x.slot+'</b><div class="mut" style="margin:6px 0 10px">空位。到下面候選名單按「選入」，系統會照他在安置樹的位置自動放進來。</div>';
-    document.getElementById('chCard').classList.remove('hidden'); return;
-  }
-  const A=x.hardA||{}, B=x.hardB||{}, C=x.cyc||{}, W=x.water||{}, O=x.org||{}, E=x.ext||{};
-  const bar=(pct)=>{const n=Math.max(0,Math.min(10,Math.round((pct||0)*10)));return '▓'.repeat(n)+'░'.repeat(10-n);};
-  const dots=(n)=>{n=Math.max(0,Math.min(5,n||0));return '●'.repeat(n)+'○'.repeat(5-n)+(n>=5?' ✅':'');};
-  const wbar=(v)=>bar((v||0)/1250000);
-  const tp=(CH.period||{}).time_pct||0;
-  b.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">'+x.light+' '+esc(x.name)+'</b>'
-    +'<span class="mut">'+x.side+'線 第'+x.layer+'層 #'+x.slot+' ・ '+esc(x.member_id)+'</span></div>'
-    +'<table style="margin-top:10px"><tbody>'
-    +'<tr><th style="width:80px">硬條件</th><td>循環購買 '+(A.ok?'✅ '+esc(A.plan||'有方案')+(A.until?' 到 '+esc(A.until):''):'❌ 沒有方案')+' ・ '+esc(pm(A.pay))
-      +'<br>直推 '+(B.ok?'✅':'❌')+' '+B.intro+'/2</td></tr>'
-    +'<tr><th>循環</th><td>'+(C.l==null?'<span class="mut">公司 status 頁沒有這個位置</span>':
-        '左 '+dots(C.l)+' '+C.l+'/5 　右 '+dots(C.r)+' '+C.r+'/5'
-        +'<br><span class="mut">本期時間已過 '+Math.round(tp*100)+'%</span>'
-        +(C.align?'<br>⚠️ '+esc(C.align)+' → 先補那邊':'')+(C.l>=5&&C.r>=5?'<br>🏆 成就':''))+'</td></tr>'
-    +'<tr><th>水位</th><td>'+(W.l==null?'<span class="mut">公司預測表沒有這個位置（前 40 名以外）</span>':
-        '左 '+wbar(W.l)+' '+wan(W.l)+'<br>右 '+wbar(W.r)+' '+wan(W.r)
-        +'<br><span class="mut">─ ─ 成就線 125 萬（每 25 萬一個循環）・預測含已排定定期單</span>'
-        +(W.note?'<br>'+esc(W.note):''))+'</td></tr>'
-    +'<tr><th>組織</th><td>左 '+O.l_plan+'/'+O.l_n+' 人有方案 ・ 右 '+O.r_plan+'/'+O.r_n+' 人有方案'+(O.leak?' ・ <span style="color:#f85149">漏水 '+O.leak+' 人</span>':'')+'</td></tr>'
-    +'<tr><th>延伸</th><td>'+bar(E.depth/7)+' 第 '+E.depth+' 代（'+(E.gens||[]).join('／')+'）'
-      +(E.eagle?'<br>🦅 第 '+E.eagle.gen+' 代 '+esc(E.eagle.name):'<br><span class="mut">七代內還沒有老鷹</span>')+'</td></tr>'
-    +'</tbody></table>'
-    +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
-    +'<button class="btn sm" onclick="goAssign(\''+esc(x.member_id)+'\',\''+esc(x.name||'')+'\',\'\')">派工</button>'
-    +'<button class="btn sm ghost" onclick="openCard(\''+esc(x.member_id)+'\')">底下組織</button>'
-    +'<button class="btn sm ghost" onclick="document.getElementById(\'chCard\').classList.add(\'hidden\');chToggle(\''+esc(x.member_id)+'\',false)">移出骨架</button>'
-    +'</div>';
-  document.getElementById('chCard').classList.remove('hidden');
-}
-async function goAssign(id,name,detail){
-  document.getElementById('chCard').classList.add('hidden');
-  const t=prompt('任務內容（給領袖看的一句話）',detail||''); if(t===null)return;
-  const who=(LEADERS||[]).map(l=>l.member_id+' '+(l.name||l.display_name||'')).join('\n');
-  const asg=prompt('指派給誰？輸入領袖會員編號，空白＝依歸戶自動派\n'+who,'');
-  if(asg===null)return;
-  const d=await api({action:'create_tasks',tasks:[{task_type:'CFC骨架',target_member_id:id,target_name:name||'',detail:t,assignee_member_id:asg||'',due_date:''}]});
-  alert(d&&d.success?'已建立任務':((d&&d.message)||'失敗'));
-}
 
 let WATER=null, WATER_SORT='weak';
 function waterSort(k){WATER_SORT=k;renderLevels();}
