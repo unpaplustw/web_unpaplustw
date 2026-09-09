@@ -881,29 +881,58 @@ async function loadBcMap(id){
   if(!d||d.success!==true){box.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>';return;}
   const rows=d.rows||[];
   if(rows.length<2){box.innerHTML='';return;}
-  const kids={}, roots=[];
-  rows.forEach(x=>{ if(x.parent_bc&&rows.some(y=>y.member_id===x.parent_bc)){(kids[x.parent_bc]=kids[x.parent_bc]||[]).push(x);} else roots.push(x); });
-  const tiny=v=>v==null?'':(Math.round(v/10000)+'萬');
-  const line=(x,dep)=>{
-    const st = x.cd ? '<span style="color:var(--bad)">⏳'+esc(x.cd)+'</span>' : (x.is_valid?'<span style="color:var(--ok)">●</span>':'<span class="mut">○</span>');
-    const water = (x.bl!=null||x.br!=null) ? ' <span class="mut">'+tiny(x.bl)+'/'+tiny(x.br)+'</span>' : '';
-    const side = x.side ? '<span style="border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:11px;margin-right:4px">'+esc(x.side)+'</span>' : '';
-    const gap = (x.gap!=null&&x.gap>0) ? '<span class="mut" style="font-size:11px">　隔 '+x.gap+' 人</span>' : (x.gap===0?'<span class="mut" style="font-size:11px">　緊貼</span>':'');
-    const me = (x.member_id===id) ? ';background:rgba(63,185,80,.10);border-radius:6px' : '';
-    return '<div style="padding:2px 0 2px '+(dep*20)+'px;white-space:nowrap'+me+'">'+(dep?'<span class="mut">└ </span>':'')+side+st+' '
-      +'<a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:var(--acc);font-weight:600">'+esc(x.bc)+'</a>'
-      +' <span class="mut" style="font-size:12px">第'+(x.depth==null?'?':x.depth)+'層</span>'+gap
-      +(x.plan_code?' <span class="mut" style="font-size:12px">'+esc(x.plan_code)+'</span>':'')+water
-      +(x.valid_until?' <span class="mut" style="font-size:11px">資格 '+esc(String(x.valid_until).slice(0,10))+'</span>':'')+'</div>';
+  const byId={}; rows.forEach(x=>byId[x.member_id]=x);
+  const kidsL={}, kidsR={}, roots=[];
+  rows.forEach(x=>{
+    if(x.parent_bc&&byId[x.parent_bc]){ const k=(x.side==='右')?kidsR:kidsL; (k[x.parent_bc]=k[x.parent_bc]||[]).push(x); }
+    else roots.push(x);
+  });
+  const sortD=(a,b)=>(a.depth||0)-(b.depth||0);
+  Object.values(kidsL).forEach(a=>a.sort(sortD)); Object.values(kidsR).forEach(a=>a.sort(sortD));
+  roots.sort(sortD);
+  const BW=76, BH=36, GX=16, GY=62;
+  let col=0; const pos={};
+  const lay=(x,dep)=>{
+    const Ls=kidsL[x.member_id]||[], Rs=kidsR[x.member_id]||[];
+    Ls.forEach(c=>lay(c,dep+1));
+    const myCol=col++;
+    Rs.forEach(c=>lay(c,dep+1));
+    const xs=[].concat(Ls,Rs).map(c=>pos[c.member_id].x);
+    pos[x.member_id]={x: xs.length? (Math.min(...xs)+Math.max(...xs))/2 : myCol, d:dep, own:myCol};
   };
-  let html='';
-  const walk=(x,dep)=>{ html+=line(x,dep); (kids[x.member_id]||[]).sort((a,b)=>(a.side===b.side?((a.depth||0)-(b.depth||0)):(a.side==='左'?-1:1))).forEach(c=>walk(c,dep+1)); };
-  roots.sort((a,b)=>(a.depth||0)-(b.depth||0)).forEach(x=>walk(x,0));
+  roots.forEach(x=>lay(x,0));
+  const vals=Object.values(pos);
+  const maxX=Math.max(...vals.map(p=>p.x)), maxD=Math.max(...vals.map(p=>p.d));
+  const W=Math.max(320,(maxX+1)*(BW+GX)+GX*2), H=(maxD+1)*GY+14;
+  const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+6;
+  const tiny=v=>v==null?'':(Math.round(v/10000)+'萬');
+  let lines='', boxes='';
+  rows.forEach(x=>{
+    const p=pos[x.member_id]; if(!p)return;
+    const par=x.parent_bc&&byId[x.parent_bc]?pos[x.parent_bc]:null;
+    if(par){
+      const x1=X(par)+BW/2, y1=Y(par)+BH, x2=X(p)+BW/2, y2=Y(p), my=y1+(y2-y1)/2;
+      lines+='<path d="M'+x1+','+y1+' V'+my+' H'+x2+' V'+y2+'" fill="none" stroke="#2a3340" stroke-width="1.5"/>';
+      const lab = (x.gap===0?'緊貼':(x.gap>0?'隔'+x.gap:''));
+      if(lab) lines+='<text x="'+((x1+x2)/2)+'" y="'+(my-3)+'" font-size="10" fill="#6e7681" text-anchor="middle">'+lab+'</text>';
+      lines+='<text x="'+(x2+(x.side==='右'?10:-10))+'" y="'+(y2-4)+'" font-size="10" fill="#8b949e" text-anchor="'+(x.side==='右'?'start':'end')+'">'+(x.side||'')+'</text>';
+    }
+    const stroke = x.cd ? '#f85149' : (x.is_valid ? '#3fb950' : '#30363d');
+    const isMe = x.member_id===id;
+    const water = (x.bl!=null&&(x.bl||x.br)) ? tiny(x.bl)+'/'+tiny(x.br) : (x.plan_code||'');
+    boxes+='<g style="cursor:pointer" onclick="openCard(\''+esc(x.member_id)+'\')">'
+      +'<rect x="'+X(p)+'" y="'+Y(p)+'" width="'+BW+'" height="'+BH+'" rx="6" fill="'+(isMe?'#17301f':'#161b22')+'" stroke="'+stroke+'" stroke-width="'+(isMe?2:1)+'"/>'
+      +'<text x="'+(X(p)+8)+'" y="'+(Y(p)+15)+'" font-size="12" font-weight="700" fill="#c9d1d9">'+esc(x.bc)+'</text>'
+      +'<text x="'+(X(p)+BW-8)+'" y="'+(Y(p)+15)+'" font-size="10" fill="#6e7681" text-anchor="end">'+(x.depth==null?'':x.depth+'層')+'</text>'
+      +'<text x="'+(X(p)+8)+'" y="'+(Y(p)+29)+'" font-size="10" fill="#8b949e">'+esc(water)+'</text>'
+      +'<title>'+esc(x.member_id)+(x.plan_code?' ・'+esc(x.plan_code):'')+(x.valid_until?' ・資格 '+esc(String(x.valid_until).slice(0,10)):'')+(x.cd?' ・倒數 '+esc(x.cd):'')+'</title></g>';
+  });
   const valid=rows.filter(x=>x.is_valid).length;
   box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><b>🗂 分店位置圖</b>'
-    +'<span class="mut" style="font-size:12px">'+rows.length+' 個位置・有效 '+valid+'　● 有效　○ 未達　⏳ 倒數　數字＝對碰後累積 左/右</span></div>'
-    +'<div class="scroll" style="margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:8px">'+html+'</div>'
-    +'<div class="mut" style="font-size:12px;margin-top:4px">縮排＝掛在上一個分店底下；「隔 N 人」＝中間隔著別人的位置；最上面那個掛在他人線上。</div>';
+    +'<span class="mut" style="font-size:12px">'+rows.length+' 個位置・有效 '+valid+'　<span style="color:var(--ok)">綠框</span>有效　灰框未達　<span style="color:var(--bad)">紅框</span>倒數　框內數字＝對碰後累積 左/右</span></div>'
+    +'<div class="scroll" style="margin-top:6px;border:1px solid var(--line);border-radius:8px;background:#0d1117">'
+    +'<svg width="'+W+'" height="'+H+'" style="min-width:'+W+'px">'+lines+boxes+'</svg></div>'
+    +'<div class="mut" style="font-size:12px;margin-top:4px">連線上的「隔 N」＝兩個分店中間夾著幾個別人的位置，「緊貼」＝直接掛在自己的分店下。左右字＝在上一個分店的哪一邊。</div>';
 }
 
 function drawDepth(id,n){CARD_ID=id;openCard(id,n);}
