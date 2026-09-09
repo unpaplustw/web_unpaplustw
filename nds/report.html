@@ -348,7 +348,18 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     });
     if(!res.ok) throw new Error('伺服器回應 '+res.status);
     const result = await res.json();
-    if(result && result.success===false){ showResult(result.message||'送出失敗，請聯絡管理者。','warning'); resetBtn(); return; }
+    if(result && result.success===false){
+      const c=result.code;
+      showResult((c==='already_member'?'✅ ':(c==='pending'?'⏳ ':''))+(result.message||'送出失敗，請聯絡管理者。'), c?'success':'warning');
+      if(c==='already_member'||c==='pending'){ document.getElementById('btnText').textContent='不用重填'; document.getElementById('btnSpinner').style.display='none'; return; }
+      resetBtn(); return;
+    }
+    if(result && result.code==='intent_only'){
+      showResult('✅ '+(result.message||'期待已補上，等審核。'),'success');
+      document.getElementById('btnText').textContent='已補上期待';
+      document.getElementById('btnSpinner').style.display='none';
+      setTimeout(()=>{ if(!MY_LIFF_ID.startsWith('PLACEHOLDER')) liff.closeWindow(); },3200); return;
+    }
 
     /* 次要通知：原 n8n webhook 保留，非阻塞（掛掉不影響回報成功） */
     const oaKey = getOaFromUrl() || DEFAULT_OA;
