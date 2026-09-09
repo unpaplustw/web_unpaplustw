@@ -176,10 +176,19 @@ body {
     <input type="hidden" id="oaId">
 
     <!-- A. 基本個資 -->
-    <div class="section-label">A · 基本資料</div>
+    <div class="section-label">A · 這位新夥伴</div>
+    <div class="form-group">
+      <label class="req">會員編號（7碼）</label>
+      <input type="text" id="midMain" class="styled-input" inputmode="numeric" placeholder="2675630" maxlength="7">
+      <div class="hint" id="midHint">填完會自動帶出這個人已有的資料。分店號不用填，公司資料會帶。</div>
+    </div>
     <div class="form-group">
       <label for="name" class="req">姓名</label>
       <input type="text" id="name" class="styled-input" placeholder="請輸入姓名">
+    </div>
+    <div class="form-group">
+      <label for="phone" class="req">行動電話</label>
+      <input type="tel" id="phone" class="styled-input" inputmode="numeric" placeholder="0912345678" maxlength="10">
     </div>
     <div class="form-group">
       <label>性別</label>
@@ -189,30 +198,17 @@ body {
       </div>
     </div>
     <div class="form-group">
-      <label for="phone" class="req">行動電話</label>
-      <input type="tel" id="phone" class="styled-input" inputmode="numeric" placeholder="0912345678" maxlength="10">
-    </div>
-    <div class="form-group">
       <label for="birth">出生年月日</label>
       <input type="date" id="birth" class="styled-input">
     </div>
-
-    <div class="section-label">B · 會員編號</div>
-    <div class="form-group">
-      <label class="req">會員編號（7碼）</label>
-      <input type="text" id="midMain" class="styled-input" inputmode="numeric" placeholder="2675630" maxlength="7">
-      <div class="hint" id="midHint">填完會自動帶出這個人已有的資料</div>
-    </div>
-    <details class="fold" id="branchFold">
-      <summary>分店編號：<b id="branchEcho">001</b>　<span class="foldnote">要開分店才要改</span></summary>
+    <details class="fold" id="branchFold" style="display:none">
+      <summary>分店編號：<b id="branchEcho">001</b></summary>
       <div class="form-group" style="margin-top:10px">
-        <label>分店（3碼）</label>
-        <input type="text" id="midBranch" class="styled-input" inputmode="numeric" placeholder="001" maxlength="3" value="001">
-        <div class="hint" id="branchHint">同一個人的第 2 個以後的位置。系統會自動建議下一個號碼。</div>
+        <input type="text" id="midBranch" class="styled-input" inputmode="numeric" maxlength="3" value="001">
+        <div class="hint" id="branchHint"></div>
       </div>
     </details>
-
-    <div class="section-label">C · 購買與推薦</div>
+    <div class="section-label">B · 購買與推薦</div>
     <div class="form-group">
       <div class="hint" style="border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px">
         方案、商品、入會日、推薦人、安置位置<b>都不用填</b>——這些公司系統有，我們每月自動抓回來對帳。<br>
@@ -220,7 +216,7 @@ body {
       </div>
     </div>
 
-    <div class="section-label">D · 他為什麼加入</div>
+    <div class="section-label">C · 他為什麼加入</div>
     <div id="quickBind" style="display:none" class="form-group"></div>
     <div id="intentKnown" style="display:none" class="form-group"></div>
     <div id="intentAsk">
@@ -445,11 +441,13 @@ function whoMode(){ return (document.querySelector('input[name="whoFills"]:check
 function onWhoChange(){
   const m=whoMode(), h=document.getElementById('whoHint');
   if(m==='branch'){
-    h.innerHTML='幫<b>自己</b>加開一個位置（BC）。姓名、電話、期待都沿用你原本的，只要填新位置的商品與方案。';
+    h.innerHTML='幫<b>自己</b>加開一個位置（BC）。姓名、電話、期待都沿用原本的，只要確認新位置的分店號。';
     if(BOUND&&BOUND.bound){
       document.getElementById('midMain').value=BOUND.main;   // 自動帶入本人主編號
-      document.getElementById('branchFold').open=true;       // 分店欄位展開
+      const bf=document.getElementById('branchFold'); bf.style.display=''; bf.open=true;   // 只有開分店模式才顯示
     }
+    const bf2=document.getElementById('branchFold'); if(bf2){bf2.style.display='none'; bf2.open=false;}
+    const mb2=document.getElementById('midBranch'); if(mb2) mb2.value='001';
   } else if(m==='self'){
     h.textContent='你自己填的話，送出當下就直接綁定你的 LINE。';
   } else {
@@ -474,16 +472,18 @@ async function lookupPerson(){
 
   // 帶入基本資料（只填空欄，不覆蓋已打的字）
   const P=PERSON.person||{};
+  if(whoMode()!=='branch'){ const mh=document.getElementById('midHint');
+    if(mh) mh.innerHTML=(PERSON.branches||[]).length ? '這個人已有 <b>'+PERSON.branches.length+'</b> 個位置，分店號不用填。' : '分店號不用填，公司資料會帶。'; }
   const fill=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
   fill('name',P.name); fill('phone',P.phone); fill('birth',P.birth_date);
   if(P.gender){ const g=document.getElementById(P.gender==='女'?'gF':'gM'); if(g&&!document.querySelector('input[name="gender"]:checked')) g.checked=true; }
   // 建議下一個分號
   const mb=document.getElementById('midBranch');
-  if(mb&&(!mb.value||mb.value==='001')&&PERSON.next_branch) mb.value=PERSON.next_branch;
+  if(mb&&whoMode()==='branch'&&(!mb.value||mb.value==='001')&&PERSON.next_branch) mb.value=PERSON.next_branch;
 
-  // 已有位置 → 分店欄位自動展開並跳號，讓人一眼看到不是 001
-  if((PERSON.branches||[]).length){
-    document.getElementById('branchFold').open=true;
+  // 已有位置：只有「自己開分店」模式才需要看到分店欄
+  if((PERSON.branches||[]).length && whoMode()==='branch'){
+    const bf=document.getElementById('branchFold'); bf.style.display=''; bf.open=true;
     document.getElementById('branchEcho').textContent=PERSON.next_branch||'001';
     document.getElementById('branchHint').innerHTML=
       '這個人已有 <b>'+PERSON.branches.length+'</b> 個位置（'+PERSON.branches.join('、')+'），已自動跳到下一號。';
