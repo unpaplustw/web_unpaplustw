@@ -271,77 +271,13 @@ function render(b, rows, isInd) {
 
 /* ════════════════════════ FETCH & PROCESS ════════════════ */
 async function load(p) {
+  // 2026-09-09：改走 lineai_leaderboard RPC。
+  // 原本直讀 tenants/members/message_logs/hourly_usage_stats，四張表 anon 皆已被 RLS 擋
+  //（回空陣列不報錯 → 整頁數字靜默歸零）。聚合移到 DB 端，瀏覽器不再收到 line_user_id。
   const s = since(p);
-  const df = s ? `&created_at=gte.${s}` : '';
-  const jf = s ? `&joined_at=gte.${s}`  : '';
-  const hf = s ? `&hour_start=gte.${s}` : '';
-
-  const [tenants, members, msgs, hourly] = await Promise.all([
-    get('tenants?select=id,owner_name&is_active=eq.true'),
-    get(`members?select=id,tenant_id,name,level,line_user_id,total_credits_used,trust_building_count,comparison_count,self_doubt_count${jf}`),
-    get(`message_logs?select=tenant_id,line_user_id,is_greeting,rag_results_count,np_facts_count,should_escalate,tone${df}`),
-    get(`hourly_usage_stats?select=tenant_id,hour_start,total_messages${hf}`),
-  ]);
-
-  /* tenant stats */
-  const tm = {};
-  tenants.forEach(t => {
-    tm[t.id] = {name:t.owner_name, member_count:0, approved:0, msgs:0, np_facts:0, miss:0, density:0, morning:0, noon:0, evening:0, night:0};
-  });
-
-  members.forEach(m => {
-    if (!tm[m.tenant_id]) return;
-    tm[m.tenant_id].member_count++;
-    if (m.level >= 1) tm[m.tenant_id].approved++;
-  });
-
-  msgs.forEach(ml => {
-    if (!tm[ml.tenant_id] || ml.is_greeting) return;
-    const t = tm[ml.tenant_id];
-    t.msgs++;
-    if (ml.np_facts_count > 0) t.np_facts++;
-    if (!ml.rag_results_count && !ml.np_facts_count) t.miss++;
-  });
-
-  hourly.forEach(h => {
-    if (!tm[h.tenant_id]) return;
-    const t = tm[h.tenant_id];
-    const hr = (new Date(h.hour_start).getUTCHours() + 8 + 24) % 24;
-    const n = h.total_messages || 0;
-    if (hr >= 6  && hr < 12) t.morning  += n;
-    else if (hr >= 12 && hr < 18) t.noon += n;
-    else if (hr >= 18 && hr < 22) t.evening += n;
-    else t.night += n;
-  });
-
-  const tRows = Object.values(tm).map(t => ({
-    ...t,
-    density: t.member_count > 0 ? Math.round(t.msgs/t.member_count*100)/100 : 0
-  }));
-
-  /* individual stats */
-  const approved = members.filter(m => m.level >= 1);
-  const im = {};
-  approved.forEach(m => {
-    im[m.line_user_id] = {
-      name: m.name,
-      team: tenants.find(t=>t.id===m.tenant_id)?.owner_name || '',
-      msgs: 0, self_doubt: m.self_doubt_count||0,
-      comparison: m.comparison_count||0, trust: m.trust_building_count||0,
-      escalations: 0, miss: 0, tone_close: 0,
-    };
-  });
-
-  msgs.forEach(ml => {
-    if (!im[ml.line_user_id] || ml.is_greeting) return;
-    const p = im[ml.line_user_id];
-    p.msgs++;
-    if (ml.should_escalate) p.escalations++;
-    if (!ml.rag_results_count && !ml.np_facts_count) p.miss++;
-    if (ml.tone === 'close') p.tone_close++;
-  });
-
-  return { tRows, iRows: Object.values(im) };
+  const qs = s ? `?p_since=${encodeURIComponent(s)}` : '';
+  const data = await get(`rpc/lineai_leaderboard${qs}`);
+  return { tRows: data.teams || [], iRows: data.individuals || [] };
 }
 
 /* ════════════════════════ FALLBACK ════════════════════════ */

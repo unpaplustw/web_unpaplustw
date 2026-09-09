@@ -548,13 +548,13 @@ function countUp(id,target,duration){
 async function loadStats(){
   try{
     const [r1,r2]=await Promise.all([
-      fetch(`${RAG.url}/rest/v1/rag_knowledge?select=hit_count`,{headers:{apikey:RAG.key,Authorization:`Bearer ${RAG.key}`}}),
+      fetch(`${RAG.url}/rest/v1/rpc/rag_public_stats`,{method:'POST',headers:{apikey:RAG.key,Authorization:`Bearer ${RAG.key}`,'Content-Type':'application/json'},body:'{}'}),
       fetch(`${MEM.url}/rest/v1/rpc/public_site_stats`,{method:'POST',headers:{apikey:MEM.key,Authorization:`Bearer ${MEM.key}`,'Content-Type':'application/json'},body:'{}'})
     ]);
-    const rag=await r1.json();
+    const ragStats=await r1.json();
     const stats=await r2.json();
-    const totalHits=rag.reduce((s,r)=>s+(r.hit_count||0),0);
-    countUp('s1',rag.length,1800);
+    const totalHits=ragStats.total_hits||0;
+    countUp('s1',ragStats.count||0,1800);
     countUp('s2',totalHits,2200);
     countUp('s3',stats.members||0,1600);
     countUp('s4',stats.tenants||0,1400);

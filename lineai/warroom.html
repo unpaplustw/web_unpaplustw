@@ -468,23 +468,23 @@ function stamp() {
 async function loadAll() {
   const [ragTop, ragAll, membersAll, unmatchAll] = await Promise.allSettled([
     q(MEM, 'rpc/warroom_hit_ranking?p_limit=15'),
-    q(RAG, 'rag_knowledge?select=hit_count'),
-    q(MEM, 'members?select=trust_building_count,comparison_count,self_doubt_count'),
+    q(RAG, 'rpc/rag_public_stats'),
+    q(MEM, 'rpc/warroom_tone_totals'),
     q(MEM, 'rpc/warroom_unmatch_list?p_limit=30')
   ]);
 
   const ragItems   = ragTop.status   === 'fulfilled' ? ragTop.value   : [];
-  const ragAllData = ragAll.status   === 'fulfilled' ? ragAll.value   : [];
-  const members    = membersAll.status === 'fulfilled' ? membersAll.value : [];
+  const ragStats   = ragAll.status   === 'fulfilled' ? (ragAll.value   || {}) : {};
+  const tone       = membersAll.status === 'fulfilled' ? (membersAll.value || {}) : {};
   const unmatch    = unmatchAll.status === 'fulfilled' ? unmatchAll.value : [];
 
-  const totalHits  = ragAllData.reduce((s,r) => s+(r.hit_count||0), 0);
-  const trust      = members.reduce((s,m) => s+(m.trust_building_count||0), 0);
-  const comparison = members.reduce((s,m) => s+(m.comparison_count||0), 0);
-  const selfDoubt  = members.reduce((s,m) => s+(m.self_doubt_count||0), 0);
+  const totalHits  = ragStats.total_hits || 0;
+  const trust      = tone.trust      || 0;
+  const comparison = tone.comparison || 0;
+  const selfDoubt  = tone.self_doubt || 0;
 
   const payload = {
-    overview: { ragCount: ragAllData.length, totalHits, memberCount: members.length, unmatchCount: unmatch.length },
+    overview: { ragCount: ragStats.count || 0, totalHits, memberCount: tone.member_count || 0, unmatchCount: unmatch.length },
     rag: ragItems,
     claim: { trust, comparison, selfDoubt },
     gap: unmatch
