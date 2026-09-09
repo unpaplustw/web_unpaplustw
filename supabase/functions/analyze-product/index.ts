@@ -246,13 +246,13 @@ Deno.serve(async (req) => {
     }
 
     // ── 點數 gate（時序 A：跑 Claude 前先驗身份+查餘額）──
-    // 向下相容：有帶 id_token 才走計費路徑；舊前端沒帶 → 維持原樣免費（待前端更新後再強制）
     const cost = CHARGE[payload.type] || 0;
-    let chargeUser = null;
     const requestId = payload.request_id || null;
-    if (cost > 0 && (payload.access_token || payload.id_token)) {
-      chargeUser = await resolveLineUser(payload);
-      if (!chargeUser) return sseError('連線階段過期，請關閉本頁、從 LINE 重新開啟健康查查即可', 'auth');
+    // 2026-09-09 硬閘：所有類型一律先驗 LINE 身分，無身分不叫 Claude。
+    // 舊寫法「沒帶 token 就跳過驗證」＝任何人不登入即可燒 Sonnet 額度且不留 query_logs（$40 兩週蒸發的破口）。
+    const chargeUser = await resolveLineUser(payload);
+    if (!chargeUser) return sseError('連線階段過期，請關閉本頁、從 LINE 重新開啟全能查查即可', 'auth');
+    if (cost > 0) {
       try {
         const mb = createClient(MEMBERS_URL, MEMBERS_SERVICE);
         const { data: mem, error } = await mb.from('members').select('ai_credits').eq('line_user_id', chargeUser).single();
