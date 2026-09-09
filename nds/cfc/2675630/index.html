@@ -848,7 +848,8 @@ function renderCard(d){
       <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:var(--acc)">${esc(b.placement_parent_name||'')} ${esc(b.placement_parent_id)}</a>`:'—'} <b>${esc(b.placement_position||'')}</b></td></tr>
      </tbody></table></div>
      <div style="margin-top:8px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div></div>
-     <div style="margin-top:10px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div></div>
+     <div style="margin-top:10px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div>
+       <div id="bcMap" style="margin-top:10px"></div></div>
    </div>
    <div class="card"><b>🗺️ 底下組織</b>
      <div style="margin-top:6px">${tsum}</div>
@@ -865,10 +866,46 @@ function renderCard(d){
      </div>
      <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　｜解約位置：底下沒人的整支隱藏，還有人的縮成小灰點　｜點方塊開那個人的卡</div>
    </div>`;
+  loadBcMap(b.member_id);
 }
 
 
 let CARD_ID=null, CARD_D=null, TREE_SIDE='左';
+async function loadBcMap(id){
+  const box=document.getElementById('bcMap'); if(!box)return;
+  box.innerHTML='<span class="mut">分店位置圖載入中…</span>';
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_bc_map',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,member_id:id}})});
+  const d=await r.json().catch(()=>null);
+  if(!d||d.success!==true){box.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>';return;}
+  const rows=d.rows||[];
+  if(rows.length<2){box.innerHTML='';return;}
+  const kids={}, roots=[];
+  rows.forEach(x=>{ if(x.parent_bc&&rows.some(y=>y.member_id===x.parent_bc)){(kids[x.parent_bc]=kids[x.parent_bc]||[]).push(x);} else roots.push(x); });
+  const tiny=v=>v==null?'':(Math.round(v/10000)+'萬');
+  const line=(x,dep)=>{
+    const st = x.cd ? '<span style="color:var(--bad)">⏳'+esc(x.cd)+'</span>' : (x.is_valid?'<span style="color:var(--ok)">●</span>':'<span class="mut">○</span>');
+    const water = (x.bl!=null||x.br!=null) ? ' <span class="mut">'+tiny(x.bl)+'/'+tiny(x.br)+'</span>' : '';
+    const side = x.side ? '<span style="border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:11px;margin-right:4px">'+esc(x.side)+'</span>' : '';
+    const gap = (x.gap!=null&&x.gap>0) ? '<span class="mut" style="font-size:11px">　隔 '+x.gap+' 人</span>' : (x.gap===0?'<span class="mut" style="font-size:11px">　緊貼</span>':'');
+    const me = (x.member_id===id) ? ';background:rgba(63,185,80,.10);border-radius:6px' : '';
+    return '<div style="padding:2px 0 2px '+(dep*20)+'px;white-space:nowrap'+me+'">'+(dep?'<span class="mut">└ </span>':'')+side+st+' '
+      +'<a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:var(--acc);font-weight:600">'+esc(x.bc)+'</a>'
+      +' <span class="mut" style="font-size:12px">第'+(x.depth==null?'?':x.depth)+'層</span>'+gap
+      +(x.plan_code?' <span class="mut" style="font-size:12px">'+esc(x.plan_code)+'</span>':'')+water
+      +(x.valid_until?' <span class="mut" style="font-size:11px">資格 '+esc(String(x.valid_until).slice(0,10))+'</span>':'')+'</div>';
+  };
+  let html='';
+  const walk=(x,dep)=>{ html+=line(x,dep); (kids[x.member_id]||[]).sort((a,b)=>(a.side===b.side?((a.depth||0)-(b.depth||0)):(a.side==='左'?-1:1))).forEach(c=>walk(c,dep+1)); };
+  roots.sort((a,b)=>(a.depth||0)-(b.depth||0)).forEach(x=>walk(x,0));
+  const valid=rows.filter(x=>x.is_valid).length;
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><b>🗂 分店位置圖</b>'
+    +'<span class="mut" style="font-size:12px">'+rows.length+' 個位置・有效 '+valid+'　● 有效　○ 未達　⏳ 倒數　數字＝對碰後累積 左/右</span></div>'
+    +'<div class="scroll" style="margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:8px">'+html+'</div>'
+    +'<div class="mut" style="font-size:12px;margin-top:4px">縮排＝掛在上一個分店底下；「隔 N 人」＝中間隔著別人的位置；最上面那個掛在他人線上。</div>';
+}
+
 function drawDepth(id,n){CARD_ID=id;openCard(id,n);}
 
 function nodeColor(n){
