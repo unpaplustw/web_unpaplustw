@@ -806,7 +806,11 @@ const LIFF_ID      = '2009692859-1LNWRlIq';
 //   ⚠️ 只擋明顯異常，不擋罕見字——27 期有「魏睿䮄」「陳畇驊」這種字，
 //      用白名單會把真名擋掉。所以是黑名單：數字、emoji、拉丁字母。
 function nameProblem(s) {
-  s = (s || '').trim();
+  // 🔴 先洗掉看不見的格式控制字元再檢查（2026-09-10）：
+  //   顏榮瑞報名時名字前後包了 U+2068／U+2069（方向隔離），畫面上完全看不出來，
+  //   但資料庫裡是 5 個字元，比對、搜尋、排序全部對不上。
+  //   來源多半是從別的 App 複製貼上。順手 trim 掉零寬字元與 BOM。
+  s = (s || '').replace(/[\u2066-\u2069\u200B-\u200F\u202A-\u202E\uFEFF]/g, '').trim();
   if (!s) return '請填寫姓名';
   if (/[0-9０-９]/.test(s)) return '姓名不要有數字（是不是多打了？）';
   if (/[A-Za-zＡ-Ｚａ-ｚ]/.test(s)) return '請填中文本名，不要用英文暱稱';
@@ -943,7 +947,7 @@ document.addEventListener('change', e => {
 
 async function handleStudentSubmit() {
   const memberCode  = document.getElementById('f-member-code').value.trim();
-  const name        = document.getElementById('f-name').value.trim();
+  const name        = document.getElementById('f-name').value.replace(/[\u2066-\u2069\u200B-\u200F\u202A-\u202E\uFEFF]/g,'').trim();
   const phone       = document.getElementById('f-phone').value.trim();
   const registered  = document.querySelector('input[name="registered"]:checked')?.value;
   const coachId     = document.getElementById('f-coach').value;
@@ -1072,7 +1076,7 @@ async function handleCoachSubmit() {
     return;
   }
   const memberCode = document.getElementById('c-member-code').value.trim();
-  const name       = document.getElementById('c-name').value.trim();
+  const name       = document.getElementById('c-name').value.replace(/[\u2066-\u2069\u200B-\u200F\u202A-\u202E\uFEFF]/g,'').trim();
   const phone      = document.getElementById('c-phone').value.trim();
   const rank       = document.querySelector('input[name="c-rank"]:checked')?.value;
   const cfc        = document.querySelector('input[name="c-cfc"]:checked')?.value;
