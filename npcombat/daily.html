@@ -684,7 +684,6 @@ function applyActionLock() {
   if (fa) fa.insertAdjacentHTML('afterbegin',
     `<div class="lock-note">🔒 行動項目 <b>${label}</b><br>課程上到「列名單」單元後開啟，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`);
 }
-const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：god.html 帶 ?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF 以該學員身份檢視
 
 const sb = window.supabase.createClient(
   'https://nsgqsopqlkhayuefdout.supabase.co',
@@ -940,22 +939,12 @@ async function init() {
     BATCH_ID = await resolveBatchId();
     if (!BATCH_ID) { showBlock('目前沒有進行中的班期。'); return; }
 
-    // 身份取得：天神視角（god_as + god_key）跳過 LIFF，否則正常 LIFF 登入
-    const _p = new URLSearchParams(location.search);
-    const _godAs = _p.get('god_as'), _godKey = _p.get('god_key');
-    const _isGodView = _godAs && _godKey === GOD_KEY;
-    let member;
-    if (_isGodView) {
-      const { data } = await sb.from('members_master').select('id, name, member_code').eq('id', _godAs).single();
-      member = data;
-    } else {
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) { liff.login(); return; }
-      const profile = await liff.getProfile();
-      const { data } = await sb.from('members_master').select('id, name, member_code')
-        .eq('line_user_id', profile.userId).single();
-      member = data;
-    }
+    // 身份取得：一律走 LIFF 登入（天神視角後門已於 2026-09-10 移除）
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    const { data: member } = await sb.from('members_master').select('id, name, member_code')
+      .eq('line_user_id', profile.userId).single();
     if (!member) { showBlock('查無會員資料，請先完成報名。'); return; }
     memberId = member.id;
 

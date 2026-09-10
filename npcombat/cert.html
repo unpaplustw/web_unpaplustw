@@ -95,7 +95,6 @@ const LIFF_ID = '2009692859-hOq6FL5k'; // cert.html 專屬 LIFF（Endpoint 綁 c
 // 證書屬於「學員最近參加的那一期」，不跟 is_active 走
 // （26 期結業生沒參加 27 期，仍要看得到自己的證書）→ 於 init 依學員身份決定
 let BATCH_ID = null;
-const GOD_KEY = 'gv9k2x7m'; // 天神視角密鑰：?god_as=會員id&god_key=gv9k2x7m 即可跳過 LIFF
 
 const sb = window.supabase.createClient(
   'https://nsgqsopqlkhayuefdout.supabase.co',
@@ -529,23 +528,13 @@ function startConfetti() {
 
 async function init() {
   try {
-    // 身份取得：天神視角（god_as + god_key）跳過 LIFF，否則正常 LIFF 登入
-    const _p = new URLSearchParams(location.search);
-    const _godAs = _p.get('god_as'), _godKey = _p.get('god_key');
-    const _isGodView = _godAs && _godKey === GOD_KEY;
-    let member;
-    if (_isGodView) {
-      const { data } = await sb.from('members_master').select('id, name').eq('id', _godAs).single();
-      member = data;
-    } else {
-      await liff.init({ liffId: LIFF_ID });
-      // 登入完務必回到本頁（cert.html），否則會跳回 LIFF 綁定的 daily.html
-      if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
-      const profile = await liff.getProfile();
-      const { data } = await sb.from('members_master').select('id, name')
-        .eq('line_user_id', profile.userId).single();
-      member = data;
-    }
+    // 身份取得：一律走 LIFF 登入（天神視角後門已於 2026-09-10 移除）
+    await liff.init({ liffId: LIFF_ID });
+    // 登入完務必回到本頁（cert.html），否則會跳回 LIFF 綁定的 daily.html
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    const profile = await liff.getProfile();
+    const { data: member } = await sb.from('members_master').select('id, name')
+      .eq('line_user_id', profile.userId).single();
     if (!member) { showMsg('查無會員資料，無法顯示成長證明。'); return; }
     memberId = member.id;
     memberName = member.name;
