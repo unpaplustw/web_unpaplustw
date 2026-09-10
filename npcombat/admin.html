@@ -567,6 +567,15 @@ const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'�
 const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組'];
 // 28 期三種組：組別（第 N 組）是編制，track 是目標——兩件事，分開存（2026-08-29）
 const TRACKS = { learn:'初階學習組', action:'進階行動組', elite:'高階精英組' };
+// 報名時間：batch_students／batch_coaches 的 created_at 一直都有存，
+//   只是從來沒顯示過（2026-09-10 Randoph：「報名沒有壓報名時間說」）。
+//   toLocaleString 會用瀏覽器時區＝台北時間，不用自己轉。
+const regTime = ts => {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+};
+
 const trackName = t => TRACKS[t] || '—';
 // 組別小標籤：配對時不用上下對照（2026-09-10 Randoph）
 //   學員的 track＝他報名哪一組；教練的 track＝他帶的那一組是什麼班別。
@@ -1862,7 +1871,7 @@ function renderReview() {
       <div class="card">
         <div class="card-left">
           <div class="card-name">${nm(c)}${mc(c)}</div>
-          <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
+          <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}${c.created_at?` ｜ 報名 ${regTime(c.created_at)}`:''}</div>
           <div class="card-meta">這期締結目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '<span style="color:var(--muted)">未填</span>'}</div>
         </div>
         <div class="acts">${bdg(c.status)}
@@ -1880,7 +1889,7 @@ function renderReview() {
       <div class="card">
         <div class="card-left">
           <div class="card-name">${nm(s)}${mc(s)}</div>
-          <div class="card-meta">電話：${s.phone||'—'} ｜ 報名組別：<b>${trackName(s.track)}</b> ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
+          <div class="card-meta">電話：${s.phone||'—'} ｜ 報名組別：<b>${trackName(s.track)}</b> ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}${s.created_at?` ｜ 報名 ${regTime(s.created_at)}`:''}</div>
           ${needsIntro(s) ? (s.introduction ? `<div class="card-meta">自我定位：${s.introduction}</div>` : '<div class="card-meta" style="color:var(--yellow)">⚠️ 行動／精英組必須交自我定位，這位還沒交</div>') : ''}
         </div>
         <div class="acts">${bdg(s.status)}
@@ -1933,7 +1942,7 @@ function renderRosterSection() {
           <div class="roster-top">
             <div>
               <div class="card-name">${nm(c)}${mc(c)}</div>
-              <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'} ｜ 這期目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '未填'}</div>
+              <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'} ｜ 這期目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '未填'}${c.created_at?` ｜ 報名 ${regTime(c.created_at)}`:''}</div>
               <div class="roster-info" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="white-space:nowrap">組別</span>${isReadonly
                 ? `<span style="font-size:12px">${c.group_name||'未分組'}</span>`
                 : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select>`}<span style="white-space:nowrap">班別</span>${isReadonly
@@ -1966,7 +1975,7 @@ function renderRosterSection() {
         <div class="roster-top">
           <div>
             <div class="card-name">${nm(s)}${mc(s)}</div>
-            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
+            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${s.created_at?` ｜ 報名 ${regTime(s.created_at)}`:''}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
             <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>報名組別：</span>${isReadonly
               ? `<span style="font-size:12px">${trackName(s.track)}</span>`
               : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setStudentTrack('${s.id}',this.value)"><option value="">未指定</option>${Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${s.track===k?' selected':''}>${v}</option>`).join('')}</select>`}</div>
