@@ -1826,9 +1826,9 @@ function currentGuidePhase() {
   return 'during';                                  // 開班期間
 }
 
-// 社群改名格式的「28初」要跟著自己這一組的班別走（learn 初／action 行／elite 菁）
+// 社群改名格式的「28初」要跟著自己這一組的班別走（learn 初／action 進／elite 高）
 // —— 教練直接複製貼群，格式錯了 15 組會錯 8 組，所以由程式填不讓教練自己改。
-const TRACK_ABBR = { learn: '初', action: '行', elite: '菁' };
+const TRACK_ABBR = { learn: '初', action: '進', elite: '高' };
 function fillGuideTrack() {
   const pre = document.getElementById('cpBigGroup');
   if (!pre) return;
