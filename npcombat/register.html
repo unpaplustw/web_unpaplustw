@@ -799,6 +799,23 @@
 
 <script>
 const LIFF_ID      = '2009692859-1LNWRlIq';
+
+// 🔴 姓名防呆（2026-09-10）：報名表單原本學員填什麼就存什麼，
+//   進來過「Yoshie有喜悅😃」（LINE 暱稱）和「蔡素麗1」（多打一個數字），
+//   兩筆都得事後手動改資料庫。
+//   ⚠️ 只擋明顯異常，不擋罕見字——27 期有「魏睿䮄」「陳畇驊」這種字，
+//      用白名單會把真名擋掉。所以是黑名單：數字、emoji、拉丁字母。
+function nameProblem(s) {
+  s = (s || '').trim();
+  if (!s) return '請填寫姓名';
+  if (/[0-9０-９]/.test(s)) return '姓名不要有數字（是不是多打了？）';
+  if (/[A-Za-zＡ-Ｚａ-ｚ]/.test(s)) return '請填中文本名，不要用英文暱稱';
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u.test(s)) return '姓名不要有表情符號';
+  if (s.length < 2) return '姓名至少兩個字';
+  if (s.length > 10) return '姓名太長了，請填本名';
+  return null;
+}
+
 const SUPABASE_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
 // 報名要寫進哪一期（換屆只改 DB，不改碼）
@@ -945,7 +962,8 @@ async function handleStudentSubmit() {
   const errors = [];
   const memberCodeClean = memberCode.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{7}$/.test(memberCodeClean)) errors.push('會員編號必須是 7 位數字');
-  if (!name)        errors.push('請填寫姓名');
+  const nameErr = nameProblem(name);
+  if (nameErr) errors.push(nameErr);
   if (!phone)       errors.push('請填寫手機號碼');
   if (!registered)  errors.push('請選擇是否已完成 A Plus 系統註冊');
   if (registered === 'no') errors.push('請先完成 A Plus 系統官網註冊，再回來填寫報名表');
@@ -1064,7 +1082,8 @@ async function handleCoachSubmit() {
   const errors = [];
   const memberCodeClean = memberCode.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{7}$/.test(memberCodeClean)) errors.push('會員編號必須是 7 位數字');
-  if (!name)  errors.push('請填寫姓名');
+  const nameErr = nameProblem(name);
+  if (nameErr) errors.push(nameErr);
   if (!phone) errors.push('請填寫手機號碼');
   if (!rank)  errors.push('請選擇最佳榮譽資格');
   if (!cfc)   errors.push('請選擇直屬 CFC');
