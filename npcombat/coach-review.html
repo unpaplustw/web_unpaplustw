@@ -464,7 +464,7 @@
 
     <div class="guide-phase" data-phase="before">
       <div class="guide-phase-hd">🟢 開班前</div>
-      <div class="guide-phase-sub">報名 ～ 8/2 開班</div>
+      <div class="guide-phase-sub">報名 ～ 9/13 開班</div>
       <div class="guide-body" id="guideBefore">
 
         <div class="g-step">
@@ -533,7 +533,7 @@
 【1】加入實戰班社群
 https://ppt.cc/fJAcix
 進去後請完成：
-①名稱改為（27初/組別/學/姓名）
+①名稱改為（28初/組別/學/姓名）
 ②放上【本人照片】
 不會改👉 https://youtu.be/pRwtfxqY0gk
 照片要正方形👉 https://youtu.be/msFXvX3kYKo
@@ -623,13 +623,13 @@ https://ppt.cc/fJAcix
         </div>
 
         <div class="g-sec">
-          <div class="g-sec-t">⭐ 開班典禮（8/2 週日）</div>
+          <div class="g-sec-t">⭐ 開班典禮（9/13 週日）</div>
 
           <div class="g-do"><b>① 轉傳開班典禮連結到小組</b></div>
           <div class="g-copybox">
 <pre class="g-text" id="cpCeremony">📢開班典禮提醒📢
 
-⏰ 時間： 8/2（日） 20:50
+⏰ 時間： 9/13（日） 20:50
 🏠 房號： 6718 168 888
 🔑 密碼： 6718
 🔗 會議連結： https://us02web.zoom.us/j/6718168888
@@ -680,7 +680,7 @@ https://ppt.cc/fJAcix
 
     <div class="guide-phase" data-phase="during">
       <div class="guide-phase-hd">🔵 開班中</div>
-      <div class="guide-phase-sub">8/3 ～ 9/1 結業</div>
+      <div class="guide-phase-sub">9/14 ～ 10/11 結業</div>
       <div class="guide-body" id="guideDuring">
 
         <!-- 🔒 沒送出就不給貼：動線是 標記→回覆→送出→才貼今天（2026-08-29 Randoph） -->
@@ -778,7 +778,7 @@ https://ppt.cc/fJAcix
 
     <div class="guide-phase" data-phase="after">
       <div class="guide-phase-hd">🟡 開班後</div>
-      <div class="guide-phase-sub">9/1 結業 ～</div>
+      <div class="guide-phase-sub">10/11 結業 ～</div>
       <div class="guide-body" id="guideAfter">
         <div class="guide-placeholder">內容整理中，敬請期待 ✍️</div>
       </div>
@@ -1062,6 +1062,7 @@ async function init() {
     }
     coachId = coach.id;
     document.getElementById('coachName').textContent = member.name + ' 教練';
+    fillGuideTrack();                        // 社群改名格式要跟著這一組的班別
 
     // 查教練自己的 batch_students 記錄（用來填自己的回報）
     const { data: myStu } = await sb.from('batch_students').select('id')
@@ -1823,6 +1824,17 @@ function currentGuidePhase() {
   if (today < batchDates.start) return 'before';   // 開班日之前
   if (today > batchDates.end)   return 'after';    // 結業之後
   return 'during';                                  // 開班期間
+}
+
+// 社群改名格式的「28初」要跟著自己這一組的班別走（learn 初／action 行／elite 菁）
+// —— 教練直接複製貼群，格式錯了 15 組會錯 8 組，所以由程式填不讓教練自己改。
+const TRACK_ABBR = { learn: '初', action: '行', elite: '菁' };
+function fillGuideTrack() {
+  const pre = document.getElementById('cpBigGroup');
+  if (!pre) return;
+  const ab = TRACK_ABBR[myTrack] || '初';
+  pre.textContent = pre.textContent.split('\n').map(ln =>
+    ln.startsWith('①名稱改為（') ? `①名稱改為（28${ab}/組別/學/姓名）` : ln).join('\n');
 }
 
 function showGuidePhase(phase) {
