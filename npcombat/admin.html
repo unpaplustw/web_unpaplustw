@@ -596,7 +596,12 @@ const bdg = s => {
   const m = { pending:['b-pending','待審核'], approved:['b-approved','已批准'], rejected:['b-rejected','已拒絕'] };
   const [cls,txt] = m[s]||['',s]; return `<span class="badge ${cls}">${txt}</span>`;
 };
-const approvedCoaches = () => coaches.filter(c => c.status === 'approved');
+// 已批准教練一律依組別排序（第一組→第十六組，未分組殿後，同組再依姓名）。
+// 用字串排「第十組」會排在「第二組」前面，所以用 GROUPS 的索引，不用 localeCompare。
+// 配對挑教練、組織圖、上線下拉全部走這裡，排一次就到處都對。
+const groupIdx = c => { const i = GROUPS.indexOf(c.group_name || ''); return i === -1 ? 99 : i; };
+const approvedCoaches = () => coaches.filter(c => c.status === 'approved')
+  .sort((a, b) => groupIdx(a) - groupIdx(b) || nm(a).localeCompare(nm(b), 'zh-TW'));
 const sponsorStudents = cid => students.filter(s => s.sponsor_id === cid && s.status === 'approved');
 const pairedStudents  = cid => students.filter(s => s.coach_id === cid && s.status === 'approved');
 
@@ -1723,13 +1728,8 @@ function renderDashboard(target, part) {
     });
 
     // 依組別排序，未配對教練放最後
-    const sorted = Object.values(groups).filter(g => g.students.length && g.coach).sort((a, b) => {
-      const ga = a.coach.group_name || '';
-      const gb = b.coach.group_name || '';
-      const ia = GROUPS.indexOf(ga);
-      const ib = GROUPS.indexOf(gb);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    });
+    const sorted = Object.values(groups).filter(g => g.students.length && g.coach)
+      .sort((a, b) => groupIdx(a.coach) - groupIdx(b.coach));
 
     const dashVb = dashSimple ? '標記' : '確認';
 
@@ -1933,12 +1933,7 @@ function renderRosterSection() {
   if (rosterFilter !== 'no-coach') {
     h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
     if (cList.length) {
-      cList.sort((a,b) => {
-        const ga = a.group_name || '', gb = b.group_name || '';
-        const ia = GROUPS.indexOf(ga), ib = GROUPS.indexOf(gb);
-        const gi = (ia===-1?99:ia) - (ib===-1?99:ib);
-        return gi !== 0 ? gi : nm(a).localeCompare(nm(b),'zh-TW');
-      });
+      cList.sort((a,b) => groupIdx(a) - groupIdx(b) || nm(a).localeCompare(nm(b),'zh-TW'));
       cList.forEach(c => {
         h += `
         <div class="roster-card" id="rc-c-${c.id}">
@@ -2252,13 +2247,8 @@ function renderPairing() {
       if (!pairGroups[cid]) pairGroups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
       pairGroups[cid].students.push(s);
     });
-    const sortedGroups = Object.values(pairGroups).sort((a, b) => {
-      const ga = a.coach?.group_name || '';
-      const gb = b.coach?.group_name || '';
-      const ia = GROUPS.indexOf(ga);
-      const ib = GROUPS.indexOf(gb);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    });
+    const sortedGroups = Object.values(pairGroups)
+      .sort((a, b) => groupIdx(a.coach || {}) - groupIdx(b.coach || {}));
     h += `<div class="paired-section"><h3 style="cursor:pointer" onclick="var b=document.getElementById('pairedGroups');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')">
         <span>已配對（${paired.length}）<span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span>
         <input class="paired-search" placeholder="搜尋學員或教練…" oninput="event.stopPropagation();filterPaired(this.value)">
