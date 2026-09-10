@@ -1909,7 +1909,10 @@ let rosterSearch = '', rosterFilter = 'all';
 
 function renderRosterSection() {
   const ac = approvedCoaches();
-  let sList = students.filter(s => s.status === 'approved');
+  // 名冊依報名時間排序（2026-09-10 Randoph：「排序必須是報名時間」）——
+  //   先報先排，配對時看得出誰等最久。
+  let sList = students.filter(s => s.status === 'approved')
+    .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
   if (rosterFilter === 'no-coach') sList = sList.filter(s => !s.coach_id);
   if (rosterFilter === 'no-phone') sList = sList.filter(s => !s.phone);
   let cList = ac;
@@ -1975,7 +1978,7 @@ function renderRosterSection() {
         <div class="roster-top">
           <div>
             <div class="card-name">${nm(s)}${mc(s)}</div>
-            <div class="roster-info">電話：${s.phone||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${s.created_at?` ｜ 報名 ${regTime(s.created_at)}`:''}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
+            <div class="roster-info">領袖：${sp(s)||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${s.created_at?` <span style="color:var(--muted)">· 報名 ${regTime(s.created_at)}</span>`:''}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
             <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>報名組別：</span>${isReadonly
               ? `<span style="font-size:12px">${trackName(s.track)}</span>`
               : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setStudentTrack('${s.id}',this.value)"><option value="">未指定</option>${Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${s.track===k?' selected':''}>${v}</option>`).join('')}</select>`}</div>
