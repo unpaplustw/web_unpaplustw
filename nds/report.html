@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NDS 新入會回報</title>
+<title>NDS 新入會登錄</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
@@ -140,8 +140,8 @@ body {
   </div>
 
   <div class="header-title" id="headerTitle">
-    <h1>新入會回報</h1>
-    <p>幫新會員補齊資料與方案</p>
+    <h1>新入會登錄</h1>
+    <p>公司系統有的都不用填，一次登錄就好</p>
   </div>
 
   <div class="profile-section" id="profileSection">
@@ -152,13 +152,13 @@ body {
   <div class="result-box" id="resultBox"></div>
 
   <form id="ndsForm">
-    <div class="section-label">這張表是誰在填？</div>
+    <div class="section-label">登錄對象</div>
     <div class="form-group">
       <div class="btn-group">
-        <input type="radio" name="whoFills" id="wf0" value="proxy" checked><label for="wf0">我幫別人填</label>
-        <input type="radio" name="whoFills" id="wf1" value="self"><label for="wf1">我就是這位新人</label>
+        <input type="radio" name="whoFills" id="wf0" value="proxy" checked><label for="wf0">代填</label>
+        <input type="radio" name="whoFills" id="wf1" value="self"><label for="wf1">自己</label>
       </div>
-      <div class="hint" id="whoHint">代填的話，送出後會給你一條連結，傳給他點一下就完成綁定。</div>
+      <div class="hint" id="whoHint">代填的話，送出後請提醒他加入官方帳號，他自己從選單進來就能綁定。</div>
     </div>
 
     <input type="hidden" id="lineId">
@@ -166,11 +166,11 @@ body {
     <input type="hidden" id="oaId">
 
     <!-- A. 基本個資 -->
-    <div class="section-label">A · 這位新夥伴</div>
+    <div class="section-label">A · 新會員基本資料</div>
     <div class="form-group">
       <label class="req">會員編號（7碼）</label>
       <input type="text" id="midMain" class="styled-input" inputmode="numeric" placeholder="2675630" maxlength="7">
-      <div class="hint" id="midHint">填完會自動帶出這個人已有的資料。</div>
+      <div class="hint" id="midHint">填完編號會自動帶出這個人已有的資料。</div>
     </div>
     <div class="form-group">
       <label for="name" class="req">姓名</label>
@@ -191,15 +191,7 @@ body {
       <label for="birth">出生年月日</label>
       <input type="date" id="birth" class="styled-input">
     </div>
-    <div class="section-label">B · 購買與推薦</div>
-    <div class="form-group">
-      <div class="hint" style="border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px">
-        方案、商品、入會日、推薦人、安置位置<b>都不用填</b>——這些公司系統有，我們每月自動抓回來對帳。<br>
-        你只要確認上面的<b>編號、姓名、電話</b>正確就好。
-      </div>
-    </div>
-
-    <div class="section-label">C · 他為什麼加入</div>
+    <div class="section-label">B · 進度追蹤</div>
     <div id="quickBind" style="display:none" class="form-group"></div>
     <div id="intentKnown" style="display:none" class="form-group"></div>
     <div id="intentAsk">
@@ -322,7 +314,7 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
       const intentSkipped = (PERSON && PERSON.found && PERSON.intent
                               && document.getElementById('intentAsk').style.display==='none');
     if(!INTENT_CAT && !intentSkipped && Object.keys(INTENT_OPTS).length){
-      showResult('請選「D · 他為什麼加入」的主要期待。','warning'); resetBtn(); return;
+      showResult('請選「B · 進度追蹤」的主要期待。','warning'); resetBtn(); return;
     }
   const res = await fetch(NDS_RPC_URL, {
       method:'POST',
@@ -435,7 +427,7 @@ function onWhoChange(){
   if(m==='self'){
     h.textContent='你自己填的話，送出當下就直接綁定你的 LINE。';
   } else {
-    h.textContent='代填的話，送出後請提醒他自己加入官方帳號，他從選單進來就能綁定。';
+    h.textContent='代填的話，送出後請提醒他加入官方帳號，他自己從選單進來就能綁定。';
   }
   lookupPerson();
 }
@@ -457,7 +449,7 @@ async function lookupPerson(){
   // 帶入基本資料（只填空欄，不覆蓋已打的字）
   const P=PERSON.person||{};
   { const mh=document.getElementById('midHint');
-    if(mh) mh.innerHTML=(PERSON.branches||[]).length ? '這個人已有 <b>'+PERSON.branches.length+'</b> 個位置，資料會自動帶。' : '填完會自動帶出這個人已有的資料。'; }
+    if(mh) mh.innerHTML=(PERSON.branches||[]).length ? '這個人已經在系統裡，資料會自動帶。' : '填完編號會自動帶出這個人已有的資料。'; }
   const fill=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
   fill('name',P.name); fill('phone',P.phone); fill('birth',P.birth_date);
   if(P.gender){ const g=document.getElementById(P.gender==='女'?'gF':'gM'); if(g&&!document.querySelector('input[name="gender"]:checked')) g.checked=true; }
@@ -467,7 +459,7 @@ async function lookupPerson(){
     kb.style.display='';
     kb.innerHTML=`<div class="intent-known">
       <div style="font-weight:800;font-size:1.05rem">資料已經有了：${P.name||''}</div>
-      <div style="margin-top:4px;opacity:.8">已有 ${(PERSON.branches||[]).length} 個位置。你只要綁定就好，不用重填。</div>
+      <div style="margin-top:4px;opacity:.8">資料已經在系統裡了，你只要綁定就好，不用重填。</div>
       <button type="button" class="btn yes" style="width:100%;margin-top:12px;border:0;border-radius:14px;
         padding:16px;font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#00b09b,#96c93d);color:#fff;cursor:pointer"
         onclick="quickBind('${(PERSON.branches&&PERSON.branches[0])?main+'-'+PERSON.branches[0]:''}')">
@@ -493,7 +485,7 @@ async function lookupPerson(){
       // 有多個分號但沒問過期待 → 提示這是補問
       box.style.display='';
       box.innerHTML=`<div class="intent-known" style="border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.06)">
-        這個人已有 ${PERSON.branches.length} 個位置（${PERSON.branches.join('、')}），但<b>還沒問過期待</b>——順便補一下，之後回訪才有對照。</div>`;
+          這個人已經在系統裡，但<b>還沒問過期待</b>——順便補一下，之後回訪才有對照。</div>`;
     }
   }
 }
