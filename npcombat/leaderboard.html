@@ -279,7 +279,6 @@ let coachGroups = {};
 let coachInfo = {};
 let allLogs = [];
 let allCloses = [];
-let allBonusRules = [];
 let memberToStu = {};
 
 // ── 蓋牌：週日 00:00 → 週日 22:00 ──
@@ -443,10 +442,6 @@ async function reloadData() {
     .select('member_id, points, close_date, source, is_new, target_code, verified')
     .in('member_id', memberIds).not('verified', 'is', false);
   allCloses = closeData || [];
-
-  const { data: bonusData } = await sb.from('bonus_rules')
-    .select('*').eq('batch_id', currentBatch.id);
-  allBonusRules = bonusData || [];
 }
 
 function renderWeekBar() {
@@ -519,11 +514,9 @@ function calcStats(startDate, endDate) {
     fields.forEach(f => {
       const val = log[f] || 0;
       s[f] += val;
-      const matching = allBonusRules.filter(r => r.action_field === f && log.log_date >= r.start_date && log.log_date <= r.end_date);
-      const mult = matching.length ? Math.max(...matching.map(r => r.multiplier)) : 1;
       // 證明勾：有=全分，無=×0.5（僅生效日後）；簡單模式信任制→全額
       const proofMult = isSimpleMode() || !verify || proof[f] ? 1 : 0.5;
-      s.action_pts += val * BASE_PTS[f] * mult * proofMult;
+      s.action_pts += val * BASE_PTS[f] * proofMult;
     });
     // 🎙️小組回報 +5（生效日後要證明勾；之前學員聲明即給；簡單模式免證明）
     if (log.group_reported && (isSimpleMode() || !verify || proof.group)) s.action_pts += 5;

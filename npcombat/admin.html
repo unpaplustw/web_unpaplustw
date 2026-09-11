@@ -154,21 +154,6 @@
   .modal-textarea{width:100%;background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;color:var(--white);font-size:13px;font-family:inherit;line-height:1.8;resize:vertical;min-height:150px}
   .modal-textarea:focus{outline:none;border-color:var(--gold-bd)}
 
-  .bonus-form{background:var(--navy2);border:1px solid var(--gold-bd);border-radius:10px;padding:16px;margin-bottom:16px}
-  .bonus-row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
-  .bonus-field{display:flex;flex-direction:column;gap:4px}
-  .bonus-field label{font-size:11px;color:var(--muted)}
-  .bonus-field select,.bonus-field input{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
-  .bonus-field select:focus,.bonus-field input:focus{outline:none;border-color:var(--gold-bd)}
-  .btn-add-bonus{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--gold-bd);background:var(--gold-lt);color:var(--gold);font-family:inherit;transition:.2s;align-self:end}
-  .btn-add-bonus:hover{background:var(--gold-bd)}
-  .bonus-table{width:100%;border-collapse:collapse;margin-top:4px}
-  .bonus-table th{text-align:center;font-size:14px;color:var(--muted);font-weight:500;padding:10px 12px;border-bottom:1px solid var(--gold-bd)}
-  .bonus-table td{font-size:15px;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center}
-  .bonus-active{color:var(--green)}
-  .bonus-expired{color:var(--muted)}
-  .bonus-upcoming{color:var(--yellow)}
-
   .fin-table{width:100%;border-collapse:collapse}
   .fin-table th{text-align:left;font-size:12px;color:var(--muted);font-weight:400;padding:8px 10px;border-bottom:1px solid var(--gold-bd)}
   .fin-table td{font-size:13px;padding:10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
@@ -186,6 +171,8 @@
   .perm-tag.off{background:rgba(138,143,168,.1);color:var(--muted);text-decoration:line-through}
   .perm-add-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px}
   .perm-add-row select{background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:var(--white);font-size:13px;font-family:inherit}
+  .btn-add{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--gold-bd);background:var(--gold-lt);color:var(--gold);font-family:inherit;transition:.2s;align-self:end}
+  .btn-add:hover{background:var(--gold-bd)}
 
   /* ── 追蹤分析 ── */
   .track-row{background:var(--navy2);border:1px solid rgba(255,255,255,.06);border-left:3px solid var(--muted);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -383,7 +370,7 @@
   </div>
 
   <div class="panel" id="p-coach"><div id="orgArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-setup"><div id="setupArea" class="loading">載入中…</div><div id="bonusArea"></div></div>
+  <div class="panel" id="p-setup"><div id="setupArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-perm"><div id="permArea" class="loading">載入中…</div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -396,7 +383,14 @@ const sb = window.supabase.createClient(
 );
 
 const LIFF_ID = '2009692859-DepTDosN';
-let bid = null, students = [], coaches = [], bonusRules = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
+// 🔴 權限存在 admin_users.allowed_tabs，裡面還留著改版前的八個 key。
+//   登入時要對映（免得舊管理員被鎖在外面），權限頁顯示時也要——
+//   兩邊共用這一份，不要各留一份會走鐘。2026-08-17 改版、2026-09-11 收斂。
+const OLD2NEW = { dashboard:'now', track:'now', review:'roster', pairing:'roster',
+                  finance:'roster', org:'coach', bonus:'setup', perm:'perm' };
+const normTabs = raw => [...new Set((raw || []).map(t => OLD2NEW[t] || t))];
+
+let bid = null, students = [], coaches = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
 let allBatches = [], engRows = [], hwRows = [], makeupRows = [], submitRows = [];   // hwRows = homework_checks（作業檢核）   // engRows = coach_engagement（simple 模式的教練標記）
 let myAllowedTabs = [];
 let isReadonly = false;
@@ -429,12 +423,7 @@ async function init() {
     const { data: admin } = await sb.from('admin_users').select('allowed_tabs')
       .eq('member_id', member.id).single();
     if (admin) {
-      // 舊 allowed_tabs（dashboard/track/review/org/pairing/bonus/finance/perm）→ 新五 Tab 對映，
-      // 免得改版後既有管理員被鎖在外面（2026-08-17 重整）
-      const OLD2NEW = { dashboard:'now', track:'now', review:'roster', pairing:'roster',
-                        finance:'roster', org:'coach', bonus:'setup', perm:'perm' };
-      const raw = admin.allowed_tabs || [];
-      myAllowedTabs = [...new Set(raw.map(t => OLD2NEW[t] || t))];
+      myAllowedTabs = normTabs(admin.allowed_tabs);
       isReadonly = false;
     } else {
       // 非管理員 → 檢查是否為教練 → 唯讀模式
@@ -509,9 +498,6 @@ async function load() {
     .select('id, member_id, phone, rank, cfc, group_name, track, goal_close, status, created_at, members_master(name, member_code)')
     .eq('batch_id', bid);
   coaches = c || [];
-  const { data: br } = await sb.from('bonus_rules')
-    .select('*').eq('batch_id', bid).order('start_date');
-  bonusRules = br || [];
   const { data: au } = await sb.from('admin_users')
     .select('*, members_master(name, member_code)');
   adminUsers = au || [];
@@ -620,7 +606,7 @@ const TAB_RENDER = {
   now:    () => renderNow(),
   roster: () => { renderReview(); renderPairing(); renderFinance(); renderRosterBar(); },
   coach:  () => renderOrg(),
-  setup:  () => { renderSetup(); renderBonus(); },
+  setup:  () => renderSetup(),
   perm:   () => renderPerm(),
 };
 const tabPainted = new Set();
@@ -2373,70 +2359,6 @@ async function setStudentTrack(sid, track) {
 }
 
 // ════════════════════════════════════════════
-// Tab 4: 加權設定
-// ════════════════════════════════════════════
-function renderBonus() {
-  const today = localDateStr(new Date());
-  const actionOpts = Object.entries(ACTION_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
-
-  let h = '';
-  if (!isReadonly) {
-    h += `<div class="bonus-form">
-      <div class="sec-title" style="margin-top:0"><span>新增加權規則</span></div>
-      <div class="bonus-row">
-        <div class="bonus-field"><label>項目</label><select id="br_action">${actionOpts}</select></div>
-        <div class="bonus-field"><label>倍率</label><input id="br_multi" type="number" min="1.5" max="10" step="0.5" value="2" style="width:70px"></div>
-        <div class="bonus-field"><label>開始日期</label><input id="br_start" type="date"></div>
-        <div class="bonus-field"><label>結束日期</label><input id="br_end" type="date"></div>
-        <button class="btn-add-bonus" onclick="addBonus()">新增</button>
-      </div>
-    </div>`;
-  }
-
-  h += `<div class="sec-title"><span>目前規則</span><span class="sec-count">${bonusRules.length} 筆</span></div>`;
-  if (bonusRules.length) {
-    h += `<table class="bonus-table"><thead><tr><th>項目</th><th>倍率</th><th>期間</th><th>狀態</th>${isReadonly ? '' : '<th></th>'}</tr></thead><tbody>`;
-    bonusRules.forEach(r => {
-      let st, cls;
-      if (today > r.end_date) { st = '已結束'; cls = 'bonus-expired'; }
-      else if (today < r.start_date) { st = '未開始'; cls = 'bonus-upcoming'; }
-      else { st = '生效中'; cls = 'bonus-active'; }
-      h += `<tr>
-        <td>${ACTION_LABELS[r.action_field]||r.action_field}</td>
-        <td style="color:var(--gold);font-weight:600">×${r.multiplier}</td>
-        <td>${r.start_date} ~ ${r.end_date}</td>
-        <td><span class="${cls}">${st}</span></td>
-        ${isReadonly ? '' : `<td><button class="btn btn-no" onclick="delBonus(${r.id})">刪除</button></td>`}
-      </tr>`;
-    });
-    h += `</tbody></table>`;
-  } else {
-    h += `<div class="empty"><div class="empty-icon">⚡</div><div class="empty-text">尚無加權規則</div></div>`;
-  }
-  document.getElementById('bonusArea').innerHTML = h;
-}
-
-async function addBonus() {
-  const action = document.getElementById('br_action').value;
-  const multiplier = parseFloat(document.getElementById('br_multi').value);
-  const start_date = document.getElementById('br_start').value;
-  const end_date = document.getElementById('br_end').value;
-  if (!start_date || !end_date) return alert('請選擇起訖日期');
-  if (end_date < start_date) return alert('結束日期不可早於開始日期');
-  if (isNaN(multiplier) || multiplier < 1) return alert('倍率至少為 1');
-  const { error } = await sb.from('bonus_rules').insert({ batch_id: bid, action_field: action, multiplier, start_date, end_date });
-  if (error) return alert('新增失敗：' + error.message);
-  toast('加權規則已新增'); await load();
-}
-
-async function delBonus(id) {
-  if (!confirm('確認刪除此加權規則？')) return;
-  const { error } = await sb.from('bonus_rules').delete().eq('id', id);
-  if (error) return alert('刪除失敗：' + error.message);
-  toast('加權規則已刪除'); await load();
-}
-
-// ════════════════════════════════════════════
 // Tab 6: 帳務管理
 // ════════════════════════════════════════════
 let finSearch = '';
@@ -2525,15 +2447,14 @@ async function saveTransferCode(sid) {
 // ════════════════════════════════════════════
 // Tab 7: 權限管理
 // ════════════════════════════════════════════
+// 跟上面 tab bar 的五顆按鈕一一對應。舊的八個 key（dashboard/track/review/
+// org/pairing/bonus/finance）已經沒有對應的畫面，靠 OLD2NEW 收進這五個。
 const ALL_TABS = [
-  { key:'dashboard', label:'資訊版' },
-  { key:'track', label:'追蹤分析' },
-  { key:'review', label:'審核名冊' },
-  { key:'org', label:'教練組織' },
-  { key:'pairing', label:'配對管理' },
-  { key:'bonus', label:'加權設定' },
-  { key:'finance', label:'帳務管理' },
-  { key:'perm', label:'權限管理' }
+  { key:'now',    label:'📊 分析' },
+  { key:'roster', label:'👥 名冊' },
+  { key:'coach',  label:'🎓 教練' },
+  { key:'setup',  label:'⚙️ 設定' },
+  { key:'perm',   label:'🔐 權限' }
 ];
 
 function renderPerm() {
@@ -2545,7 +2466,7 @@ function renderPerm() {
       <option value="">— 選擇教練 —</option>
       ${coaches.map(c => `<option value="${c.member_id || ''}">${nm(c)}${mc(c)}</option>`).join('')}
     </select></div>
-    <button class="btn-add-bonus" onclick="addAdmin()">新增</button>
+    <button class="btn-add" onclick="addAdmin()">新增</button>
   </div>`;
 
   h += `<div class="sec-title"><span>管理員清單</span><span class="sec-count">${adminUsers.length} 人</span></div>`;
@@ -2554,7 +2475,7 @@ function renderPerm() {
     h += `<div class="empty"><div class="empty-icon">🔐</div><div class="empty-text">尚無管理員</div></div>`;
   } else {
     adminUsers.forEach(a => {
-      const tabs = a.allowed_tabs || [];
+      const tabs = normTabs(a.allowed_tabs);
       h += `<div class="perm-card">
         <div>
           <div class="card-name">${a.members_master?.name||'（未知）'}${a.members_master?.member_code ? '（'+a.members_master.member_code+'）' : ''}</div>
@@ -2583,7 +2504,8 @@ async function addAdmin() {
 async function toggleTab(adminId, tabKey, enable) {
   const admin = adminUsers.find(a => a.id === adminId);
   if (!admin) return;
-  let tabs = [...(admin.allowed_tabs || [])];
+  // 先正規化再改：舊 key（dashboard/track…）不轉的話，關掉「分析」會關不掉
+  let tabs = normTabs(admin.allowed_tabs);
   if (enable && !tabs.includes(tabKey)) tabs.push(tabKey);
   if (!enable) tabs = tabs.filter(t => t !== tabKey);
   const { error } = await sb.from('admin_users').update({ allowed_tabs: tabs }).eq('id', adminId);

@@ -62,15 +62,6 @@ body {
 .styled-input::placeholder { color: rgba(255,255,255,0.4); font-weight: 400; }
 .styled-input:focus, .styled-select:focus { background: rgba(0,0,0,0.35); border-color: var(--accent-strong); box-shadow: 0 0 0 4px rgba(0,210,255,0.25); }
 
-/* 編號 + 分店 兩格 */
-.dual { display: flex; align-items: center; gap: 10px; }
-.dual .styled-input { text-align: center; letter-spacing: 2px; }
-.dual .dash { font-size: 1.6rem; font-weight: 800; color: var(--text-soft); }
-.dual .col { display: flex; flex-direction: column; }
-.dual .col.main { flex: 2.2; }
-.dual .col.branch { flex: 1; }
-.dual .cap { font-size: 0.82rem; color: var(--text-soft); margin-bottom: 4px; text-align: center; }
-
 /* 大按鈕選擇組（性別/方案/付款） */
 .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn-group input { display: none; }
@@ -166,7 +157,6 @@ body {
       <div class="btn-group">
         <input type="radio" name="whoFills" id="wf0" value="proxy" checked><label for="wf0">我幫別人填</label>
         <input type="radio" name="whoFills" id="wf1" value="self"><label for="wf1">我就是這位新人</label>
-        <input type="radio" name="whoFills" id="wf2" value="branch"><label for="wf2">我自己<br>開分店</label>
       </div>
       <div class="hint" id="whoHint">代填的話，送出後會給你一條連結，傳給他點一下就完成綁定。</div>
     </div>
@@ -180,7 +170,7 @@ body {
     <div class="form-group">
       <label class="req">會員編號（7碼）</label>
       <input type="text" id="midMain" class="styled-input" inputmode="numeric" placeholder="2675630" maxlength="7">
-      <div class="hint" id="midHint">填完會自動帶出這個人已有的資料。分店號不用填，公司資料會帶。</div>
+      <div class="hint" id="midHint">填完會自動帶出這個人已有的資料。</div>
     </div>
     <div class="form-group">
       <label for="name" class="req">姓名</label>
@@ -201,13 +191,6 @@ body {
       <label for="birth">出生年月日</label>
       <input type="date" id="birth" class="styled-input">
     </div>
-    <details class="fold" id="branchFold" style="display:none">
-      <summary>分店編號：<b id="branchEcho">001</b></summary>
-      <div class="form-group" style="margin-top:10px">
-        <input type="text" id="midBranch" class="styled-input" inputmode="numeric" maxlength="3" value="001">
-        <div class="hint" id="branchHint"></div>
-      </div>
-    </details>
     <div class="section-label">B · 購買與推薦</div>
     <div class="form-group">
       <div class="hint" style="border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px">
@@ -265,7 +248,7 @@ const DEFAULT_OA = "randoph";
 const SUPABASE_URL  = "https://nsgqsopqlkhayuefdout.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
 const NDS_RPC_URL   = SUPABASE_URL + "/rest/v1/rpc/nds_report_submit";
-const RE_MAIN = /^\d{7}$/, RE_BRANCH = /^\d{3}$/;
+  const RE_MAIN = /^\d{7}$/;
 
 function getOaFromUrl(){ try { return new URLSearchParams(location.search).get('oa')||''; } catch(e){ return ''; } }
 function showResult(msg,type){ const b=document.getElementById('resultBox'); b.className='result-box '+type; b.textContent=msg; b.style.display='block'; b.scrollIntoView({behavior:'smooth',block:'center'}); }
@@ -311,14 +294,15 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
   const btn=document.getElementById('submitBtn'); btn.disabled=true;
   document.getElementById('btnText').textContent='送出中…'; document.getElementById('btnSpinner').style.display='block';
 
-  const midMain=document.getElementById('midMain').value.trim(), midBranch=document.getElementById('midBranch').value.trim();
+  const midMain=document.getElementById('midMain').value.trim();
+  const midBranch='001';   // 分店一律 001——開分店不走這張表（2026-09-11 Randoph 定）
   const name=document.getElementById('name').value.trim();
   const phone=document.getElementById('phone').value.trim();
   const gender=(document.querySelector('input[name="gender"]:checked')||{}).value||'';
   const birth=document.getElementById('birth').value||'';
 
   // 驗證
-  if(!RE_MAIN.test(midMain)||!RE_BRANCH.test(midBranch)){ showResult('會員編號錯誤：編號7碼、分店3碼，例 2675630 / 001。','error'); resetBtn(); return; }
+  if(!RE_MAIN.test(midMain)){ showResult('會員編號錯誤：請填 7 碼，例 2675630。','error'); resetBtn(); return; }
   if(name.length<2){ showResult('請輸入正確姓名。','error'); resetBtn(); return; }
   if(!/^09\d{8}$/.test(phone)){ showResult('請輸入正確的 10 碼手機（09 開頭）。','error'); resetBtn(); return; }
 
@@ -335,8 +319,7 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
 
   try {
     /* 主要寫入：進隔離區（戰情台 🧪 隔離區 頁籤審核） */
-      const intentSkipped = whoMode()==='branch'
-                          || (PERSON && PERSON.found && PERSON.intent
+      const intentSkipped = (PERSON && PERSON.found && PERSON.intent
                               && document.getElementById('intentAsk').style.display==='none');
     if(!INTENT_CAT && !intentSkipped && Object.keys(INTENT_OPTS).length){
       showResult('請選「D · 他為什麼加入」的主要期待。','warning'); resetBtn(); return;
@@ -372,9 +355,7 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     btn.style.background='linear-gradient(135deg,#00b09b,#96c93d)';
 
     const mode = whoMode();
-    if(mode==='branch'){
-      showResult('✅ 分店回報已送出（'+payload.member_id+'），等審核通過就會進系統。','success');
-    } else if(mode==='self' && payload.line_id){
+    if(mode==='self' && payload.line_id){
       const bd = await rpc('nds_bind_self', { member_id: payload.member_id,
         line_uid: payload.line_id, line_name: payload.line_name });
       showResult(bd&&bd.success
@@ -442,7 +423,7 @@ async function checkWhoami(){
     const l1=document.querySelector('label[for="wf1"]'); if(l1) l1.style.opacity=.35;
     document.getElementById('wf0').checked=true;
     document.getElementById('whoHint').innerHTML=
-      '這支 LINE 是 <b>'+BOUND.name+'</b>。幫別人報名選左邊，幫自己加開位置選「我自己開分店」。';
+      '這支 LINE 是 <b>'+BOUND.name+'</b>，所以預設是幫別人填。';
   }
 }
 
@@ -451,15 +432,7 @@ async function checkWhoami(){
 function whoMode(){ return (document.querySelector('input[name="whoFills"]:checked')||{}).value||'proxy'; }
 function onWhoChange(){
   const m=whoMode(), h=document.getElementById('whoHint');
-  if(m==='branch'){
-    h.innerHTML='幫<b>自己</b>加開一個位置（BC）。姓名、電話、期待都沿用原本的，只要確認新位置的分店號。';
-    if(BOUND&&BOUND.bound){
-      document.getElementById('midMain').value=BOUND.main;   // 自動帶入本人主編號
-      const bf=document.getElementById('branchFold'); bf.style.display=''; bf.open=true;   // 只有開分店模式才顯示
-    }
-    const bf2=document.getElementById('branchFold'); if(bf2){bf2.style.display='none'; bf2.open=false;}
-    const mb2=document.getElementById('midBranch'); if(mb2) mb2.value='001';
-  } else if(m==='self'){
+  if(m==='self'){
     h.textContent='你自己填的話，送出當下就直接綁定你的 LINE。';
   } else {
     h.textContent='代填的話，送出後請提醒他自己加入官方帳號，他從選單進來就能綁定。';
@@ -467,7 +440,7 @@ function onWhoChange(){
   lookupPerson();
 }
 
-/* ===== 同一個人開分店：自動帶入，不要重問 ===== */
+/* ===== 帶出已有資料，不要重問 ===== */
 let PERSON=null;
 async function lookupPerson(){
   const main=(document.getElementById('midMain').value||'').replace(/\D/g,'');
@@ -483,22 +456,11 @@ async function lookupPerson(){
 
   // 帶入基本資料（只填空欄，不覆蓋已打的字）
   const P=PERSON.person||{};
-  if(whoMode()!=='branch'){ const mh=document.getElementById('midHint');
-    if(mh) mh.innerHTML=(PERSON.branches||[]).length ? '這個人已有 <b>'+PERSON.branches.length+'</b> 個位置，分店號不用填。' : '分店號不用填，公司資料會帶。'; }
+  { const mh=document.getElementById('midHint');
+    if(mh) mh.innerHTML=(PERSON.branches||[]).length ? '這個人已有 <b>'+PERSON.branches.length+'</b> 個位置，資料會自動帶。' : '填完會自動帶出這個人已有的資料。'; }
   const fill=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
   fill('name',P.name); fill('phone',P.phone); fill('birth',P.birth_date);
   if(P.gender){ const g=document.getElementById(P.gender==='女'?'gF':'gM'); if(g&&!document.querySelector('input[name="gender"]:checked')) g.checked=true; }
-  // 建議下一個分號
-  const mb=document.getElementById('midBranch');
-  if(mb&&whoMode()==='branch'&&(!mb.value||mb.value==='001')&&PERSON.next_branch) mb.value=PERSON.next_branch;
-
-  // 已有位置：只有「自己開分店」模式才需要看到分店欄
-  if((PERSON.branches||[]).length && whoMode()==='branch'){
-    const bf=document.getElementById('branchFold'); bf.style.display=''; bf.open=true;
-    document.getElementById('branchEcho').textContent=PERSON.next_branch||'001';
-    document.getElementById('branchHint').innerHTML=
-      '這個人已有 <b>'+PERSON.branches.length+'</b> 個位置（'+PERSON.branches.join('、')+'），已自動跳到下一號。';
-  }
   // 本人自己進來、資料已被代填過、而且還沒綁 → 直接綁，不用重填
   const kb=document.getElementById('quickBind');
   if(whoMode()==='self' && !(BOUND&&BOUND.bound)){
@@ -512,12 +474,6 @@ async function lookupPerson(){
         這就是我，綁定我的 LINE</button></div>`;
   } else { kb.style.display='none'; }
 
-  if(whoMode()==='branch'){
-    document.getElementById('intentAsk').style.display='none';
-    document.getElementById('intentKnown').style.display='none';
-    document.getElementById('quickBind').style.display='none';
-    return;
-  }
   const I=PERSON.intent;
   if(I){
     // 已問過 → 整段收起來，只顯示已知
@@ -558,8 +514,6 @@ function reAskIntent(){
 document.addEventListener('DOMContentLoaded',()=>{
   const el=document.getElementById('midMain');
   if(el){ el.addEventListener('blur',lookupPerson); el.addEventListener('change',lookupPerson); }
-  const mb=document.getElementById('midBranch');
-  if(mb) mb.addEventListener('input',()=>{ document.getElementById('branchEcho').textContent=mb.value||'001'; });
   // 折疊摘要即時回顯，收起來也看得到填了什麼
   const echo=()=>{
     if(pe) pe.textContent=[pn,pl].filter(Boolean).join(' · ')||'未填';
