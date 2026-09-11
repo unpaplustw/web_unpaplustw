@@ -585,7 +585,7 @@ https://ppt.cc/fJAcix
 
         <div class="g-step">
           <div class="g-step-hd"><span class="g-step-n">5</span><span class="g-step-t">開班典禮前，發提醒文案</span></div>
-          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前。<b>不用等全員到齊</b>——人陸續進來就可以先發 A，等大家都到齊了再發 B。<br>👉 <b>怎麼做：</b>複製文案，<b>先改成自己的組別和名字</b>，再貼到小組。</div>
+          <div class="g-step-when">📌 <b>什麼時候：</b>開班典禮前。<b>不用等全員到齊</b>——人陸續進來就可以先發 A，等大家都到齊了再發 B。<br>👉 <b>怎麼做：</b><b>組別和名字系統已經幫你填好</b>，複製直接貼到小組就行。</div>
           <div class="g-step-body">
             <div class="g-do"><b>A. 平常發</b>（人還在陸續加入時）</div>
             <div class="g-copybox">
@@ -1062,7 +1062,7 @@ async function init() {
     }
     coachId = coach.id;
     document.getElementById('coachName').textContent = member.name + ' 教練';
-    fillGuideTrack();                        // 社群改名格式要跟著這一組的班別
+    fillGuideMe(member.name);                // 社群改名格式＋歡迎文案的組別姓名
 
     // 查教練自己的 batch_students 記錄（用來填自己的回報）
     const { data: myStu } = await sb.from('batch_students').select('id')
@@ -1829,12 +1829,21 @@ function currentGuidePhase() {
 // 社群改名格式的「28初」要跟著自己這一組的班別走（learn 初／action 進／elite 高）
 // —— 教練直接複製貼群，格式錯了 15 組會錯 8 組，所以由程式填不讓教練自己改。
 const TRACK_ABBR = { learn: '初', action: '進', elite: '高' };
-function fillGuideTrack() {
+function fillGuideMe(myName) {
+  // 社群改名格式：28初／28進／28高 依這一組的 track 帶
   const pre = document.getElementById('cpBigGroup');
-  if (!pre) return;
-  const ab = TRACK_ABBR[myTrack] || '初';
-  pre.textContent = pre.textContent.split('\n').map(ln =>
-    ln.startsWith('①名稱改為（') ? `①名稱改為（28${ab}/組別/學/姓名）` : ln).join('\n');
+  if (pre) {
+    const ab = TRACK_ABBR[myTrack] || '初';
+    pre.textContent = pre.textContent.split('\n').map(ln =>
+      ln.startsWith('①名稱改為（') ? `①名稱改為（28${ab}/組別/學/姓名）` : ln).join('\n');
+  }
+  // 歡迎文案的「我是第＿＿組的教練＿＿＿」：組別與姓名直接填好——
+  // 教練少改兩個空格，就少一次「忘了改就貼出去」。沒組別（總教練）時留空白給他自己填。
+  const hi = document.getElementById('cpAllHere');
+  if (hi && myGroupName && myName) {
+    hi.textContent = hi.textContent.split('\n').map(ln =>
+      ln.startsWith('我是第') ? `我是${myGroupName}的教練${myName}，以下有幾件事情請大家留意一下：` : ln).join('\n');
+  }
 }
 
 function showGuidePhase(phase) {
