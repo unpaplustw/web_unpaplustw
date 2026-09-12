@@ -593,7 +593,10 @@ const trackTag = t => t ? `<span class="tk tk-${t}">${TRACK_TAG[t]}</span>` : ''
 // 只有行動組／精英組要交自我定位；學習組（直推 1）不用
 const needsIntro = s => s.track === 'action' || s.track === 'elite';
 const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
-const CFC_OPTIONS = ['顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
+// 🔴 榮譽資格與直屬 CFC 的選項共兩處副本：這裡與 register.html（教練報名表）。
+//    改一邊一定要改兩邊 —— 2026-09-12 發現 admin 少了「李美潤」，而黃致豪就是李美潤，
+//    按他的「編輯」會找不到對應的 option，存下去直屬 CFC 就被洗掉。
+const CFC_OPTIONS = ['李美潤','顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 
 // ── Helpers ──
 const nm = r => r.members_master?.name || '（未知）';
@@ -1959,7 +1962,7 @@ function renderReview() {
       <div class="card">
         <div class="card-left">
           <div class="card-name">${nm(c)}${mc(c)}</div>
-          <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}${c.created_at?` ｜ 報名 ${regTime(c.created_at)}`:''}</div>
+          <div class="card-meta">電話：${c.phone||'—'} ｜ 榮譽資格：${c.rank||'—'} ｜ 直屬 CFC：${c.cfc||'—'}${c.created_at?` ｜ 報名 ${regTime(c.created_at)}`:''}</div>
           <div class="card-meta">這期締結目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '<span style="color:var(--muted)">未填</span>'}</div>
         </div>
         <div class="acts">${bdg(c.status)}
@@ -2054,7 +2057,7 @@ function renderRoster() {
     const my = (byCoach[c.id] || []).sort(byTime);
     return treeCard(
       `${c.group_name || '未分組'}　${nm(c)}${mc(c)}`,
-      `目標 ${c.goal_close ? c.goal_close + ' 件' : '未填'} ｜ 資格 ${c.rank||'—'} ｜ CFC ${c.cfc||'—'}`,
+      `目標 ${c.goal_close ? c.goal_close + ' 件' : '未填'} ｜ 榮譽資格 ${c.rank||'—'} ｜ 直屬 CFC ${c.cfc||'—'}`,
       trackTag(c.track),                       // 🔴 吃字串不是物件——傳物件會印出 undefined
       my.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''),
       `${my.length} 名`, !my.length);
@@ -2072,12 +2075,16 @@ function showEditCoach(cid) {
   const c = coaches.find(x => x.id === cid);
   if (!c) return;
   const el = document.getElementById('edit-c-' + cid);
-  const rankOpts = RANK_OPTIONS.map(r => `<option value="${r}"${c.rank===r?' selected':''}>${r}</option>`).join('');
-  const cfcOpts = CFC_OPTIONS.map(f => `<option value="${f}"${c.cfc===f?' selected':''}>${f}</option>`).join('');
+  // 🔴 防呆：DB 裡存的值若不在選項清單裡（兩處副本漂移過），照樣列出來並標「⚠️ 清單外」。
+  //    不補的話 select 找不到對應 option → 一按儲存那個值就被洗掉（黃致豪的「李美潤」差點中）。
+  const optList = (arr, cur) => (cur && !arr.includes(cur) ? [...arr, cur] : arr)
+    .map(v => `<option value="${v}"${cur === v ? ' selected' : ''}>${v}${arr.includes(v) ? '' : '（⚠️ 清單外）'}</option>`).join('');
+  const rankOpts = optList(RANK_OPTIONS, c.rank);
+  const cfcOpts  = optList(CFC_OPTIONS,  c.cfc);
   el.innerHTML = `<div class="edit-row">
     <div class="edit-field"><label>電話</label><input id="ec-phone-${cid}" value="${c.phone||''}"></div>
-    <div class="edit-field"><label>資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>
-    <div class="edit-field"><label>CFC</label><select id="ec-cfc-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${cfcOpts}</select></div>
+    <div class="edit-field"><label>榮譽資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>
+    <div class="edit-field"><label>直屬 CFC</label><select id="ec-cfc-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${cfcOpts}</select></div>
     <button class="btn-save" onclick="saveEditCoach('${cid}')">儲存</button>
     <button class="btn-cancel" onclick="renderPairing()">取消</button>
   </div>`;
