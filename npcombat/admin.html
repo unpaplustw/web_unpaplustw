@@ -7,6 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
+<script src="consts.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
   :root {
@@ -570,10 +571,9 @@ const WDAY = ['日','一','二','三','四','五','六'];
 // 27 期 8/20 上完最後一堂，8/21 起是行動週，那時再叫「上課日」就錯了
 const refDayLabel = () => ((SCHEDULE || {})[lastWeekday()] || []).length ? '上一個上課日' : '上一個平日';
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// 榮譽資格／直屬 CFC／班別／組別／精英席次 → consts.js（唯一正本，register.html 也讀同一份）
 const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'邀約見面', present:'邀請溝通本', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
-const GROUPS = ['第一組','第二組','第三組','第四組','第五組','第六組','第七組','第八組','第九組','第十組','第十一組','第十二組','第十三組','第十四組','第十五組','第十六組'];
 // 28 期三種組：組別（第 N 組）是編制，track 是目標——兩件事，分開存（2026-08-29）
-const TRACKS = { learn:'初階學習組', action:'進階行動組', elite:'高階精英組' };
 // 報名時間：batch_students／batch_coaches 的 created_at 一直都有存，
 //   只是從來沒顯示過（2026-09-10 Randoph：「報名沒有壓報名時間說」）。
 //   toLocaleString 會用瀏覽器時區＝台北時間，不用自己轉。
@@ -587,16 +587,9 @@ const trackName = t => TRACKS[t] || '—';
 // 組別小標籤：配對時不用上下對照（2026-09-10 Randoph）
 //   學員的 track＝他報名哪一組；教練的 track＝他帶的那一組是什麼班別。
 //   兩邊都標出來，一眼看得出「這個行動組的人要配給行動班的教練」。
-const ELITE_SEATS = 5;                          // 高階精英組席次上限（Randoph 定，28 期額滿即止）
-const TRACK_TAG = { learn: '📚 學習', action: '🏃 行動', elite: '⚡ 精英' };
 const trackTag = t => t ? `<span class="tk tk-${t}">${TRACK_TAG[t]}</span>` : '';
 // 只有行動組／精英組要交自我定位；學習組（直推 1）不用
 const needsIntro = s => s.track === 'action' || s.track === 'elite';
-const RANK_OPTIONS = ['成就','星鑽','高峰','CFC'];
-// 🔴 榮譽資格與直屬 CFC 的選項共兩處副本：這裡與 register.html（教練報名表）。
-//    改一邊一定要改兩邊 —— 2026-09-12 發現 admin 少了「李美潤」，而黃致豪就是李美潤，
-//    按他的「編輯」會找不到對應的 option，存下去直屬 CFC 就被洗掉。
-const CFC_OPTIONS = ['李美潤','顏麗玉、游天貴','李芊嬅','張隆熙','林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合'];
 
 // ── Helpers ──
 const nm = r => r.members_master?.name || '（未知）';
@@ -2077,10 +2070,8 @@ function showEditCoach(cid) {
   const el = document.getElementById('edit-c-' + cid);
   // 🔴 防呆：DB 裡存的值若不在選項清單裡（兩處副本漂移過），照樣列出來並標「⚠️ 清單外」。
   //    不補的話 select 找不到對應 option → 一按儲存那個值就被洗掉（黃致豪的「李美潤」差點中）。
-  const optList = (arr, cur) => (cur && !arr.includes(cur) ? [...arr, cur] : arr)
-    .map(v => `<option value="${v}"${cur === v ? ' selected' : ''}>${v}${arr.includes(v) ? '' : '（⚠️ 清單外）'}</option>`).join('');
-  const rankOpts = optList(RANK_OPTIONS, c.rank);
-  const cfcOpts  = optList(CFC_OPTIONS,  c.cfc);
+  const rankOpts = optionsWithCurrent(RANK_OPTIONS, c.rank);
+  const cfcOpts  = optionsWithCurrent(CFC_OPTIONS,  c.cfc);
   el.innerHTML = `<div class="edit-row">
     <div class="edit-field"><label>電話</label><input id="ec-phone-${cid}" value="${c.phone||''}"></div>
     <div class="edit-field"><label>榮譽資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>

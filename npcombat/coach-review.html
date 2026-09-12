@@ -7,6 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
+<script src="consts.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
   :root {
@@ -1476,7 +1477,7 @@ const activeStudents = () => studentList.filter(s => !s.dropped_at);
 //   所以這裡只管「前兩週誰要交作業」。（2026-09-02 Randoph）
 const learnStudents = () => activeStudents();   // 班別看組不看人，整組同一種
 // 組別小標籤：27 期以前 track 是 null，不顯示（避免整排無意義的標籤）
-const TRACK_TAG = { learn: '📚 學習', action: '🏃 行動', elite: '⚡ 精英' };
+// TRACK_TAG／TRACK_ABBR 在 consts.js（唯一正本，admin.html 也讀同一份）
 const trackTag = s => s.track ? `<span class="tk tk-${s.track}">${TRACK_TAG[s.track] || ''}</span>` : '';
 const droppedStudents = () => studentList.filter(s => s.dropped_at);
 
@@ -1828,7 +1829,6 @@ function currentGuidePhase() {
 
 // 社群改名格式的「28初」要跟著自己這一組的班別走（learn 初／action 進／elite 高）
 // —— 教練直接複製貼群，格式錯了 15 組會錯 8 組，所以由程式填不讓教練自己改。
-const TRACK_ABBR = { learn: '初', action: '進', elite: '高' };
 function fillGuideMe(myName) {
   // 社群改名格式：28初／28進／28高 依這一組的 track 帶
   const pre = document.getElementById('cpBigGroup');

@@ -6,6 +6,7 @@
 <title>實戰班｜報名登記</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="consts.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;600&display=swap');
 
@@ -696,25 +697,15 @@
 
       <div class="field">
         <label>最佳榮譽資格 <span class="req">*</span></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <label class="radio-option"><input type="radio" name="c-rank" value="成就"><div class="radio-label">成就</div></label>
-          <label class="radio-option"><input type="radio" name="c-rank" value="星鑽"><div class="radio-label">星鑽</div></label>
-          <label class="radio-option"><input type="radio" name="c-rank" value="高峰"><div class="radio-label">高峰</div></label>
-          <label class="radio-option"><input type="radio" name="c-rank" value="CFC"><div class="radio-label">CFC</div></label>
+        <div id="opt-rank" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <!-- 選項由 consts.js 產生（唯一正本，admin.html 讀同一份） -->
         </div>
       </div>
 
       <div class="field">
         <label>直屬 CFC <span class="req">*</span></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <label class="radio-option"><input type="radio" name="c-cfc" value="李美潤"><div class="radio-label">李美潤</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="顏麗玉、游天貴"><div class="radio-label">顏麗玉、游天貴</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="李芊嬅"><div class="radio-label">李芊嬅</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="張隆熙"><div class="radio-label">張隆熙</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="林甘霖、楊牧潔"><div class="radio-label">林甘霖、楊牧潔</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="蔡依儒、尤竣億"><div class="radio-label">蔡依儒、尤竣億</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="林姍嬅、凌翊迅"><div class="radio-label">林姍嬅、凌翊迅</div></label>
-          <label class="radio-option"><input type="radio" name="c-cfc" value="楊敬豪、林珊合"><div class="radio-label">楊敬豪、林珊合</div></label>
+        <div id="opt-cfc" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <!-- 選項由 consts.js 產生 -->
         </div>
       </div>
 
@@ -799,6 +790,17 @@
 
 <script>
 const LIFF_ID      = '2009692859-1LNWRlIq';
+
+// 榮譽資格與直屬 CFC 的選項由 consts.js 產生 —— 唯一正本，admin.html 讀同一份。
+// 🔴 曾經兩邊各寫一份而漂移：admin 少了「李美潤」，黃致豪按編輯就會把值洗掉。
+// 產生的 markup 與原本手寫的完全一致（.radio-option / .radio-label / name=c-rank|c-cfc），
+// 所以下游的 input[name="c-rank"]:checked 讀法不用動。
+(() => {
+  const r = document.getElementById('opt-rank');
+  const c = document.getElementById('opt-cfc');
+  if (r) r.innerHTML = radioOptions('c-rank', RANK_OPTIONS);
+  if (c) c.innerHTML = radioOptions('c-cfc', CFC_OPTIONS);
+})();
 
 // 🔴 姓名防呆（2026-09-10）：報名表單原本學員填什麼就存什麼，
 //   進來過「Yoshie有喜悅😃」（LINE 暱稱）和「蔡素麗1」（多打一個數字），
