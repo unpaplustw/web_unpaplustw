@@ -564,6 +564,7 @@ const trackName = t => TRACKS[t] || '—';
 // 組別小標籤：配對時不用上下對照（2026-09-10 Randoph）
 //   學員的 track＝他報名哪一組；教練的 track＝他帶的那一組是什麼班別。
 //   兩邊都標出來，一眼看得出「這個行動組的人要配給行動班的教練」。
+const ELITE_SEATS = 5;                          // 高階精英組席次上限（Randoph 定，28 期額滿即止）
 const TRACK_TAG = { learn: '📚 學習', action: '🏃 行動', elite: '⚡ 精英' };
 const trackTag = t => t ? `<span class="tk tk-${t}">${TRACK_TAG[t]}</span>` : '';
 // 只有行動組／精英組要交自我定位；學習組（直推 1）不用
@@ -1438,43 +1439,88 @@ function renderHwSection(target, scope) {
 function phaseBefore() {
   const b = allBatches.find(x => x.id === bid) || {};
   const appr = students.filter(s => s.status === 'approved');
-  const coachMids = new Set(coaches.filter(c => c.status === 'approved').map(c => c.member_id));
-  const stu = appr.filter(s => s.coach_id);                       // 真學員
-  const coachAsStu = appr.filter(s => !s.coach_id);               // 教練的學員身分
   const apprCoaches = coaches.filter(c => c.status === 'approved');
+  // 🔴 真學員＝排除「教練自己的那一筆 batch_students」，判斷依據是 member_id 在教練名單裡，
+  //    **不是** coach_id 為空。用 coach_id 判會把「還沒分組的真學員」誤算成教練身分
+  //    （2026-09-12 殷鈺寒就被算成「含教練身分 1」）。
+  const coachMids = new Set(apprCoaches.map(c => c.member_id).filter(Boolean));
+  const stu = appr.filter(s => !coachMids.has(s.member_id));      // 真學員（含未分組）
+  const coachAsStu = appr.filter(s => coachMids.has(s.member_id)); // 教練的學員身分
+  const paired = stu.filter(s => s.coach_id);
+  const coachById = {}; apprCoaches.forEach(c => coachById[c.id] = c);
+
   const ck = [];
   // go = ['哪個 Tab','要捲到的元素 id']——清單當目錄用，紅的點下去直接到該處理的那一段
   const add = (lvl, t, d, go) => ck.push({ lvl, t, d, go });
+  const few = (arr, n = 6) => arr.slice(0, n).map(nm).join('、') + (arr.length > n ? '…' : '');
 
-  // 1) 教練是否都有學員身分（27 期踩過：漏掉 → 教練六天存不了回報）
+  // ① 人數：原本是清單上方四格數字，2026-09-12 Randoph「歸入清單顯示即可」
+  const withGrp = apprCoaches.filter(c => c.group_name).length;
+  add('ok', '人數',
+    `教練 <b>${apprCoaches.length}</b> 位（${withGrp} 位帶組、${apprCoaches.length - withGrp} 位不帶組）`
+    + ` ｜ 學員 <b>${stu.length}</b> 位（已配對 ${paired.length}）`
+    + `<br><span style="color:var(--muted)">教練另有 ${coachAsStu.length} 筆學員身分，是給他們自己填回報用的，不算學員</span>`);
+
+  // ② 報名審核
+  const pendC = coaches.filter(c => c.status === 'pending');
+  const pendS = students.filter(s => s.status === 'pending');
+  const pend = pendC.length + pendS.length;
+  add(pend ? 'warn' : 'ok', '報名審核',
+    pend ? `<b>${pend} 人待審</b>：教練 ${pendC.length}、學員 ${pendS.length}`
+         : '沒有待審的人', ['check','reviewArea']);
+
+  // ③ 教練的學員身分（27 期踩過：漏掉 → 教練六天存不了回報）
   const noIdentity = apprCoaches.filter(c => !coachAsStu.some(s => s.member_id === c.member_id));
   add(noIdentity.length ? 'bad' : 'ok', '教練的學員身分',
-    noIdentity.length ? `<b>${noIdentity.length} 位教練沒有 batch_students 紀錄</b>：${noIdentity.map(nm).join('、')}<br>→ 他們的「儲存我的回報」會是灰的，開班就存不了。見 wiki「開新班期檢查清單」第 1 步`
+    noIdentity.length ? `<b>${noIdentity.length} 位教練沒有 batch_students 紀錄</b>：${few(noIdentity, 99)}<br>→ 他們的「儲存我的回報」會是灰的，開班就存不了。見 wiki「開新班期檢查清單」第 1 步`
       : `${apprCoaches.length} 位教練都有`);
 
-  // 2) 學員分組
-  const noGroup = stu.filter(s => !s.coach_id);
-  const pending = students.filter(s => s.status === 'pending');
-  add(pending.length ? 'warn' : 'ok', '報名審核',
-    pending.length ? `<b>${pending.length} 人待審</b>` : `已批准 ${appr.length} 人（含教練身分 ${coachAsStu.length}）`, ['check','reviewArea']);
-  add('ok', '學員分組', `${stu.length} 位學員已分組`, ['check','pairArea']);
+  // ④ 學員分組——原本寫死 'ok'，就算有人沒分組也是綠的（2026-09-12 修）
+  const noCoach = stu.filter(s => !s.coach_id);
+  add(noCoach.length ? 'bad' : 'ok', '學員分組',
+    noCoach.length ? `<b>${noCoach.length} 位還沒分組</b>：${few(noCoach)}<br>→ 沒有教練＝沒人標他的作業，記點會全部落在他身上`
+      : `${paired.length} 位全部分組完成`, ['check','pairArea']);
 
-  // 3) 上線
+  // ⑤ 班別相符（新增 2026-09-12）：學員 track 必須等於他那一組的 track。
+  //    不符的話系統會發錯東西——行動組的人收到作業、學習組的人沒課表。
+  const badTrack = paired.filter(s => {
+    const c = coachById[s.coach_id];
+    return c && (s.track || 'learn') !== (c.track || 'learn');
+  });
+  add(badTrack.length ? 'bad' : 'ok', '班別相符',
+    badTrack.length ? `<b>${badTrack.length} 位的班別跟他那一組不一樣</b>：`
+        + badTrack.slice(0,6).map(s => `${nm(s)}（${trackName(s.track)} → ${coachById[s.coach_id].group_name||'?'} 是${trackName(coachById[s.coach_id].track)}）`).join('、')
+        + `<br>→ 系統靠組的 track 決定發作業還是發行動，不符就會發錯`
+      : '每位學員的班別都跟他那一組相同', ['check','pairArea']);
+
+  // ⑥ 交叉配對（新增 2026-09-12）：教練不能帶自己的下線。硬規則，原本完全沒在檢查。
+  const selfPair = paired.filter(s => s.sponsor_id && s.sponsor_id === s.coach_id);
+  add(selfPair.length ? 'bad' : 'ok', '交叉配對（教練不帶自己下線）',
+    selfPair.length ? `<b>${selfPair.length} 位被配給自己的上線</b>：${few(selfPair)}`
+      : '沒有人被配給自己的上線', ['check','pairArea']);
+
+  // ⑦ 精英組席次（新增 2026-09-12）：限 5 席，28 期撞過一次
+  const eliteN = stu.filter(s => s.track === 'elite').length;
+  add(eliteN > ELITE_SEATS ? 'warn' : 'ok', '精英組席次',
+    eliteN > ELITE_SEATS ? `<b>${eliteN} 人超過 ${ELITE_SEATS} 席</b>，要退回進階行動組`
+      : `${eliteN} / ${ELITE_SEATS} 席`, ['check','pairArea']);
+
+  // ⑧ 上線
   const noSp = stu.filter(s => !s.sponsor_id);
   add(noSp.length ? 'warn' : 'ok', '上線（sponsor）',
-    noSp.length ? `${noSp.length} 人未設上線：${noSp.slice(0,6).map(nm).join('、')}${noSp.length>6?'…':''}` : '全部已設', ['check','pairArea']);
+    noSp.length ? `${noSp.length} 人未設上線：${few(noSp)}` : '全部已設', ['check','pairArea']);
 
-  // 4) 教練組別
+  // ⑨ 教練組別
   const noGrp = apprCoaches.filter(c => !c.group_name);
   add(noGrp.length ? 'warn' : 'ok', '教練組別',
-    noGrp.length ? `${noGrp.length} 位未設組別：${noGrp.map(nm).join('、')}（不帶組者屬正常）` : '全部已設', ['check','pairArea']);
+    noGrp.length ? `${noGrp.length} 位未設組別：${few(noGrp, 99)}（不帶組者屬正常）` : '全部已設', ['check','pairArea']);
 
-  // 5) 繳費（排除教練——教練不用繳，算進去只會製造雜訊）
+  // ⑩ 繳費（排除教練——教練不用繳，算進去只會製造雜訊）
   const unpaid = stu.filter(s => !s.payment_confirmed);
   add(unpaid.length ? 'warn' : 'ok', '繳費確認（不含教練）',
-    unpaid.length ? `<b>${unpaid.length} 位學員未確認</b>：${unpaid.slice(0,6).map(nm).join('、')}${unpaid.length>6?'…':''}` : `${stu.length} 位學員全部確認`, ['check','financeArea']);
+    unpaid.length ? `<b>${unpaid.length} 位學員未確認</b>：${few(unpaid)}` : `${stu.length} 位學員全部確認`, ['check','financeArea']);
 
-  // 6) DB 設定
+  // ⑪ DB 設定
   const miss = [];
   if (!b.start_date) miss.push('start_date');
   if (!b.end_date) miss.push('end_date');
@@ -1485,7 +1531,7 @@ function phaseBefore() {
     miss.length ? `<b>缺：${miss.join('、')}</b>`
       : `${b.start_date} ～ ${b.end_date}｜學習 ${b.study_start}～${b.study_end}｜${b.coach_mode}｜行動開放 ${b.action_open_date || '不鎖'}｜活動「${b.event_name || '無'}」`, ['check','batchArea']);
 
-  // 7) 課表對齊（units.js 的 SCHEDULE 首日 vs 班期）——27/28 期都踩過
+  // ⑫ 課表對齊（units.js 的 SCHEDULE 首末日 vs 班期）——27/28 期都踩過
   let sd = null, ed = null;
   if (typeof SCHEDULE !== 'undefined') { const ks = Object.keys(SCHEDULE).sort(); sd = ks[0]; ed = ks[ks.length-1]; }
   const okSched = sd && b.study_start && sd === b.study_start && ed === b.study_end;
@@ -1494,12 +1540,21 @@ function phaseBefore() {
       : okSched ? `units.js ${sd} ～ ${ed}，與 study_start/end 一致`
       : `<b>不一致</b>：units.js 排到 ${sd} ～ ${ed}，DB study 是 ${b.study_start} ～ ${b.study_end}<br>→ 課表共四處副本（units.js／course.html 的 PLAN＋靜態表／brochure.html），要一起改`);
 
-  // 8) 報名開關
-  add('ok', '報名狀態', b.registration_open ? '🟢 開放中——新報名會寫進這一期' : '🔴 關閉', ['check','batchArea']);
+  // ⑬ 報名開關——原本不管開或關都是綠的（2026-09-12 修）：
+  //    開班前沒開＝招不到人；開班後還開著＝新報名會混進正在跑的這一期。
+  const today = localDateStr(new Date());
+  const started = b.start_date && today >= b.start_date;
+  add(b.registration_open === !started ? 'ok' : 'warn', '報名狀態',
+    b.registration_open
+      ? (started ? `<b>🟢 還開著，但這一期已經開班了</b>（${b.start_date}）<br>→ 新報名會寫進這一期，通常該關了`
+                 : '🟢 開放中——新報名會寫進這一期')
+      : (started ? '🔴 已關閉（開班後本來就該關）'
+                 : `<b>🔴 關閉中，但還沒開班</b>（${b.start_date || '未設'}）<br>→ 報名頁現在收不到人`),
+    ['check','batchArea']);
 
   const bad = ck.filter(c => c.lvl === 'bad').length, warn = ck.filter(c => c.lvl === 'warn').length;
   let h = `<div class="ck-sum ${bad ? 'no' : 'go'}">${bad ? `🔴 有 ${bad} 項必須處理才能開班` : warn ? `🟡 可以開班，但有 ${warn} 項建議先確認` : '🟢 全部就緒，可以開班'}</div>`;
-  h += `<div class="sec-title"><span>📋 開班前檢查清單</span><span class="sec-count">${b.name || ''}</span></div>`;
+  h += `<div class="sec-title"><span>📋 開班前檢查清單</span><span class="sec-count">${b.name || ''}　${ck.length} 項</span></div>`;
   const ICO = { ok:'✅', warn:'🟡', bad:'🔴' };
   ck.forEach(c => h += `<div class="ck ${c.lvl}"><div class="ck-ico">${ICO[c.lvl]}</div>` +
     `<div class="ck-b"><div class="ck-t">${c.t}</div><div class="ck-d">${c.d}</div></div>` +
@@ -1507,6 +1562,7 @@ function phaseBefore() {
     `</div>`);
   return h;
 }
+
 
 // ── 開班後：結案報表 ──────────────────────────────
 function phaseAfter() {
@@ -1863,22 +1919,15 @@ function renderDashboard(target, part) {
 // Tab 1: 審核名冊
 // ════════════════════════════════════════════
 function renderReview() {
-  const pendingC = coaches.filter(c => c.status === 'pending').length;
-  const pendingS = students.filter(s => s.status === 'pending').length;
-  const approvedS = students.filter(s => s.status === 'approved').length;
-  const totalC = approvedCoaches().length;
 
   const pCoaches  = coaches.filter(c => c.status === 'pending' && matchSearch(c));
   const apCoaches = coaches.filter(c => c.status === 'pending');
   const pStudents = students.filter(s => s.status === 'pending' && matchSearch(s));
   const apStudents= students.filter(s => s.status === 'pending');
 
-  let h = `<div class="stats">
-    <div class="st"><div class="st-n">${pendingC}</div><div class="st-l">教練待審</div></div>
-    <div class="st"><div class="st-n">${pendingS}</div><div class="st-l">學員待審</div></div>
-    <div class="st"><div class="st-n">${approvedS}</div><div class="st-l">已批准學員</div></div>
-    <div class="st"><div class="st-n">${totalC}</div><div class="st-l">教練</div></div>
-  </div>`;
+  // 四格數字（教練待審／學員待審／已批准學員／教練）已歸入檢查清單的「人數」與「報名審核」
+  // ——2026-09-12 Randoph：「這是不是可以歸入清單顯示即可」。同一組數字不要兩個地方各寫一份。
+  let h = '';
 
   // 教練審核
   h += `<div class="sec-title"><span>教練審核</span><span class="sec-count">${apCoaches.length} 待審</span></div>`;
