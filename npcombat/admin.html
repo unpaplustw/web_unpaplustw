@@ -1984,7 +1984,7 @@ function renderRoster() {
     return treeCard(
       `${c.group_name || '未分組'}　${nm(c)}${mc(c)}`,
       `目標 ${c.goal_close ? c.goal_close + ' 件' : '未填'} ｜ 資格 ${c.rank||'—'} ｜ CFC ${c.cfc||'—'}`,
-      trackTag(c),
+      trackTag(c.track),                       // 🔴 吃字串不是物件——傳物件會印出 undefined
       my.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''),
       `${my.length} 名`, !my.length);
   }).join('');
