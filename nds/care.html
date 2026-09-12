@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NDS 會員滿意度進程調查</title>
+<title>定期檢視</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
@@ -151,23 +151,36 @@ body {
 <body>
 <div class="glass-card">
   <div id="loadingOverlay" style="position:absolute;inset:0;background:rgba(11,18,32,.85);border-radius:22px;display:flex;align-items:center;justify-content:center;z-index:9">載入中…</div>
-  <div class="header-title"><h1>關懷紀錄</h1><p>期待會變、體感會變，每次聊完記一筆</p></div>
+  <div class="header-title"><h1>定期檢視</h1><p>每次談完記一筆，下次接著談</p></div>
 
-  <div class="section-label">這張表是誰在填？</div>
+  <div class="section-label">誰在填？</div>
   <div class="form-group">
     <div class="btn-group">
       <input type="radio" name="whoFills" id="wProxy" value="proxy" checked><label for="wProxy">我幫別人記</label>
       <input type="radio" name="whoFills" id="wSelf" value="self"><label for="wSelf">我自己填</label>
     </div>
-    <div class="hint" id="whoHint">幫夥伴記錄這次聊到的事。他自己填的話，會標記成本人親口說的。</div>
+    <div class="hint" id="whoHint"></div>
+  </div>
+
+  <div class="section-label" id="saysLabel">這些話是誰說的？</div>
+  <div class="form-group" id="saysGroup">
+    <div class="btn-group">
+      <input type="radio" name="whoSays" id="sProxy" value="proxy" checked><label for="sProxy">我轉述的</label>
+      <input type="radio" name="whoSays" id="sSelf" value="self"><label for="sSelf">他本人當場說</label>
+    </div>
+    <div class="hint">你幫他記，但話可能是他親口說的——回訪時語氣會不一樣。</div>
   </div>
 
   <div class="section-label">A · 對象</div>
-  <div class="form-group">
+  <div class="form-group" id="midGroup">
     <label class="req">會員編號（7碼）</label>
     <input type="text" id="mid" class="styled-input" inputmode="numeric" placeholder="2675630" maxlength="7">
     <div class="echo" id="midEcho"></div>
     <div class="hint" id="midHint">分店號不用填。</div>
+  </div>
+  <div class="form-group" id="selfBox" style="display:none">
+    <div class="echo" id="selfEcho"></div>
+    <div class="hint" id="selfHint"></div>
   </div>
   <div id="histBox"></div>
 
@@ -233,8 +246,17 @@ async function init(){
 }
 function onWho(){
   const self=whoMode()==='self';
-  $('whoHint').textContent=self?'你自己填的，會標記成本人親口說的（比較可信）。':'幫夥伴記錄這次聊到的事，會標記成轉述。';
-  if(self&&BOUND&&BOUND.bound&&!$('mid').value){ $('mid').value=BOUND.main; onMid(); }
+  // 自己填 → 話一定是本人說的，這題不用問
+  if(self) $('sSelf').checked=true;
+  $('saysLabel').style.display=self?'none':''; $('saysGroup').style.display=self?'none':'';
+  $('whoHint').textContent=self?'':'幫夥伴記錄這次聊到的事。';
+  // 自己填 → 免填編號，用 LINE 綁定的身分
+  $('midGroup').style.display=self?'none':''; $('selfBox').style.display=self?'':'none';
+  if(self){
+    if(BOUND&&BOUND.bound){ $('mid').value=BOUND.main; $('selfHint').textContent=''; onMid(); }
+    else { $('mid').value=''; $('selfEcho').textContent='';
+      $('selfHint').textContent='你的 LINE 還沒綁定會員編號。請先到「新入會登錄」按「這就是我，綁定我的 LINE」，或改選「我幫別人記」。'; }
+  }
 }
 async function loadOpts(){
   const d=await rpc('nds_intent_options',{}); OPTS=(d&&!d.success===false)?d:{};
@@ -265,7 +287,7 @@ async function onMid(){
   if(!/^\d{7}$/.test(v)) return;
   const d=await rpc('nds_person_lookup',{member_id:v+'-001'});
   if(d&&d.found){
-    $('midEcho').textContent='✅ '+(d.name||'');
+    $('midEcho').textContent='✅ '+(d.name||''); $('selfEcho').textContent='✅ '+(d.name||'');
     if(d.intent){ $('histBox').innerHTML='<div class="hist"><div><b>上次記錄的期待</b>：'+esc(d.intent.category||'')+
       ((d.intent.topics||[]).length?'（'+d.intent.topics.map(esc).join('、')+'）':'')+
       (d.intent.detail?'<br>「'+esc(d.intent.detail)+'」':'')+'</div><div class="hint">期待有變才填，沒變就留空。</div></div>'; }
@@ -273,10 +295,11 @@ async function onMid(){
 }
 async function doSubmit(){
   const mid=$('mid').value.trim();
+  if(whoMode()==='self'&&!(BOUND&&BOUND.bound)){ show('你的 LINE 還沒綁定會員編號，請先到「新入會登錄」綁定，或改選「我幫別人記」。','warning'); return; }
   if(!/^\d{7}$/.test(mid)){ show('請填 7 碼會員編號。','warning'); return; }
   if(!CAT && !$('note').value.trim() && !KC){ show('至少填一項：期待、回饋、或 KC 值。','warning'); return; }
   const btn=$('submitBtn'); btn.disabled=true; $('btnText').textContent='送出中…';
-  const d=await rpc('nds_care_submit',{ member_id:mid, by_self:whoMode()==='self',
+  const d=await rpc('nds_care_submit',{ member_id:mid, by_self:whoMode()==='self', said_by_self:$('sSelf').checked,
     line_uid:UID, line_name:LNAME,
     category:CAT||null, topics:TOPICS, detail:$('detail')?$('detail').value.trim():'',
     note:$('note').value.trim(), note_kind:'回饋',
