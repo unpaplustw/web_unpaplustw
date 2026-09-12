@@ -217,6 +217,8 @@
   .ck-t{font-size:14px;font-weight:600;color:var(--white)}
   .ck-d{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:3px}
   .ck-d b{color:#f87171}
+  .ck-go{flex-shrink:0;align-self:center;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--gold-bd);background:var(--gold-lt);color:var(--gold);font-family:inherit;white-space:nowrap}
+  .ck-go:hover{background:var(--gold-bd)}
   .ck-sum{padding:14px 16px;border-radius:12px;font-size:14px;font-weight:700;margin-bottom:14px;text-align:center}
   .ck-sum.go{background:rgba(34,160,90,.14);color:#4ade80}
   .ck-sum.no{background:rgba(217,83,79,.14);color:#f87171}
@@ -349,28 +351,35 @@
   <div class="tabs">
     <button class="tab on" data-t="now">📊 分析</button>
     <button class="tab" data-t="roster">👥 名冊</button>
-    <button class="tab" data-t="coach">🎓 教練</button>
-    <button class="tab" data-t="setup">⚙️ 設定</button>
+    <button class="tab" data-t="check">🩺 檢查</button>
     <button class="tab" data-t="perm">🔐 權限</button>
   </div>
 
   <!-- 📊 分析：固定四節，不再多一層階段導覽（2026-08-17 第 4 次改版）
-       開班前檢查清單 → 移入 ⚙️設定（它檢查的就是設定有沒有做完）
+       開班前檢查清單 → 移入 🩺檢查（2026-09-12 起那一頁就是開班前工作台）
        開班後結案報表 → 變成第 ⑤ 節，只在該期 end_date 已過時自動出現 -->
   <div class="panel on" id="p-now">
     <div id="nowArea" class="loading">載入中…</div>
   </div>
 
-  <!-- 👥 名冊：同一個學員的審核／分組／上線／繳費合在一頁（原本要跑三個 Tab） -->
+  <!-- 👥 名冊：開班後天天查的「這個人是誰」——學員卡、教練卡、上線組織圖。
+       審核／配對／繳費已搬到 🩺檢查（那些開班後就不碰了，見 2026-09-12 改版）-->
   <div class="panel" id="p-roster">
     <div class="sub-bar" id="rosterBar"></div>
+    <div id="rosterArea" class="loading">載入中…</div>
+    <div id="orgArea"></div>
+  </div>
+
+  <!-- 🩺 檢查：開班前的工作台。清單在最上面當目錄，紅的點下去就跳到該處理的那一段 -->
+  <div class="panel" id="p-check">
+    <div class="sub-bar" id="checkBar"></div>
+    <div id="checkArea" class="loading">載入中…</div>
     <div id="reviewArea"></div>
     <div id="pairArea"></div>
     <div id="financeArea"></div>
+    <div id="batchArea"></div>
   </div>
 
-  <div class="panel" id="p-coach"><div id="orgArea" class="loading">載入中…</div></div>
-  <div class="panel" id="p-setup"><div id="setupArea" class="loading">載入中…</div></div>
   <div class="panel" id="p-perm"><div id="permArea" class="loading">載入中…</div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -386,8 +395,10 @@ const LIFF_ID = '2009692859-DepTDosN';
 // 🔴 權限存在 admin_users.allowed_tabs，裡面還留著改版前的八個 key。
 //   登入時要對映（免得舊管理員被鎖在外面），權限頁顯示時也要——
 //   兩邊共用這一份，不要各留一份會走鐘。2026-08-17 改版、2026-09-11 收斂。
-const OLD2NEW = { dashboard:'now', track:'now', review:'roster', pairing:'roster',
-                  finance:'roster', org:'coach', bonus:'setup', perm:'perm' };
+const OLD2NEW = { dashboard:'now', track:'now',
+                  review:'check', pairing:'check', finance:'check',
+                  bonus:'check', setup:'check', org:'roster', coach:'roster',
+                  perm:'perm' };
 const normTabs = raw => [...new Set((raw || []).map(t => OLD2NEW[t] || t))];
 
 let bid = null, students = [], coaches = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
@@ -430,7 +441,7 @@ async function init() {
       const { data: coachCheck } = await sb.from('batch_coaches').select('id')
         .eq('member_id', member.id).limit(1);
       if (!coachCheck?.length) { document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-text">無管理權限</div></div>'; return; }
-      myAllowedTabs = ['now','roster','coach','setup'];   // 教練唯讀：看得到現況與名冊，設定唯讀、無權限管理
+      myAllowedTabs = ['now','roster','check'];   // 教練唯讀：看得到分析、名冊、檢查；無權限管理
       isReadonly = true;
     }
 
@@ -444,12 +455,7 @@ async function init() {
     });
     // 確保預設顯示第一個有權限的 Tab
     const firstTab = document.querySelector('.tab[style=""]') || document.querySelector('.tab:not([style*="none"])');
-    if (firstTab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
-      firstTab.classList.add('on');
-      document.getElementById('p-' + firstTab.dataset.t).classList.add('on');
-    }
+    if (firstTab) showTab(firstTab.dataset.t);
   } catch (e) {
     if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
     document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">登入失敗：' + e.message + '</div></div>';
@@ -471,20 +477,12 @@ async function init() {
     sel.value = bid;
   }
   sel.addEventListener('change', e => { bid = Number(e.target.value); load(); });
-  document.querySelectorAll('.tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
-      btn.classList.add('on');
-      document.getElementById('p-' + btn.dataset.t).classList.add('on');
-      paintTab(btn.dataset.t);                          // 切到才畫
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  });
+  document.querySelectorAll('.tab').forEach(btn =>
+    btn.addEventListener('click', () => showTab(btn.dataset.t)));
   await load();
   // 資訊版自動刷新：每 60 秒，僅在資訊版 Tab 顯示時才重拉
   setInterval(() => {
-    const dp = document.getElementById('p-dashboard');
+    const dp = document.getElementById('p-now');    // 舊版是 p-dashboard，改版後這顆一直沒觸發
     if (dp && dp.classList.contains('on')) load();
   }, 60000);
 }
@@ -604,11 +602,25 @@ function matchSearch(item) {
 //    改成切到才畫：首次載入只畫「分析」一個 Tab。
 const TAB_RENDER = {
   now:    () => renderNow(),
-  roster: () => { renderReview(); renderPairing(); renderFinance(); renderRosterBar(); },
-  coach:  () => renderOrg(),
-  setup:  () => renderSetup(),
+  roster: () => { renderRoster(); renderOrg(); renderRosterBar(); },
+  check:  () => { renderChecklist(); renderReview(); renderPairing();
+                  renderFinance(); renderBatchFields(); renderCheckBar(); },
   perm:   () => renderPerm(),
 };
+// 切 Tab 抽成函式：檢查清單要能跨頁跳（「上線未設」在名冊頁，清單在檢查頁）
+function showTab(t, scrollTo) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  const panel = document.getElementById('p-' + t);
+  if (panel) panel.classList.add('on');
+  paintTab(t);                                        // 切到才畫
+  const el = scrollTo && document.getElementById(scrollTo);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// 檢查清單那些「去處理」連結都走這裡
+function jump(tab, id) { showTab(tab, id); }
+
 const tabPainted = new Set();
 function paintTab(t) {
   if (tabPainted.has(t) || !TAB_RENDER[t]) return;
@@ -622,21 +634,35 @@ function render() {
 }
 
 // 名冊頁的三段快速跳轉（審核／分組／繳費原本是三個 Tab）
-function renderRosterBar() {
-  const bar = document.getElementById('rosterBar');
-  if (bar) bar.innerHTML = ['審核','分組配對','繳費'].map((t, i) =>
-    `<a class="sub-anchor" onclick="document.querySelectorAll('#p-roster>div')[${i+1}].scrollIntoView({behavior:'smooth'})">${t}</a>`).join('');
+// 錨點列：同一頁分段時讓人跳著看（不是 Tab，純捲動）
+function anchorBar(barId, pairs) {
+  const bar = document.getElementById(barId);
+  if (bar) bar.innerHTML = pairs.map(([t, id]) =>
+    `<a class="sub-anchor" onclick="document.getElementById('${id}')?.scrollIntoView({behavior:'smooth'})">${t}</a>`).join('');
 }
+function renderRosterBar() { anchorBar('rosterBar', [['名冊','rosterArea'],['上線組織','orgArea']]); }
+function renderCheckBar()  { anchorBar('checkBar', [['清單','checkArea'],['審核','reviewArea'],
+                                                    ['配對','pairArea'],['繳費','financeArea'],
+                                                    ['設定','batchArea']]); }
 
 // ⚙️ 設定：班期欄位一覽（唯讀顯示，改值仍走 Supabase；先讓人看得到全貌）
-function renderSetup() {
-  const b = allBatches.find(x => x.id === bid);
-  const el = document.getElementById('setupArea');
+// 🩺 檢查：清單（目錄）
+function renderChecklist() {
+  const el = document.getElementById('checkArea');
   if (!el) return;
-  if (!b) { el.innerHTML = '<div class="empty"><div class="empty-text">請先選擇班期</div></div>'; return; }
+  const b = allBatches.find(x => x.id === bid);
+  el.innerHTML = b ? phaseBefore()
+    : '<div class="empty"><div class="empty-text">請先選擇班期</div></div>';
+}
+
+// 🩺 檢查：班期欄位一覽（唯讀顯示——改值仍要走 Supabase，這裡只讓人看得到全貌）
+function renderBatchFields() {
+  const b = allBatches.find(x => x.id === bid);
+  const el = document.getElementById('batchArea');
+  if (!el) return;
+  if (!b) { el.innerHTML = ''; return; }
   const row = (k, v, note) => `<div class="ck ${v ? 'ok' : 'warn'}"><div class="ck-ico">${v ? '✅' : '🟡'}</div><div class="ck-b"><div class="ck-t">${k}　<span style="color:var(--gold)">${v || '（未設）'}</span></div>${note ? `<div class="ck-d">${note}</div>` : ''}</div></div>`;
-  let h = phaseBefore();   // 開班前檢查清單：它檢查的就是「設定有沒有做完」，同一件事放同一頁
-  h += `<div class="sec-title"><span>⚙️ 班期設定</span><span class="sec-count">${b.name}</span></div>`;
+  let h = `<div class="sec-title"><span>⚙️ 班期設定</span><span class="sec-count">${b.name}</span></div>`;
   h += row('期間', b.start_date && b.end_date ? `${b.start_date} ～ ${b.end_date}` : '', '倒數、週次、階段判定都看這個');
   h += row('學習週 study_start / study_end', b.study_start && b.study_end ? `${b.study_start} ～ ${b.study_end}` : '', '⚠️ 課表共四處副本，改這裡也要改 units.js／course.html／brochure.html');
   h += row('行動開放日 action_open_date', b.action_open_date, 'NULL＝不鎖，開班第一天就能填七大行動與小組回報心得');
@@ -644,7 +670,7 @@ function renderSetup() {
   h += row('獎勵活動 event_name', b.event_name, '留空＝無活動，相關 UI 自動隱藏');
   h += row('當期 is_active', b.is_active ? '🟢 是' : '否', '唯一索引擋雙開；學員端 8 個檔都讀它，班期中途不可切換');
   h += row('開放報名 registration_open', b.registration_open ? '🟢 開放中' : '關閉', '與 is_active 分開——可在前一期還在跑時就開放下一期報名');
-  return el.innerHTML = h;
+  el.innerHTML = h;
 }
 
 // ════════════════════════════════════════════
@@ -1417,7 +1443,8 @@ function phaseBefore() {
   const coachAsStu = appr.filter(s => !s.coach_id);               // 教練的學員身分
   const apprCoaches = coaches.filter(c => c.status === 'approved');
   const ck = [];
-  const add = (lvl, t, d) => ck.push({ lvl, t, d });
+  // go = ['哪個 Tab','要捲到的元素 id']——清單當目錄用，紅的點下去直接到該處理的那一段
+  const add = (lvl, t, d, go) => ck.push({ lvl, t, d, go });
 
   // 1) 教練是否都有學員身分（27 期踩過：漏掉 → 教練六天存不了回報）
   const noIdentity = apprCoaches.filter(c => !coachAsStu.some(s => s.member_id === c.member_id));
@@ -1429,23 +1456,23 @@ function phaseBefore() {
   const noGroup = stu.filter(s => !s.coach_id);
   const pending = students.filter(s => s.status === 'pending');
   add(pending.length ? 'warn' : 'ok', '報名審核',
-    pending.length ? `<b>${pending.length} 人待審</b>，到「名冊」處理` : `已批准 ${appr.length} 人（含教練身分 ${coachAsStu.length}）`);
-  add('ok', '學員分組', `${stu.length} 位學員已分組`);
+    pending.length ? `<b>${pending.length} 人待審</b>` : `已批准 ${appr.length} 人（含教練身分 ${coachAsStu.length}）`, ['check','reviewArea']);
+  add('ok', '學員分組', `${stu.length} 位學員已分組`, ['check','pairArea']);
 
   // 3) 上線
   const noSp = stu.filter(s => !s.sponsor_id);
   add(noSp.length ? 'warn' : 'ok', '上線（sponsor）',
-    noSp.length ? `${noSp.length} 人未設上線：${noSp.slice(0,6).map(nm).join('、')}${noSp.length>6?'…':''}` : '全部已設');
+    noSp.length ? `${noSp.length} 人未設上線：${noSp.slice(0,6).map(nm).join('、')}${noSp.length>6?'…':''}` : '全部已設', ['roster','orgArea']);
 
   // 4) 教練組別
   const noGrp = apprCoaches.filter(c => !c.group_name);
   add(noGrp.length ? 'warn' : 'ok', '教練組別',
-    noGrp.length ? `${noGrp.length} 位未設組別：${noGrp.map(nm).join('、')}（不帶組者屬正常）` : '全部已設');
+    noGrp.length ? `${noGrp.length} 位未設組別：${noGrp.map(nm).join('、')}（不帶組者屬正常）` : '全部已設', ['roster','rosterArea']);
 
   // 5) 繳費（排除教練——教練不用繳，算進去只會製造雜訊）
   const unpaid = stu.filter(s => !s.payment_confirmed);
   add(unpaid.length ? 'warn' : 'ok', '繳費確認（不含教練）',
-    unpaid.length ? `<b>${unpaid.length} 位學員未確認</b>：${unpaid.slice(0,6).map(nm).join('、')}${unpaid.length>6?'…':''}` : `${stu.length} 位學員全部確認`);
+    unpaid.length ? `<b>${unpaid.length} 位學員未確認</b>：${unpaid.slice(0,6).map(nm).join('、')}${unpaid.length>6?'…':''}` : `${stu.length} 位學員全部確認`, ['check','financeArea']);
 
   // 6) DB 設定
   const miss = [];
@@ -1456,7 +1483,7 @@ function phaseBefore() {
   if (!b.coach_mode) miss.push('coach_mode');
   add(miss.length ? 'bad' : 'ok', '班期設定',
     miss.length ? `<b>缺：${miss.join('、')}</b>`
-      : `${b.start_date} ～ ${b.end_date}｜學習 ${b.study_start}～${b.study_end}｜${b.coach_mode}｜行動開放 ${b.action_open_date || '不鎖'}｜活動「${b.event_name || '無'}」`);
+      : `${b.start_date} ～ ${b.end_date}｜學習 ${b.study_start}～${b.study_end}｜${b.coach_mode}｜行動開放 ${b.action_open_date || '不鎖'}｜活動「${b.event_name || '無'}」`, ['check','batchArea']);
 
   // 7) 課表對齊（units.js 的 SCHEDULE 首日 vs 班期）——27/28 期都踩過
   let sd = null, ed = null;
@@ -1468,13 +1495,16 @@ function phaseBefore() {
       : `<b>不一致</b>：units.js 排到 ${sd} ～ ${ed}，DB study 是 ${b.study_start} ～ ${b.study_end}<br>→ 課表共四處副本（units.js／course.html 的 PLAN＋靜態表／brochure.html），要一起改`);
 
   // 8) 報名開關
-  add('ok', '報名狀態', b.registration_open ? '🟢 開放中——新報名會寫進這一期' : '🔴 關閉');
+  add('ok', '報名狀態', b.registration_open ? '🟢 開放中——新報名會寫進這一期' : '🔴 關閉', ['check','batchArea']);
 
   const bad = ck.filter(c => c.lvl === 'bad').length, warn = ck.filter(c => c.lvl === 'warn').length;
   let h = `<div class="ck-sum ${bad ? 'no' : 'go'}">${bad ? `🔴 有 ${bad} 項必須處理才能開班` : warn ? `🟡 可以開班，但有 ${warn} 項建議先確認` : '🟢 全部就緒，可以開班'}</div>`;
   h += `<div class="sec-title"><span>📋 開班前檢查清單</span><span class="sec-count">${b.name || ''}</span></div>`;
   const ICO = { ok:'✅', warn:'🟡', bad:'🔴' };
-  ck.forEach(c => h += `<div class="ck ${c.lvl}"><div class="ck-ico">${ICO[c.lvl]}</div><div class="ck-b"><div class="ck-t">${c.t}</div><div class="ck-d">${c.d}</div></div></div>`);
+  ck.forEach(c => h += `<div class="ck ${c.lvl}"><div class="ck-ico">${ICO[c.lvl]}</div>` +
+    `<div class="ck-b"><div class="ck-t">${c.t}</div><div class="ck-d">${c.d}</div></div>` +
+    (c.go ? `<button class="ck-go" onclick="jump('${c.go[0]}','${c.go[1]}')">去處理 →</button>` : '') +
+    `</div>`);
   return h;
 }
 
@@ -1885,13 +1915,22 @@ function renderReview() {
       </div>`).join('')
     : `<div class="empty" style="padding:24px"><div class="empty-icon">✓</div><div class="empty-text">${apStudents.length?'無符合搜尋的結果':'無待審核學員'}</div></div>`;
 
-  // ── 已批准名冊（原名冊 Tab 併入）──
-  h += renderRosterSection();
 
   document.getElementById('reviewArea').innerHTML = h;
 }
 
 let rosterSearch = '', rosterFilter = 'all';
+
+// 👥 名冊：只有「查人」。搜尋框是這一頁的主角——開班後你來這裡就是找某個人。
+function renderRoster() {
+  const el = document.getElementById('rosterArea');
+  if (!el) return;
+  el.classList.remove('loading');
+  el.innerHTML = `<div class="toolbar">
+    <input class="search-box" placeholder="搜尋姓名、編號、電話、組別、班別…" value="${rosterSearch}"
+           oninput="rosterSearch=this.value;renderRoster()">
+  </div>` + renderRosterSection();
+}
 
 function renderRosterSection() {
   const ac = approvedCoaches();
@@ -1995,7 +2034,7 @@ function showEditCoach(cid) {
     <div class="edit-field"><label>資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>
     <div class="edit-field"><label>CFC</label><select id="ec-cfc-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${cfcOpts}</select></div>
     <button class="btn-save" onclick="saveEditCoach('${cid}')">儲存</button>
-    <button class="btn-cancel" onclick="renderReview()">取消</button>
+    <button class="btn-cancel" onclick="renderRoster()">取消</button>
   </div>`;
 }
 
@@ -2054,7 +2093,7 @@ function showEdit(sid) {
   el.innerHTML = `<div class="edit-row">
     <div class="edit-field"><label>電話</label><input id="ef-phone-${sid}" value="${s.phone||''}"></div>
     <button class="btn-save" onclick="saveEdit('${sid}')">儲存</button>
-    <button class="btn-cancel" onclick="renderReview()">取消</button>
+    <button class="btn-cancel" onclick="renderRoster()">取消</button>
   </div>`;
 }
 
@@ -2452,8 +2491,7 @@ async function saveTransferCode(sid) {
 const ALL_TABS = [
   { key:'now',    label:'📊 分析' },
   { key:'roster', label:'👥 名冊' },
-  { key:'coach',  label:'🎓 教練' },
-  { key:'setup',  label:'⚙️ 設定' },
+  { key:'check',  label:'🩺 檢查' },
   { key:'perm',   label:'🔐 權限' }
 ];
 
