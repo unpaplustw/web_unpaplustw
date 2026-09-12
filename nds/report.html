@@ -176,14 +176,14 @@ body {
       <input type="tel" id="phone" class="styled-input" inputmode="numeric" placeholder="0912345678" maxlength="10">
     </div>
     <div class="form-group">
-      <label>性別</label>
+      <label class="req">性別</label>
       <div class="btn-group">
         <input type="radio" name="gender" id="gM" value="男"><label for="gM">男</label>
         <input type="radio" name="gender" id="gF" value="女"><label for="gF">女</label>
       </div>
     </div>
     <div class="form-group">
-      <label for="birth">出生年月日</label>
+      <label for="birth" class="req">出生年月日</label>
       <input type="date" id="birth" class="styled-input">
     </div>
     <div id="quickBind" style="display:none" class="form-group"></div>
@@ -267,6 +267,8 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
   if(!RE_MAIN.test(midMain)){ showResult('會員編號錯誤：請填 7 碼，例 2675630。','error'); resetBtn(); return; }
   if(name.length<2){ showResult('請輸入正確姓名。','error'); resetBtn(); return; }
   if(!/^09\d{8}$/.test(phone)){ showResult('請輸入正確的 10 碼手機（09 開頭）。','error'); resetBtn(); return; }
+  if(!gender){ showResult('請選擇性別。','error'); resetBtn(); return; }
+  if(!birth){ showResult('請填出生年月日。','error'); resetBtn(); return; }
 
   /* 只帶公司系統沒有的欄位；方案/推薦人/位置/入會日一律由每月爬取對帳補上 */
   const payload = {
@@ -275,7 +277,7 @@ document.getElementById('ndsForm').addEventListener('submit', async function(e){
     line_name:  document.getElementById('displayName').value,
     member_id:  midMain + '-' + midBranch,
     name, gender,
-    birth_date: birth || null,
+    birth_date: birth,
     phone
   };
 

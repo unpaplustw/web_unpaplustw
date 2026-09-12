@@ -441,7 +441,7 @@ async function init() {
       const { data: coachCheck } = await sb.from('batch_coaches').select('id')
         .eq('member_id', member.id).limit(1);
       if (!coachCheck?.length) { document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-text">無管理權限</div></div>'; return; }
-      myAllowedTabs = ['now','roster','check'];   // 教練唯讀：看得到分析、名冊、檢查；無權限管理
+      myAllowedTabs = ['now','roster'];   // 教練唯讀：只給固定的（分析＋名冊）；🩺檢查 全是會改資料的操作
       isReadonly = true;
     }
 
@@ -1462,12 +1462,12 @@ function phaseBefore() {
   // 3) 上線
   const noSp = stu.filter(s => !s.sponsor_id);
   add(noSp.length ? 'warn' : 'ok', '上線（sponsor）',
-    noSp.length ? `${noSp.length} 人未設上線：${noSp.slice(0,6).map(nm).join('、')}${noSp.length>6?'…':''}` : '全部已設', ['roster','orgArea']);
+    noSp.length ? `${noSp.length} 人未設上線：${noSp.slice(0,6).map(nm).join('、')}${noSp.length>6?'…':''}` : '全部已設', ['check','pairArea']);
 
   // 4) 教練組別
   const noGrp = apprCoaches.filter(c => !c.group_name);
   add(noGrp.length ? 'warn' : 'ok', '教練組別',
-    noGrp.length ? `${noGrp.length} 位未設組別：${noGrp.map(nm).join('、')}（不帶組者屬正常）` : '全部已設', ['roster','rosterArea']);
+    noGrp.length ? `${noGrp.length} 位未設組別：${noGrp.map(nm).join('、')}（不帶組者屬正常）` : '全部已設', ['check','pairArea']);
 
   // 5) 繳費（排除教練——教練不用繳，算進去只會製造雜訊）
   const unpaid = stu.filter(s => !s.payment_confirmed);
@@ -1966,18 +1966,9 @@ function renderRosterSection() {
             <div>
               <div class="card-name">${nm(c)}${mc(c)}</div>
               <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'} ｜ 這期目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '未填'}${c.created_at?` ｜ 報名 ${regTime(c.created_at)}`:''}</div>
-              <div class="roster-info" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="white-space:nowrap">組別</span>${isReadonly
-                ? `<span style="font-size:12px">${c.group_name||'未分組'}</span>`
-                : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachGroup('${c.id}',this.value)"><option value="">未分組</option>${GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')}</select>`}<span style="white-space:nowrap">班別</span>${isReadonly
-                ? `<span style="font-size:12px">${trackName(c.track)}</span>`
-                : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setCoachTrack('${c.id}',this.value)"><option value="">未設定</option>${Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${c.track===k?' selected':''}>${v}</option>`).join('')}</select>`}<span>｜ 學員 ${pairedStudents(c.id).length} 名</span></div>
+              <div class="roster-info" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">組別 <b style="color:var(--gold)">${c.group_name||'未分組'}</b> ｜ 班別 <b>${trackName(c.track)}</b> ｜ 學員 ${pairedStudents(c.id).length} 名</div>
             </div>
-            ${isReadonly ? '' : `<div style="display:flex;gap:6px">
-              <button class="btn-edit" onclick="showEditCoach('${c.id}')">編輯</button>
-              <button class="btn-edit" style="background:rgba(220,38,38,.15);color:#f87171" onclick="deleteCoach('${c.id}','${nm(c).replace(/'/g,"\\'")}')">刪除</button>
-            </div>`}
           </div>
-          <div id="edit-c-${c.id}"></div>
         </div>`;
       });
     } else {
@@ -1999,22 +1990,12 @@ function renderRosterSection() {
           <div>
             <div class="card-name">${nm(s)}${mc(s)}</div>
             <div class="roster-info">領袖：${sp(s)||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${s.created_at?` <span style="color:var(--muted)">· 報名 ${regTime(s.created_at)}</span>`:''}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
-            <div class="roster-info" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span>報名組別：</span>${isReadonly
-              ? `<span style="font-size:12px">${trackName(s.track)}</span>`
-              : `<select class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left" onchange="setStudentTrack('${s.id}',this.value)"><option value="">未指定</option>${Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${s.track===k?' selected':''}>${v}</option>`).join('')}</select>`}</div>
+            <div class="roster-info" style="margin-top:4px">報名組別：<b>${trackName(s.track)}</b></div>
             ${needsIntro(s) ? `<div class="roster-checks">
               <span class="roster-check" onclick="showDetail('${s.id}','introduction')"><span class="${hasIntro?'has':'no'}">${hasIntro?'✓':'✗'}</span> 自我定位</span>
             </div>` : ''}
           </div>
-          ${isReadonly ? '' : `<div style="display:flex;gap:6px">
-            ${gone
-              ? `<button class="btn-edit" style="background:rgba(34,197,94,.15);color:#4ade80" onclick="undropStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">歸隊</button>`
-              : `<button class="btn-edit" style="background:rgba(249,115,22,.15);color:#fb923c" onclick="dropStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">退班</button>`}
-            <button class="btn-edit" onclick="showEdit('${s.id}')">編輯</button>
-            <button class="btn-edit" style="background:rgba(220,38,38,.15);color:#f87171" onclick="deleteStudent('${s.id}','${nm(s).replace(/'/g,"\\'")}')">刪除</button>
-          </div>`}
         </div>
-        <div id="edit-${s.id}"></div>
       </div>`;
     });
   } else {
@@ -2034,7 +2015,7 @@ function showEditCoach(cid) {
     <div class="edit-field"><label>資格</label><select id="ec-rank-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${rankOpts}</select></div>
     <div class="edit-field"><label>CFC</label><select id="ec-cfc-${cid}" style="background:var(--navy3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:var(--white);font-size:13px;font-family:inherit"><option value="">—</option>${cfcOpts}</select></div>
     <button class="btn-save" onclick="saveEditCoach('${cid}')">儲存</button>
-    <button class="btn-cancel" onclick="renderRoster()">取消</button>
+    <button class="btn-cancel" onclick="renderPairing()">取消</button>
   </div>`;
 }
 
@@ -2093,7 +2074,7 @@ function showEdit(sid) {
   el.innerHTML = `<div class="edit-row">
     <div class="edit-field"><label>電話</label><input id="ef-phone-${sid}" value="${s.phone||''}"></div>
     <button class="btn-save" onclick="saveEdit('${sid}')">儲存</button>
-    <button class="btn-cancel" onclick="renderRoster()">取消</button>
+    <button class="btn-cancel" onclick="renderPairing()">取消</button>
   </div>`;
 }
 
@@ -2192,7 +2173,7 @@ function renderOrg() {
           <div class="coach-stu"><div>
             <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
             <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-          </div><div id="reassign-${s.id}">${reassignBtn(s)}</div></div>`).join('')
+          </div></div>`).join('')
         : '<div class="coach-empty">尚無報名學員</div>'}
       </div>
     </div>`;
@@ -2204,7 +2185,7 @@ function renderOrg() {
       <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
         <div class="card-left"><div class="card-name" style="color:var(--muted)">未指定上線</div></div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="coach-count zero">${noSponsor.length} 名</span>
+          <span class="coach-count zero">${noSponsor.length} 名　<span style="color:var(--muted);font-weight:400">→ 到 🩺檢查 設定</span></span>
           <span class="coach-arrow">▼</span>
         </div>
       </div>
@@ -2213,16 +2194,17 @@ function renderOrg() {
           <div class="coach-stu"><div>
             <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
             <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-          </div><div id="reassign-${s.id}">${reassignBtn(s)}</div></div>`).join('')}
+          </div></div>`).join('')}
       </div>
     </div>`;
   }
   document.getElementById('orgArea').innerHTML = h;
 }
 
+// 「調整上線」只出現在 🩺檢查 的配對區（👥名冊 的組織圖是唯讀的）
 function reassignBtn(s) {
-  if (isReadonly) return '';
-  return `<button class="btn-reassign" onclick="event.stopPropagation();showReassign('${s.id}')">調整上線</button>`;
+  return isReadonly ? '' :
+    `<button class="btn-reassign" onclick="event.stopPropagation();showReassign('${s.id}')">調整上線</button>`;
 }
 
 function showReassign(sid) {
@@ -2231,7 +2213,7 @@ function showReassign(sid) {
   const ac = approvedCoaches();
   const s = students.find(x => x.id === sid);
   const opts = ac.map(c => `<option value="${c.id}"${s && s.sponsor_id === c.id ? ' selected' : ''}>${nm(c)}</option>`).join('');
-  el.innerHTML = `<select class="reassign-sel" id="rsel-${sid}"><option value="">無</option>${opts}</select><button class="btn-reassign" onclick="event.stopPropagation();doReassign('${sid}')">確認</button><button class="btn-reassign" onclick="event.stopPropagation();renderOrg()" style="margin-left:4px;color:var(--muted);border-color:rgba(138,143,168,.3)">取消</button>`;
+  el.innerHTML = `<select class="reassign-sel" id="rsel-${sid}"><option value="">無</option>${opts}</select><button class="btn-reassign" onclick="event.stopPropagation();doReassign('${sid}')">確認</button><button class="btn-reassign" onclick="event.stopPropagation();renderPairing()" style="margin-left:4px;color:var(--muted);border-color:rgba(138,143,168,.3)">取消</button>`;
 }
 
 async function doReassign(sid) {
@@ -2253,6 +2235,11 @@ function filterOrg(t) {
 // ════════════════════════════════════════════
 // Tab 3: 配對管理（coach_id）
 // ════════════════════════════════════════════
+// 🩺 檢查的核心：「調整」全部在這裡。
+//   👥名冊 是純唯讀的快速瀏覽（教練也看得到），所有會改到資料的控制項都收在這一區。
+//   2026-09-12 Randoph：「名冊就是固定的東西，檢查就是可以調整的東西」——
+//   教練唯讀模式只給 📊分析＋👥名冊，這一頁他們看不到。
+//   動線：找到這個人在哪一組 → 就在那一列改。不另外複製一份名冊。
 function renderPairing() {
   const ac = approvedCoaches();
   // 教練 member_id 集合，用於過濾身兼學員的教練
@@ -2262,47 +2249,83 @@ function renderPairing() {
   const paired   = realStudents.filter(s => s.coach_id);
   selS = null; selC = null;
 
-  let h = '';
+  const selStyle = 'class="reassign-sel" style="font-size:12px;padding:3px 8px;text-align:left"';
+  const grpSel = c => `<select ${selStyle} onchange="setCoachGroup('${c.id}',this.value)">`
+    + `<option value="">未分組</option>`
+    + GROUPS.map(g => `<option value="${g}"${c.group_name===g?' selected':''}>${g}</option>`).join('')
+    + `</select>`;
+  const trkSel = c => `<select ${selStyle} onchange="setCoachTrack('${c.id}',this.value)">`
+    + `<option value="">未設定</option>`
+    + Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${c.track===k?' selected':''}>${v}</option>`).join('')
+    + `</select>`;
+  const stuTrkSel = s => `<select ${selStyle} onchange="setStudentTrack('${s.id}',this.value)">`
+    + `<option value="">未指定</option>`
+    + Object.entries(TRACKS).map(([k,v]) => `<option value="${k}"${s.track===k?' selected':''}>${v}</option>`).join('')
+    + `</select>`;
+  const esc = n => n.replace(/'/g, "\\'");
 
-  // ── 已配對（按組別排序）── 放最上面
-  if (paired.length) {
-    const pairGroups = {};
-    paired.forEach(s => {
-      const cid = s.coach_id;
-      if (!pairGroups[cid]) pairGroups[cid] = { coach: coaches.find(c => c.id === cid), students: [] };
-      pairGroups[cid].students.push(s);
-    });
-    const sortedGroups = Object.values(pairGroups)
-      .sort((a, b) => groupIdx(a.coach || {}) - groupIdx(b.coach || {}));
-    h += `<div class="paired-section"><h3 style="cursor:pointer" onclick="var b=document.getElementById('pairedGroups');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')">
-        <span>已配對（${paired.length}）<span class="coach-arrow" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span>
-        <input class="paired-search" placeholder="搜尋學員或教練…" oninput="event.stopPropagation();filterPaired(this.value)">
-      </h3><div id="pairedGroups" style="display:none">
-      ${sortedGroups.map(g => {
-        const cN = g.coach ? nm(g.coach) : '（未知）';
-        const cC = g.coach ? mc(g.coach) : '';
-        const grp = g.coach?.group_name || '未分組';
-        return `
-        <div class="coach-card paired-card" data-pnames="${cN} ${g.students.map(s=>nm(s)).join(' ')}">
-          <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
-            <div><span class="card-name">${cN}${cC}</span><span style="color:var(--gold);font-size:12px;margin-left:6px">${grp}</span>${trackTag(g.coach?.track)}</div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <span class="coach-count">${g.students.length} 名</span>
-              <span class="coach-arrow">▼</span>
+  // 一位教練的那張卡（組別／班別／編輯／刪除都在標頭）
+  const coachCard = (c, stu) => {
+    const gone = s => !!s.dropped_at;
+    return `
+    <div class="coach-card paired-card" data-pnames="${nm(c)} ${stu.map(s=>nm(s)).join(' ')}">
+      <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="card-left">
+          <div class="card-name">${nm(c)}${mc(c)}</div>
+          <div class="card-meta" onclick="event.stopPropagation()"
+               style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="white-space:nowrap">組別</span>${isReadonly ? (c.group_name||'未分組') : grpSel(c)}
+            <span style="white-space:nowrap">班別</span>${isReadonly ? trackName(c.track) : trkSel(c)}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="coach-count${stu.length?'':' zero'}">${stu.length} 名</span>
+          ${isReadonly ? '' : `<button class="btn-edit" onclick="event.stopPropagation();showEditCoach('${c.id}')">編輯</button>
+          <button class="btn-edit" style="background:rgba(220,38,38,.15);color:#f87171" onclick="event.stopPropagation();deleteCoach('${c.id}','${esc(nm(c))}')">刪除</button>`}
+          <span class="coach-arrow">▼</span>
+        </div>
+      </div>
+      <div id="edit-c-${c.id}"></div>
+      <div class="coach-body">
+        ${stu.length ? stu.map(s => `
+        <div class="coach-stu${gone(s) ? ' gone' : ''}">
+          <div style="flex:1;min-width:0">
+            <div><span class="coach-stu-name">${nm(s)}${mc(s)}</span>
+              <span class="coach-stu-meta"> ｜ 上線 ${sp(s)||'—'}${gone(s)?` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>`:''}</span></div>
+            <div class="coach-stu-meta" style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="white-space:nowrap">報名組別</span>${isReadonly ? trackName(s.track) : stuTrkSel(s)}
+              ${isReadonly ? '' : `<span id="reassign-${s.id}">${reassignBtn(s)}</span>`}
             </div>
+            <div id="edit-${s.id}"></div>
           </div>
-          <div class="coach-body">
-            ${g.students.map(s => `
-            <div class="coach-stu">
-              <div><span class="coach-stu-name">${nm(s)}${mc(s)}</span>
-              <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span></div>
-              ${isReadonly ? '' : `<button class="btn-unpair" onclick="unpair('${s.id}','${nm(s)}')">解除</button>`}
-            </div>`).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-      </div></div>`;
-  }
+          ${isReadonly ? '' : `<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+            ${gone(s)
+              ? `<button class="btn-edit" style="background:rgba(34,197,94,.15);color:#4ade80" onclick="undropStudent('${s.id}','${esc(nm(s))}')">歸隊</button>`
+              : `<button class="btn-edit" style="background:rgba(249,115,22,.15);color:#fb923c" onclick="dropStudent('${s.id}','${esc(nm(s))}')">退班</button>`}
+            <button class="btn-edit" onclick="showEdit('${s.id}')">編輯</button>
+            <button class="btn-edit" style="background:rgba(220,38,38,.15);color:#f87171" onclick="deleteStudent('${s.id}','${esc(nm(s))}')">刪除</button>
+            <button class="btn-unpair" onclick="unpair('${s.id}','${esc(nm(s))}')">解除</button>
+          </div>`}
+        </div>`).join('') : `<div class="coach-stu"><span class="coach-stu-meta">這一組還沒有組員</span></div>`}
+      </div>
+    </div>`;
+  };
+
+  let h = `<div class="sec-title"><span>🔧 分組與資料調整</span><span class="sec-count">${ac.length} 組 / 已配對 ${paired.length} 人</span></div>`;
+  h += `<div class="ck warn" style="border-left-color:var(--gold)"><div class="ck-ico">🔧</div><div class="ck-b">
+    <div class="ck-t">要改任何人的資料，都在這一頁</div>
+    <div class="ck-d">組別、班別、報名組別、上線、退班、編輯、刪除、解除配對——全部掛在他所屬的那一組底下。
+    👥名冊 是唯讀的（教練也看得到），在那邊改不到東西。</div></div></div>`;
+
+  // ── 每位教練一張卡（含 0 人的，總教練的組別／班別也要設得到）──
+  const stuOf = {};
+  paired.forEach(s => (stuOf[s.coach_id] = stuOf[s.coach_id] || []).push(s));
+  h += `<div class="paired-section">
+    <h3 style="cursor:pointer" onclick="var b=document.getElementById('pairedGroups');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.coach-arrow').classList.toggle('open')">
+      <span>各組（${ac.length}）<span class="coach-arrow open" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span></span>
+      <input class="paired-search" placeholder="搜尋學員或教練…" oninput="event.stopPropagation();filterPaired(this.value)">
+    </h3>
+    <div id="pairedGroups">${ac.map(c => coachCard(c, stuOf[c.id] || [])).join('')}</div></div>`;
 
   // ── 待配對 ──
   if (!isReadonly) {
@@ -2332,9 +2355,9 @@ function renderPairing() {
     }
   }
 
-  // 教練組別已移至審核名冊的教練卡片
   document.getElementById('pairArea').innerHTML = h;
 }
+
 
 function filterPaired(t) {
   t = t.toLowerCase();
