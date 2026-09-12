@@ -81,7 +81,7 @@
   .coach-count{background:var(--gold-lt);color:var(--gold);padding:4px 10px;border-radius:5px;font-size:12px;font-weight:600}
   .coach-count.zero{background:rgba(138,143,168,.12);color:var(--muted)}
   .coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
-  .coach-card.open .coach-body{max-height:800px}
+  .coach-card.open .coach-body{max-height:2000px}   /* 引路樹一位上線可能帶十幾位，800px 會裁掉 */
   .coach-stu{padding:8px 16px 8px 32px;border-top:1px solid rgba(255,255,255,.04);font-size:13px;display:flex;justify-content:space-between;align-items:center}
   .coach-stu-name{color:var(--white)}
   .coach-stu-meta{color:var(--muted);font-size:11px}
@@ -640,7 +640,7 @@ function anchorBar(barId, pairs) {
   if (bar) bar.innerHTML = pairs.map(([t, id]) =>
     `<a class="sub-anchor" onclick="document.getElementById('${id}')?.scrollIntoView({behavior:'smooth'})">${t}</a>`).join('');
 }
-function renderRosterBar() { anchorBar('rosterBar', [['名冊','rosterArea'],['上線組織','orgArea']]); }
+function renderRosterBar() { anchorBar('rosterBar', [['🎓 分組','rosterArea'],['🚩 引路','orgArea']]); }
 function renderCheckBar()  { anchorBar('checkBar', [['清單','checkArea'],['審核','reviewArea'],
                                                     ['配對','pairArea'],['繳費','financeArea'],
                                                     ['設定','batchArea']]); }
@@ -1919,90 +1919,83 @@ function renderReview() {
   document.getElementById('reviewArea').innerHTML = h;
 }
 
-let rosterSearch = '', rosterFilter = 'all';
 
-// 👥 名冊：只有「查人」。搜尋框是這一頁的主角——開班後你來這裡就是找某個人。
+// 👥 名冊：兩棵樹，全唯讀（教練也看得到這一頁）。
+//   2026-09-12 Randoph：「上面是教練+學員（點開來看得到），下面是上線+下線」
+//   原本是三個平鋪清單（16 張教練卡＋69 張學員卡＋組織圖），學員卡那段最長，
+//   而且**混進 16 筆教練自己的學員身分**（coach_id 為 null，顯示成「未配對／未分組」）——
+//   合成樹之後每個人只出現在他該在的位置，那 16 筆自然就不會冒出來。
+//   要改資料一律去 🩺檢查，這裡一個 select 一個寫入鈕都沒有。
+let rosterSearch = '';
+
+// 真學員＝排除教練自己的那一筆 batch_students（見 開新班期檢查清單）
+function realStudentList() {
+  const coachMids = new Set(coaches.map(c => c.member_id).filter(Boolean));
+  return students.filter(s => s.status === 'approved' && !coachMids.has(s.member_id));
+}
+
+// 一列組員／下線（唯讀）
+function stuRow(s, meta) {
+  const gone = !!s.dropped_at;
+  return `<div class="coach-stu" data-find="${nm(s)} ${mc(s)}">
+    <div><span class="coach-stu-name"${gone?' style="opacity:.55"':''}>${nm(s)}${mc(s)}</span>
+      <span class="coach-stu-meta"> ｜ ${meta}${s.created_at?` ｜ 報名 ${regTime(s.created_at)}`:''}${
+        gone?` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>`:''}</span></div>
+  </div>`;
+}
+
+// 一張可展開的卡（唯讀）
+function treeCard(title, sub, tag, rows, count, zero) {
+  return `<div class="coach-card" data-find="${title}">
+    <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="card-left">
+        <div class="card-name">${title}${tag||''}</div>
+        ${sub ? `<div class="card-meta">${sub}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="coach-count${zero?' zero':''}">${count}</span>
+        <span class="coach-arrow">▼</span>
+      </div>
+    </div>
+    <div class="coach-body">${rows || '<div class="coach-empty">尚無資料</div>'}</div>
+  </div>`;
+}
+
 function renderRoster() {
   const el = document.getElementById('rosterArea');
   if (!el) return;
   el.classList.remove('loading');
-  el.innerHTML = `<div class="toolbar">
-    <input class="search-box" placeholder="搜尋姓名、編號、電話、組別、班別…" value="${rosterSearch}"
-           oninput="rosterSearch=this.value;renderRoster()">
-  </div>` + renderRosterSection();
-}
-
-function renderRosterSection() {
   const ac = approvedCoaches();
-  // 名冊依報名時間排序（2026-09-10 Randoph：「排序必須是報名時間」）——
-  //   先報先排，配對時看得出誰等最久。
-  let sList = students.filter(s => s.status === 'approved')
-    .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-  if (rosterFilter === 'no-coach') sList = sList.filter(s => !s.coach_id);
-  if (rosterFilter === 'no-phone') sList = sList.filter(s => !s.phone);
-  let cList = ac;
-  if (rosterSearch) {
-    const t = rosterSearch.toLowerCase();
-    sList = sList.filter(s => {
-      const co = s.coach_id ? coaches.find(c => c.id === s.coach_id) : null;
-      return (nm(s)+mc(s)+(s.phone||'')+(co?.group_name||'')+trackName(s.track)).toLowerCase().includes(t);
-    });
-    cList = cList.filter(c => (nm(c)+mc(c)+(c.phone||'')+(c.rank||'')).toLowerCase().includes(t));
-  }
-  if (rosterFilter === 'no-phone') cList = cList.filter(c => !c.phone);
-  const totalS = students.filter(s => s.status === 'approved').length;
+  const stu = realStudentList();
+  // 組內依報名時間（2026-09-10 Randoph：「排序必須是報名時間」——先報先排）
+  const byTime = (a, b) => (a.created_at || '').localeCompare(b.created_at || '');
+  const byCoach = {};
+  stu.forEach(s => { if (s.coach_id) (byCoach[s.coach_id] = byCoach[s.coach_id] || []).push(s); });
 
-  let h = `<div class="sec-title" style="margin-top:28px;padding-top:20px;border-top:2px solid var(--gold-bd)"><span>📋 已批准名冊</span><span class="sec-count">${totalS} 學員 / ${ac.length} 教練</span></div>`;
+  let h = `<div class="toolbar">
+    <input class="search-box" placeholder="搜尋姓名或編號，兩棵樹一起找…" value="${rosterSearch}"
+           oninput="rosterSearch=this.value;filterRoster(this.value)">
+  </div>`;
+  h += `<div class="sec-title"><span>🎓 分組（教練 → 組員）</span>`
+     + `<span class="sec-count">${ac.length} 組 / ${stu.length} 位學員</span></div>`;
 
+  h += ac.map(c => {
+    const my = (byCoach[c.id] || []).sort(byTime);
+    return treeCard(
+      `${c.group_name || '未分組'}　${nm(c)}${mc(c)}`,
+      `目標 ${c.goal_close ? c.goal_close + ' 件' : '未填'} ｜ 資格 ${c.rank||'—'} ｜ CFC ${c.cfc||'—'}`,
+      trackTag(c),
+      my.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''),
+      `${my.length} 名`, !my.length);
+  }).join('');
 
-  if (rosterFilter !== 'no-coach') {
-    h += `<div class="sec-title"><span>教練</span><span class="sec-count">${cList.length} 人</span></div>`;
-    if (cList.length) {
-      cList.sort((a,b) => groupIdx(a) - groupIdx(b) || nm(a).localeCompare(nm(b),'zh-TW'));
-      cList.forEach(c => {
-        h += `
-        <div class="roster-card" id="rc-c-${c.id}">
-          <div class="roster-top">
-            <div>
-              <div class="card-name">${nm(c)}${mc(c)}</div>
-              <div class="roster-info">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'} ｜ 這期目標：${c.goal_close ? `<b style="color:var(--gold)">${c.goal_close} 件</b>` : '未填'}${c.created_at?` ｜ 報名 ${regTime(c.created_at)}`:''}</div>
-              <div class="roster-info" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">組別 <b style="color:var(--gold)">${c.group_name||'未分組'}</b> ｜ 班別 <b>${trackName(c.track)}</b> ｜ 學員 ${pairedStudents(c.id).length} 名</div>
-            </div>
-          </div>
-        </div>`;
-      });
-    } else {
-      h += `<div class="empty" style="padding:20px"><div class="empty-text">無符合條件的教練</div></div>`;
-    }
-  }
+  const noCoach = stu.filter(s => !s.coach_id).sort(byTime);
+  if (noCoach.length) h += treeCard('⚠️ 尚未分組', '到 🩺檢查 的「分組與資料調整」配對', '',
+    noCoach.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''), `${noCoach.length} 名`, true);
 
-  h += `<div class="sec-title"><span>學員</span><span class="sec-count">${sList.length} / ${totalS} 人</span></div>`;
-  if (sList.length) {
-    sList.forEach(s => {
-      const coachObj = s.coach_id ? coaches.find(c => c.id === s.coach_id) : null;
-      const coachName = coachObj ? nm(coachObj) : '未配對';
-      const grp = coachObj?.group_name || '未分組';   // 🔴 組別跟著教練走：batch_students.group_name 全班同值（「啟動班」），不是組別
-      const hasIntro = s.introduction && String(s.introduction).trim();
-      const gone = !!s.dropped_at;
-      h += `
-      <div class="roster-card${gone ? ' gone' : ''}" id="rc-${s.id}">
-        <div class="roster-top">
-          <div>
-            <div class="card-name">${nm(s)}${mc(s)}</div>
-            <div class="roster-info">領袖：${sp(s)||'—'} ｜ 組別：${grp} ｜ 教練：${coachName}${s.created_at?` <span style="color:var(--muted)">· 報名 ${regTime(s.created_at)}</span>`:''}${gone ? ` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>` : ''}</div>
-            <div class="roster-info" style="margin-top:4px">報名組別：<b>${trackName(s.track)}</b></div>
-            ${needsIntro(s) ? `<div class="roster-checks">
-              <span class="roster-check" onclick="showDetail('${s.id}','introduction')"><span class="${hasIntro?'has':'no'}">${hasIntro?'✓':'✗'}</span> 自我定位</span>
-            </div>` : ''}
-          </div>
-        </div>
-      </div>`;
-    });
-  } else {
-    h += `<div class="empty" style="padding:20px"><div class="empty-text">無符合條件的學員</div></div>`;
-  }
-  return h;
+  el.innerHTML = h;
 }
+
 
 function showEditCoach(cid) {
   const c = coaches.find(x => x.id === cid);
@@ -2144,64 +2137,33 @@ async function saveDetail(sid, field) {
 // ════════════════════════════════════════════
 // Tab 3: 教練組織（sponsor_id 歸類）
 // ════════════════════════════════════════════
+// 👥 名冊的第二棵樹：引路（上線 → 下線）。唯讀——「調整上線」在 🩺檢查 的配對區。
 function renderOrg() {
+  const el = document.getElementById('orgArea');
+  if (!el) return;
   const ac = approvedCoaches();
-  if (!ac.length) {
-    document.getElementById('orgArea').innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">此班次尚無已批准教練</div></div>';
-    return;
-  }
-  const noSponsor = students.filter(s => !s.sponsor_id && s.status === 'approved');
+  if (!ac.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">此班次尚無已批准教練</div></div>'; return; }
+  const stu = realStudentList();
+  const byTime = (a, b) => (a.created_at || '').localeCompare(b.created_at || '');
+  const coachOf = s => { const c = coaches.find(x => x.id === s.coach_id); return c ? (c.group_name || nm(c)) : '未分組'; };
 
-  let h = `<div class="toolbar"><input class="search-box" placeholder="搜尋教練或學員…" oninput="filterOrg(this.value)"></div>`;
+  let h = `<div class="sec-title" style="margin-top:24px"><span>🚩 引路（上線 → 下線）</span>`
+        + `<span class="sec-count">誰把誰帶進來的</span></div>`;
   h += ac.map(c => {
-    const myStu = sponsorStudents(c.id);
-    const cnt = myStu.length;
-    return `
-    <div class="coach-card org-card" data-orgnames="${nm(c)} ${myStu.map(s=>nm(s)).join(' ')}">
-      <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
-        <div class="card-left">
-          <div class="card-name">${nm(c)}${mc(c)}</div>
-          <div class="card-meta">電話：${c.phone||'—'} ｜ 資格：${c.rank||'—'} ｜ CFC：${c.cfc||'—'}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="coach-count${cnt?'':' zero'}">${cnt} 名學員</span>
-          <span class="coach-arrow">▼</span>
-        </div>
-      </div>
-      <div class="coach-body">
-        ${cnt ? myStu.map(s => `
-          <div class="coach-stu"><div>
-            <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
-            <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-          </div></div>`).join('')
-        : '<div class="coach-empty">尚無報名學員</div>'}
-      </div>
-    </div>`;
+    const my = stu.filter(s => s.sponsor_id === c.id).sort(byTime);
+    return treeCard(`${nm(c)}${mc(c)}`, `電話 ${c.phone||'—'} ｜ 資格 ${c.rank||'—'}`, '',
+      my.map(s => stuRow(s, coachOf(s))).join(''), `${my.length} 名`, !my.length);
   }).join('');
 
-  if (noSponsor.length) {
-    h += `
-    <div class="coach-card org-card" data-orgnames="未指定上線 ${noSponsor.map(s=>nm(s)).join(' ')}">
-      <div class="coach-header" onclick="this.parentElement.classList.toggle('open')">
-        <div class="card-left"><div class="card-name" style="color:var(--muted)">未指定上線</div></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="coach-count zero">${noSponsor.length} 名　<span style="color:var(--muted);font-weight:400">→ 到 🩺檢查 設定</span></span>
-          <span class="coach-arrow">▼</span>
-        </div>
-      </div>
-      <div class="coach-body">
-        ${noSponsor.map(s => `
-          <div class="coach-stu"><div>
-            <span class="coach-stu-name">${nm(s)}${mc(s)}</span>
-            <span class="coach-stu-meta"> ｜ ${s.group_name||'—'} ｜ ${s.phone||'—'}</span>
-          </div></div>`).join('')}
-      </div>
-    </div>`;
-  }
-  document.getElementById('orgArea').innerHTML = h;
+  const noSp = stu.filter(s => !s.sponsor_id).sort(byTime);
+  if (noSp.length) h += treeCard('⚠️ 未指定上線', '到 🩺檢查 的「分組與資料調整」設定', '',
+    noSp.map(s => stuRow(s, coachOf(s))).join(''), `${noSp.length} 名`, true);
+
+  el.innerHTML = h;
 }
 
-// 「調整上線」只出現在 🩺檢查 的配對區（👥名冊 的組織圖是唯讀的）
+// 一個搜尋框過濾兩棵樹；🔴 命中在收起來的卡裡面，所以要自動展開
+// 「調整上線」三件：只在 🩺檢查 的配對區用（👥名冊 的引路樹是唯讀的）
 function reassignBtn(s) {
   return isReadonly ? '' :
     `<button class="btn-reassign" onclick="event.stopPropagation();showReassign('${s.id}')">調整上線</button>`;
@@ -2225,12 +2187,27 @@ async function doReassign(sid) {
   toast('上線已調整'); await load();
 }
 
-function filterOrg(t) {
-  t = t.toLowerCase();
-  document.querySelectorAll('.org-card').forEach(el => {
-    el.style.display = (el.dataset.orgnames||'').toLowerCase().includes(t) ? '' : 'none';
+
+function filterRoster(t) {
+  t = (t || '').trim().toLowerCase();
+  ['rosterArea', 'orgArea'].forEach(id => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    box.querySelectorAll('.coach-card').forEach(card => {
+      if (!t) { card.style.display = ''; card.classList.remove('open'); return; }
+      const hitSelf = (card.dataset.find || '').toLowerCase().includes(t);
+      let hitKid = false;
+      card.querySelectorAll('.coach-stu').forEach(row => {
+        const hit = (row.dataset.find || '').toLowerCase().includes(t);
+        row.style.display = (hitSelf || hit) ? '' : 'none';
+        if (hit) hitKid = true;
+      });
+      card.style.display = (hitSelf || hitKid) ? '' : 'none';
+      card.classList.toggle('open', hitKid);          // 命中組員 → 展開讓人看到
+    });
   });
 }
+
 
 // ════════════════════════════════════════════
 // Tab 3: 配對管理（coach_id）
