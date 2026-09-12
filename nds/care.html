@@ -146,6 +146,37 @@ body {
 .kcbtn.on{background:var(--accent-strong);color:#08131f;border-color:var(--accent-strong)}
 .hist{border:1px solid var(--glass-border);border-radius:14px;padding:12px;margin-top:10px}
 .hist div{padding:4px 0;font-size:.98rem;color:var(--text-soft)}
+
+/* ── 第二批：八格 ── */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 14px;border:2px solid rgba(255,255,255,.25);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:1rem;font-weight:600;cursor:pointer;user-select:none;font-family:inherit}
+.chip.on{border-color:var(--accent);background:rgba(0,210,255,.18)}
+.chip.dim{opacity:.5}
+.row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;border-top:1px solid rgba(255,255,255,.1)}
+.row2:first-child{border-top:0}
+.row2 .nm{flex:1 1 120px;font-weight:700;font-size:1.05rem}
+.mini{width:36px;height:36px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-size:1.15rem;line-height:1;cursor:pointer;font-family:inherit}
+.mini.on{border-color:var(--accent);background:rgba(0,210,255,.2)}
+.mini.warn{border-color:rgba(255,138,138,.5);color:#ff9a9a}
+.num{width:66px;padding:8px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-size:1.05rem;text-align:center;font-family:inherit}
+.slots{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+.slot{display:flex;align-items:center;gap:3px;padding:6px 8px;border:2px solid rgba(255,255,255,.2);border-radius:11px;background:rgba(255,255,255,.05);font-size:.95rem;cursor:pointer;user-select:none}
+.slot.on{border-color:var(--accent);background:rgba(0,210,255,.16)}
+.slot .adj{width:24px;height:24px;border:0;border-radius:6px;background:rgba(255,255,255,.15);color:#fff;font-size:1rem;line-height:1;cursor:pointer;font-family:inherit}
+.slot:not(.on) .adj{visibility:hidden}
+.slot b{min-width:44px;text-align:center}
+.trend{display:flex;gap:5px}
+.orgbox{padding:16px 18px;border-radius:16px;background:rgba(0,210,255,.08);border:1px solid rgba(0,210,255,.25);line-height:1.9;font-size:1.05rem;margin-bottom:12px}
+.orgbox .big{font-size:1.35rem;font-weight:800;color:#fff}
+.orgbox .dim{color:var(--text-soft);font-size:.92rem}
+.pros{display:grid;grid-template-columns:1fr 36px;gap:8px;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+.pros:first-child{border-top:0}
+.pros .styled-input{margin:0}
+.pros select.styled-input{padding:10px}
+.pros .memo{grid-column:1/3}
+.strike{text-decoration:line-through;opacity:.5}
+.last{line-height:1.8;font-size:1rem}
+.last b{color:var(--accent-strong)}
 </style>
 </head>
 <body>
@@ -153,6 +184,7 @@ body {
   <div id="loadingOverlay" style="position:absolute;inset:0;background:rgba(11,18,32,.85);border-radius:22px;display:flex;align-items:center;justify-content:center;z-index:9">載入中…</div>
   <div class="header-title"><h1>定期檢視</h1><p>每次談完記一筆，下次接著談</p></div>
 
+  <!-- ① 誰 -->
   <div class="section-label">誰在填？</div>
   <div class="form-group">
     <div class="btn-group">
@@ -161,7 +193,6 @@ body {
     </div>
     <div class="hint" id="whoHint"></div>
   </div>
-
   <div class="section-label" id="saysLabel">這些話是誰說的？</div>
   <div class="form-group" id="saysGroup">
     <div class="btn-group">
@@ -170,21 +201,53 @@ body {
     </div>
     <div class="hint">你幫他記，但話可能是他親口說的——回訪時語氣會不一樣。</div>
   </div>
-
-  <div class="section-label">A · 對象</div>
+  <div class="section-label">對象</div>
   <div class="form-group" id="midGroup">
     <label class="req">會員編號（7碼）</label>
     <input type="text" id="mid" class="styled-input" inputmode="numeric" placeholder="2675630" maxlength="7">
     <div class="echo" id="midEcho"></div>
-    <div class="hint" id="midHint">分店號不用填。</div>
+    <div class="hint" id="midHint">分店號不用填。填完會自動帶出上次講的。</div>
   </div>
   <div class="form-group" id="selfBox" style="display:none">
     <div class="echo" id="selfEcho"></div>
     <div class="hint" id="selfHint"></div>
   </div>
-  <div id="histBox"></div>
 
-  <div class="section-label">B · 這次聊了什麼</div>
+  <!-- ⓿ 上次講的（有紀錄才出現） -->
+  <div id="lastSec" style="display:none">
+    <div class="section-label">上次講的</div>
+    <div class="hist"><div class="last" id="lastBox"></div></div>
+    <div class="form-group">
+      <label>做到了嗎？</label>
+      <div class="btn-group" id="reviewGroup"></div>
+      <div class="hint" id="reviewHint">完成 → 往下重新談定位。沒做到但有吃 → 去調量。沒吃 → 不是量的問題，回定位。</div>
+    </div>
+  </div>
+
+  <!-- ② 定位 -->
+  <div id="posSec">
+    <div class="section-label">定位 · 他現在是</div>
+    <div class="form-group">
+      <div class="btn-group" id="stanceGroup"></div>
+      <div class="hint" id="stanceHint">有變才選。</div>
+    </div>
+    <div class="form-group" id="condOpenGroup" style="display:none">
+      <label>已在追蹤的狀況 · 比上次</label>
+      <div id="condOpen"></div>
+      <div class="hint">結案不是刪掉——結案本身是一筆紀錄。</div>
+    </div>
+    <div class="form-group">
+      <label>新增追蹤的狀況</label>
+      <div class="chips" id="condChips"></div>
+      <div class="row2" style="border:0;padding-bottom:0">
+        <input type="text" id="condCustom" class="styled-input" placeholder="其他，自己打" style="flex:1;margin:0">
+        <button type="button" class="mini" id="condAddBtn" aria-label="加入">＋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 期待 -->
+  <div class="section-label">期待效果</div>
   <div class="form-group">
     <label>期待（有變才填）</label>
     <div class="btn-group" id="catGroup"></div>
@@ -197,14 +260,42 @@ body {
     <label>他原本怎麼說的</label>
     <input type="text" class="styled-input" id="detail" placeholder="例：晚上睡不好，起來好幾次">
   </div>
+
+  <!-- ④ 付出配合 -->
+  <div id="planSec">
+    <div class="section-label">付出配合 · 一天吃幾份</div>
+    <div class="form-group">
+      <div class="chips" id="comboChips"></div>
+      <div class="hint">按一下整組帶入，再逐項調。份數自動平分到勾的時段，餘數給第一格。這格填了，每日回報頁才會有東西。</div>
+    </div>
+    <div class="form-group">
+      <div id="planRows"></div>
+      <select id="planAdd" class="styled-input"><option value="">＋ 加一樣商品</option></select>
+      <div class="hint" id="planHint"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ 你的組織 -->
+  <div id="orgSec">
+    <div class="section-label">你的組織</div>
+    <div class="orgbox" id="orgBox"><span class="dim">填了編號才會出現。</span></div>
+    <div class="form-group">
+      <label>這個月想到誰</label>
+      <div id="prosRows"></div>
+      <button type="button" class="chip" id="prosAdd">＋ 再加一個</button>
+      <div class="hint">「說不要」不用刪，半年後再問。備忘寫約好的時間或提醒自己的話。</div>
+    </div>
+  </div>
+
+  <!-- ⑥ 回饋 -->
+  <div class="section-label">回饋／體感／這次聊到的事</div>
   <div class="form-group">
-    <label>回饋／體感／這次聊到的事</label>
     <textarea id="note" class="styled-input" rows="3" placeholder="例：吃了兩個月，早上比較好起來；孫子下個月滿月"></textarea>
   </div>
 
-  <div class="section-label">C · KC 抗氧化力（有測才填）</div>
+  <!-- ⑦ KC -->
+  <div class="section-label">KC 抗氧化力（有測才填）</div>
   <div class="form-group">
-    <label>剛測到的 KC 值</label>
     <div class="kcgrid" id="kcGrid"></div>
     <div class="hint" id="kcHint">🔴 1–4　🟡 5–7　🟢 8 以上。沒測就不用填。</div>
   </div>
@@ -216,15 +307,20 @@ body {
 const SUPABASE_URL="https://nsgqsopqlkhayuefdout.supabase.co";
 const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
 const MY_LIFF_ID="2009692859-2eRA3zlO";
+const SLOTS=['早','中','晚','睡'];
 let UID='', LNAME='', BOUND=null, OPTS={}, CAT='', TOPICS=[], KC=0;
+let LOAD=null, OPT={position:{stances:[],conditions:[]},review:[],products:[],combos:{}};
+let REVIEW='', POSITION='', COND_ADD=new Set(), COND_CLOSE=new Set(), TREND={};
+let PLAN={}, planDirty=false, PROS=[];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtD=d=>d?String(d).slice(5).replace('-','/'):'';
 function whoMode(){ return ($('wSelf').checked?'self':'proxy'); }
 function show(msg,type){ const b=$('resultBox'); b.className='result-box '+type; b.textContent=msg; b.style.display='block'; b.scrollIntoView({behavior:'smooth',block:'center'}); }
 async function rpc(fn,p){
   const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',
     headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
-    body:JSON.stringify({p})});
+    body:JSON.stringify(p===undefined?{}:{p})});   // 零參數函數不帶 p
   return r.json().catch(()=>null);
 }
 document.addEventListener('DOMContentLoaded',init);
@@ -234,23 +330,24 @@ async function init(){
       await liff.init({liffId:MY_LIFF_ID});
       if(!liff.isLoggedIn()){ liff.login(); return; }
       const pr=await liff.getProfile(); UID=pr.userId; LNAME=pr.displayName||'';
-      BOUND=await rpc('nds_whoami',{line_user_id:UID});
-      if(BOUND&&BOUND.bound){ $('wSelf').checked=true; $('mid').value=BOUND.main; onMid(); }
+      BOUND=await rpc('nds_whoami',{line_uid:UID});
+      if(BOUND&&BOUND.bound){ $('wSelf').checked=true; }
     }
   }catch(e){ console.warn('liff',e); }
   await loadOpts(); buildKc();
   $('mid').addEventListener('input',onMid);
   document.querySelectorAll('input[name="whoFills"]').forEach(r=>r.addEventListener('change',onWho));
+  $('condAddBtn').addEventListener('click',()=>{ const v=$('condCustom').value.trim(); if(!v) return; COND_ADD.add(v); $('condCustom').value=''; renderCondChips(); });
+  $('planAdd').addEventListener('change',()=>{ const c=$('planAdd').value; if(!c) return; addPlanProduct(c, null); $('planAdd').value=''; });
+  $('prosAdd').addEventListener('click',()=>{ PROS.push({id:null,name:'',status:'還沒開口',memo:'',dirty:true}); renderPros(); });
   onWho();
   $('loadingOverlay').style.display='none';
 }
 function onWho(){
   const self=whoMode()==='self';
-  // 自己填 → 話一定是本人說的，這題不用問
   if(self) $('sSelf').checked=true;
   $('saysLabel').style.display=self?'none':''; $('saysGroup').style.display=self?'none':'';
   $('whoHint').textContent=self?'':'幫夥伴記錄這次聊到的事。';
-  // 自己填 → 免填編號，用 LINE 綁定的身分
   $('midGroup').style.display=self?'none':''; $('selfBox').style.display=self?'':'none';
   if(self){
     if(BOUND&&BOUND.bound){ $('mid').value=BOUND.main; $('selfHint').textContent=''; onMid(); }
@@ -258,9 +355,8 @@ function onWho(){
       $('selfHint').textContent='你的 LINE 還沒綁定會員編號。請先到「新入會登錄」按「這就是我，綁定我的 LINE」，或改選「我幫別人記」。'; }
   }
 }
-async function loadOpts(){
-  const d=await rpc('nds_intent_options',{}); OPTS=(d&&!d.success===false)?d:{};
-  if(d&&d.success===false) OPTS={};
+async function loadOpts(src){
+  const d=src||await rpc('nds_intent_options'); OPTS=(d&&typeof d==='object'&&!d.message&&!d.code)?d:{};
   const g=$('catGroup');
   g.innerHTML='<input type="radio" name="cat" id="cNone" value="" checked><label for="cNone">沒變／不填</label>'
     + Object.keys(OPTS).map((c,i)=>'<input type="radio" name="cat" id="c'+i+'" value="'+esc(c)+'"><label for="c'+i+'">'+esc(c)+'</label>').join('');
@@ -282,27 +378,169 @@ function buildKc(){
     b.onclick=()=>{ KC=(KC===i?0:i); [...g.children].forEach((x,j)=>x.className='kcbtn'+((j+1)===KC?' on':'')); };
     g.appendChild(b); }
 }
-async function onMid(){
-  const v=$('mid').value.trim(); $('midEcho').textContent=''; $('histBox').innerHTML='';
-  if(!/^\d{7}$/.test(v)) return;
-  const d=await rpc('nds_person_lookup',{member_id:v+'-001'});
-  if(d&&d.found){
-    $('midEcho').textContent='✅ '+(d.name||''); $('selfEcho').textContent='✅ '+(d.name||'');
-    if(d.intent){ $('histBox').innerHTML='<div class="hist"><div><b>上次記錄的期待</b>：'+esc(d.intent.category||'')+
-      ((d.intent.topics||[]).length?'（'+d.intent.topics.map(esc).join('、')+'）':'')+
-      (d.intent.detail?'<br>「'+esc(d.intent.detail)+'」':'')+'</div><div class="hint">期待有變才填，沒變就留空。</div></div>'; }
-  } else { $('midEcho').textContent='查無此編號'; }
+
+/* ── 讀上次講的，長出八格 ── */
+function resetAll(){
+  LOAD=null; REVIEW=''; POSITION=''; COND_ADD=new Set(); COND_CLOSE=new Set(); TREND={}; PLAN={}; planDirty=false; PROS=[];
+  $('lastSec').style.display='none'; $('lastBox').innerHTML=''; $('reviewGroup').innerHTML='';
+  $('stanceGroup').innerHTML=''; $('condOpen').innerHTML=''; $('condOpenGroup').style.display='none'; $('condChips').innerHTML='';
+  $('comboChips').innerHTML=''; $('planRows').innerHTML=''; $('planAdd').innerHTML='<option value="">＋ 加一樣商品</option>';
+  $('orgBox').innerHTML='<span class="dim">填了編號才會出現。</span>'; $('prosRows').innerHTML='';
 }
+async function onMid(){
+  const v=$('mid').value.trim(); $('midEcho').textContent=''; resetAll();
+  if(!/^\d{7}$/.test(v)) return;
+  const d=await rpc('nds_care_load',{main:v});
+  if(!d||!d.found){ $('midEcho').textContent='查無此編號'; $('selfEcho').textContent='查無此編號'; return; }
+  LOAD=d; OPT=Object.assign(OPT,d.options||{});
+  $('midEcho').textContent='✅ '+(d.name||''); $('selfEcho').textContent='✅ '+(d.name||'');
+  if(OPT.intent) loadOpts(OPT.intent);
+  renderLast(); renderStance(); renderCondOpen(); renderCondChips(); renderCombos(); renderPlanFromLoad(); renderOrg(); renderPros();
+}
+function renderLast(){
+  const d=LOAD, L=[];
+  if(d.position) L.push('定位：<b>'+esc(d.position.body)+'</b>');
+  if(d.intent&&d.intent.category) L.push('期待：<b>'+esc(d.intent.category)+'</b>'+((d.intent.topics||[]).length?'（'+d.intent.topics.map(esc).join('、')+'）':'')+(d.intent.detail?'<br>　「'+esc(d.intent.detail)+'」':''));
+  if((d.plan||[]).length) L.push('配合的量：'+d.plan.map(x=>'<b>'+esc(pname(x.product_code))+'</b> '+SLOTS.filter(k=>(x.slot_qty||{})[k]!=null).map(k=>k+x.slot_qty[k]).join(' ')).join('・'));
+  if(d.intake_rate!=null) L.push('這段時間服用率：<b>'+d.intake_rate+'%</b>');
+  if((d.prospects||[]).length) L.push('名單：'+d.prospects.map(x=>'<b>'+esc(x.name)+'</b>（'+esc(x.status)+(x.memo?'・'+esc(x.memo):'')+'）').join('、'));
+  if(d.kc) L.push('KC：<b>'+d.kc.value+'</b>（'+fmtD(d.kc.on)+'）');
+  if(d.review) L.push('上次裁決：'+esc(d.review.body)+'（'+fmtD(d.review.on)+'）');
+  if(!L.length) return;
+  $('lastBox').innerHTML='<div class="dim" style="color:var(--text-soft);margin-bottom:6px">上次 '+(d.last_visit?fmtD(d.last_visit):'')+' 談的</div>'+L.join('<br>');
+  const g=$('reviewGroup');
+  g.innerHTML=(OPT.review||[]).map((r,i)=>'<input type="radio" name="review" id="rv'+i+'" value="'+esc(r)+'"><label for="rv'+i+'">'+esc(r)+'</label>').join('');
+  g.querySelectorAll('input').forEach(r=>r.addEventListener('change',()=>{
+    REVIEW=r.value;
+    const go = REVIEW==='沒做到·有吃' ? 'planSec' : 'posSec';
+    $('reviewHint').textContent = REVIEW==='完成' ? '✅ 完成了——往下重新談這一階段的定位。'
+      : REVIEW==='沒做到·有吃' ? '他有照量吃但沒效果——往下去「付出配合」調量。'
+      : '他沒在吃——不是量的問題，回「定位」重談他為什麼要吃。';
+    setTimeout(()=>$(go).scrollIntoView({behavior:'smooth',block:'start'}),150);
+  }));
+  $('lastSec').style.display='';
+}
+function renderStance(){
+  const g=$('stanceGroup'), st=(OPT.position&&OPT.position.stances)||[];
+  g.innerHTML='<input type="radio" name="stance" id="stNone" value="" checked><label for="stNone">沒變／不填</label>'
+    + st.map((x,i)=>'<input type="radio" name="stance" id="st'+i+'" value="'+esc(x)+'"><label for="st'+i+'">'+esc(x)+'</label>').join('');
+  g.querySelectorAll('input').forEach(r=>r.addEventListener('change',()=>{ POSITION=r.value; }));
+  $('stanceHint').textContent = LOAD.position ? '上次：'+LOAD.position.body+'（'+fmtD(LOAD.position.on)+'）。有變才選。' : '第一次談，先定他現在是什麼狀況。';
+}
+function renderCondOpen(){
+  const list=LOAD.conditions||[]; const box=$('condOpen'); box.innerHTML='';
+  $('condOpenGroup').style.display=list.length?'':'none';
+  list.forEach(c=>{
+    const row=document.createElement('div'); row.className='row2';
+    const closed=COND_CLOSE.has(c.condition);
+    row.innerHTML='<span class="nm'+(closed?' strike':'')+'">'+esc(c.condition)+' <span class="dim" style="font-weight:400;font-size:.85rem;color:var(--text-soft)">'+fmtD(c.opened_on)+' 起'+(c.last_trend!=null?'・上次 '+(c.last_trend>0?'＋':c.last_trend<0?'−':'一樣'):'')+'</span></span>'
+      +'<span class="trend">'+[['-1','−'],['0','一樣'],['1','＋']].map(([v,l])=>'<button type="button" class="mini'+(TREND[c.condition]===v?' on':'')+'" data-t="'+v+'">'+l+'</button>').join('')+'</span>'
+      +'<button type="button" class="mini warn" data-close="1" title="結案">'+(closed?'↩':'結案')+'</button>';
+    row.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{ TREND[c.condition]=(TREND[c.condition]===b.dataset.t?undefined:b.dataset.t); renderCondOpen(); }));
+    row.querySelector('[data-close]').addEventListener('click',()=>{ closed?COND_CLOSE.delete(c.condition):COND_CLOSE.add(c.condition); renderCondOpen(); });
+    box.appendChild(row);
+  });
+}
+function renderCondChips(){
+  const open=new Set((LOAD.conditions||[]).map(c=>c.condition));
+  const opts=((OPT.position&&OPT.position.conditions)||[]).filter(x=>!open.has(x));
+  const all=[...new Set([...opts,...COND_ADD])];
+  $('condChips').innerHTML=all.map(x=>'<button type="button" class="chip'+(COND_ADD.has(x)?' on':'')+'">'+esc(x)+'</button>').join('');
+  [...$('condChips').children].forEach((b,i)=>b.addEventListener('click',()=>{ const x=all[i]; COND_ADD.has(x)?COND_ADD.delete(x):COND_ADD.add(x); renderCondChips(); }));
+}
+/* ④ 付出配合 */
+function pname(code){ const p=(OPT.products||[]).find(x=>x.code===code); return p?p.name:code; }
+function punit(code){ const p=(OPT.products||[]).find(x=>x.code===code); return p?p.unit:''; }
+function splitQty(total, on){ const n=on.length, out={}; if(!n) return out; const base=Math.floor(total/n); let rem=total-base*n;
+  on.forEach(s=>{ out[s]=base+(rem>0?1:0); if(rem>0) rem--; }); return out; }
+function renderCombos(){
+  const pref=['基本','＋腸胃加強','＋美容加強'];
+  const names=Object.keys(OPT.combos||{}).sort((a,b)=>(pref.indexOf(a)+1||99)-(pref.indexOf(b)+1||99));
+  $('comboChips').innerHTML=names.map(n=>'<button type="button" class="chip">'+esc(n)+'</button>').join('');
+  [...$('comboChips').children].forEach((b,i)=>b.addEventListener('click',()=>{
+    const combo=OPT.combos[names[i]]||{};
+    Object.entries(combo).forEach(([code,slots])=>{ PLAN[code]={slots:Object.assign({},slots)}; });
+    planDirty=true; renderPlan(); b.classList.add('on');
+  }));
+}
+function renderPlanFromLoad(){
+  PLAN={}; (LOAD.plan||[]).forEach(x=>{ PLAN[x.product_code]={slots:Object.assign({},x.slot_qty||{})}; });
+  planDirty=false; renderPlan();
+  $('planHint').textContent = (LOAD.plan||[]).length ? '現行計畫（'+fmtD(LOAD.plan[0].effective_from)+' 設）。有改才會寫入。' : '還沒有服用計畫——按上面的組合帶入，或一樣一樣加。';
+}
+function addPlanProduct(code, slots){ PLAN[code]={slots:slots||splitQty(4,['早','晚'])}; planDirty=true; renderPlan(); }
+function renderPlan(){
+  const box=$('planRows'); box.innerHTML='';
+  const order=(OPT.products||[]).map(p=>p.code);
+  Object.keys(PLAN).sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(code=>{
+    const pl=PLAN[code], total=Object.values(pl.slots).reduce((a,b)=>a+(+b||0),0), on=SLOTS.filter(s=>pl.slots[s]!=null);
+    const row=document.createElement('div'); row.className='row2';
+    row.innerHTML='<span class="nm">'+esc(pname(code))+'</span>'
+      +'<span>一天 <input type="number" class="num" inputmode="numeric" min="0" value="'+total+'"> '+esc(punit(code))+'</span>'
+      +'<button type="button" class="mini warn" data-rm="1" title="移除">✕</button>'
+      +'<div class="slots">'+SLOTS.map(s=>'<span class="slot'+(pl.slots[s]!=null?' on':'')+'" data-s="'+s+'"><button type="button" class="adj" data-d="-1">−</button><b>'+s+(pl.slots[s]!=null?' '+pl.slots[s]:'')+'</b><button type="button" class="adj" data-d="1">＋</button></span>').join('')+'</div>';
+    row.querySelector('.num').addEventListener('change',e=>{ const t=Math.max(0,+e.target.value||0); pl.slots=splitQty(t, on.length?on:['早']); planDirty=true; renderPlan(); });
+    row.querySelector('[data-rm]').addEventListener('click',()=>{ delete PLAN[code]; planDirty=true; renderPlan(); });
+    row.querySelectorAll('.slot').forEach(el=>{
+      const s=el.dataset.s;
+      el.addEventListener('click',e=>{ if(e.target.classList.contains('adj')) return;
+        const cur=SLOTS.filter(x=>pl.slots[x]!=null); const next=pl.slots[s]!=null?cur.filter(x=>x!==s):[...cur,s].sort((a,b)=>SLOTS.indexOf(a)-SLOTS.indexOf(b));
+        pl.slots=splitQty(total, next); planDirty=true; renderPlan(); });
+      el.querySelectorAll('.adj').forEach(b=>b.addEventListener('click',()=>{ pl.slots[s]=Math.max(0,(+pl.slots[s]||0)+(+b.dataset.d)); planDirty=true; renderPlan(); }));
+    });
+    box.appendChild(row);
+  });
+  const sel=$('planAdd'); sel.innerHTML='<option value="">＋ 加一樣商品</option>'+(OPT.products||[]).filter(p=>!PLAN[p.code]).map(p=>'<option value="'+esc(p.code)+'">'+esc(p.name)+'</option>').join('');
+}
+/* ⑤ 你的組織＋名單 */
+function renderOrg(){
+  const o=LOAD.org; const b=$('orgBox');
+  if(!o){ b.innerHTML='<span class="dim">還沒有組織資料。</span>'; return; }
+  const none=!(o.direct_cnt||o.sponsor_cnt);
+  b.innerHTML = none
+    ? '還沒有人是你帶進來的。<br><span class="dim">這個月想到誰，就寫在下面 ↓</span>'
+    : '你親自帶了 <span class="big">'+o.direct_cnt+'</span> 個人進來<br>因為你，一共 <span class="big">'+o.sponsor_cnt+'</span> 個人在用<br>'
+      +'左邊 <b>'+o.left_units+'</b> 單位 · 右邊 <b>'+o.right_units+'</b> 單位<br>'
+      +'<span class="dim">資料到 '+fmtD(o.as_of)+'</span><br><span class="dim">這個月想到誰，就寫在下面 ↓</span>';
+}
+function renderPros(){
+  if(!PROS.length&&LOAD){ PROS=(LOAD.prospects||[]).map(x=>({id:x.id,name:x.name,status:x.status,memo:x.memo||'',dirty:false})); }
+  const box=$('prosRows'); box.innerHTML='';
+  const ST=['還沒開口','講過了在考慮','說不要','入會了'];
+  PROS.forEach((r,i)=>{
+    const div=document.createElement('div'); div.className='pros';
+    div.innerHTML='<input type="text" class="styled-input" placeholder="名字或稱呼，例：隔壁陳太太" value="'+esc(r.name)+'">'
+      +'<button type="button" class="mini warn" title="拿掉">✕</button>'
+      +'<select class="styled-input">'+ST.map(s=>'<option'+(s===r.status?' selected':'')+'>'+s+'</option>').join('')+'</select>'
+      +'<span></span>'
+      +'<input type="text" class="styled-input memo" placeholder="備忘：約好的時間、提醒自己的話" value="'+esc(r.memo)+'">';
+    const [nm,rm,st,,memo]=div.children;
+    nm.addEventListener('input',()=>{ r.name=nm.value; r.dirty=true; });
+    st.addEventListener('change',()=>{ r.status=st.value; r.dirty=true; });
+    memo.addEventListener('input',()=>{ r.memo=memo.value; r.dirty=true; });
+    rm.addEventListener('click',()=>{ if(r.id){ r.name=''; r.dirty=false; } PROS.splice(i,1); renderPros(); });
+    box.appendChild(div);
+  });
+}
+/* ⑧ 送出 */
 async function doSubmit(){
   const mid=$('mid').value.trim();
   if(whoMode()==='self'&&!(BOUND&&BOUND.bound)){ show('你的 LINE 還沒綁定會員編號，請先到「新入會登錄」綁定，或改選「我幫別人記」。','warning'); return; }
   if(!/^\d{7}$/.test(mid)){ show('請填 7 碼會員編號。','warning'); return; }
-  if(!CAT && !$('note').value.trim() && !KC){ show('至少填一項：期待、回饋、或 KC 值。','warning'); return; }
+  const trends={}; Object.entries(TREND).forEach(([k,v])=>{ if(v!=null) trends[k]=+v; });
+  const plan = planDirty ? Object.entries(PLAN).map(([code,v])=>{ const q=Object.values(v.slots).reduce((a,b)=>a+(+b||0),0); return {product_code:code,daily_qty:q,slot_qty:v.slots}; }).filter(x=>x.daily_qty>0) : [];
+  const prospects = PROS.filter(r=>r.name.trim()&&(r.dirty||!r.id)).map(r=>({id:r.id,name:r.name.trim(),status:r.status,memo:r.memo.trim()}));
+  const note=$('note').value.trim();
+  const anything = REVIEW||POSITION||COND_ADD.size||COND_CLOSE.size||Object.keys(trends).length||CAT||plan.length||prospects.length||note||KC;
+  if(!anything){ show('至少填一項。','warning'); return; }
   const btn=$('submitBtn'); btn.disabled=true; $('btnText').textContent='送出中…';
   const d=await rpc('nds_care_submit',{ member_id:mid, by_self:whoMode()==='self', said_by_self:$('sSelf').checked,
     line_uid:UID, line_name:LNAME,
-    category:CAT||null, topics:TOPICS, detail:$('detail')?$('detail').value.trim():'',
-    note:$('note').value.trim(), note_kind:'回饋',
+    review:REVIEW||null, position:POSITION||null,
+    conditions_add:[...COND_ADD], condition_trends:trends, conditions_close:[...COND_CLOSE],
+    category:CAT||null, topics:TOPICS, detail:$('detail').value.trim(),
+    plan, prospects,
+    note, note_kind:'回饋',
     metric:KC?'KC':null, value:KC?String(KC):null });
   if(!d||d.success!==true){ show((d&&d.message)||'送出失敗','warning'); btn.disabled=false; $('btnText').textContent='送出紀錄'; return; }
   show('✅ '+(d.message||'已記錄'),'success');
