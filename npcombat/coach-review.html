@@ -1096,7 +1096,7 @@ async function init() {
     // ⚠️ batch_id 一定要帶（wiki 硬規定）——coach_id 雖然每期獨立，但少帶就是隱患
     const { data: students } = await sb.from('batch_students').select('id, member_id, dropped_at, track')
       .eq('batch_id', BATCH_ID).eq('coach_id', coachId).eq('status', 'approved');
-    if (!students || students.length === 0) { studentsLoaded = true; toast('目前無配對學員'); renderReview(); return; }
+    if (!students || students.length === 0) { studentsLoaded = true; toast('目前無配對學員'); renderReview(); renderRollcall(); return; }
 
     // 查學員基本資料
     const memberIds = students.map(s => s.member_id);
@@ -2021,7 +2021,8 @@ async function renderActGuide() {
   const md = `${t.getMonth()+1}/${t.getDate()}`;
   const roll = document.getElementById('cpActRoll');
   if (roll) {
-    roll.textContent = activeStudents().length
+    roll.textContent = !studentsLoaded ? '⏳ 名單載入中，請稍等…'
+      : activeStudents().length
       ? `${md} 行動心得錄音完成請打✅\n\n`
         + `六項都要講 👇\n`
         + `① 今天幾月幾日、第幾組、你是誰\n`
@@ -2243,6 +2244,8 @@ ${tip}
       + '，不用上課，也不用貼作業接龍。';
     return;
   }
+  // 🔴 名單還沒抓回來時不能說「沒有學員」——手機慢網會停在這句好幾秒，教練以為沒帶到名單、甚至直接複製貼群（2026-09-14 張憶文）
+  if (!studentsLoaded) { rcBox.textContent = '⏳ 名單載入中，請稍等…'; return; }
   if (!activeStudents().length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
   const names = activeStudents().map((s, i) => `${i+1}.${s.name}`).join('\n');
   rcBox.textContent = `${base.getMonth()+1}/${base.getDate()}作業完成請打✅\n\n`
