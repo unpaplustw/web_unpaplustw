@@ -88,6 +88,7 @@
   .hw-tag.t{background:rgba(140,140,140,.2);color:var(--muted)}   /* 文字 */
   .hw-tag.a{background:rgba(212,175,55,.22);color:var(--gold)}    /* 錄音 */
   .hw-tag.v{background:rgba(214,110,80,.2);color:#c2603f}         /* 錄影 */
+  .hw-tag.p{background:rgba(80,140,210,.18);color:#3f7cc2}          /* 照片／截圖（2026-09-13 公司新增的繳交方式） */
   .hw-note{margin-top:12px;padding:10px 12px;border-radius:9px;background:var(--gold-lt);
            font-size:14px;color:var(--muted);line-height:1.7;text-align:center}
   .hw-note b{color:var(--gold)}
@@ -602,7 +603,7 @@ function renderStudy() {
           const m = t.match(/【(.+?)】/);
           const tag = m ? m[1] : '';
           const body = t.replace(/【.+?】/, '').trim();
-          const cls = /錄影/.test(tag) ? 'v' : /錄音/.test(tag) ? 'a' : 't';
+          const cls = /錄影/.test(tag) ? 'v' : /錄音/.test(tag) ? 'a' : /文字/.test(tag) ? 't' : /照片|拍照|截圖/.test(tag) ? 'p' : 't';
           return `<li>${body}${tag ? `<span class="hw-tag ${cls}">${tag}</span>` : ''}</li>`;
         }).join('')}</ol>`
       : `<div class="hw-empty">作業內容尚未公布</div>`;
