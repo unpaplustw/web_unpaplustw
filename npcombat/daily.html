@@ -967,7 +967,7 @@ async function init() {
     switchTab(renderStudy() > 0 ? 'study' : 'action');
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
-    document.getElementById('userName').textContent = member.name + (_isGodView ? ' 👁️' : '');
+    document.getElementById('userName').textContent = member.name;   // 🔴 9/10 移除天神視角時漏刪這裡的 _isGodView → ReferenceError，整頁「載入失敗」（9/13 開班日才發現）
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
     document.getElementById('declName2').textContent = ' ' + member.name + ' ';
 
