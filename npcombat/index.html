@@ -498,12 +498,11 @@ async function init() {
   startCountdown();
   lockNavUntilStart();
 
-  // 學員＋教練＝全體參與者
-  const [{ data: stuData }, { data: coachData }] = await Promise.all([
-    sb.from('batch_students').select('id').eq('batch_id', BID).eq('status', 'approved'),
-    sb.from('batch_coaches').select('id').eq('batch_id', BID).eq('status', 'approved')
-  ]);
-  const total = (stuData?.length || 0) + (coachData?.length || 0);
+  // 全體參與者＝batch_students（教練也各有一筆學員身分，見 開新班期檢查清單 第 1 步）。
+  // 🔴 不要再加 batch_coaches：28 期開班日首頁顯示 85＝53 學員＋16 教練身分＋16 教練，教練被算兩次；實際 69 人。
+  const { data: stuData } = await sb.from('batch_students').select('id')
+    .eq('batch_id', BID).eq('status', 'approved');
+  const total = stuData?.length || 0;
   document.getElementById('totalNum').textContent = total;
 
   const week = getCurrentWeek();
