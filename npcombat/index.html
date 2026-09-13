@@ -465,11 +465,12 @@ function renderEnroll(b) {
 
 async function init() {
   // 先看有沒有正在招生、而且還沒開班的期別
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // 🔴 日期一律比字串：new Date('2026-09-13') 會被當 UTC＝台北 08:00，開班當天整天都被判成「還沒開班」（9/13 實際踩到）
+  const d0 = new Date(), todayStr = `${d0.getFullYear()}-${String(d0.getMonth()+1).padStart(2,'0')}-${String(d0.getDate()).padStart(2,'0')}`;
   const { data: enroll } = await sb.from('batches')
     .select('id, name, start_date, end_date')
     .eq('registration_open', true).maybeSingle();
-  if (enroll && new Date(enroll.start_date) > today) {
+  if (enroll && enroll.start_date > todayStr) {
     renderEnroll(enroll);
     return;
   }
@@ -481,7 +482,7 @@ async function init() {
   if (!batch) { document.getElementById('batchName').textContent = '暫無進行中班期'; return; }
 
   const BID = batch.id;
-  batchStart = new Date(batch.start_date);
+  batchStart = new Date(batch.start_date + 'T00:00:00');   // 補 T00:00:00 才是台北午夜，否則是 08:00
   batchEnd = new Date(batch.end_date);
   batchEnd.setHours(23, 59, 59, 999);
 
