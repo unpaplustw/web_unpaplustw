@@ -693,6 +693,7 @@ function setPlan(i, plan) {
 
 function setSize(i, size) {
   closeEntries[i].size = size;
+  if (size !== 'full') closeEntries[i].badge = null;   // 🔴 小金／大金只有「一套」才算（2026-09-13 Randoph）
   renderCloseEntries();
 }
 
@@ -706,7 +707,7 @@ function getEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
   if (!p) return 0;
-  return (p[e.size] || 0) * badgeMult(e.badge);   // 方案×類型 再乘小金／大金單位倍率
+  return (p[e.size] || 0) * (e.size === 'full' ? badgeMult(e.badge) : 1);   // 方案×類型；小金／大金倍率只有一套才乘
 }
 
 // 締結對象判定（2026-08-14 開會定案）：
@@ -772,7 +773,7 @@ function renderCloseEntries() {
       ${e.plan ? `<div class="close-half-row">
         ${SIZES.map(s => `<div class="close-half ${e.size===s.key?'sel':''}" onclick="setSize(${i},'${s.key}')">${s.label}</div>`).join('')}
       </div>` : ''}
-      ${e.plan && e.size ? `<div class="close-badge-row">
+      ${e.plan && e.size === 'full' ? `<div class="close-badge-row">
         ${BADGES.map(b => `<div class="close-badge ${e.badge===b.key?'sel':''}" onclick="toggleBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
       </div>` : ''}
       ${pts > 0 ? `<div class="close-pts">＋${pts} 分${e.badge ? ' 🎖️' : ''}</div>` : ''}
@@ -1127,7 +1128,7 @@ async function submit() {
           const code = isBranch ? (myCode || '') : (e.tcode || '').replace(/\D/g, '').slice(0, 7);
           return {
             member_id: memberId, batch_id: BATCH_ID, close_date: today(),
-            plan: e.plan, size: e.size, badge: e.badge,
+            plan: e.plan, size: e.size, badge: e.size === 'full' ? e.badge : null,
             target_code: code || null,
             target_sub: isBranch ? null : '001',
             target_name: (e.tname || '').trim(),

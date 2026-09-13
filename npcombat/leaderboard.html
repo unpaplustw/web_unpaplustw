@@ -439,7 +439,7 @@ async function reloadData() {
 
   // 🔴 上線退回的締結不計分（2026-08-23）。verified：NULL＝待審仍計分／true＝已確認／false＝退回
   const { data: closeData } = await sb.from('closing_records')
-    .select('member_id, points, close_date, source, is_new, target_code, verified')
+    .select('member_id, points, close_date, source, is_new, target_code, target_sub, size, badge, verified')
     .in('member_id', memberIds).not('verified', 'is', false);
   allCloses = closeData || [];
 }
@@ -568,7 +568,8 @@ function calcStats(startDate, endDate) {
         st._refCodes.add(c.target_code); st.referrals += 1;   // 同一新人開小金大金＝1 人
       }
     }
-    if (c.badge) st.badge_units += (c.badge === 'big_gold' ? 7 : 3);
+    // 🔴 小金／大金只有一套才算（2026-09-13）。原本 select 沒撈 badge 欄位，金牌王一直是 0，一併修正
+    if (c.badge && c.size === 'full') st.badge_units += (c.badge === 'big_gold' ? 7 : 3);
   });
   const arr = Object.values(students);
   arr.forEach(s => {

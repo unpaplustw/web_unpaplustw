@@ -2380,7 +2380,7 @@ function getMyEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
   if (!p) return 0;
-  return (p[e.size] || 0) * badgeMult(e.badge);   // 方案×類型 再乘小金／大金倍率
+  return (p[e.size] || 0) * (e.size === 'full' ? badgeMult(e.badge) : 1);   // 小金／大金倍率只有一套才乘
 }
 
 function renderMyCloseSection() {
@@ -2417,7 +2417,7 @@ function renderMyCloseSection() {
         ${e.plan ? `<div class="my-close-half-row">
           ${SIZES.map(s => `<div class="my-close-half ${e.size===s.key?'sel':''}" onclick="setMySize(${i},'${s.key}')">${s.label}</div>`).join('')}
         </div>` : ''}
-        ${e.plan && e.size ? `<div class="my-close-badge-row">
+        ${e.plan && e.size === 'full' ? `<div class="my-close-badge-row">
           ${BADGES.map(b => `<div class="my-close-badge ${e.badge===b.key?'sel':''}" onclick="toggleMyBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
         </div>` : ''}
         ${pts > 0 ? `<div class="my-close-pts">＋${pts} 分${e.badge ? ' 🎖️' : ''}</div>` : ''}
@@ -2450,6 +2450,7 @@ function setMyPlan(i, plan) {
 }
 function setMySize(i, size) {
   myCloseEntries[i].size = size;
+  if (size !== 'full') myCloseEntries[i].badge = null;   // 🔴 小金／大金只有一套才算
   myCloseEntries[i].saved = false;
   refreshMyClose();
 }
@@ -2512,7 +2513,7 @@ async function submitMyReport() {
         const sub  = ((e.tsub || '').replace(/\D/g, '') || '001').padStart(3, '0').slice(-3);
         return {
           member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
-          plan: e.plan, size: e.size, badge: e.badge,
+          plan: e.plan, size: e.size, badge: e.size === 'full' ? e.badge : null,
           target_code: code || null, target_sub: code ? sub : null, target_name: (e.tname || '').trim() || null,
           is_new: code ? code !== myCode : null,
           points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily',
