@@ -43,55 +43,12 @@
   .act-lock{flex-shrink:0;background:var(--gold-lt);color:var(--gold);font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap}
   .lock-note{background:var(--gold-lt);border:1.5px dashed var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.8;color:var(--text);text-align:center}
   .lock-note b{color:var(--gold3)}
-  /* ── 頁籤 ── */
-  .tabbar{display:flex;gap:0;background:var(--card);border-bottom:1px solid var(--border);
-          position:sticky;top:0;z-index:50}
-  .tab{flex:1;padding:14px 8px;border:0;border-bottom:3px solid transparent;background:transparent;
-       color:var(--muted);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
-  .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--gold-lt)}
-  .tab-badge:not(:empty){display:inline-block;min-width:19px;margin-left:6px;padding:1px 5px;border-radius:20px;
-       background:var(--gold);color:#1a1a1a;font-size:12px;font-weight:700;vertical-align:1px}
-  .pane{display:none}
-  .pane.on{display:block}
-  /* ── 學習頁籤：單元卡 ── */
-  .study-head{background:var(--gold-lt);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;
-              margin:14px 0;font-size:14.5px;line-height:1.7;color:var(--text);text-align:center}
-  .study-head b{color:var(--gold);font-size:17px}
-  .unit-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;
-             overflow:hidden;box-shadow:var(--shadow)}
-  .unit-card.today{border-color:var(--gold);border-width:2px}
-  .unit-hd{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border:0;background:transparent;
-           font-family:inherit;font-size:15.5px;font-weight:700;color:var(--text);text-align:left;cursor:pointer}
-  .unit-no{flex:none;width:26px;height:26px;border-radius:50%;background:var(--gold-lt);color:var(--gold);
-           font-size:13px;display:flex;align-items:center;justify-content:center}
-  .unit-card.today .unit-no{background:var(--gold);color:#1a1a1a}
-  .unit-name{flex:1;line-height:1.4}
-  .unit-today{flex:none;padding:2px 8px;border-radius:20px;background:var(--gold);color:#1a1a1a;font-size:11.5px}
-  .unit-arrow{flex:none;color:var(--muted);font-size:13px;transition:transform .2s}
-  .unit-card.open .unit-arrow{transform:rotate(180deg)}
-  .unit-body{display:none;padding:0 14px 16px}
-  .unit-card.open .unit-body{display:block}
-  .play-btn{display:block;width:100%;padding:15px;border-radius:10px;border:1px solid var(--gold);
-            background:var(--gold-lt);color:var(--gold);font-family:inherit;font-size:16px;font-weight:700;cursor:pointer}
-  .play-btn:active{background:rgba(212,175,55,.28)}
-  .unit-soon{padding:15px;border:1px dashed var(--border);border-radius:10px;text-align:center;
-             color:var(--muted);font-size:14px}
-  .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden}
-  .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  /* 作業題目：影片下方直接看得到，不用回舊站 */
-  .hw-title{font-size:14.5px;font-weight:700;color:var(--gold);margin:16px 0 8px}
-  .hw-list{margin:0;padding-left:1.4em;font-size:15px;line-height:1.85;color:var(--text)}
-  .hw-list li{margin-bottom:8px}
-  .hw-empty{font-size:14px;color:var(--muted)}
-  .hw-tag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:20px;font-size:12.5px;
-          font-weight:600;vertical-align:1px;white-space:nowrap}
-  .hw-tag.t{background:rgba(140,140,140,.2);color:var(--muted)}   /* 文字 */
-  .hw-tag.a{background:rgba(212,175,55,.22);color:var(--gold)}    /* 錄音 */
-  .hw-tag.v{background:rgba(214,110,80,.2);color:#c2603f}         /* 錄影 */
-  .hw-tag.p{background:rgba(80,140,210,.18);color:#3f7cc2}          /* 照片／截圖（2026-09-13 公司新增的繳交方式） */
-  .hw-note{margin-top:12px;padding:10px 12px;border-radius:9px;background:var(--gold-lt);
-           font-size:14px;color:var(--muted);line-height:1.7;text-align:center}
-  .hw-note b{color:var(--gold)}
+  /* ── 今天的課程（學習組；2026-09-13 回到 27 期單頁框架：不分頁籤，最上面提醒，下面直接回報） ── */
+  .today-plan{background:var(--card);border:2px solid var(--gold);border-radius:16px;padding:16px 18px 14px;
+             margin:14px 16px 16px;text-align:center;box-shadow:var(--shadow)}
+  .tp-title{font-size:16px;font-weight:800;color:var(--gold);margin-bottom:10px}
+  .tp-unit{font-size:16px;line-height:2;color:var(--text)}
+  .tp-note{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13.5px;font-weight:700;color:var(--gold)}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -343,16 +300,9 @@
 </div>
 <div class="deadline-bar">⏰ 每日最晚 22:00 填寫回報</div>
 
-<!-- ── 頁籤 ── -->
-<div class="tabbar" id="tabbar">
-  <button class="tab" id="tabBtnStudy" onclick="switchTab('study')">📖 學習<span class="tab-badge" id="tabBadge"></span></button>
-  <button class="tab" id="tabBtnAction" onclick="switchTab('action')">🎯 行動</button>
-</div>
-
-<!-- ── 學習頁籤（17 單元固定列出，今天的浮到最上面） ── -->
-<div class="pane" id="studyPane"></div>
-
-<div class="pane" id="actionPane">
+<div id="actionPane">
+<!-- ── 今天的課程：學習組有排課的日子才出現（行動／精英組的鼓勵卡待定） ── -->
+<div id="todayCard"></div>
 <!-- ── 戰報儀表板 ── -->
 <div class="war-report" id="warReport" style="display:none">
   <div class="wr-card" id="wrCard">
@@ -578,77 +528,21 @@ async function resolveBatchId() {
   return data ? data.id : null;
 }
 
-// 課程還沒上到 → 七大行動鎖住，只開放締結。8/10（週一）後自動全開（日期讀 DB action_open_date）
-// 培訓期每日影片進度（⚠️ course.html 也有一份 PLAN，改課表要兩處一起改）
-// v = Vimeo 影片 ID（來源：公司舊站 unpaplus.com，抓取 2026-08-03）
-// v:null = 公司尚未上傳（舊站放的是「培訓計畫敬請期待」佔位片），上傳後補 ID 即可
-// 影片總開關：false = 學習頁籤只顯示作業，不出現任何播放器
-// 之後公司影片到齊、要開放播放時，把這行改成 true 即可（UNITS 裡的 Vimeo ID 都留著）
-const SHOW_VIDEO = false;
-
-// 排程：日期 → 今天指定的單元編號（只影響排序與標記，不影響其他單元能不能看）
-// 課表與作業題目已抽到共用檔 units.js（UNITS / SCHEDULE / unitsOfDay）
-
-// 學習頁籤：17 單元一律列出，今天指定的浮到最上面並自動展開；其餘收合，隨時可複習
-function renderStudy() {
-  const todayNos = SCHEDULE[today()] || [];
-  const sorted = [...UNITS].sort((a, b) => {
-    const at = todayNos.includes(a.no), bt = todayNos.includes(b.no);
-    return at === bt ? a.no - b.no : (at ? -1 : 1);
-  });
-  const cards = sorted.map(u => {
-    const isToday = todayNos.includes(u.no);
-    const hw = u.hw.length
-      ? `<ol class="hw-list">${u.hw.map(t => {
-          const m = t.match(/【(.+?)】/);
-          const tag = m ? m[1] : '';
-          const body = t.replace(/【.+?】/, '').trim();
-          const cls = /錄影/.test(tag) ? 'v' : /錄音/.test(tag) ? 'a' : /文字/.test(tag) ? 't' : /照片|拍照|截圖/.test(tag) ? 'p' : 't';
-          return `<li>${body}${tag ? `<span class="hw-tag ${cls}">${tag}</span>` : ''}</li>`;
-        }).join('')}</ol>`
-      : `<div class="hw-empty">作業內容尚未公布</div>`;
-    const player = !SHOW_VIDEO ? ''            // 影片未開放：整塊不出現，畫面只留作業
-      : u.v
-      ? `<div class="unit-player" id="p-${u.no}">
-           <button class="play-btn" onclick="loadVideo(${u.no})">▶︎ 播放影片</button>
-         </div>`
-      : `<div class="unit-soon">影片準備中</div>`;
-    return `<div class="unit-card${isToday ? ' today' : ''}${isToday ? ' open' : ''}" id="u-${u.no}">
-      <button class="unit-hd" onclick="toggleUnit(${u.no})">
-        <span class="unit-no">${u.no}</span>
-        <span class="unit-name">${u.n}</span>
-        ${isToday ? '<span class="unit-today">今天</span>' : ''}
-        <span class="unit-arrow">▾</span>
-      </button>
-      <div class="unit-body">${player}
-        <div class="hw-title">📝 作業</div>${hw}
-        <div class="hw-note">今天的作業請在 <b>22:00 前</b>交到小組群，教練隔天回覆</div>
-      </div>
-    </div>`;
-  }).join('');
-  const head = todayNos.length
-    ? `<div class="study-head">📝 今天有 <b>${todayNos.length}</b> 個單元的作業，完成後交到小組群</div>`
-    : `<div class="study-head">📝 全部 17 個單元的作業都在這裡，隨時可以回頭看</div>`;
-  document.getElementById('studyPane').innerHTML = head + cards;
-  const badge = document.getElementById('tabBadge');
-  if (badge && todayNos.length) badge.textContent = todayNos.length;
-  return todayNos.length;
-}
-function toggleUnit(no) { document.getElementById('u-' + no).classList.toggle('open'); }
-// 點了才載入 Vimeo：一次載入多個播放器會拖垮長輩的舊手機
-function loadVideo(no) {
-  const u = UNITS.find(x => x.no === no);
-  document.getElementById('p-' + no).innerHTML =
-    `<div class="video-wrap"><iframe src="https://player.vimeo.com/video/${u.v}?title=0&byline=0&portrait=0&playsinline=1"
-       allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
-}
-function switchTab(name) {
-  const study = name === 'study';
-  document.getElementById('studyPane').classList.toggle('on', study);
-  document.getElementById('actionPane').classList.toggle('on', !study);
-  document.getElementById('tabBtnStudy').classList.toggle('on', study);
-  document.getElementById('tabBtnAction').classList.toggle('on', !study);
-  window.scrollTo(0, 0);
+// 🔴 2026-09-13 Randoph 定：回到 27 期的單頁框架——不要頁籤。
+//   順序：①（學習組）今天的課程 ／（行動・精英）鼓勵的話 → ② 行動紀錄。
+//   作業題目不放這頁，學員看教練貼到小組群的作業文案（教練專區一鍵複製，同樣讀 units.js）。
+//   沒排課的日子（週末、9/25 中秋、學習期結束後）卡片不出現——與 27 期原設計相同。
+function renderTodayCard() {
+  const el = document.getElementById('todayCard');
+  if (!el || myTrack !== 'learn') return;          // 行動／精英組的鼓勵卡：金句清單待定
+  const d = today(), us = unitsOfDay(d);
+  if (!us.length) return;
+  const [, m, dd] = d.split('-');
+  const wd = '日一二三四五六'[new Date(d + 'T12:00:00').getDay()];
+  el.innerHTML = `<div class="today-plan">`
+    + `<div class="tp-title">📖 ${+m}/${+dd}（${wd}）今天的課程</div>`
+    + us.map(u => `<div class="tp-unit">第 ${u.no} 單元　${u.n}</div>`).join('')
+    + `<div class="tp-note">⏰ 22:00 前交作業到小組群</div></div>`;
 }
 
 const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 開放`; };
@@ -768,8 +662,7 @@ function showBlock(msg) {
   document.getElementById('userName').textContent = '⚠️ 無法使用';
   document.getElementById('dayCount').style.display = 'none';
   // 沒資格的人不該看到班內資訊（截止時間、解鎖提示）→ 整頁只留擋頁
-  document.querySelectorAll('.deadline-bar, .lock-note, .tabbar, #studyPane').forEach(el => el.style.display = 'none');
-  document.getElementById('actionPane').classList.add('on');   // 擋頁訊息在 actionPane 內，要讓它顯示
+  document.querySelectorAll('.deadline-bar, .lock-note, #todayCard').forEach(el => el.style.display = 'none');
   const dt = document.getElementById('dateText');
   if (dt) dt.style.display = 'none';
   document.getElementById('resultArea').innerHTML = `
@@ -932,7 +825,7 @@ async function init() {
     document.getElementById('userName').textContent = '測試學員';
     document.getElementById('dayCount').textContent = '第 8 天';
     accumData = { meet:23, invite:15, present:8, seminar:3, ghosted:5, rejected:4, close_count:3, close_pts:590, sub_count:2, total_pts:712, report_days:7, streak:5 };
-    switchTab(renderStudy() > 0 ? 'study' : 'action');
+    renderTodayCard();
     return;
   }
 
@@ -972,14 +865,7 @@ async function init() {
     }
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     labelGroupReport();  // 小組回報的字依階段變（學習週＝作業／行動週＝行動心得）
-    if (myTrack === 'learn') {
-      // 學習組：今天有指定單元 → 預設停在學習頁籤，否則直接進行動頁籤
-      switchTab(renderStudy() > 0 ? 'study' : 'action');
-    } else {
-      // 行動組／精英組：不上課，整個頁籤列拿掉，只有行動
-      document.getElementById('tabbar').style.display = 'none';
-      switchTab('action');
-    }
+    renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
     document.getElementById('userName').textContent = member.name;   // 🔴 9/10 移除天神視角時漏刪這裡的 _isGodView → ReferenceError，整頁「載入失敗」（9/13 開班日才發現）
