@@ -683,7 +683,7 @@ function applyActionLock() {
 
   const fa = document.getElementById('formArea');   // 提示放在行動頁籤最上面
   if (fa) fa.insertAdjacentHTML('afterbegin',
-    `<div class="lock-note">🔒 行動項目 <b>${label}</b><br>課程上到「列名單」單元後開啟，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`);
+    `<div class="lock-note">🔒 行動項目 <b>${label}</b><br>👉 <b>締結成功隨時都可以填</b></div>`);
 }
 
 const sb = window.supabase.createClient(
