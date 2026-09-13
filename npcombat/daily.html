@@ -659,7 +659,7 @@ const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 
 function labelGroupReport() {
   const el = document.querySelector('#groupReport .group-label');
   if (!el) return;
-  const inStudy = studyEnd && today() <= studyEnd;
+  const inStudy = myTrack === 'learn' && studyEnd && today() <= studyEnd;   // 行動／精英組整期都是行動心得
   el.textContent = inStudy ? '🎙️ 我已經在小組回報作業' : '🎙️ 我已經小組回報 3 分鐘行動心得';
 }
 
@@ -755,6 +755,7 @@ function toggleGroupReport() {
   document.getElementById('groupReport').classList.toggle('checked', groupReported);
 }
 let studentId = null, existingId = null;
+let myTrack = 'learn';   // 🔴 班別掛在「組」上（batch_coaches.track）；只有 learn 要上課交作業
 let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
 let memberName = '', batchInfo = null;
 
@@ -949,7 +950,7 @@ async function init() {
     memberId = member.id;
 
     // 查本期學員身份
-    const { data: stu } = await sb.from('batch_students').select('id, status, dropped_at')
+    const { data: stu } = await sb.from('batch_students').select('id, status, dropped_at, track, coach_id')
       .eq('batch_id', BATCH_ID).eq('member_id', memberId).single();
     if (!stu || stu.status !== 'approved') { showBlock(member.name + '，你尚未被批准參加本期實戰班。'); return; }
     // 🔴 已退班（2026-08-25）：資料全部保留，只是不能再填。
@@ -961,10 +962,23 @@ async function init() {
       return;
     }
     studentId = stu.id;
+    // 班別以「組」為準（組的 track），組還沒設才退回學員自己報名的 track。
+    // 2026-09-13：原本不分班別，行動組／精英組 9/14 起一打開也停在學習頁籤看到作業——他們不用上課。
+    myTrack = stu.track || 'learn';
+    if (stu.coach_id) {
+      const { data: grp } = await sb.from('batch_coaches').select('track').eq('id', stu.coach_id).maybeSingle();
+      if (grp?.track) myTrack = grp.track;
+    }
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     labelGroupReport();  // 小組回報的字依階段變（學習週＝作業／行動週＝行動心得）
-    // 今天有指定單元 → 預設停在學習頁籤，否則直接進行動頁籤
-    switchTab(renderStudy() > 0 ? 'study' : 'action');
+    if (myTrack === 'learn') {
+      // 學習組：今天有指定單元 → 預設停在學習頁籤，否則直接進行動頁籤
+      switchTab(renderStudy() > 0 ? 'study' : 'action');
+    } else {
+      // 行動組／精英組：不上課，整個頁籤列拿掉，只有行動
+      document.getElementById('tabbar').style.display = 'none';
+      switchTab('action');
+    }
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
     document.getElementById('userName').textContent = member.name;   // 🔴 9/10 移除天神視角時漏刪這裡的 _isGodView → ReferenceError，整頁「載入失敗」（9/13 開班日才發現）
