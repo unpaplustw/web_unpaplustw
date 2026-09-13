@@ -433,7 +433,7 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported, decl_read, proof_checks, coach_checks')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, decl_read, proof_checks, coach_checks')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
@@ -518,8 +518,7 @@ function calcStats(startDate, endDate) {
       const proofMult = isSimpleMode() || !verify || proof[f] ? 1 : 0.5;
       s.action_pts += val * BASE_PTS[f] * proofMult;
     });
-    // 🎙️小組回報 +5（生效日後要證明勾；之前學員聲明即給；簡單模式免證明）
-    if (log.group_reported && (isSimpleMode() || !verify || proof.group)) s.action_pts += 5;
+    // 🎙️小組回報 +5 已於 2026-09-13 移除（學員自述勾選拿掉，現在由教練審核）
     // 📖朗讀宣言 +2（學員自己拿）
     if (log.decl_read) s.action_pts += 2;
     // 📋 有填報（任一筆 log 即算填報）

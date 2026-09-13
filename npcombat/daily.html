@@ -37,9 +37,6 @@
   /* 課程還沒上到 → 該項目鎖住 */
   .act.locked{opacity:.55;background:var(--bg)}
   .act.locked .act-ctrl{display:none}
-  .group-report.locked{opacity:.55;background:var(--bg);cursor:default}
-  .group-report.locked .group-check{display:none}
-  .group-report .act-lock{margin-left:auto}   /* 與行動卡一致：鎖標籤靠右 */
   .act-lock{flex-shrink:0;background:var(--gold-lt);color:var(--gold);font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap}
   .lock-note{background:var(--gold-lt);border:1.5px dashed var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.8;color:var(--text);text-align:center}
   .lock-note b{color:var(--gold3)}
@@ -243,12 +240,6 @@
   .btn-decl-skip:active{background:var(--bg)}
 
   /* ── Group report checkbox ── */
-  .group-report{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--card);border:2px solid var(--border);border-radius:14px;margin-bottom:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .2s}
-  .group-report.checked{border-color:var(--green)}
-  .group-check{width:28px;height:28px;border-radius:8px;border:2px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:16px;transition:.15s;flex-shrink:0}
-  .group-check.on{background:var(--green);border-color:var(--green);color:#fff}
-  .group-label{font-size:15px;font-weight:600;color:var(--text)}
-  .group-note{font-size:12px;color:var(--muted);margin-top:2px}
 
   /* ── Footer ── */
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
@@ -481,13 +472,6 @@
   </div>
 
   <div class="submit-wrap">
-    <div class="group-report" id="groupReport" onclick="toggleGroupReport()">
-      <div class="group-check" id="groupCheck"></div>
-      <div>
-        <div class="group-label">🎙️ 我已經小組回報 3 分鐘行動心得</div>
-        <div class="group-note">自願勾選，為自己的分享紀錄留下印記</div>
-      </div>
-    </div>
     <button class="btn-submit" id="btnSubmit" onclick="submit()">送出今日回報</button>
   </div>
 </div>
@@ -550,13 +534,6 @@ const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 
 // 七大行動與「小組回報行動心得」同一個開放日（DB batches.action_open_date，27期 8/10）
 // 2026-08-08 定案：行動心得要到行動日才能按——有行動才有心得可分享
 // 締結與宣言不受此鎖影響，全期開放
-// 小組回報的標籤依階段變：學習週貼的是作業，行動週貼的才是行動心得
-function labelGroupReport() {
-  const el = document.querySelector('#groupReport .group-label');
-  if (!el) return;
-  const inStudy = myTrack === 'learn' && studyEnd && today() <= studyEnd;   // 行動／精英組整期都是行動心得
-  el.textContent = inStudy ? '🎙️ 我已經在小組回報作業' : '🎙️ 我已經小組回報 3 分鐘行動心得';
-}
 
 function applyActionLock() {
   if (!actionOpenDate || today() >= actionOpenDate) return;
@@ -622,7 +599,6 @@ const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
 let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
-let groupReported = false;
 let declRead = false;
 
 
@@ -641,14 +617,7 @@ function closeDecl(didRead) {
   document.getElementById('declOverlay').style.display = 'none';
 }
 
-// ── Group report toggle ──
-function toggleGroupReport() {
-  if (actionOpenDate && today() < actionOpenDate) return;   // 尚未開放，不受理
-  groupReported = !groupReported;
-  document.getElementById('groupCheck').classList.toggle('on', groupReported);
-  document.getElementById('groupCheck').textContent = groupReported ? '✓' : '';
-  document.getElementById('groupReport').classList.toggle('checked', groupReported);
-}
+// 🔴 2026-09-13「我已經小組回報」勾選拿掉（Randoph）：現在都是教練在審核，學員自述不再計分、不再免記點。
 let studentId = null, existingId = null;
 let myTrack = 'learn';   // 🔴 班別掛在「組」上（batch_coaches.track）；只有 learn 要上課交作業
 let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, close_count, close_pts, sub_count, total_pts, report_days, streak }
@@ -864,7 +833,6 @@ async function init() {
       if (grp?.track) myTrack = grp.track;
     }
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
-    labelGroupReport();  // 小組回報的字依階段變（學習週＝作業／行動週＝行動心得）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
@@ -874,13 +842,12 @@ async function init() {
 
     // 檢查今天是否已填
     const { data: existing } = await sb.from('action_logs')
-      .select('id, name_list, meet, invite, present, seminar, ghosted, rejected, group_reported')
+      .select('id, name_list, meet, invite, present, seminar, ghosted, rejected')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('log_date', d).single();
     if (existing) {
       existingId = existing.id;
       // 帶回今天已填的行動數值
       COUNT_FIELDS.forEach(f => { vals[f.key] = existing[f.key] || 0; document.getElementById('n-'+f.key).textContent = vals[f.key]; });
-      groupReported = existing.group_reported || false;
       toast('今天已回報過，可修改重送');
     }
 
@@ -1121,7 +1088,7 @@ async function submit() {
         name_list: vals.name_list, meet: vals.meet, invite: vals.invite,
         present: vals.present, seminar: vals.seminar,
         ghosted: vals.ghosted, rejected: vals.rejected,
-        decl_read: declRead, group_reported: groupReported,
+        decl_read: declRead,
       };
       if (existingId) {
         const { error: updErr } = await sb.from('action_logs').update(logRow).eq('id', existingId);
@@ -1190,19 +1157,12 @@ function showResult() {
   let totalPts = 0;
   let html = '';
 
-  // decl_read & group_reported bonus
+  // 宣言加分（小組回報 +5 已於 2026-09-13 移除）
   if (declRead) {
     totalPts += 2;
     html += `<div class="result-row">
       <span class="result-row-label">📖 認真朗讀宣言</span>
       <span class="result-row-val">✓ → 2 分</span>
-    </div>`;
-  }
-  if (groupReported) {
-    totalPts += 5;
-    html += `<div class="result-row">
-      <span class="result-row-label">🎙️ 小組回報心得</span>
-      <span class="result-row-val">✓ → 5 分</span>
     </div>`;
   }
 
