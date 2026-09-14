@@ -849,6 +849,7 @@ let studentList = [];
 // 🔴 沒有這個旗標就分不出「還沒載入」與「真的沒組員」，
 //    切到審查頁時會顯示「沒有配對到你的學員」，教練以為自己沒帶組（2026-08-23 踩到）
 let studentsLoaded = false;
+let earlyRoster = null;   // 名單姓名先到就先畫接龍用（{name, dropped_at}），完整 studentList 還在載入時暫代
 let currentIdx = -1;
 let currentDay = 'today';
 let batchDates = { start: null, end: null, studyStart: null, studyEnd: null }; // 班期起訖＋學習週
@@ -1104,6 +1105,10 @@ async function init() {
       .in('id', memberIds);
     const memberMap = {};
     (memberInfos || []).forEach(m => memberMap[m.id] = m);
+    // ⚡ 姓名一到就先畫作業接龍（2026-09-14）：後面還有回報、締結、標記、送出四次查詢要等，
+    //    教練要貼的接龍只需要姓名，不必陪著等完（實測約快 0.9 秒）。完整名單載入後會再畫一次。
+    earlyRoster = students.map(s => ({ name: (memberMap[s.member_id] || {}).name || '未知', dropped_at: s.dropped_at }));
+    renderRollcall();
 
     // 查今天 + 昨天的 action_logs
     const todayStr = getDateStr('today');
@@ -2245,9 +2250,10 @@ ${tip}
     return;
   }
   // 🔴 名單還沒抓回來時不能說「沒有學員」——手機慢網會停在這句好幾秒，教練以為沒帶到名單、甚至直接複製貼群（2026-09-14 張憶文）
-  if (!studentsLoaded) { rcBox.textContent = '⏳ 名單載入中，請稍等…'; return; }
-  if (!activeStudents().length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
-  const names = activeStudents().map((s, i) => `${i+1}.${s.name}`).join('\n');
+  if (!studentsLoaded && !earlyRoster) { rcBox.textContent = '⏳ 名單載入中，請稍等…'; return; }
+  const roster = studentsLoaded ? activeStudents() : earlyRoster.filter(s => !s.dropped_at);
+  if (!roster.length) { rcBox.textContent = '你的小組還沒有學員資料'; return; }
+  const names = roster.map((s, i) => `${i+1}.${s.name}`).join('\n');
   rcBox.textContent = `${base.getMonth()+1}/${base.getDate()}作業完成請打✅\n\n`
     + units.map(u => `《${String(u.no).padStart(2,'0')}${u.n}》\n${names}`).join('\n\n');
 }
