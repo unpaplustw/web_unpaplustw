@@ -1774,7 +1774,9 @@ function renderHwDetail() {
   if (!hwOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
   const stu = studentList.find(s => s.id === hwOpen.sid);
   if (!stu) { box.style.display = 'none'; return; }
-  const ds = hwOpen.ds, units = dayUnitsOf(ds), closed = dateClosed(ds);
+  // 🔴 2026-09-15：行動表點開要看「行動心得交了沒」，不是作業題目。
+  //    原本不看分頁一律 dayUnitsOf(ds)，9/14～9/24 有排課 → 行動組補交跳出 U1·2 逐題勾（同 dayState 的判斷）
+  const ds = hwOpen.ds, units = curScope() === 'action' ? null : dayUnitsOf(ds), closed = dateClosed(ds);
   const wdc = '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
   let h = `<div class="hw-det">
