@@ -987,6 +987,9 @@ function fmtTime(ts) {
 
 let submitMap = {};                       // log_date -> coach_submits row
 async function loadSubmits() {
+  // 🔴 LINE 登入還沒完成（coachId 還是 null）就不查——2026-09-15 錢威達：
+  //    登入慢、先點了「組員」，拿 null 去查就跳「invalid input syntax for type uuid: "null"」
+  if (!coachId) return;
   const { data, error } = await sb.from('coach_submits')
     .select('log_date, submitted_at, unreplied')
     .eq('batch_id', BATCH_ID).eq('coach_id', coachId);
@@ -1198,7 +1201,9 @@ async function init() {
   renderReview();
   await loadSubmits().catch(() => {});   // 燈號要在首頁就亮，不能等點進組員頁
   renderRollcall();   // 這裡才有 studentList，接龍名單要等到現在才生得出來
-  setMode('my');
+  initDone = true;
+  // 載入期間教練已經自己點了分頁（例如先點「組員」）→ 留在原處用完整資料重畫，不硬跳回「我的」
+  if (userPickedMode) setMode(userPickedMode); else setMode('my');
 }
 
 // 學員審查／小組關懷 分派（依教練模式）
@@ -1218,7 +1223,9 @@ function renderReview() {
 let recScope = 'my';                        // 'my' | 'group'——預設停在自己的，教練先填自己
 function setRecScope(k) { recScope = k; setMode('rec'); }
 
+let initDone = false, userPickedMode = null;
 function setMode(mode) {
+  if (!initDone) userPickedMode = mode === 'rec' ? (recScope === 'group' ? 'review' : 'my') : mode;
   // 舊模式名相容：'my'/'review' → 'rec'，'hw' → 'chk'
   if (mode === 'my')     { recScope = 'my';    mode = 'rec'; }
   if (mode === 'review') { recScope = 'group'; mode = 'rec'; }
@@ -1592,6 +1599,7 @@ function dayState(sid, ds) {
 // 一覽表需要全期的 coach_engagement（小組分頁只抓今天/昨天）
 let engAll = {};
 async function loadEngAll() {
+  if (!coachId) { engAll = {}; return; }   // 同 loadSubmits：登入還沒完成就不查
   const { data, error } = await sb.from('coach_engagement')
     .select('student_id, log_date, homework, homework_replied')
     .eq('batch_id', BATCH_ID).eq('coach_id', coachId);
@@ -2640,6 +2648,11 @@ function toggleEngDetail(studentId) {
 }
 
 function renderEngagement() {
+  if (!studentsLoaded) {
+    const b = document.getElementById('summaryBody');
+    if (b) b.innerHTML = '<div class="eng-hint">⏳ 名單載入中，請稍等…<br>（LINE 登入比較慢時要等幾秒）</div>';
+    return;
+  }
   const dateStr = getDateStr(currentDay);
   const M = engModeFor(dateStr);
   // 只有一天，日期就是唯一的定位——寫清楚星期與是否已結案
