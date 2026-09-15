@@ -291,6 +291,8 @@
   .hw-cell{width:34px;height:34px;border-radius:7px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff;transition:.12s}
   .hw-cell.hw-na{background:var(--border);color:var(--muted);font-weight:400}
   .hw-cell.hw-full{background:var(--green)} .hw-cell.soft{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)} .hw-cell.hw-part{background:#e0a020} .hw-cell.hw-none{background:#d9534f}
+  /* 補交＝藍「補」（2026-09-15 Randoph）：一眼分得出按時交與事後補 */
+  .hw-cell.mk,.hw-c.mk{background:#3b82f6 !important;box-shadow:none !important} .hw-cell.mk{color:#fff}
   .hw-cell.on{outline:3px solid var(--gold);outline-offset:1px}
   .hw-cell.locked{opacity:.35;cursor:default}
   .hw-missing{margin:6px 12px 14px;background:var(--card);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9}
@@ -447,7 +449,7 @@
 <div id="hwView" style="display:none">
   <div class="hw-hint">
     只問「完成了沒」，<b>不壓日期</b>——任何時候都可以回頭補。點格子展開該單元題目逐題勾，勾幾題系統自己算。<br>
-    <span class="hw-lg"><i class="hw-c hw-full"></i>全繳　<i class="hw-c hw-part"></i>部分　<i class="hw-c hw-none"></i>沒繳　<i class="hw-c hw-na"></i>還沒檢核</span>
+    <span class="hw-lg"><i class="hw-c hw-full"></i>全繳　<i class="hw-c hw-part"></i>部分　<i class="hw-c hw-none"></i>沒繳　<i class="hw-c mk"></i>補交　<i class="hw-c hw-na"></i>還沒檢核</span>
   </div>
   <div id="hwGrid"></div>
   <div id="hwDetail" style="display:none"></div>
@@ -1340,14 +1342,7 @@ async function submitDay() {
 //   資料表 npcombat.makeup_records
 // ══════════════════════════════════════════════════════════
 const MK_REASONS = {
-  student: [
-    ['forgot',        '忘記交'],
-    ['sick',          '生病'],
-    ['busy_work',     '工作忙'],
-    ['family',        '家庭因素'],
-    ['missed_notice', '沒看到通知'],
-    ['other',         '其他'],
-  ],
+  student: [['makeup', '補交']],   // 2026-09-15 Randoph：學員補交不分原因，只看藍色色卡
   coach: [
     ['late_post',  '學員很晚才貼，來不及在 12:00 前回'],
     ['forgot',     '忘記標'],
@@ -1607,6 +1602,7 @@ function dayState(sid, ds) {
 }
 
 // 一覽表需要全期的 coach_engagement（小組分頁只抓今天/昨天）
+let mkSet = new Set();                    // 補交過的「學員|日期」
 let engAll = {};
 async function loadEngAll() {
   if (!coachId) { engAll = {}; return; }   // 同 loadSubmits：登入還沒完成就不查
@@ -1616,6 +1612,11 @@ async function loadEngAll() {
   if (error) throw new Error('小組標記：' + error.message);
   engAll = {};
   (data || []).forEach(r => { engAll[r.student_id + '|' + r.log_date] = r; });
+  // 補交過的格子（學員），畫藍色「補」
+  const { data: mk, error: mkErr } = await sb.from('makeup_records')
+    .select('student_id, log_date').eq('batch_id', BATCH_ID).eq('coach_id', coachId).eq('subject', 'student');
+  if (mkErr) throw new Error('補交紀錄：' + mkErr.message);
+  mkSet = new Set((mk || []).map(r => r.student_id + '|' + r.log_date));
 }
 
 function renderHw() {
@@ -1670,7 +1671,7 @@ function renderHw() {
 
   const isAct = sc0 === 'action';
   let h = scopeBar;
-  h += `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補交並要填原因</b>——
+  h += `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補交（藍色「補」）</b>——
     教練每天只送出一次，之後就在這裡回追。</div>`;
   h += '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
   days.forEach(ds => {
@@ -1700,10 +1701,11 @@ function renderHw() {
         return;                                          // 未來：不可點、不進缺件清單
       }
       const st = dayState(stu.id, ds);
+      const mk = st.k === 'full' && mkSet.has(stu.id + '|' + ds);   // 補交：完成了但是事後補的
       const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.ds === ds;
-      h += `<td class="hw-cell hw-${st.k}${st.soft ? ' soft' : ''} ${isOpen ? 'on' : ''}"
+      h += `<td class="hw-cell hw-${st.k}${st.soft ? ' soft' : ''}${mk ? ' mk' : ''} ${isOpen ? 'on' : ''}"
                onclick="openDay('${stu.id}','${ds}')"
-               title="${ds}（週${wd(ds)}）${st.soft ? '｜組員頁已標已交（還沒逐題檢核）' : ''}${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${st.label}</td>`;
+               title="${ds}（週${wd(ds)}）${st.soft ? '｜組員頁已標已交（還沒逐題檢核）' : ''}${mk ? '｜補交' : ''}${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${mk ? '補' : st.label}</td>`;
       if (st.k !== 'full') {
         const us = isAct ? null : dayUnitsOf(ds);
         const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + (isAct ? ' 行動心得' : '');
@@ -1786,9 +1788,7 @@ function renderHwDetail() {
 
   if (closed) {
     // 已結案 → 這一次改動就是補交，要留原因（Randoph：從一覽表點擊就一定是補交）
-    h += `<div class="hw-makeup">🔒 <b>這一天已結案</b>，以下改動會記成<b>補交</b>。<br>
-      <select class="mk-in" id="hwMkReason" style="margin-top:8px">${
-        MK_REASONS.student.map(([c, t]) => `<option value="${c}">${t}</option>`).join('')}</select></div>`;
+    h += `<div class="hw-makeup">🔒 <b>這一天已結案</b>，以下改動會記成<b>補交</b>（格子變藍色「補」）。</div>`;
   }
 
   if (units && units.length) {
@@ -1824,13 +1824,14 @@ function renderHwDetail() {
 // 已結案時把這次改動記成補交（一次改動記一筆，原因取面板上的選單）
 async function logMakeup(sid, ds) {
   if (!dateClosed(ds)) return;
-  const sel = document.getElementById('hwMkReason');
+  // 2026-09-15 Randoph：學員補交不選原因，一律記「補交」，看色卡就好
   await sb.from('makeup_records').insert({
     batch_id: BATCH_ID, coach_id: coachId, log_date: ds,
     subject: 'student', student_id: sid,
-    reason_code: sel ? sel.value : 'other',
+    reason_code: 'makeup',
     reason_note: '一覽表補交'
   });
+  mkSet.add(sid + '|' + ds);
 }
 
 async function saveHw(sid, unit, items, ds) {
@@ -1848,7 +1849,7 @@ async function saveHw(sid, unit, items, ds) {
     if (prev) hwMap[sid + '|' + unit] = prev; else delete hwMap[sid + '|' + unit];
     renderHw(); toast('儲存失敗：' + error.message); return;
   }
-  if (ds) await logMakeup(sid, ds);
+  if (ds && dateClosed(ds)) { await logMakeup(sid, ds); renderHw(); }
 }
 function toggleHwItem(sid, unit, qno, ds) {
   const cur = { ...((hwMap[sid + '|' + unit] || {}).items || {}) };
@@ -1867,8 +1868,8 @@ async function setDayPost(sid, ds, val) {
     batch_id: BATCH_ID, coach_id: coachId, student_id: sid, log_date: ds, homework: val
   }, { onConflict: 'batch_id,student_id,log_date' });
   if (error) { toast('儲存失敗：' + error.message); return; }
-  await loadEngAll();
   await logMakeup(sid, ds);
+  await loadEngAll();
   renderHw();
   toast('已儲存 ✅');
 }

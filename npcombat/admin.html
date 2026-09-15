@@ -253,6 +253,7 @@
   .hwm .hwm-u{color:var(--gold);font-size:8.5px}
   /* LINE 標記連動來的格子：綠底加白點，提醒還沒逐題檢核 */
   .hwm-c.soft{background:#1d8049;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
+  .hwm-c.mk{background:#3b82f6 !important;box-shadow:none;color:#fff}   /* 補交＝藍「補」（2026-09-15） */
   .hwm th.nm,.hwm td.nm{text-align:left;position:sticky;left:0;background:var(--navy);z-index:1;padding-right:8px;white-space:nowrap}
   .hwm td.nm{color:var(--white);font-weight:600;font-size:12px}
   .hwm td.nm .c{color:var(--muted);font-weight:400;font-size:10px;margin-left:4px}
@@ -819,6 +820,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
   const hwBy  = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
   const engBy = {}; engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
   const logBy = {}; allLogs.forEach(l => logBy[l.student_id + '|' + l.log_date] = l);
+  const mkSet = new Set(makeupRows.filter(r => r.subject === 'student').map(r => r.student_id + '|' + r.log_date));
 
   // 該日的死線＝隔天 12:00（跟小組回報同一條線）
   const dayOverdue = ds => {
@@ -914,7 +916,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
   h += `<div class="cov-note">
     ${isAct ? '這張只看<b>行動</b>：行動回報（學員自己填）＋小組心得。作業請看「📋 作業一覽表」。'
             : '這張只看<b>作業</b>：橫軸是上課日，底下標該日單元號。行動請看「🏃 行動一覽表」。'}<br>
-    綠✓=完成　橘=部分／教練未回　<b>紅✕=沒交</b>（含教練逾時未處理）　灰=還在期限內　空=未開放<br>
+    綠✓=完成　橘=部分／教練未回　<b>紅✕=沒交</b>　藍補=補交（含教練逾時未處理）　灰=還在期限內　空=未開放<br>
     🔴 <b>教練在 LINE 標「已交」會直接連動到這張表</b>——目前有 <b>${softCells} 格</b>是這樣來的
     （綠底加白點，表示還沒逐題檢核）。<b>每格的死線＝隔天 12:00</b>，過了還沒處理就是紅叉、等同沒繳。<br>
     ${isAct ? '一格看<b>兩件事</b>：行動回報＋小組心得。兩件都做＝✓，只做一件＝「半」。<br>' : ''}
@@ -939,7 +941,8 @@ function renderHwMatrix(realStudents, coachById, scope) {
              onclick="showWho(event,this)" title="教練 ${cN}｜領袖 ${sN}">${nm(r.s)}</td>`;
     days.forEach(ds => {
       const c = cellOf(r.s.id, ds);
-      h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}">${c.txt}</td>`;
+      const mk = c.k === 'full' && mkSet.has(r.s.id + '|' + ds);
+      h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}${mk ? ' mk' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}${mk ? '｜補交' : ''}">${mk ? '補' : c.txt}</td>`;
     });
     const note = [r.nax ? `逾時 ${r.nax}` : '', r.na ? `待處理 ${r.na}` : ''].filter(Boolean).join(' · ');
     h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${
@@ -1263,7 +1266,7 @@ function renderDemerits(target) {
   // 補交原因分布：看的是「大家為什麼補」，不是個人
   if (makeupRows.length) {
     const LBL = { forgot:'忘記', sick:'生病', busy_work:'工作忙', family:'家庭因素',
-                  missed_notice:'沒看到通知', late_post:'學員很晚才貼', other:'其他' };
+                  missed_notice:'沒看到通知', late_post:'學員很晚才貼', other:'其他', makeup:'補交' };
     const cnt = {};
     makeupRows.forEach(r => {
       const k = (r.subject === 'coach' ? '教練·' : '學員·') + (LBL[r.reason_code] || r.reason_code);
