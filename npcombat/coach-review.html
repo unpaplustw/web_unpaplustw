@@ -1370,6 +1370,8 @@ function dayUnitsOf(ds) { return (SCHEDULE || {})[ds] || null; }
 // 預設停在當前階段該看的那個：學習週開作業、行動週開行動。
 let hwScope = null;                       // null＝跟著階段走；使用者點過就固定
 function defaultScope() {
+  // 🔴 行動組／精英組不上課，審查一打開就是行動表（2026-09-15：原本停在作業表，教練標的行動心得看不到）
+  if (!isLearnGroup()) return 'action';
   const t = getDateStr('today');
   return (batchDates.studyEnd && t > batchDates.studyEnd) ? 'action' : 'study';
 }
@@ -1523,7 +1525,9 @@ function gotoSubmit() {
 // 行動一覽表從**行動週**起算（study_end 隔天），不是 action_open_date——
 // 那段兩者重疊時學員主任務仍是作業，列進來只會難看又不公平（與 admin 同一條規則）
 function actionViewFrom() {
-  // 🔴 行動週＝study_end 之後的第一個週一（2026-08-25 Randoph 更正，與 admin 同規則）
+  // 行動組／精英組開班就在跑行動，從行動開放日（沒有就開班日）起算
+  if (!isLearnGroup()) return batchDates.actionOpen || batchDates.start;
+  // 🔴 學習組：行動週＝study_end 之後的第一個週一（2026-08-25 Randoph 更正，與 admin 同規則）
   if (!batchDates.studyEnd) return batchDates.start;
   const d = new Date(batchDates.studyEnd + 'T00:00:00');
   do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);
@@ -1620,6 +1624,10 @@ function renderHw() {
     clearBelow();
     return;
   }
+  if (sc0 === 'study' && !isLearnGroup()) {
+    grid.innerHTML = scopeBar + `<div class="hw-hint">你這一組是<b>${myTrack === 'elite' ? '高階精英組' : '進階行動組'}</b>，不用交作業。<br>組員的行動心得請看「🏃 行動」。</div>`;
+    clearBelow(); return;
+  }
   if (!studentsLoaded) {
     grid.innerHTML = scopeBar + '<div class="hw-hint">載入中…</div>';
     return;                                    // 還沒載完就說「沒有組員」會誤導
@@ -1645,7 +1653,7 @@ function renderHw() {
     教練每天只送出一次，之後就在這裡回追。</div>`;
   h += '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
   days.forEach(ds => {
-    const us = dayUnitsOf(ds);
+    const us = isAct ? null : dayUnitsOf(ds);   // 行動表的欄位標「行動」，不標單元（行動組 9/14 起那幾天剛好有課表）
     h += `<th title="${ds}（週${wd(ds)}）">${ds.slice(5).replace('-', '/')}<br>
       <span class="hw-sub">${us ? 'U' + us.join('·') : '行動'}${dateClosed(ds) ? ' 🔒' : ''}</span></th>`;
   });
