@@ -287,6 +287,7 @@
   .hw-tbl th{font-weight:600;color:var(--muted);padding:4px 2px;text-align:center;font-size:11px;white-space:nowrap}
   .hw-tbl th.hw-nm{text-align:left;padding-right:8px;position:sticky;left:0;background:var(--bg);z-index:1}
   .hw-tbl td.hw-nm{font-weight:600;font-size:14px;white-space:nowrap;padding-right:8px;position:sticky;left:0;background:var(--bg);z-index:1}
+  .hw-cell.hw-future{background:transparent;border:1.5px dashed var(--border);color:var(--muted);cursor:not-allowed}
   .hw-cell{width:34px;height:34px;border-radius:7px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff;transition:.12s}
   .hw-cell.hw-na{background:var(--border);color:var(--muted);font-weight:400}
   .hw-cell.hw-full{background:var(--green)} .hw-cell.soft{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)} .hw-cell.hw-part{background:#e0a020} .hw-cell.hw-none{background:#d9534f}
@@ -1534,12 +1535,14 @@ function actionViewFrom() {
   return dateStrOf(d);
 }
 
-function dayList() {                       // 開班日到今天的平日，再依 scope 過濾
+function dayList() {                       // 開班日到結業日（未來格子另外鎖），再依 scope 過濾
   const out = [];
   if (!batchDates.start) return out;
-  const today = getDateStr('today'), sc = curScope(), actFrom = actionViewFrom();
+  const sc = curScope(), actFrom = actionViewFrom();
   if (sc === 'verify') return out;                    // 締結核對不吃日期軸
-  for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= today; d.setDate(d.getDate() + 1)) {
+  // 🔴 2026-09-15 Randoph：整期的格子都畫出來（畫到結業日），未來的格子不能點，避免誤填
+  const last = batchDates.end || getDateStr('today');
+  for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= last; d.setDate(d.getDate() + 1)) {
     const w = d.getDay();
     // 🔴 行動不是只有平日在做——2026-08-29（六）有 15 人填報、12 個行動，跟平日一樣多。
     //    但那天教練的一覽表看不到，也標不到。所以行動表含週末，作業表維持只有平日
@@ -1674,6 +1677,10 @@ function renderHw() {
         h += `<td class="hw-cell hw-na" title="${ds}｜已於 ${stu.dropped_at} 退班">—</td>`;
         return;
       }
+      if (ds > getDateStr('today')) {
+        h += `<td class="hw-cell hw-future" title="${ds}（週${wd(ds)}）｜還沒到，不能填">·</td>`;
+        return;                                          // 未來：不可點、不進缺件清單
+      }
       const st = dayState(stu.id, ds);
       const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.ds === ds;
       h += `<td class="hw-cell hw-${st.k}${st.soft ? ' soft' : ''} ${isOpen ? 'on' : ''}"
@@ -1738,6 +1745,7 @@ function renderHw() {
 }
 
 function openDay(sid, ds) {
+  if (ds > getDateStr('today')) { toast('還沒到這一天，不能填'); return; }   // 未來格子防呆
   hwOpen = (hwOpen && hwOpen.sid === sid && hwOpen.ds === ds) ? null : { sid, ds };
   renderHw();
   if (hwOpen) setTimeout(() => document.getElementById('hwDetail')?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
