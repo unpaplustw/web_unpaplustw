@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天吃了嗎</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --ink:#F2F6FF; --ink-soft:#AEBBD4; --ink-dim:#7C8AA6;
+    --ground:#0A0F1C; --card:rgba(255,255,255,.055); --line:rgba(255,255,255,.14);
+    --accent:#00D2FF; --ok:#3DDC97; --warn:#FFC24B;
+    --r:18px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:
+      radial-gradient(120% 60% at 80% -10%, rgba(138,43,226,.28) 0%, transparent 60%),
+      radial-gradient(100% 50% at 0% 0%, rgba(0,210,255,.16) 0%, transparent 55%),
+      var(--ground);
+    color:var(--ink); font-size:17px; line-height:1.55;
+    font-family:"PingFang TC","Noto Sans TC","Heiti TC","Microsoft JhengHei",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:430px; margin:0 auto; padding:18px 16px 128px; display:flex; flex-direction:column; gap:16px}
+  .top{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:2px 4px}
+  .top h1{margin:0; font-size:1.5rem; font-weight:800; letter-spacing:.5px}
+  .top .d{color:var(--ink-dim); font-size:.92rem; font-variant-numeric:tabular-nums}
+  .sec{background:var(--card); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  .sec > h2{margin:0; padding:15px 16px 11px; font-size:1.05rem; font-weight:700; letter-spacing:.4px; display:flex; align-items:center; gap:8px}
+  .sec > h2 .tag{margin-left:auto; font-size:.78rem; font-weight:600; color:var(--ink-dim); letter-spacing:.6px}
+  .empty{padding:44px 26px 38px; text-align:center}
+  .empty .ic{font-size:2.6rem; line-height:1; margin-bottom:16px}
+  .empty h3{margin:0 0 12px; font-size:1.25rem; font-weight:800}
+  .empty p{margin:0 0 24px; color:var(--ink-soft); font-size:.98rem; line-height:1.7}
+  .streak{display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px}
+  .streak .n{font-size:2.4rem; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; background:linear-gradient(160deg,#FFD37A,#FF8A5B); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .streak .lab{font-size:.95rem; color:var(--ink-soft)}
+  .streak .mini{margin-left:auto; text-align:right; font-size:.86rem; color:var(--ink-dim); font-variant-numeric:tabular-nums}
+  .streak .mini b{display:block; font-size:1.15rem; color:var(--ink); font-weight:700}
+  .slot{padding:0 16px}
+  .slot + .slot{border-top:1px solid rgba(255,255,255,.07)}
+  .slot .hd{font-size:.82rem; color:var(--accent); letter-spacing:2px; font-weight:700; padding:12px 0 4px}
+  .row{display:flex; align-items:center; gap:11px; padding:9px 0}
+  .row + .row{border-top:1px solid rgba(255,255,255,.055)}
+  .hit{display:flex; align-items:center; gap:12px; flex:1; min-width:0; border:0; background:none; text-align:left; color:inherit; font:inherit; padding:2px 0; cursor:pointer}
+  .tick{flex:none; width:30px; height:30px; border-radius:9px; border:2px solid rgba(255,255,255,.3); display:grid; place-items:center; font-size:1rem; color:transparent; transition:.16s}
+  .row[data-done="1"] .tick{background:var(--ok); border-color:var(--ok); color:#06301F}
+  .row[data-done="1"] .nm{color:var(--ink-dim); text-decoration:line-through 1.5px rgba(255,255,255,.3)}
+  .nm{flex:0 1 auto; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ing{flex:none; font-size:.72rem; color:var(--ink-dim); letter-spacing:.3px; border:1px solid rgba(255,255,255,.13); border-radius:99px; padding:1px 7px}
+  .row[data-done="1"] .ing{opacity:.4}
+  .qty{flex:none; padding:6px 11px; border-radius:10px; border:1px solid transparent; background:none; color:var(--ink-soft); font:inherit; font-size:.92rem; font-variant-numeric:tabular-nums; cursor:pointer}
+  .row[data-edit="1"] .qty{display:none}
+  .step{display:none; flex:none; align-items:center; gap:3px}
+  .row[data-edit="1"] .step{display:flex}
+  .step button{width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:rgba(255,255,255,.08); color:var(--ink); font-size:1.15rem; line-height:1; cursor:pointer}
+  .step .v{min-width:52px; text-align:center; font-weight:700; font-variant-numeric:tabular-nums; font-size:.95rem}
+  .row[data-changed="1"] .qty{color:var(--warn); border-color:rgba(255,194,75,.4); background:rgba(255,194,75,.1)}
+  .bar{padding:15px 16px}
+  .bar + .bar{border-top:1px solid rgba(255,255,255,.07)}
+  .bar .r1{display:flex; align-items:baseline; gap:8px; margin-bottom:10px}
+  .bar .r1 .p{margin-left:auto; font-weight:800; font-variant-numeric:tabular-nums}
+  .track{position:relative; height:14px; border-radius:99px; background:rgba(255,255,255,.09)}
+  .fill{height:100%; border-radius:99px; transition:width .5s ease}
+  .due{position:absolute; top:-5px; bottom:-5px; width:2px; background:var(--ink); opacity:.85}
+  .due::after{content:"應到"; position:absolute; top:-17px; left:50%; transform:translateX(-50%); font-size:.62rem; color:var(--ink-dim); letter-spacing:1px; white-space:nowrap}
+  .why{margin:10px 0 0; font-size:.85rem; line-height:1.55; color:var(--ink-soft)}
+  .cnt{margin:8px 0 0; font-size:.85rem; line-height:1.55; display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap}
+  .cnt span{flex:1 1 auto; min-width:0}
+  .pill{display:inline-block; padding:2px 9px; border-radius:99px; font-size:.74rem; font-weight:700; letter-spacing:.5px}
+  .pill.ok{background:rgba(61,220,151,.16); color:var(--ok)}
+  .pill.next{background:rgba(0,210,255,.15); color:var(--accent)}
+  .pill.best{background:rgba(255,194,75,.16); color:var(--warn)}
+  .ghost{flex:none; padding:7px 12px; border-radius:11px; border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--ink-soft); font:inherit; font-size:.8rem; cursor:pointer; white-space:nowrap}
+  .ghost:disabled{opacity:.5; cursor:default; color:var(--ok); border-color:rgba(61,220,151,.4)}
+  .kcline{margin:0; padding:13px 16px 15px; border-top:1px solid rgba(255,255,255,.07); font-size:.85rem; color:var(--ink-soft); line-height:1.6}
+  .setrow{display:flex; align-items:center; gap:10px; padding:14px 16px}
+  .setrow + .setrow{border-top:1px solid rgba(255,255,255,.07)}
+  .setrow > span{flex:1 1 auto; font-size:.95rem}
+  .setrow select{flex:none; padding:9px 10px; border-radius:10px; border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--ink); font:inherit; font-size:.88rem}
+  .setrow select option{color:#000}
+  .foot{text-align:center; font-size:.83rem; color:var(--ink-dim); line-height:1.9}
+  .fix{position:fixed; left:0; right:0; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,transparent,rgba(10,15,28,.93) 32%)}
+  .fix .inner{max-width:430px; margin:0 auto}
+  .send{width:100%; padding:17px; border:0; border-radius:15px; font:inherit; font-size:1.15rem; font-weight:800; color:#04241A; background:linear-gradient(135deg,#3DDC97,#00D2FF); cursor:pointer; letter-spacing:1px}
+  .send[disabled]{opacity:.5; cursor:default}
+  .hintline{text-align:center; font-size:.8rem; color:var(--ink-dim); margin-top:7px}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  #loading{position:fixed;inset:0;background:rgba(10,15,28,.92);display:flex;align-items:center;justify-content:center;z-index:9;font-size:1.05rem}
+  .empty .cta{display:inline-block;padding:15px 30px;border:0;border-radius:14px;font:inherit;font-size:1.08rem;font-weight:800;color:#04241A;cursor:pointer;background:linear-gradient(135deg,#3DDC97,#00D2FF)}
+  .msgbox{padding:0 16px 16px}
+  .msgbox textarea{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font:inherit;font-size:.96rem;resize:vertical}
+  .toast{margin-top:10px;padding:12px 14px;border-radius:13px;background:rgba(255,194,75,.12);border:1px solid rgba(255,194,75,.4);font-size:.92rem}
+</style>
+</head>
+<body>
+<div id="loading">載入中…</div>
+<div class="wrap">
+  <div class="top"><h1>今天吃了嗎</h1><div class="d" id="who"></div></div>
+
+  <section class="sec" id="stateEmpty" hidden>
+    <div class="empty">
+      <div class="ic">📋</div>
+      <h3 id="emptyTitle">還沒有你的服用計畫</h3>
+      <p id="emptyText">一天吃幾份、什麼時候吃，<br>要跟專人談過才算數。</p>
+      <button class="cta" id="askHuman">我要找專人</button>
+    </div>
+  </section>
+
+  <div id="stateNormal" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="streak">
+      <div class="n" id="streak">0</div>
+      <div><div class="lab" style="font-weight:700;color:var(--ink)">天沒斷過 🔥</div><div class="lab" id="best"></div></div>
+      <div class="mini">這個月努力<b id="mrate"></b></div>
+    </div>
+
+    <section class="sec">
+      <h2>今天要吃<span class="tag" id="todo">—</span></h2>
+      <div id="slots"></div>
+    </section>
+
+    <section class="sec">
+      <h2>你買的，吃掉多少<span class="tag">應到 vs 已吃</span></h2>
+      <div id="bars"></div>
+      <p class="kcline" id="kcline" hidden></p>
+    </section>
+
+    <section class="sec">
+      <h2>想跟專人說一句話<span class="tag">有事才填</span></h2>
+      <div class="msgbox">
+        <textarea id="msg" rows="2" placeholder="例：這兩天肚子有點怪，是不是要調整？"></textarea>
+        <div class="hintline" style="text-align:left;margin-top:6px">按下面送出後會直接通知專人，他會在 LINE 找你。</div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="setrow"><span id="pauseText">這幾天先不吃</span><button class="ghost" id="pauseBtn">暫停</button></div>
+      <div class="setrow"><span>提醒</span>
+        <select id="remind">
+          <option>每天早上一則</option>
+          <option>我自己來，不用提醒</option>
+          <option>暫時關掉</option>
+        </select>
+      </div>
+    </section>
+
+    <p class="foot">每天該吃多少，是上次<b style="color:var(--ink-soft)">定期檢視</b>談好的<br>想改成以後都不一樣 → 下次定期檢視再調</p>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<div class="fix" id="fixBar" hidden><div class="inner">
+  <button class="send" id="send">全部都吃了 ✅</button>
+  <div class="hintline" id="hint">漏掉的點一下取消・量不一樣點數字改</div>
+</div></div>
+
+<script>
+const SUPABASE_URL="https://nsgqsopqlkhayuefdout.supabase.co";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
+const MY_LIFF_ID="2009692859-2eRA3zlO";
+const SLOT_NAME={'早':'早上','中':'中午','晚':'晚上','睡':'睡前'};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtD=d=>d?String(d).slice(5).replace('-','/'):'';
+let UID='', LNAME='', LOAD=null, rows=[], events=[], sent=false, PRODUCTS=[], COPY={};
+const pname=c=>(PRODUCTS.find(p=>p.code===c)||{name:c}).name, punit=c=>(PRODUCTS.find(p=>p.code===c)||{unit:''}).unit;
+const MAIN=()=>new URLSearchParams(location.search).get('main')||undefined;
+
+async function rpc(fn,p){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p})});
+  return r.json().catch(()=>null);
+}
+function toast(m){ const t=$('toast'); t.textContent=m; t.hidden=false; t.scrollIntoView({behavior:'smooth',block:'center'}); }
+
+document.addEventListener('DOMContentLoaded',init);
+async function init(){
+  try{
+    if(!MY_LIFF_ID.startsWith('PLACEHOLDER')){
+      await liff.init({liffId:MY_LIFF_ID});
+      if(!liff.isLoggedIn()){ liff.login(); return; }
+      const pr=await liff.getProfile(); UID=pr.userId; LNAME=pr.displayName||'';
+    }
+  }catch(e){ console.warn('liff',e); }
+  const d=await rpc('nds_intake_load',{line_uid:UID, main:MAIN()});
+  $('loading').style.display='none';
+  $('askHuman').onclick=()=>askHuman();
+  if(!d||!d.found){
+    $('emptyTitle').textContent=d&&d.reason==='not_bound'?'還沒認出你是誰':'找不到你的會員資料';
+    $('emptyText').innerHTML='請先到「新入會登錄」按「這就是我，綁定我的 LINE」，<br>或找專人幫你看一下。';
+    $('stateEmpty').hidden=false; return;
+  }
+  LOAD=d; PRODUCTS=(d.options&&d.options.products)||[]; COPY=(d.options&&d.options.copy)||{};
+  const today=d.today?new Date(d.today+'T00:00:00'):new Date(); const wk='日一二三四五六'[today.getDay()];
+  $('who').textContent=(today.getMonth()+1)+'/'+today.getDate()+'（'+wk+'）· '+(d.name||'');
+  if(!d.has_plan){ $('stateEmpty').hidden=false; return; }
+  applyLoad(d);
+  $('stateNormal').hidden=false; $('fixBar').hidden=false;
+  $('send').onclick=doSend;
+  $('pauseBtn').onclick=()=>{ const on=$('pauseBtn').dataset.on==='1'; setPause(!on,false); };
+}
+function applyLoad(d){
+  rows=(d.slots||[]).map(s=>({slot:s.slot,code:s.product_code,plan:+s.qty_plan,now:s.qty_actual!=null?+s.qty_actual:+s.qty_plan,done:s.qty_actual!=null&&+s.qty_actual>0,saved:s.qty_actual!=null}));
+  sent=rows.length>0&&rows.every(r=>r.saved);
+  $('streak').textContent=d.streak||0;
+  $('best').textContent=d.best?('最佳紀錄 '+d.best+' 天'+((d.streak||0)>=d.best?'，就是現在':'')):'今天開始算';
+  $('mrate').textContent=(d.month_days||0)+' 天';
+  if(d.remind_mode) $('remind').value=d.remind_mode;
+  setPause(!!d.paused,true);
+  renderSlots(); renderBars();
+  if(d.kc){ $('kcline').innerHTML='KC 機器量的就是你身體裡<b style="color:var(--ink)">存了多少顏色</b>，主要來自識霸明力多。上次量到 <b style="color:var(--ink)">'+d.kc.value+' 分</b>（'+fmtD(d.kc.on)+'）。'; $('kcline').hidden=false; }
+  if(sent){ $('send').textContent='今天記好了 · 連續 '+(d.streak||0)+' 天 🔥'; $('hint').textContent='要改就點上面的項目再送一次'; }
+}
+function setPause(on,silent){
+  $('pauseBtn').dataset.on=on?'1':'0';
+  $('pauseBtn').textContent=on?'我回來了':'暫停';
+  $('pauseText').textContent=on?'目前暫停中（不算斷簽）':'這幾天先不吃';
+  if(!silent){ events=events.filter(e=>e.event!=='pause'&&e.event!=='resume'); events.push({event:on?'pause':'resume'}); $('hint').textContent=on?'記得按送出，暫停才會生效':'歡迎回來，按送出就開始'; }
+}
+function renderSlots(){
+  const box=$('slots'); box.innerHTML='';
+  ['早','中','晚','睡'].forEach(s=>{
+    const rs=rows.filter(r=>r.slot===s); if(!rs.length) return;
+    const div=document.createElement('div'); div.className='slot'; div.innerHTML='<div class="hd">'+SLOT_NAME[s]+'</div>';
+    rs.forEach(r=>{
+      const el=document.createElement('div'); el.className='row'; el.dataset.done=r.done?'1':'0'; el.dataset.edit='0'; el.dataset.changed=r.now!==r.plan?'1':'0';
+      const c=COPY[r.code]||{};
+      el.innerHTML='<button class="hit"><span class="tick">✓</span><span class="nm">'+esc(pname(r.code))+'</span>'+(c.tag?'<span class="ing">'+esc(c.tag)+'</span>':'')+'</button>'
+        +'<button class="qty">'+r.now+' '+esc(punit(r.code))+'</button><span class="step"><button aria-label="減少">−</button><span class="v">'+r.now+' '+esc(punit(r.code))+'</span><button aria-label="增加">＋</button></span>';
+      el.querySelector('.hit').onclick=()=>{ r.done=!r.done; if(r.done&&r.now===0) r.now=r.plan; renderSlots(); };
+      el.querySelector('.qty').onclick=e=>{ e.stopPropagation(); const open=el.dataset.edit==='1'; document.querySelectorAll('#slots .row').forEach(x=>x.dataset.edit='0'); el.dataset.edit=open?'0':'1'; };
+      const [m,pl]=el.querySelectorAll('.step button');
+      m.onclick=()=>{ r.now=Math.max(0,r.now-1); r.done=r.now>0; renderSlots(); };
+      pl.onclick=()=>{ r.now=r.now+1; r.done=true; renderSlots(); };
+      div.appendChild(el);
+    });
+    box.appendChild(div);
+  });
+  const left=rows.filter(r=>!r.done).length;
+  $('todo').textContent=left?'還有 '+left+' 樣':'都完成了';
+  if(!sent) $('send').textContent=left?'記下來（'+(rows.length-left)+'/'+rows.length+'）':'全部都吃了 ✅';
+}
+function renderBars(){
+  const box=$('bars'); box.innerHTML='';
+  (LOAD.products||[]).forEach(p=>{
+    const exp=+p.expected||0, act=+p.actual||0, ratio=exp?act/exp:0;
+    const pct=Math.min(100,Math.round(ratio*100));
+    const st=ratio>=0.9?['ok','穩定','#2FA97A,#3DDC97','var(--ok)']:ratio>=0.6?['next','再補一點','#0E7E99,#00D2FF','var(--accent)']:['best','最有機會','#C08A2A,#FFC24B','var(--warn)'];
+    const c=COPY[p.product_code]||{}; const unit=punit(p.product_code);
+    const behind=Math.max(0,Math.round((exp-act)/(+p.daily||1)*10)/10);
+    let left='';
+    if(p.pack_size&&p.opened_on&&+p.variants===1){ const rem=p.pack_size-act; left=rem>0?'這一'+(unit==='包'?'箱':'瓶')+'還剩 '+rem+' '+unit+'（約 '+Math.ceil(rem/(+p.daily||1))+' 天），':'這一瓶應該吃完了，'; }
+    const opened=p.opened_on?'開封第 '+p.days+' 天':'從 '+fmtD(p.window_from)+' 算起 '+p.days+' 天';
+    const action=ratio>=0.9?'很穩，繼續就好。':ratio>=0.6?'再補 '+behind+' 天份就完全跟上。':'<b>這是你已經買下的健康，吃完才算拿到。</b>每天多一份，'+Math.ceil(behind)+' 天就追上。';
+    const d=document.createElement('div'); d.className='bar';
+    d.innerHTML='<div class="r1"><b>'+esc(pname(p.product_code))+'</b><span class="pill '+st[0]+'">'+st[1]+'</span><span class="p" style="color:'+st[3]+'">'+pct+'%</span></div>'
+      +'<div class="track"><div class="fill" style="width:'+pct+'%;background:linear-gradient(90deg,'+st[2]+')"></div><div class="due" style="left:100%"></div></div>'
+      +(c.why?'<p class="why">'+esc(c.why)+'</p>':'')
+      +'<div class="cnt"><span'+(st[0]==='best'?' style="color:var(--warn)"':'')+'>'+opened+'，應吃 '+exp+' '+unit+'，你吃了 <b style="color:var(--ink)">'+act+' '+unit+'</b>。'+left+action+'</span>'
+      +'<button class="ghost" data-open="'+esc(p.product_code)+'">我開新的了</button></div>';
+    d.querySelector('[data-open]').onclick=ev=>{ const btn=ev.currentTarget; events=events.filter(e=>!(e.event==='opened'&&e.product_code===p.product_code)); events.push({event:'opened',product_code:p.product_code}); btn.textContent='已記下開封日（按送出生效）'; btn.disabled=true; };
+    box.appendChild(d);
+  });
+}
+async function askHuman(){
+  try{ if(liff.isInClient&&liff.isInClient()){ await liff.sendMessages([{type:'text',text:'#找專人'}]); toast('已經通知專人了，他會在 LINE 找你。'); } else { toast('請從 LINE 裡面開這一頁，才能直接通知專人。'); } }catch(e){ console.warn('sendMessages',e); toast('通知沒送出去，請直接在 OA 打「#找專人」。'); }
+}
+async function doSend(){
+  const btn=$('send'); btn.disabled=true; btn.textContent='送出中…';
+  const msg=$('msg').value.trim();
+  const payload={ line_uid:UID,
+    rows:rows.map(r=>({slot:r.slot,product_code:r.code,qty_plan:r.plan,qty_actual:r.done?r.now:0})),
+    events, remind_mode:$('remind').value, message:msg||null };
+  const d=await rpc('nds_intake_submit',payload);
+  if(!d||d.success!==true){ toast((d&&d.message)||'送出失敗'); btn.disabled=false; btn.textContent='再試一次'; return; }
+  if(msg){ await askHuman(); $('msg').value=''; }
+  const re=await rpc('nds_intake_load',{line_uid:UID, main:MAIN()});
+  events=[]; rows.forEach(r=>r.saved=true); sent=true;
+  if(re&&re.found&&re.has_plan){ LOAD=re; applyLoad(re); }
+  btn.textContent='記好了 · 連續 '+((re&&re.streak)||1)+' 天 🔥'; btn.disabled=false;
+  $('hint').textContent='進度條前進了 —— 要改就點上面的項目再送一次';
+}
+</script>
+</body>
+</html>

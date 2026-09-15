@@ -300,6 +300,8 @@ async function rpc(fn,p){
 function toast(msg,cls){ const t=$('toast'); t.className='toast '+(cls||''); t.innerHTML=msg; t.hidden=false; t.scrollIntoView({behavior:'smooth',block:'center'}); }
 const whoMode=()=>$('who').querySelector('.on').dataset.v;
 
+// 同一個 LIFF ID 帶 ?p=dose（或 liff.state 內含）→ 轉到每日回報頁，不另開 LIFF
+(function(){ const q=location.search+' '+decodeURIComponent(new URLSearchParams(location.search).get('liff.state')||''); if(/[?&]p=dose\b/.test(q)) location.replace('dose.html'+location.search); })();
 document.addEventListener('DOMContentLoaded',init);
 async function init(){
   try{
