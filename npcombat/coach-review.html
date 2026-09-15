@@ -2628,10 +2628,13 @@ function renderEngagement() {
   const M = engModeFor(dateStr);
   // 只有一天，日期就是唯一的定位——寫清楚星期與是否已結案
   const _wd = ['日','一','二','三','四','五','六'][new Date(dateStr + 'T00:00:00').getDay()];
-  document.getElementById('summaryDate').textContent =
-    `${formatDate(dateStr)}（${_wd}）${dateClosed(dateStr) ? ' 🔒 已結案' : ''}`;
+  // 🔴 標題直接寫「哪一天的作業」（2026-09-15 Randoph）：教練是隔天才回饋，
+  //    只寫「小組回報」＋日期容易看成今天的，要明講是 9/14 的作業／行動心得。
+  const _units = isLearnGroup() ? dayUnitsOf(dateStr) : null;
+  const _what = _units && _units.length ? '作業' : '行動心得';
+  document.getElementById('summaryDate').textContent = dateClosed(dateStr) ? '🔒 已結案' : '';
   const hd = document.querySelector('#summaryView .summary-hd span');
-  if (hd) hd.textContent = M.title;
+  if (hd) hd.textContent = `${formatDate(dateStr)}（${_wd}）${_what}`;
 
   const map = engMapFor(currentDay);
   const closed = dayClosed(currentDay);
