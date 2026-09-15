@@ -289,7 +289,7 @@
   .hw-tbl td.hw-nm{font-weight:600;font-size:14px;white-space:nowrap;padding-right:8px;position:sticky;left:0;background:var(--bg);z-index:1}
   .hw-cell{width:34px;height:34px;border-radius:7px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff;transition:.12s}
   .hw-cell.hw-na{background:var(--border);color:var(--muted);font-weight:400}
-  .hw-cell.hw-full{background:var(--green)} .hw-cell.hw-part{background:#e0a020} .hw-cell.hw-none{background:#d9534f}
+  .hw-cell.hw-full{background:var(--green)} .hw-cell.soft{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)} .hw-cell.hw-part{background:#e0a020} .hw-cell.hw-none{background:#d9534f}
   .hw-cell.on{outline:3px solid var(--gold);outline-offset:1px}
   .hw-cell.locked{opacity:.35;cursor:default}
   .hw-missing{margin:6px 12px 14px;background:var(--card);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9}
@@ -1553,13 +1553,27 @@ function dayList() {                       // 開班日到今天的平日，再�
 function dayState(sid, ds) {
   const units = curScope() === 'action' ? null : dayUnitsOf(ds);
   if (units && units.length) {
+    // ① 逐題紀錄完整 → 以逐題為準（唯一講得出「缺第幾題」的來源）
     const recs = units.map(u => hwMap[sid + '|' + u]).filter(Boolean);
-    if (!recs.length) return { k:'na', label:'' };
-    const done = recs.reduce((a, r) => a + (r.done || 0), 0);
-    const tot  = recs.reduce((a, r) => a + (r.total || 0), 0);
-    if (recs.length === units.length && tot > 0 && done >= tot) return { k:'full', label:'✓' };
-    if (done > 0) return { k:'part', label:`${done}/${tot}` };
-    return { k:'none', label:'✕' };
+    if (recs.length === units.length) {
+      const done = recs.reduce((a, r) => a + (r.done || 0), 0);
+      const tot  = recs.reduce((a, r) => a + (r.total || 0), 0);
+      if (tot > 0 && done >= tot) return { k:'full', label:'✓' };
+      if (done > 0) return { k:'part', label:`${done}/${tot}` };
+      return { k:'none', label:'✕' };
+    }
+    // ② 🔴 組員頁點的「已交／沒交」連動到這裡（2026-09-15 Randoph，與 admin 一覽表同規則）。
+    //    原本只看逐題，教練在組員頁點了已交，這張表還是灰的「還沒檢核」。
+    const e = engAll[sid + '|' + ds];
+    if (e && e.homework === true)  return { k:'full', label:'✓', soft:true };
+    if (e && e.homework === false) return { k:'none', label:'✕' };
+    // ③ 只勾了部分單元的逐題、組員頁也沒標
+    if (recs.length) {
+      const done = recs.reduce((a, r) => a + (r.done || 0), 0);
+      const tot  = recs.reduce((a, r) => a + (r.total || 0), 0);
+      if (done > 0) return { k:'part', label:`${done}/${tot}` };
+    }
+    return { k:'na', label:'' };
   }
   // 行動週：看小組心得（教練標）
   const r = engAll[sid + '|' + ds];
@@ -1654,9 +1668,9 @@ function renderHw() {
       }
       const st = dayState(stu.id, ds);
       const isOpen = hwOpen && hwOpen.sid === stu.id && hwOpen.ds === ds;
-      h += `<td class="hw-cell hw-${st.k} ${isOpen ? 'on' : ''}"
+      h += `<td class="hw-cell hw-${st.k}${st.soft ? ' soft' : ''} ${isOpen ? 'on' : ''}"
                onclick="openDay('${stu.id}','${ds}')"
-               title="${ds}（週${wd(ds)}）${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${st.label}</td>`;
+               title="${ds}（週${wd(ds)}）${st.soft ? '｜組員頁已標已交（還沒逐題檢核）' : ''}${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${st.label}</td>`;
       if (st.k !== 'full') {
         const us = isAct ? null : dayUnitsOf(ds);
         const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + (isAct ? ' 行動心得' : '');
