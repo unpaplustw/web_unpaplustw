@@ -769,6 +769,12 @@ function renderHwMatrix(realStudents, coachById, scope) {
   const groupByCoach = {}; coaches.forEach(c => groupByCoach[c.id] = c.group_name || '');
   if (typeof UNITS === 'undefined' || !realStudents.length) return '';
   const today = localDateStr(new Date());
+  // 🔴 2026-09-15 班別掛在組上（28 期起）：作業表只列學習組；行動表每人從自己那組的行動起算日開始
+  //    學習組＝study_end 後第一個週一（9/28）／行動組、精英組＝action_open_date（9/14）
+  if (scope === 'study') realStudents = realStudents.filter(stuIsLearn);
+  if (scope === 'action') realStudents = realStudents.filter(s => stuActFrom(s) <= today);
+  if (!realStudents.length) return '';
+  const actFromBy = {}; realStudents.forEach(s => actFromBy[s.id] = stuActFrom(s));
 
   // ══════════════════════════════════════════════════════════
   // 一覽表改成「日期 × 學員」（2026-08-19 Randoph 定案）
@@ -797,12 +803,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
   //    不是「隔天」。27 期 8/20（四）上完課，8/21（五）只有 9 人填、8/22–23 是週末，
   //    8/24（一）才真正啟動（教練標記 12→19 人）。用「隔天」會把 8/21 列進表，
   //    那天沒填的 30 人平白多一筆缺件。28 期同理（10/2 週五 → 10/5 週一）。
-  const actViewFrom = (() => {
-    if (!b.study_end) return actStart0;
-    const d = new Date(b.study_end + 'T00:00:00');
-    do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);   // 推到下一個週一
-    return localDateStr(d);
-  })();
+  const actViewFrom = realStudents.map(s => actFromBy[s.id]).sort()[0] || learnActFrom();
   const days = [];                           // 開班日到今天的平日，再依 scope 過濾
   if (b.start_date)
     for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
@@ -835,6 +836,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
   //   🔴 2026-09-13：學員自述（daily「我已經小組回報」勾）拿掉，現在只看教練標記。
   //      原本 2026-08-19 的「兩條線交叉驗證」（學員自述＋教練標）已廢止。
   function cellOf(sid, ds) {
+    if (scope === 'action' && actFromBy[sid] && ds < actFromBy[sid]) return { k:'lock', txt:'', why:'這一組行動還沒開始' };
     const units = dayUnits[ds];
     const eng   = engBy[sid + '|' + ds];
     const log   = logBy[sid + '|' + ds];
@@ -1303,12 +1305,11 @@ const ANA = [
 
   { k:'act', t:'🏃 行動一覽表', only:null,
     d:() => {
-      const b = batchRow();
-      let from = actionStartDate();
-      if (b.study_end) { const d = new Date(b.study_end + 'T00:00:00');
-        do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);   // 下一個週一，與 actViewFrom 同規則
-        from = localDateStr(d); }
-      return `日期 × 學員 · 行動週 ${from || '—'} 起`;
+      const hasAct = coaches.some(c => c.track && c.track !== 'learn');
+      const hasLearn = coaches.some(c => !c.track || c.track === 'learn');
+      const f = s => s ? s.slice(5).replace('-', '/') : '—';
+      return `日期 × 學員 · ${[hasAct ? `行動／精英組 ${f(actionStartDate())} 起` : '',
+                                hasLearn ? `學習組 ${f(learnActFrom())} 起` : ''].filter(Boolean).join('、')}`;
     },
     render: el => renderHwSection(el, 'action') },
 
@@ -1344,6 +1345,17 @@ const coachDone = r => !!r && r.homework !== null && r.homework !== undefined
 function batchRow() { return allBatches.find(x => x.id === bid) || {}; }
 function batchKind() { return batchRow().study_start ? 'study' : 'action'; }
 function hasHomework() { return batchKind() === 'study'; }
+// 28 期起班別掛在「組」上（batch_coaches.track）：null／learn＝學習組，其餘直接行動
+function stuIsLearn(s) { const c = coaches.find(x => x.id === s.coach_id); return !c || !c.track || c.track === 'learn'; }
+// 學習組的行動一覽表起點：study_end 之後第一個週一（2026-08-25 Randoph 定）
+function learnActFrom() {
+  const b = batchRow();
+  if (!b.study_end) return actionStartDate();
+  const d = new Date(b.study_end + 'T00:00:00');
+  do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1);
+  return localDateStr(d);
+}
+function stuActFrom(s) { return stuIsLearn(s) ? learnActFrom() : actionStartDate(); }
 
 // 🔴 行動紀錄的起算日＝行動開放日，不是開班日。
 //    學習班在 action_open_date 之前，七大行動是鎖住的（三層防護：CSS 灰掉＋移除 onclick＋函式內 return），
@@ -1432,7 +1444,7 @@ function renderHwSection(target, scope) {
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
     `<div class="dash-empty">${scope === 'action'
-      ? '行動週還沒開始（學習週結束後的第一個週一起算，看 batches.study_end）'
+      ? '行動還沒開始（行動／精英組從 action_open_date 起；學習組從 study_end 後第一個週一起）'
       : '尚無可顯示的日期'}</div>`);
 }
 
