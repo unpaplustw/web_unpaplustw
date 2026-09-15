@@ -1050,6 +1050,7 @@ async function init() {
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
+    sessionStorage.removeItem('liffRetried');   // 登入成功，下次過期還能再自動重登一次
 
     // 查會員
     const { data: member } = await sb.from('members_master').select('id, name, member_code')
@@ -1192,9 +1193,18 @@ async function init() {
     }
 
   } catch (e) {
-    if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
+    // 🔴 2026-09-15 張憶文：手機從 LINE 跳到 Safari 開，隔天 LINE 登入憑證過期 → getProfile 丟錯，
+    //    原本只認 'revoked'，過期（expired／invalid token）直接停在「載入失敗」，錯誤只閃一下 toast 看不到。
+    //    → 憑證類錯誤一律清掉重新登入（sessionStorage 擋一次，避免無限重整）；其他錯誤把訊息留在畫面上。
+    const msg = (e && e.message) || String(e);
+    if (/revoked|expired|access.?token|invalid.*token|unauthorized|401/i.test(msg) && !sessionStorage.getItem('liffRetried')) {
+      sessionStorage.setItem('liffRetried', '1');
+      localStorage.clear(); location.reload(); return;
+    }
     document.getElementById('coachName').textContent = '載入失敗';
-    toast('錯誤：' + e.message);
+    document.getElementById('coachName').insertAdjacentHTML('afterend',
+      `<div style="font-size:12px;color:#c0392b;margin-top:4px;word-break:break-all">錯誤：${msg}<br>請關掉重開；還是不行請截這個畫面給總教練</div>`);
+    toast('錯誤：' + msg);
   }
 
   renderMyReport();
