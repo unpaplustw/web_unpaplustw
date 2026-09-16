@@ -264,6 +264,11 @@
   .hwm th.nm1,.hwm td.nm1{left:0;min-width:84px;max-width:84px;overflow:hidden;text-overflow:ellipsis}
   .hwm td.who{cursor:pointer;text-decoration:underline dotted var(--gold-bd);text-underline-offset:3px}
   .hwm td.who:hover{color:var(--gold)}
+  .hwm-c.editable{cursor:pointer} .hwm-c.editable:hover{outline:2px solid var(--gold)}
+  .cell-pop{position:absolute;z-index:70;display:none;background:var(--navy2);border:1px solid var(--gold);border-radius:9px;padding:8px;box-shadow:0 6px 20px rgba(0,0,0,.55)}
+  .cell-pop b{display:block;font-size:12px;color:var(--white);margin-bottom:6px;white-space:nowrap}
+  .cell-pop button{display:block;width:100%;margin-top:4px;background:var(--navy3);color:var(--white);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+  .cell-pop button:hover{border-color:var(--gold)}
   .who-pop{position:absolute;z-index:60;display:none;background:var(--navy2);border:1px solid var(--gold);border-radius:9px;padding:9px 13px;font-size:12.5px;color:var(--white);box-shadow:0 6px 20px rgba(0,0,0,.55);white-space:nowrap;line-height:1.7}
   .who-pop div{color:var(--muted);font-size:11.5px}
   .hwm-c{width:26px;height:24px;border-radius:5px;text-align:center;font-weight:700;color:#fff;font-size:10px}
@@ -930,6 +935,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
     🔴 <b>教練在 LINE 標「已交」會直接連動到這張表</b>——目前有 <b>${softCells} 格</b>是這樣來的
     （綠底加白點，表示還沒逐題檢核）。<b>每格的死線＝隔天 12:00</b>，過了還沒標就是灰色問號——那是要去找教練，不是學員沒交。<br>
     ${isAct ? '一格看<b>兩件事</b>：行動回報＋小組心得。兩件都做＝✓，只做一件＝「半」。<br>' : ''}
+    ✏️ <b>總教練可以直接點格子修改</b>（教練看到的是唯讀）——改的是「教練標記」那條線，跟教練在自己頁面標的同一筆。<br>
     👤 <b>點學員名字</b>可看他的教練與領袖（兩欄常駐太吃寬度，收起來讓給日期）。<br>
     滑過任何一格都看得到它是怎麼判定的${zeroDone ? `。⚠️ 有 <b>${zeroDone} 人</b>整排都沒被處理——那要找的是教練` : ''}。</div>`;
   // 教練／領袖收進學員名字（Randoph：寬度有限）——hover 有 title、點一下彈出小卡，
@@ -953,7 +959,9 @@ function renderHwMatrix(realStudents, coachById, scope) {
       const c = cellOf(r.s.id, ds);
       const mk = c.k === 'full' && mkSet.has(r.s.id + '|' + ds);
       const late = isAct && c.k === 'full' && !mk && lateSet.has(r.s.id + '|' + ds);   // 遲交只看行動（作業沒有學員的時間戳）
-      h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}${mk ? ' mk' : ''}${late ? ' late' : ''}" title="${ds}（週${wd(ds)}）｜${c.why}${mk ? '｜教練結案後才補標' : ''}${late ? '｜學員 22:00 後才填' : ''}">${mk || late ? '補' : c.txt}</td>`;
+      const canEdit = !isReadonly && c.k !== 'lock';
+      h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}${mk ? ' mk' : ''}${late ? ' late' : ''}${canEdit ? ' editable' : ''}"${
+        canEdit ? ` onclick="openCellEdit(event,this,'${r.s.id}','${ds}')"` : ''} title="${ds}（週${wd(ds)}）｜${c.why}${mk ? '｜教練結案後才補標' : ''}${late ? '｜學員 22:00 後才填' : ''}${canEdit ? '｜點一下可改' : ''}">${mk || late ? '補' : c.txt}</td>`;
     });
     const note = [r.unk ? `教練未回報 ${r.unk}` : '', r.na ? `待處理 ${r.na}` : ''].filter(Boolean).join(' · ');
     h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${
@@ -1447,8 +1455,45 @@ function showWho(ev, td) {
   box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
   box.style.top  = (r.bottom + window.scrollY + 4) + 'px';
 }
+// ── 總教練直接改格子（2026-09-16 Randoph：每次都要進 code 改太不方便）──
+//    改的是 coach_engagement.homework——跟教練在自己頁面標的是同一筆，兩邊立刻一致。
+//    🔴 不寫 homework_checks：那是逐題紀錄，總教練沒逐題看過，寫進去會蓋掉真相。
+let cellEdit = null;
+function openCellEdit(ev, td, sid, ds) {
+  ev.stopPropagation();
+  cellEdit = { sid, ds };
+  let box = document.getElementById('cellPop');
+  if (!box) { box = document.createElement('div'); box.id = 'cellPop'; box.className = 'cell-pop'; document.body.appendChild(box); }
+  const s = students.find(x => x.id === sid) || {};
+  box.innerHTML = `<b>${nm(s)}　${ds.slice(5).replace('-','/')}</b>
+    <button onclick="setCellHw(true)">✅ 已交</button>
+    <button onclick="setCellHw(false)">❌ 沒交</button>
+    <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`;
+  const r = td.getBoundingClientRect();
+  box.style.display = 'block';
+  box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
+  box.style.top  = (r.bottom + window.scrollY + 4) + 'px';
+}
+async function setCellHw(val) {
+  if (!cellEdit) return;
+  const { sid, ds } = cellEdit;
+  const stu = students.find(x => x.id === sid);
+  if (!stu || !stu.coach_id) { alert('這位學員還沒配對教練，無法標記'); return; }
+  const box = document.getElementById('cellPop'); if (box) box.style.display = 'none';
+  const { error } = await sb.from('coach_engagement').upsert({
+    batch_id: bid, coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val
+  }, { onConflict: 'batch_id,student_id,log_date' });
+  if (error) { alert('儲存失敗：' + error.message); return; }
+  const hit = engRows.find(r => r.student_id === sid && r.log_date === ds);
+  if (hit) hit.homework = val;
+  else engRows.push({ coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val, homework_replied: null });
+  renderNow();      // 重畫分析分頁，四張表一起跟上
+}
+
 document.addEventListener('click', () => {
   const b = document.getElementById('whoPop');
+  const c = document.getElementById('cellPop');
+  if (c) c.style.display = 'none';
   if (b) b.style.display = 'none';
 });
 
