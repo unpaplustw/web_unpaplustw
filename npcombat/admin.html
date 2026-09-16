@@ -920,7 +920,6 @@ function renderHwMatrix(realStudents, coachById, scope) {
   }).sort((a, b2) => (b2.missing - a.missing) || (b2.na - a.na));
 
   const overdueCells = rows.reduce((a, r) => a + r.unk, 0);
-  const softCells    = rows.reduce((a, r) => a + r.soft, 0);
   const zeroDone     = rows.filter(r => (r.na + r.nax + r.unk) === days.length).length;
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
@@ -930,15 +929,9 @@ function renderHwMatrix(realStudents, coachById, scope) {
       ? `<b style="color:#d9534f">⚠️ 教練還沒回報 ${overdueCells} 格（狀況不明）</b>` : '✅ 每一格教練都回報了'}</span><span class="sec-count">${
     days.length} 個${isAct ? '行動日' : '上課日'} · ${realStudents.length} 位學員</span></div>`;
   h += `<div class="cov-note">
-    ${isAct ? '這張只看<b>行動</b>：行動回報（學員自己填）＋小組心得。作業請看「📋 作業一覽表」。'
-            : '這張只看<b>作業</b>：橫軸是上課日，底下標該日單元號。行動請看「🏃 行動一覽表」。'}<br>
-    綠✓=準時完成　橘=部分　<b>紅✕=確定沒交</b>　藍補=學員遲交（22:00 後才填）　紫補=教練結案後補標　<b>灰？=教練還沒回報，狀況不明</b>　空=未開放<br>
-    🔴 <b>教練在 LINE 標「已交」會直接連動到這張表</b>——目前有 <b>${softCells} 格</b>是這樣來的
-    （綠底加白點，表示還沒逐題檢核）。<b>每格的死線＝隔天 12:00</b>，過了還沒標就是灰色問號——那是要去找教練，不是學員沒交。<br>
-    ${isAct ? '一格看<b>兩件事</b>：行動回報＋小組心得。兩件都做＝✓，只做一件＝「半」。<br>' : ''}
-    ✏️ <b>總教練可以直接點格子修改</b>（教練看到的是唯讀）——改的是「教練標記」那條線，跟教練在自己頁面標的同一筆。<br>
-    👤 <b>點學員名字</b>可看他的教練與領袖（兩欄常駐太吃寬度，收起來讓給日期）。<br>
-    滑過任何一格都看得到它是怎麼判定的${zeroDone ? `。⚠️ 有 <b>${zeroDone} 人</b>整排都沒被處理——那要找的是教練` : ''}。</div>`;
+    綠✓=準時　橘=部分　紅✕=沒交　藍補=學員遲交　紫補=教練補標　<b>灰？=教練還沒回報</b>　空=未開放<br>
+    ✏️ <b>點格子可改</b>（只有總教練）｜👤 點學員名字看教練與領袖｜滑過格子看判定理由${
+      zeroDone ? `<br>⚠️ <b>${zeroDone} 人</b>整排都沒被處理——要找的是教練` : ''}</div>`;
   // 教練／領袖收進學員名字（Randoph：寬度有限）——hover 有 title、點一下彈出小卡，
   // 省下約 120px 給日期欄。名字帶點狀底線提示可點。
   h += `<div class="hwm-wrap"><table class="hwm"><tr>
