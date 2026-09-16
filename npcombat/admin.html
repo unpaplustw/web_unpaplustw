@@ -961,7 +961,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
       const late = isAct && c.k === 'full' && !mk && lateSet.has(r.s.id + '|' + ds);   // 遲交只看行動（作業沒有學員的時間戳）
       const canEdit = !isReadonly && c.k !== 'lock';
       h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}${mk ? ' mk' : ''}${late ? ' late' : ''}${canEdit ? ' editable' : ''}"${
-        canEdit ? ` onclick="openCellEdit(event,this,'${r.s.id}','${ds}')"` : ''} title="${ds}（週${wd(ds)}）｜${c.why}${mk ? '｜教練結案後才補標' : ''}${late ? '｜學員 22:00 後才填' : ''}${canEdit ? '｜點一下可改' : ''}">${mk || late ? '補' : c.txt}</td>`;
+        canEdit ? ` onclick="openCellEdit(event,this,'${r.s.id}','${ds}','${scope}')"` : ''} title="${ds}（週${wd(ds)}）｜${c.why}${mk ? '｜教練結案後才補標' : ''}${late ? '｜學員 22:00 後才填' : ''}${canEdit ? '｜點一下可改' : ''}">${mk || late ? '補' : c.txt}</td>`;
     });
     const note = [r.unk ? `教練未回報 ${r.unk}` : '', r.na ? `待處理 ${r.na}` : ''].filter(Boolean).join(' · ');
     h += `<td class="hwm-sum">${r.missing ? `<b>${r.missing}</b>` : '0'}${
@@ -1459,14 +1459,16 @@ function showWho(ev, td) {
 //    改的是 coach_engagement.homework——跟教練在自己頁面標的是同一筆，兩邊立刻一致。
 //    🔴 不寫 homework_checks：那是逐題紀錄，總教練沒逐題看過，寫進去會蓋掉真相。
 let cellEdit = null;
-function openCellEdit(ev, td, sid, ds) {
+function openCellEdit(ev, td, sid, ds, scope) {
   ev.stopPropagation();
-  cellEdit = { sid, ds };
+  const units = scope === 'action' ? [] : ((SCHEDULE || {})[ds] || []);
+  cellEdit = { sid, ds, units };
   let box = document.getElementById('cellPop');
   if (!box) { box = document.createElement('div'); box.id = 'cellPop'; box.className = 'cell-pop'; document.body.appendChild(box); }
   const s = students.find(x => x.id === sid) || {};
-  box.innerHTML = `<b>${nm(s)}　${ds.slice(5).replace('-','/')}</b>
-    <button onclick="setCellHw(true)">✅ 已交</button>
+  const src = units.length ? `U${units.join('·')} 逐題檢核` : '教練標記';
+  box.innerHTML = `<b>${nm(s)}　${ds.slice(5).replace('-','/')}　<span style="color:var(--muted);font-weight:400">改的是：${src}</span></b>
+    <button onclick="setCellHw(true)">✅ 已交（全繳）</button>
     <button onclick="setCellHw(false)">❌ 沒交</button>
     <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`;
   const r = td.getBoundingClientRect();
@@ -1474,12 +1476,39 @@ function openCellEdit(ev, td, sid, ds) {
   box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
   box.style.top  = (r.bottom + window.scrollY + 4) + 'px';
 }
+// 🔴 2026-09-16：一定要改「決定這一格的那條線」，否則點了畫面不動。
+//    作業格的優先序是 ①逐題紀錄 ②教練標記——有排單元就直接寫逐題，只寫教練標記會被①蓋住（高瑜均實例）。
 async function setCellHw(val) {
   if (!cellEdit) return;
-  const { sid, ds } = cellEdit;
+  const { sid, ds, units } = cellEdit;
   const stu = students.find(x => x.id === sid);
   if (!stu || !stu.coach_id) { alert('這位學員還沒配對教練，無法標記'); return; }
   const box = document.getElementById('cellPop'); if (box) box.style.display = 'none';
+
+  if (units.length) {                      // 作業格：寫逐題紀錄
+    for (const uno of units) {
+      const u = (typeof UNITS !== 'undefined') && UNITS.find(x => x.no === uno);
+      if (!u) continue;
+      const total = u.hw.length;
+      if (val === null) {                  // 清掉＝刪掉逐題紀錄，回到未檢核
+        await sb.from('homework_checks').delete()
+          .eq('batch_id', bid).eq('student_id', sid).eq('unit_no', uno);
+        hwRows = hwRows.filter(r => !(r.student_id === sid && r.unit_no === uno));
+        continue;
+      }
+      const items = {}; u.hw.forEach((_, i2) => items[String(i2 + 1)] = !!val);
+      const done = val ? total : 0;
+      const { error } = await sb.from('homework_checks').upsert({
+        batch_id: bid, student_id: sid, coach_id: stu.coach_id, unit_no: uno,
+        items, done, total, updated_at: new Date().toISOString()
+      }, { onConflict: 'batch_id,student_id,unit_no' });
+      if (error) { alert('儲存失敗：' + error.message); return; }
+      const hit = hwRows.find(r => r.student_id === sid && r.unit_no === uno);
+      if (hit) { hit.done = done; hit.total = total; }
+      else hwRows.push({ student_id: sid, unit_no: uno, done, total, coach_id: stu.coach_id });
+    }
+  }
+  // 教練標記那條線一起對齊（行動格只有這一條）
   const { error } = await sb.from('coach_engagement').upsert({
     batch_id: bid, coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val
   }, { onConflict: 'batch_id,student_id,log_date' });
@@ -1487,8 +1516,10 @@ async function setCellHw(val) {
   const hit = engRows.find(r => r.student_id === sid && r.log_date === ds);
   if (hit) hit.homework = val;
   else engRows.push({ coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val, homework_replied: null });
+
   renderNow();      // 重畫分析分頁，四張表一起跟上
 }
+
 
 document.addEventListener('click', () => {
   const b = document.getElementById('whoPop');
