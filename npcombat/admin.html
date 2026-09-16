@@ -256,6 +256,7 @@
   .hwm-c.mk{background:#8b5cf6 !important;box-shadow:none;color:#fff}    /* 紫＝教練結案後才補標 */
   .hwm-c.late{background:#3b82f6 !important;box-shadow:none;color:#fff}  /* 藍＝學員 22:00 後才填 */
   .hwm-c.unk{background:rgba(255,255,255,.10);color:var(--muted);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25)}  /* 灰？＝教練還沒回報，狀況不明 */
+  .hwm-gh td{background:rgba(212,175,55,.12);color:var(--gold);font-size:12px;font-weight:700;padding:4px 8px;text-align:left}
   .hwm th.nm,.hwm td.nm{text-align:left;position:sticky;left:0;background:var(--navy);z-index:1;padding-right:8px;white-space:nowrap}
   .hwm td.nm{color:var(--white);font-weight:600;font-size:12px}
   .hwm td.nm .c{color:var(--muted);font-weight:400;font-size:10px;margin-left:4px}
@@ -917,7 +918,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
       else na++;
     });
     return { s, full, part, none, na, nax, soft, unk, missing: part + none + nax };
-  }).sort((a, b2) => (b2.missing - a.missing) || (b2.na - a.na));
+  }).sort((a, b2) => (groupNo(a.s) - groupNo(b2.s)) || (b2.missing - a.missing) || (b2.na - a.na));
 
   const overdueCells = rows.reduce((a, r) => a + r.unk, 0);
   const zeroDone     = rows.filter(r => (r.na + r.nax + r.unk) === days.length).length;
@@ -943,7 +944,14 @@ function renderHwMatrix(realStudents, coachById, scope) {
       ds.slice(5).replace('-', '/')}<br><span class="hwm-u">${tag}</span></th>`;
   });
   h += `<th>缺</th></tr>`;
+  let lastG = null;
   rows.forEach(r => {
+    const gNow = groupByCoach[r.s.coach_id] || '未分組';
+    if (gNow !== lastG) {          // 依組別分段：每組一列標題（組別・教練），找教練算帳最快
+      lastG = gNow;
+      h += `<tr class="hwm-gh"><td class="nm nm1">${gNow}</td><td colspan="${days.length + 1}">${
+        coachById[r.s.coach_id] || '未配對'} 教練</td></tr>`;
+    }
     const cN = coachById[r.s.coach_id] || '—', sN = coachById[r.s.sponsor_id] || '—';
     const gFull = groupByCoach[r.s.coach_id] || '';
     h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" 
@@ -1362,6 +1370,18 @@ function batchRow() { return allBatches.find(x => x.id === bid) || {}; }
 function batchKind() { return batchRow().study_start ? 'study' : 'action'; }
 function hasHomework() { return batchKind() === 'study'; }
 // 28 期起班別掛在「組」上（batch_coaches.track）：null／learn＝學習組，其餘直接行動
+// 組別排序用：「第十三組」→ 13（未分組排最後）
+const CH_NUM = { 一:1, 二:2, 三:3, 四:4, 五:5, 六:6, 七:7, 八:8, 九:9, 十:10 };
+function groupNo(s) {
+  const c = coaches.find(x => x.id === s.coach_id);
+  const g = (c && c.group_name) || '';
+  const m = g.match(/第(.+)組/); if (!m) return 999;
+  const t = m[1];
+  if (t.length === 1) return CH_NUM[t] || 999;
+  if (t[0] === '十') return 10 + (CH_NUM[t[1]] || 0);
+  return CH_NUM[t[0]] ? CH_NUM[t[0]] * 10 + (CH_NUM[t[2]] || 0) : 999;
+}
+
 function stuIsLearn(s) { const c = coaches.find(x => x.id === s.coach_id); return !c || !c.track || c.track === 'learn'; }
 // 學習組的行動一覽表起點：study_end 之後第一個週一（2026-08-25 Randoph 定）
 function learnActFrom() {
