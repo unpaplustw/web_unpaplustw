@@ -434,6 +434,7 @@ const OLD2NEW = { dashboard:'now', track:'now',
 const normTabs = raw => [...new Set((raw || []).map(t => OLD2NEW[t] || t))];
 
 let bid = null, students = [], coaches = [], adminUsers = [], todayLogs = [], yesterdayLogs = [], allLogs = [], selS = null, selC = null, searchReview = '';
+let mkSet = new Set();        // 「學員|日期」有補交紀錄的格子（紫「補」），小選單要據此顯示「取消補交標記」
 let allBatches = [], engRows = [], hwRows = [], makeupRows = [], submitRows = [];   // hwRows = homework_checks（作業檢核）   // engRows = coach_engagement（simple 模式的教練標記）
 let myAllowedTabs = [];
 let isReadonly = false;
@@ -827,7 +828,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
   const hwBy  = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
   const engBy = {}; engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
   const logBy = {}; allLogs.forEach(l => logBy[l.student_id + '|' + l.log_date] = l);
-  const mkSet = new Set(makeupRows.filter(r => r.subject === 'student').map(r => r.student_id + '|' + r.log_date));
+  mkSet = new Set(makeupRows.filter(r => r.subject === 'student').map(r => r.student_id + '|' + r.log_date));
   // 學員遲交＝行動紀錄最後修改時間晚於當天 22:00（台北）。作業沒有學員的時間戳，只有教練標記，所以作業表不判遲交。
   const lateSet = new Set(allLogs.filter(l => {
     if (!l.updated_at) return false;
@@ -1470,12 +1471,26 @@ function openCellEdit(ev, td, sid, ds, scope) {
   box.innerHTML = `<b>${nm(s)}　${ds.slice(5).replace('-','/')}　<span style="color:var(--muted);font-weight:400">改的是：${src}</span></b>
     <button onclick="setCellHw(true)">✅ 已交（全繳）</button>
     <button onclick="setCellHw(false)">❌ 沒交</button>
-    <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`;
+    <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`
+    + (mkSet.has(sid + '|' + ds)
+        ? `<button onclick="clearMakeup()">🕊️ 取消補交標記（其實準時交）</button>` : '');
   const r = td.getBoundingClientRect();
   box.style.display = 'block';
   box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
   box.style.top  = (r.bottom + window.scrollY + 4) + 'px';
 }
+// 補交標記打錯了就能拿掉（2026-09-16 Randoph：教練手機出問題，學員其實準時交）
+async function clearMakeup() {
+  if (!cellEdit) return;
+  const { sid, ds } = cellEdit;
+  const box = document.getElementById('cellPop'); if (box) box.style.display = 'none';
+  const { error } = await sb.from('makeup_records').delete()
+    .eq('batch_id', bid).eq('student_id', sid).eq('log_date', ds).eq('subject', 'student');
+  if (error) { alert('刪不掉：' + error.message); return; }
+  makeupRows = makeupRows.filter(r => !(r.student_id === sid && r.log_date === ds && r.subject === 'student'));
+  renderNow();
+}
+
 // 🔴 2026-09-16：一定要改「決定這一格的那條線」，否則點了畫面不動。
 //    作業格的優先序是 ①逐題紀錄 ②教練標記——有排單元就直接寫逐題，只寫教練標記會被①蓋住（高瑜均實例）。
 async function setCellHw(val) {
