@@ -749,11 +749,7 @@ function renderCoachOverview(realStudents, logsByStu) {
 
   const zero = rows.filter(r => r.looked === 0);
   let h = `<div class="sec-title"><span>📋 教練回報總覽</span><span class="sec-count">應標天數 ${markDays} 天（平日）</span></div>`;
-  h += `<div class="cov-note">
-    <b>看了</b>＝教練有進來判斷（分母：組員×應標天數）　<b>交件</b>＝看過的裡面學員真的交了（分母：看了）
-    <b>已回</b>＝交了的裡面教練回了（分母：交件）<br>
-    ⚠️ <b>「看了 0%」不代表學員沒交，代表教練沒進來標。</b>學員實際狀況看最右欄「組員填報」，那一欄不經過教練。
-  </div>`;
+  h += `<div class="cov-note">看了＝教練有進來標｜交件＝看過的裡面有交｜已回＝交了的裡面有回｜<b>看了 0% ＝教練沒來，不是學員沒交</b></div>`;
   h += `<table class="cov-tbl"><tr><th>教練</th><th>看了</th><th>交件</th><th>已回</th><th>組員填報</th></tr>`;
   rows.forEach(r => {
     h += `<tr><td>${r.name}<br><span class="cov-sub">${r.n} 位組員</span></td>
@@ -1141,12 +1137,6 @@ function calcDemerits() {
   const subFrom = b.submit_from || b.start_date;
   const subDays = dueDays.filter(d => d >= subFrom);          // 送出制生效後的日子才算
 
-  // 補交筆數：學員看 subject='student'（誰被補），教練看 subject='coach'（自己補說明）
-  const mkStu = {}, mkCoach = {};
-  makeupRows.forEach(r => {
-    if (r.subject === 'student' && r.student_id) mkStu[r.student_id] = (mkStu[r.student_id] || 0) + 1;
-    if (r.subject === 'coach') mkCoach[r.coach_id] = (mkCoach[r.coach_id] || 0) + 1;
-  });
 
   const engBy = {};   // student|date -> row
   engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
@@ -1181,7 +1171,7 @@ function calcDemerits() {
     //    ⚠️ 所以 hwUng 要單獨帶出來——退班既然是人工判斷，就必須分得出
     //       「真的沒交」與「教練沒檢核」，否則總教練自己也判不了。
     let hwMiss = 0, hwUng = 0;
-    taught.forEach(u => {
+    if (stuIsLearn(s)) taught.forEach(u => {        // 2026-09-17：只有學習組有作業，行動／精英組不算
       if (gone && unitDate[u] && unitDate[u] >= gone) return;   // 退班日之後的單元不計
       const r = hwBy[s.id + '|' + u];
       if (!r) {
@@ -1192,9 +1182,8 @@ function calcDemerits() {
     });
     return { id: s.id, name: nm(s), coach: coachById[s.coach_id] || '未配對',
              gone, miss, hwMiss, hwUng,
-             made: mkStu[s.id] || 0,
              pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
-  }).filter(r => r.pts > 0 || r.pend > 0 || r.made > 0 || r.hwUng > 0)   // 待確認也要看得到（2026-09-16）
+  }).filter(r => r.pts > 0 || r.pend > 0 || r.hwUng > 0)   // 待確認也要看得到（2026-09-16）
     .sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
 
   const coachRows = coaches.filter(c => stu.some(s => s.coach_id === c.id)).map(c => {
@@ -1219,11 +1208,10 @@ function calcDemerits() {
     });
 
     let hwNo = 0;
-    mine.forEach(s => taught.forEach(u => { if (!hwBy[s.id + '|' + u]) hwNo++; }));
+    mine.filter(stuIsLearn).forEach(s => taught.forEach(u => { if (!hwBy[s.id + '|' + u]) hwNo++; }));
     return { name: nm(c), n: mine.length, noSubmit, lateSubmit, oweReply, hwNo,
-             made: mkCoach[c.id] || 0,
              pts: noSubmit + lateSubmit + oweReply };
-  }).filter(r => r.pts > 0 || r.hwNo > 0 || r.made > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
+  }).filter(r => r.pts > 0 || r.hwNo > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
 
   return { stuRows, coachRows, dueDays, subDays, subFrom, taughtN: taught.size, graceOn, grace: b.hw_grace_until };
 }
@@ -1233,72 +1221,38 @@ function renderDemerits(target) {
   const cls = p => p >= 3 ? 'dm-3' : p >= 1 ? 'dm-1' : 'dm-0';
   let h = `<div class="sec-title"><span>⚠️ 記點（自動計算，不寫入資料庫）</span><span class="sec-count">已過期限 ${dueDays.length} 天 · 已上 ${taughtN} 單元</span></div>`;
   h += `<div class="cov-note">
-    <b>小組回報</b>＝防怠惰：學員當天 <b>22:00</b> 貼（賴群不糾結分秒）、
-    <b>教練隔天 12:00 前處理完並按「送出」</b>（沒送出才計點）<br>
-    📌 學員<b>補繳</b>（教練送出後才貼）教練<b>不必急著回</b>，有空到一覽表修正即可。<br>
-    🟡 <b>送出制自 ${subFrom} 起算</b>（已計 ${subDays.length} 天）——那個按鈕之前不存在，
-    追溯計點會讓每位教練都一樣難看，反而看不出誰認真。<br>
-    ⚠️ 系統記的是<b>教練自己標的</b>，不是賴群的真實情況——<b>12:00 後到賴群抽查</b>才是驗證，
-    那也是這條線訂在中午的用意。<br>
-    <b>課程作業</b>＝防落後：17 堂課上完前補齊即可${grace ? `　🟡 <b>本期寬限至 ${grace}</b>：在那之前顯示「將計」，<b>${grace} 之後自動變成實際點數</b>` : ''}<br>
-    🔴 <b>教練沒檢核的格子＝狀況不明，不計學員的點</b>（2026-09-16 改，原本算沒交）——
-    　退班本來就是人工決定，系統要做的是<b>看得出學員與教練各自的行為</b>，不是用假數字施壓。<br>
-    　那些格子改列在「待確認 N」，並記在教練的<b>作業未檢核</b>格數上——<b>要追的是教練</b>。<br>
-    退不退班由人決定，系統只負責讓它看得見。<br>
-    🔁 <b>「已補」＝逾期後有沒有到補交區留下說明。補交不減點</b>——點數記「當時有沒有做到」，
-    已補記「事後有沒有補救」。<b>兩欄一起看才分得出態度</b>：<br>
-    　點多＋已補多＝忙但負責，要幫他　｜　<b>點多＋已補 0＝態度問題，要談的是這些人</b></div>`;
+    死線：學員當天 <b>22:00</b>｜教練隔天 <b>12:00</b> 前按送出（送出制自 ${subFrom} 起算）${
+      grace ? `｜作業寬限至 <b>${grace}</b>，之前顯示「將計」` : ''}<br>
+    <b>教練沒檢核＝待確認，不計學員點</b>，記在教練頭上｜退不退班人工決定，系統只負責看得見</div>`;
 
   h += `<div class="sec-title"><span>👤 學員</span><span class="sec-count">${stuRows.length} 人有點數／待確認</span></div>`;
   if (!stuRows.length) h += `<div class="dash-empty">目前沒有人被記點 🎉</div>`;
   else {
-    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>待確認</th><th>合計</th><th>已補</th>${isReadonly ? '' : '<th></th>'}</tr>`;
+    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>待確認</th><th>合計</th>${isReadonly ? '' : '<th></th>'}</tr>`;
     stuRows.forEach(r => h += `<tr${r.gone ? ' style="opacity:.5"' : ''}><td>${r.name}<span class="c">${r.coach}</span></td>
       <td>${r.miss || '—'}</td>
       <td>${r.hwMiss || '—'}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
       <td>${r.hwUng ? `<span class="dm-pend">${r.hwUng}</span>` : '—'}</td>
       <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-will"> +${r.pend} 將計</span>` : ''}</td>
-      <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td>${
+      ${
         isReadonly ? '' : `<td>${r.gone
           ? `<span class="dm-gone">🚪 ${r.gone.slice(5).replace('-','/')} 退</span>`
           : `<button class="dm-drop" onclick="dropStudent('${r.id}','${r.name.replace(/'/g,"\\'")}')">退班</button>`}</td>`
       }</tr>`);
-    h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>依規則可退班——但請先看是不是教練沒檢核造成的。<br>
-      🚪 <b>退班後點數就凍結在當下</b>，不會再累加；資料與一覽表完整保留，名冊可「歸隊」還原。</div>`;
+    h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>可退班｜退班後點數凍結，名冊可「歸隊」還原</div>`;
   }
 
   h += `<div class="sec-title"><span>🎓 教練</span><span class="sec-count">${coachRows.length} 位有點數</span></div>`;
   if (!coachRows.length) h += `<div class="dash-empty">教練全部準時 👏</div>`;
   else {
-    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒送出</th><th>逾時送出</th><th>送出時欠回</th><th>作業未檢核</th><th>合計</th><th>已補</th></tr>`;
+    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒送出</th><th>逾時送出</th><th>送出時欠回</th><th>作業未檢核</th><th>合計</th></tr>`;
     coachRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.n} 位組員</span></td>
       <td>${r.noSubmit || '—'}</td><td>${r.lateSubmit || '—'}</td><td>${r.oweReply || '—'}</td>
       <td>${r.hwNo ? r.hwNo + ' 格' : '—'}</td>
       <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td>
-      <td>${r.made ? `<span class="dm-made">${r.made}</span>` : '<span class="dm-none">0</span>'}</td></tr>`);
-    h += `</table><div class="cov-note" style="margin-top:0">教練的點以「天」計，三種原因<b>互斥</b>，一天最多 1 點：<br>
-      <b>沒送出</b>＝到隔天 12:00 都沒按送出　<b>逾時送出</b>＝送出時已過 12:00　
-      <b>送出時欠回</b>＝準時送出，但他自己按下去時承認還有人「已交未回」<br>
-      🔴 <b>送出＝教練宣告「我今天看完了，名單就是這樣」</b>，那一刻責任轉到學員身上；
-      沒送出就一直算在教練頭上。教練可以早上 10:00 送完就去忙自己的事。<br>
-      作業未檢核以「格」計（單元×組員），不併入教練點數；但<b>同一格已計入該組學員的點數</b>——
-      學員會來問你為什麼被記點，這就是要你去檢核的壓力來源。</div>`;
-  }
-  // 補交原因分布：看的是「大家為什麼補」，不是個人
-  if (makeupRows.length) {
-    const LBL = { forgot:'忘記', sick:'生病', busy_work:'工作忙', family:'家庭因素',
-                  missed_notice:'沒看到通知', late_post:'學員很晚才貼', other:'其他', makeup:'補交' };
-    const cnt = {};
-    makeupRows.forEach(r => {
-      const k = (r.subject === 'coach' ? '教練·' : '學員·') + (LBL[r.reason_code] || r.reason_code);
-      cnt[k] = (cnt[k] || 0) + 1;
-    });
-    const items = Object.entries(cnt).sort((a, b2) => b2[1] - a[1]);
-    h += `<div class="sec-title"><span>🔁 補交原因分布</span><span class="sec-count">共 ${makeupRows.length} 筆</span></div>`;
-    h += `<div class="cov-note">原因用選單填寫就是為了這張表——自由填寫統計不出來。<br>
-      若「學員很晚才貼」佔多數，那要調整的是學員的 22:00，不是教練的 12:00。</div>`;
-    h += `<table class="dm-tbl"><tr><th>原因</th><th>筆數</th></tr>` +
-         items.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('') + `</table>`;
+      </tr>`);
+    h += `</table><div class="cov-note" style="margin-top:0">一天最多 1 點：沒送出｜逾時送出（過 12:00）｜送出時自認還有人沒回<br>
+      作業未檢核以「格」計，不併入點數</div>`;
   }
   target.insertAdjacentHTML('beforeend', h);
 }
@@ -1941,14 +1895,8 @@ function renderDashboard(target, part) {
     if (part === 'daily') { if (target) target.insertAdjacentHTML('beforeend', h); return; }
     h = '';
     const hw2 = hasHomework();
-    h += `<div class="cov-note">這張表看的是<b>學員完成度</b>，教練只是分組方式。<b>每一欄都是開班至今的累積率</b>（不是單日）。<br>
-      ${hw2 ? '前三欄' : '前兩欄'}＝<b>學員做到多少</b>（${hw2 ? '作業／' : ''}行動紀錄／在 LINE 繳交）｜最後一欄＝<b>教練有沒有回</b><br>
-      分母：${hw2 ? '作業＝已上單元×組員數；' : ''}<b>行動紀錄＝行動開放日（${actionStartDate() || '—'}）起的平日數</b>×組員數；
-      LINE 兩欄＝開班日起的平日數×組員數。週末不排${hw2 ? '作業' : '進度'}也不要求 LINE，不計入分母。<br>
-      ⚠️ ${hw2 ? '作業與 LINE 三欄' : 'LINE 兩欄'}由教練標記產生：教練沒進來就會是 0，那是<b>沒人看</b>不是沒人做——
-      「行動紀錄」是學員自己填的，不受教練影響，可以當對照。<br>
-      🔴 <b>LINE回覆的分子＝已回 ＋ 標了「沒交」</b>：學員沒交，教練沒東西可回，
-      那天標了就算處理完，不該因為學員沒交而扣教練。<b>沒回</b>只算「學員交了、教練沒回」。</div>`;
+    h += `<div class="cov-note">開班至今<b>累積率</b>（週末不計）｜${hw2 ? '作業、' : ''}LINE 由教練標記，<b>0 可能是沒人看</b>，對照學員自己填的「行動紀錄」<br>
+      LINE 回覆：學員沒交而教練標了沒交，也算處理完</div>`;
 
     sorted.forEach(g => {
       const cName = g.coach ? nm(g.coach) : '未配對教練';
