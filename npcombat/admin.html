@@ -985,11 +985,19 @@ function renderTrack(target) {
   allLogs.forEach(l => { (logsByStu[l.student_id] = logsByStu[l.student_id] || []).push(l); });
 
   // 🔴 連續沒填（≥2 天或從未）
+  //    2026-09-17：依班別——行動紀錄從「這一組的行動起算日」才開始要求。
+  //    學習組 9/28 才進行動週，之前沒填行動不算失聯（原本 34 人裡大半是學習組）。
   const silent = [];
   realStudents.forEach(s => {
-    const ls = logsByStu[s.id] || [];
+    const from = stuActFrom(s);
+    if (!from || from > today) return;                       // 這一組行動還沒開始
+    const ls = (logsByStu[s.id] || []).filter(l => l.log_date >= from);
     const coachName = coachById[s.coach_id] || '未配對';
-    if (!ls.length) { silent.push({ name: nm(s), coach: coachName, gap: 999, txt: '從未填寫' }); return; }
+    if (!ls.length) {
+      const g = dayDiff(today, from);
+      if (g >= 2) silent.push({ name: nm(s), coach: coachName, gap: 999, txt: '從未填寫' });
+      return;
+    }
     const last = ls.map(l => l.log_date).sort().reverse()[0];
     const gap = dayDiff(today, last);
     if (gap >= 2) silent.push({ name: nm(s), coach: coachName, gap, txt: gap + ' 天沒填' });
