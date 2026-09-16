@@ -1865,6 +1865,7 @@ function setHwAll(sid, unit, val, ds) {
 
 // 行動週的格子：改「小組心得交了沒」
 async function setDayPost(sid, ds, val) {
+  if (val === false && tooEarlyForNo(ds)) { toast('今天還沒到 22:00，學員還有時間——晚點再標'); return; }
   const { error } = await sb.from('coach_engagement').upsert({
     batch_id: BATCH_ID, coach_id: coachId, student_id: sid, log_date: ds, homework: val
   }, { onConflict: 'batch_id,student_id,log_date' });
@@ -2753,12 +2754,20 @@ function renderEngagement() {
 }
 
 // 兩個勾各自獨立：點一下切 true/false
+// 🔴 2026-09-16：當天 22:00 前不准標「沒交」。
+//    謝譽維 11:04 在 13 秒內把四位學員今天全標沒交（作業 22:00 才到期）——多半是一路往下按的誤觸。
+function tooEarlyForNo(ds) {
+  return ds === getDateStr('today') && new Date().getHours() < 22;
+}
+
 async function toggleEngage(studentId, field) {
   if (dayClosed(currentDay)) { toast('這一天已在 12:00 結算，不能再改'); return; }
   const dateStr = getDateStr(currentDay);
   const map = engMapFor(currentDay);
   const prev = map[studentId] ? { ...map[studentId] } : undefined;
   const val = !(map[studentId] || {})[field];      // 沒標記或 false → true；true → false
+  if (field === 'homework' && val === false && tooEarlyForNo(dateStr)) {
+    toast('今天還沒到 22:00，學員還有時間——晚點再標'); return; }
   // 把「已交」取消時，「已回」必須一起清掉——否則會留下「沒交卻已回」的假資料，
   // 而那正是唯一能分辨「教練真的沒回」的訊號（2026-08-17）
   const extra = (field === 'homework' && val === false) ? { homework_replied: null } : {};
