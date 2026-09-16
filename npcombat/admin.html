@@ -895,8 +895,8 @@ function renderHwMatrix(realStudents, coachById, scope) {
     if (acted && posted)
       return { k:'full', txt:'✓',
                why:'行動回報 ✓　心得 ✓（教練已標）' };
-    if (acted)  return { k:'part', txt:'半', why:'只有行動回報，小組心得沒有紀錄' };
-    if (posted) return { k:'part', txt:'半', why:'只有小組心得（教練已標），沒填行動回報' };
+    if (acted)  return { k:'part', txt:'填', why:'只有填行動紀錄，心得沒貼（或教練沒標）' };   // 2026-09-17：「半」看不懂，改寫出有做的那件
+    if (posted) return { k:'part', txt:'貼', why:'只有貼心得，沒填行動紀錄' };
     return over ? { k:'nax', txt:'✕', why:'行動回報與小組心得都沒有紀錄' }
                 : { k:'na',  txt:'',  why:'還在期限內' };
   }
@@ -926,7 +926,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
       ? `<b style="color:#d9534f">⚠️ 教練還沒回報 ${overdueCells} 格（狀況不明）</b>` : '✅ 每一格教練都回報了'}</span><span class="sec-count">${
     days.length} 個${isAct ? '行動日' : '上課日'} · ${realStudents.length} 位學員</span></div>`;
   h += `<div class="cov-note">
-    綠✓=準時　橘=部分　紅✕=沒交　藍補=學員遲交　紫補=教練補標　<b>灰？=教練還沒回報</b>　空=未開放<br>
+    ${isAct ? '綠✓=填＋貼都有　橘「填」=只填行動紀錄　橘「貼」=只貼心得' : '綠✓=準時　橘=部分'}　紅✕=沒交　藍補=學員遲交　紫補=教練補標　<b>灰？=教練還沒回報</b>　空=未開放<br>
     ✏️ <b>點格子可改</b>（只有總教練）｜👤 點學員名字看教練與領袖｜滑過格子看判定理由${
       zeroDone ? `<br>⚠️ <b>${zeroDone} 人</b>整排都沒被處理——要找的是教練` : ''}</div>`;
   // 教練／領袖收進學員名字（Randoph：寬度有限）——hover 有 title、點一下彈出小卡，
