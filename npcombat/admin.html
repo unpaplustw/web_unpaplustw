@@ -719,18 +719,21 @@ function renderCoachOverview(realStudents, logsByStu) {
   if (!batch || (batch.coach_mode || 'simple') !== 'simple') return '';
 
   const today = localDateStr(new Date());
-  let markDays = 0;
+  // 2026-09-17：只算教練期限（隔天 12:00）已過的平日，否則當天怎麼做都到不了 100%
+  const dueSet = new Set();
   for (let d = new Date(batch.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
-    const w = d.getDay();
-    if (w >= 1 && w <= 5) markDays++;
+    const w = d.getDay(); if (w < 1 || w > 5) continue;
+    const ds = localDateStr(d), dl = new Date(ds + 'T12:00:00'); dl.setDate(dl.getDate() + 1);
+    if (new Date() > dl) dueSet.add(ds);
   }
+  const markDays = dueSet.size;
 
   const stuByCoach = {};
   realStudents.forEach(s => { if (s.coach_id) (stuByCoach[s.coach_id] = stuByCoach[s.coach_id] || []).push(s); });
 
   const rows = coaches.filter(c => (stuByCoach[c.id] || []).length).map(c => {
     const stu = stuByCoach[c.id];
-    const mine = engRows.filter(r => r.coach_id === c.id);
+    const mine = engRows.filter(r => r.coach_id === c.id && dueSet.has(r.log_date));
     const looked  = mine.filter(r => r.homework !== null && r.homework !== undefined).length;
     const handed  = mine.filter(r => r.homework === true).length;
     const replied = mine.filter(r => r.homework_replied === true).length;
@@ -1912,7 +1915,7 @@ function renderDashboard(target, part) {
     h = '';
     const hw2 = hasHomework();
     h += `<div class="cov-note">開班至今<b>累積率</b>（週末不計）｜${hw2 ? '作業、' : ''}LINE 由教練標記，<b>0 可能是沒人看</b>，對照學員自己填的「行動紀錄」<br>
-      LINE 回覆：學員沒交而教練標了沒交，也算處理完</div>`;
+      只算<b>已過期限</b>的日子（學員算到昨天、教練算到隔天 12:00 已過）｜學員沒交而教練標了沒交，也算回覆完成</div>`;
 
     sorted.forEach(g => {
       const cName = g.coach ? nm(g.coach) : '未配對教練';
@@ -1932,19 +1935,27 @@ function renderDashboard(target, part) {
       // 原本作業是累積、其餘三欄只算昨天一天 → 尺度不一致；而昨天是週日（不排作業、教練不標），
       // 三欄全 0% 看起來像狀況差，實際那天本來就沒事。用單一代表日整張表都會誤導。
       // 分母一律「平日數 × 組員數」（週末不排作業也不要求 LINE，不計入分母）。
+      // 🔴 2026-09-17：分母只算「已過期限」的日子（Randoph：處理完的教練卻不是 100%，超怪）。
+      //    原本含今天——今天的作業 22:00 才到、教練明天 12:00 才到期，當天不可能 100%。
+      //    學員欄（行動紀錄／LINE繳交）算到昨天；教練欄（LINE回覆）算到「隔天 12:00 已過」的那天。
       const bRow = allBatches.find(x => x.id === bid) || {};
-      let wd = 0;
-      if (bRow.start_date)
-        for (let d = new Date(bRow.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
-          const w = d.getDay(); if (w >= 1 && w <= 5) wd++;
-        }
-      const sids = new Set(g.students.map(s => s.id));
       const isWd = ds => { const w = new Date(ds + 'T00:00:00').getDay(); return w >= 1 && w <= 5; };
-      const aStart = actionStartDate(), awd = actionWeekdays();
+      const coachDue = ds => { const dl = new Date(ds + 'T12:00:00'); dl.setDate(dl.getDate() + 1); return new Date() > dl; };
+      const wdList = [];
+      if (bRow.start_date)
+        for (let d = new Date(bRow.start_date + 'T00:00:00'); localDateStr(d) < today; d.setDate(d.getDate() + 1)) {
+          const ds = localDateStr(d); if (isWd(ds)) wdList.push(ds);
+        }
+      const wd = wdList.length;                              // 學員已到期的平日
+      const cDays = new Set(wdList.filter(coachDue));        // 教練已到期的平日
+      const wdC = cDays.size;
+      const sids = new Set(g.students.map(s => s.id));
+      const aStart = actionStartDate();
+      const awd = wdList.filter(ds => ds >= aStart).length;
       // 行動紀錄的分子分母都要從行動開放日起算，否則學習週會把率稀釋掉
-      const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date) && l.log_date >= aStart).length;
-      const ySent = engRows.filter(r => sids.has(r.student_id) && r.homework === true && isWd(r.log_date)).length;
-      const yRep  = engRows.filter(r => sids.has(r.student_id) && isWd(r.log_date) && coachDone(r)).length;
+      const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date) && l.log_date >= aStart && l.log_date < today).length;
+      const ySent = engRows.filter(r => sids.has(r.student_id) && r.homework === true && isWd(r.log_date) && r.log_date < today).length;
+      const yRep  = engRows.filter(r => sids.has(r.student_id) && cDays.has(r.log_date) && coachDone(r)).length;
       const denom = wd * total;
       const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
       const hasCourse = hasHomework();   // 行動班無課表 → 作業欄整欄不出現
@@ -1956,7 +1967,7 @@ function renderDashboard(target, part) {
 
       const stuAct = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0);
       const yFillPctC = pct(yF, awd * total), yConfPctC = pct(ySent, denom);
-      const yRepPctC = pct(yRep, denom);
+      const yRepPctC = pct(yRep, wdC * total);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
       const allDone = yFillPctC === 100 && yConfPctC === 100 && yRepPctC === 100;
@@ -1979,15 +1990,15 @@ function renderDashboard(target, part) {
             // 學員列＝表頭四欄的個人版，全部累積（原本只顯示昨天一天，在累積區塊裡是混尺度）
             const sHwFull = hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length;
             const sHwPct  = pct(sHwFull, taughtN);
-            const sLogs   = allLogs.filter(l => l.student_id === s.id && isWd(l.log_date) && l.log_date >= aStart);
+            const sLogs   = allLogs.filter(l => l.student_id === s.id && isWd(l.log_date) && l.log_date >= aStart && l.log_date < today);
             const sPts    = sLogs.reduce((a, l) => a + stuAct(l), 0);
-            const sEng    = engRows.filter(r => r.student_id === s.id && isWd(r.log_date));
+            const sEng    = engRows.filter(r => r.student_id === s.id && isWd(r.log_date) && r.log_date < today);
             const sSent   = sEng.filter(r => r.homework === true).length;
-            const sRep    = sEng.filter(coachDone).length;
+            const sRep    = sEng.filter(r => cDays.has(r.log_date) && coachDone(r)).length;
             const sJudged = sEng.filter(r => r.homework !== null && r.homework !== undefined).length;
             // 繳交／回覆是教練「點」出來的，只有點過才有數字 → 沒點就是未標，不是 0%
-            const mark = (icon, n, label) => sJudged
-              ? `<span class="stu-b ${lvl(pct(n, wd))}">${icon} <span class="dash-pct">${n}</span><i>/${wd} 天</i></span>`
+            const mark = (icon, n, den) => sJudged
+              ? `<span class="stu-b ${lvl(pct(n, den))}">${icon} <span class="dash-pct">${n}</span><i>/${den} 天</i></span>`
               : `<span class="stu-b stu-na" title="教練還沒進來標記，不代表學員沒做">⬜ 未標</span>`;
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
@@ -1996,8 +2007,8 @@ function renderDashboard(target, part) {
                 ${sLogs.length
                   ? `<span class="stu-b ${lvl(pct(sLogs.length, awd))}" title="有填天數／行動開放後的平日數 · 累積行動分數">✍️ <span class="dash-pct">${sLogs.length}</span><i>/${awd} 天 · ${sPts} 分</i></span>`
                   : `<span class="stu-b stu-na">✍️ 未填</span>`}
-                ${mark('📤', sSent)}
-                ${mark('↩️', sRep)}
+                ${mark('📤', sSent, wd)}
+                ${mark('↩️', sRep, wdC)}
                 <span class="stu-arrow-gap"></span>
               </div>
             </div>`;
