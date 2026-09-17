@@ -1950,7 +1950,10 @@ function renderDashboard(target, part) {
       const cDays = new Set(wdList.filter(coachDue));        // 教練已到期的平日
       const wdC = cDays.size;
       const sids = new Set(g.students.map(s => s.id));
-      const aStart = actionStartDate();
+      // 2026-09-17 依班別：學習組作業期不看行動紀錄（9/28 才開始），行動／精英組不看作業
+      const gLearn = !g.coach || !g.coach.track || g.coach.track === 'learn';
+      const aStart = gLearn ? learnActFrom() : actionStartDate();
+      const showAct = !gLearn || (aStart && aStart <= today);
       const awd = wdList.filter(ds => ds >= aStart).length;
       // 行動紀錄的分子分母都要從行動開放日起算，否則學習週會把率稀釋掉
       const yF    = allLogs.filter(l => sids.has(l.student_id) && isWd(l.log_date) && l.log_date >= aStart && l.log_date < today).length;
@@ -1958,7 +1961,7 @@ function renderDashboard(target, part) {
       const yRep  = engRows.filter(r => sids.has(r.student_id) && cDays.has(r.log_date) && coachDone(r)).length;
       const denom = wd * total;
       const hwFull = g.students.reduce((a, s) => a + hwRows.filter(r => r.student_id === s.id && r.total > 0 && r.done >= r.total).length, 0);
-      const hasCourse = hasHomework();   // 行動班無課表 → 作業欄整欄不出現
+      const hasCourse = hasHomework() && gLearn;   // 行動／精英組沒有作業 → 作業欄不出現
       // 作業要用「完成率」才能跟其他欄並排比較：已上單元 × 組員數 當分母
       let taughtN = 0;
       if (typeof SCHEDULE !== 'undefined')
@@ -1970,7 +1973,7 @@ function renderDashboard(target, part) {
       const yRepPctC = pct(yRep, wdC * total);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }
 
-      const allDone = yFillPctC === 100 && yConfPctC === 100 && yRepPctC === 100;
+      const allDone = (!hasCourse || hwPct === 100) && (!showAct || yFillPctC === 100) && yConfPctC === 100 && yRepPctC === 100;
       h += `<div class="dash-coach-row${allDone ? ' dash-complete' : ''}">
         <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
           <div class="dash-coach-left">
@@ -1979,7 +1982,7 @@ function renderDashboard(target, part) {
           </div>
           <div class="dash-coach-stats">
             ${hasCourse ? `<span class="dash-day-block ${lvl(hwPct)}">作業 <span class="dash-pct">${hwPct}%</span></span>` : ''}
-            <span class="dash-day-block ${lvl(yFillPctC)}">行動紀錄 <span class="dash-pct">${yFillPctC}%</span></span>
+            ${showAct ? `<span class="dash-day-block ${lvl(yFillPctC)}">行動紀錄 <span class="dash-pct">${yFillPctC}%</span></span>` : ''}
             <span class="dash-day-block ${lvl(yConfPctC)}">LINE繳交 <span class="dash-pct">${yConfPctC}%</span></span>
             <span class="dash-day-block ${lvl(yRepPctC)}">LINE回覆 <span class="dash-pct">${yRepPctC}%</span></span>
           </div>
@@ -2004,7 +2007,7 @@ function renderDashboard(target, part) {
               <span>${nm(s)}${mc(s)}</span>
               <div class="dash-stu-status">
                 ${hasCourse ? `<span class="stu-b ${lvl(sHwPct)}" title="全繳單元數／已上單元數">作業 <span class="dash-pct">${sHwPct}%</span><i>${sHwFull}/${taughtN}</i></span>` : ''}
-                ${sLogs.length
+                ${!showAct ? '' : sLogs.length
                   ? `<span class="stu-b ${lvl(pct(sLogs.length, awd))}" title="有填天數／行動開放後的平日數 · 累積行動分數">✍️ <span class="dash-pct">${sLogs.length}</span><i>/${awd} 天 · ${sPts} 分</i></span>`
                   : `<span class="stu-b stu-na">✍️ 未填</span>`}
                 ${mark('📤', sSent, wd)}
