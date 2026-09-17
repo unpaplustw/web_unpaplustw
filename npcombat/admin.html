@@ -1443,8 +1443,13 @@ function openCellEdit(ev, td, sid, ds, scope) {
   if (!box) { box = document.createElement('div'); box.id = 'cellPop'; box.className = 'cell-pop'; document.body.appendChild(box); }
   const s = students.find(x => x.id === sid) || {};
   const src = units.length ? `U${units.join('·')} 逐題檢核` : '教練標記';
+  const e = engRows.find(r => r.student_id === sid && r.log_date === ds) || {};
+  const now = e.homework === true ? ('已交・' + (e.homework_replied ? '已回' : '還沒回'))
+            : e.homework === false ? '沒交' : '未回報';
   box.innerHTML = `<b>${nm(s)}　${ds.slice(5).replace('-','/')}　<span style="color:var(--muted);font-weight:400">改的是：${src}</span></b>
-    <button onclick="setCellHw(true)">✅ 已交（全繳）</button>
+    <div style="font-size:12px;color:var(--muted);margin:-2px 0 4px">目前：${now}</div>
+    <button onclick="setCellHw(true, true)">✅ 已交＋💬 已回</button>
+    <button onclick="setCellHw(true, false)">✅ 已交（教練還沒回）</button>
     <button onclick="setCellHw(false)">❌ 沒交</button>
     <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`
     + (mkSet.has(sid + '|' + ds)
@@ -1468,7 +1473,8 @@ async function clearMakeup() {
 
 // 🔴 2026-09-16：一定要改「決定這一格的那條線」，否則點了畫面不動。
 //    作業格的優先序是 ①逐題紀錄 ②教練標記——有排單元就直接寫逐題，只寫教練標記會被①蓋住（高瑜均實例）。
-async function setCellHw(val) {
+async function setCellHw(val, replied) {
+  // 2026-09-17：原本只改「已交」，教練的「已回」救不回來（教練手機壞掉時兩個都標不了）
   if (!cellEdit) return;
   const { sid, ds, units } = cellEdit;
   const stu = students.find(x => x.id === sid);
@@ -1500,12 +1506,14 @@ async function setCellHw(val) {
   }
   // 教練標記那條線一起對齊（行動格只有這一條）
   const { error } = await sb.from('coach_engagement').upsert({
-    batch_id: bid, coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val
+    batch_id: bid, coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val,
+    homework_replied: val === true ? !!replied : null      // 沒交／清掉時「已回」一併清掉，避免「沒交卻已回」
   }, { onConflict: 'batch_id,student_id,log_date' });
   if (error) { alert('儲存失敗：' + error.message); return; }
   const hit = engRows.find(r => r.student_id === sid && r.log_date === ds);
-  if (hit) hit.homework = val;
-  else engRows.push({ coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val, homework_replied: null });
+  const rep = val === true ? !!replied : null;
+  if (hit) { hit.homework = val; hit.homework_replied = rep; }
+  else engRows.push({ coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val, homework_replied: rep });
 
   renderNow();      // 重畫分析分頁，四張表一起跟上
 }
