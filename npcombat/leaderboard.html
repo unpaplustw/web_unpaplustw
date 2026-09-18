@@ -250,13 +250,13 @@ const AWARDS = [
   { key:'action_pts', emoji:'🏅', name:'行動王',    desc:'純行動積分（不含締結）',    unit:'分', fun:false },
   // 2026-08-14 開會定案三套統計：實戰班推薦人數（只算新人 001、小金大金同 1 人、分店不算）／
   // 之夜嘉許（推薦新人的締結分，含小金大金倍率）／獎勵活動（新人＋分店全算，見 total）
-  { key:'referrals', emoji:'🌱', name:'推薦王',    desc:'推薦新人 001 人數（開分店不算）', unit:'人', fun:false },
-  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'推薦新人的締結分（含小金大金）', unit:'分', fun:false, cumulative:true },
+  { key:'referrals', emoji:'🌱', name:'推薦王',    desc:'推薦新人人數（同一人開幾個單位都算 1 人）', unit:'人', fun:false },
+  { key:'close_pts', emoji:'🔫', name:'締結王',    desc:'推薦新人的締結分（001、002…全算）', unit:'分', fun:false, cumulative:true },
   // 2026-08-23 Randoph：「每週以締結 001 為主，其他算在整期排行，比較不會失焦」
   //   週榜＝推薦王（人頭），整期＝締結王／開店王／金牌王。同一個 1400 分，
   //   放在週榜會壓垮那一週，放整期就只是「她這期開了張大單」——尺度對了，倍率就不用吵。
   { key:'branch_pts',  emoji:'🏪', name:'開店王',    desc:'自己開分店的締結分（全期累積）', unit:'分', fun:false, cumulative:true },
-  { key:'badge_units', emoji:'🥇', name:'金牌王',    desc:'小金大金開出的單位數（全期累積）', unit:'單位', fun:false, cumulative:true },
+  { key:'badge_units', emoji:'🥇', name:'單位王',    desc:'推薦新人開出的單位數（全期累積）', unit:'單位', fun:false, cumulative:true },   // 2026-09-18 金牌王→單位王（小金大金拿掉，一個單位報一筆）
   { key:'slots',     emoji:'🎫', name:'獎勵達人',  desc:'達成挑戰門檻名額最多（全期累積）', unit:'位', fun:false, cumulative:true },
   { key:'name_list', emoji:'📋', name:'彈藥充足',  desc:'狂列名單筆數最多',         unit:'筆', fun:false },
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
@@ -549,12 +549,18 @@ function calcStats(startDate, endDate) {
   //   A 新規 001（is_new 且 sub=001）  → close_pts、推薦王
   //   D 舊格式無編號（8/13 前）        → 併入 A。無法判定，且不再產生；
   //     那是學員真的做到的事，只是當時沒存編號，從寬。
+  // 🔴 2026-09-18：推薦新人可以報 002、003（同一人開多個單位各報一筆）。
+  //    C 類改成「有報到同一人的 001 才算」：新人的 002 會跟 001 一起報 → 計分；
+  //    沒有 001、只報了別人的 002 → 那是既有會員加開（例：27 期巫鈴珠 2893623-002），照舊不計分。
+  const has001 = new Set(allCloses.filter(c => c.is_new === true && c.target_code && (c.target_sub || '001') === '001')
+                                  .map(c => c.member_id + '|' + c.target_code));
   closes.forEach(c => {
     const sid = memberToStu[c.member_id];
     if (!sid || !students[sid]) return;
     if (!closeCounts(c)) return;
     const st = students[sid];
-    const isBranchOfDownline = c.is_new === true && c.target_code && c.target_sub && c.target_sub !== '001';
+    const isBranchOfDownline = c.is_new === true && c.target_code && c.target_sub && c.target_sub !== '001'
+      && !has001.has(c.member_id + '|' + c.target_code);
     if (c.is_new === false) {
       st.branch_pts += c.points || 0;
     } else if (isBranchOfDownline) {
@@ -564,12 +570,13 @@ function calcStats(startDate, endDate) {
       st.close_pts += c.points || 0;
       // ⚠️ 只有 001 才是新規會員。漏掉這個條件會把「下線的第 N 個單位」
       //    當成新人（2026-08-23 修：巫鈴珠 2893623-002 曾被算成推薦 1 人）
-      if (c.is_new === true && c.target_code && c.target_sub === '001' && !st._refCodes.has(c.target_code)) {
+      if (c.is_new === true && c.target_code && !st._refCodes.has(c.target_code)) {   // 同一人算 1 次（不論 001／002）
         st._refCodes.add(c.target_code); st.referrals += 1;   // 同一新人開小金大金＝1 人
       }
     }
     // 🔴 小金／大金只有一套才算（2026-09-13）。原本 select 沒撈 badge 欄位，金牌王一直是 0，一併修正
-    if (c.badge && c.size === 'full') st.badge_units += (c.badge === 'big_gold' ? 7 : 3);
+    // 🥇 單位王：推薦新人每報一筆＝1 單位；9/18 前的舊紀錄若選了小金／大金，照 3／7 單位算
+    if (c.is_new !== false) st.badge_units += (c.badge && c.size === 'full') ? (c.badge === 'big_gold' ? 7 : 3) : 1;
   });
   const arr = Object.values(students);
   arr.forEach(s => {

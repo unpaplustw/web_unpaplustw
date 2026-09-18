@@ -108,6 +108,9 @@
   .close-half{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent}
   .close-half.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold);font-weight:700}
 
+  .btn-add-unit{width:100%;margin-top:8px;padding:9px;border:1.5px dashed var(--gold);border-radius:10px;background:var(--card);color:var(--gold);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer}
+  .close-sum{display:flex;justify-content:space-between;align-items:center;background:var(--green-bg);color:var(--green);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;font-weight:600}
+  .close-sum b{font-size:16px}
   .close-badge-row{display:flex;gap:8px;margin-top:8px}
   .close-badge{flex:1;padding:8px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:.15s;-webkit-tap-highlight-color:transparent;color:var(--muted)}
   .close-badge.sel{border-color:#d4a017;background:#fef9e7;color:#b8960c;font-weight:700}
@@ -707,7 +710,8 @@ function getEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
   if (!p) return 0;
-  return (p[e.size] || 0) * (e.size === 'full' ? badgeMult(e.badge) : 1);   // 方案×類型；小金／大金倍率只有一套才乘
+  // 2026-09-18：小金／大金按鈕拿掉，改成「一個單位報一筆」。badge 只剩當天以前的舊紀錄帶回來時還原用
+  return (p[e.size] || 0) * (e.size === 'full' && e.badge ? badgeMult(e.badge) : 1);
 }
 
 // 締結對象判定（2026-08-14 開會定案）：
@@ -724,16 +728,31 @@ function verdictOf(e) {
   const code = (e.tcode || '').replace(/\D/g, '');
   if (code.length < 7 || !(e.tname || '').trim()) return { k:'pending', t:'請填對方會員編號 7 碼＋姓名' };
   if (myCode && code === myCode) return { k:'pending', t:'⚠️ 這是你自己的編號——要記分店請改選右邊' };
-  return { k:'new', t:'🌱 推薦新人（推薦人數 +1）' };
+  return subOf(e) === '001' ? { k:'new', t:'🌱 推薦新人（推薦人數 +1）' }
+                           : { k:'new', t:`🌱 同一位新人的 ${subOf(e)}（推薦人數不重複算）` };
 }
 function setKind(i, k) {
   const e = closeEntries[i];
   if (e.kind === k) return;
   e.kind = k;
   // 換種類時清掉對方欄位，避免留下上一種的殘值
-  e.tcode = ''; e.tname = '';
+  e.tcode = ''; e.tname = ''; e.tsub = k === 'new' ? '001' : '';
   renderCloseEntries();
 }
+
+// 同一位新人再加一個單位（2026-09-18 Randoph：001 一套、002 半套各報一筆）
+function addUnit(i) {
+  const src = closeEntries[i];
+  let last = i, maxSub = 1;
+  closeEntries.forEach((e, k) => {
+    if (e.kind !== 'new' || e.tcode !== src.tcode) return;
+    last = k; maxSub = Math.max(maxSub, parseInt(e.tsub || '1', 10) || 1);
+  });
+  closeEntries.splice(last + 1, 0, { kind:'new', plan:null, size:null, badge:null,
+    tcode: src.tcode, tname: src.tname, tsub: String(maxSub + 1).padStart(3, '0') });
+  renderCloseEntries();
+}
+const subOf = e => String(parseInt((e.tsub || '001').replace(/\D/g, ''), 10) || 1).padStart(3, '0');
 
 function setWho(i, field, val) {
   closeEntries[i][field] = val;
@@ -759,6 +778,7 @@ function renderCloseEntries() {
       </div>
       ${e.kind === 'new' ? `<div class="close-who">
         <input class="w-code" inputmode="numeric" maxlength="7" placeholder="會員編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
+        <span class="w-dash">-</span><input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||'001'}" oninput="setWho(${i},'tsub',this.value)">
         <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>` : ''}
       ${e.kind === 'branch' ? `<div class="close-who">
@@ -773,11 +793,19 @@ function renderCloseEntries() {
       ${e.plan ? `<div class="close-half-row">
         ${SIZES.map(s => `<div class="close-half ${e.size===s.key?'sel':''}" onclick="setSize(${i},'${s.key}')">${s.label}</div>`).join('')}
       </div>` : ''}
-      ${e.plan && e.size === 'full' ? `<div class="close-badge-row">
-        ${BADGES.map(b => `<div class="close-badge ${e.badge===b.key?'sel':''}" onclick="toggleBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
-      </div>` : ''}
-      ${pts > 0 ? `<div class="close-pts">＋${pts} 分${e.badge ? ' 🎖️' : ''}</div>` : ''}
+      ${pts > 0 ? `<div class="close-pts">＋${pts} 分</div>` : ''}
+      ${e.kind === 'new' && v.k === 'new' && e.plan && e.size ? `<button class="btn-add-unit" onclick="addUnit(${i})">＋ 同一人再加一個單位</button>` : ''}
     </div>`;
+  });
+  // 同一位新人開了幾個單位、合計幾分——一眼看得出 001／002 有沒有都報到
+  const byWho = {};
+  closeEntries.forEach(e => {
+    if (e.kind !== 'new' || verdictOf(e).k !== 'new') return;
+    const g = byWho[e.tcode] = byWho[e.tcode] || { name: e.tname, n: 0, pts: 0 };
+    g.n++; g.pts += getEntryPts(e);
+  });
+  Object.values(byWho).filter(g => g.n > 1).forEach(g => {
+    h += `<div class="close-sum">${g.name} · ${g.n} 個單位 · 推薦 1 人<b>${g.pts} 分</b></div>`;
   });
   wrap.innerHTML = h;
 
@@ -857,7 +885,7 @@ async function init() {
     // 學員晚上補填行動再送一次，早上填的締結就會被刪掉而且補不回來。
     // 以前做不到是因為只存 points（方案反推不出來），有了 plan／size 才能精確還原。
     const { data: todayCloses } = await sb.from('closing_records')
-      .select('plan, size, badge, points, target_code, target_sub, target_name')
+      .select('plan, size, badge, points, target_code, target_sub, target_name, is_new')
       .eq('member_id', memberId).eq('batch_id', BATCH_ID)
       .eq('close_date', d).eq('source', 'daily');
     if (todayCloses && todayCloses.length) {
@@ -1118,7 +1146,7 @@ async function submit() {
           toast('締結還有 ' + incomplete.length + ' 筆沒填完（推薦新人要編號＋姓名；分店要店名）'); return;
         }
         // 🔴 種類由學員直接選，不再從編號反推（2026-08-27 Randoph）
-        //   推薦新人 → 對方編號＋姓名，分號固定 001（新會員的第一個單位就是 001）
+        //   推薦新人 → 對方編號＋分號＋姓名。2026-09-18 起分號可填 002、003…（同一人開多個單位各報一筆）
         //   我開分店 → 編號自動帶自己的、分號留空（is_new=false 已足夠分類，
         //              學員不見得知道自己是第幾個分店；要知道開幾個數筆數就有）
         //   兩個選項裡沒有「別人的第 N 個單位」的位置——那筆本來就該由那位下線
@@ -1128,9 +1156,9 @@ async function submit() {
           const code = isBranch ? (myCode || '') : (e.tcode || '').replace(/\D/g, '').slice(0, 7);
           return {
             member_id: memberId, batch_id: BATCH_ID, close_date: today(),
-            plan: e.plan, size: e.size, badge: e.size === 'full' ? e.badge : null,
+            plan: e.plan, size: e.size, badge: e.size === 'full' ? (e.badge || null) : null,
             target_code: code || null,
-            target_sub: isBranch ? null : '001',
+            target_sub: isBranch ? null : subOf(e),        // 2026-09-18：推薦新人可報 002、003…
             target_name: (e.tname || '').trim(),
             is_new: !isBranch,
             points: getEntryPts(e), source: 'daily'
@@ -1188,7 +1216,7 @@ function showResult() {
       const pts = getEntryPts(e);
       closePts += pts;
       const sizeLabel = (SIZES.find(s => s.key === e.size) || {}).label || '';
-      const badgeLabel = e.badge ? (e.badge === 'small_gold' ? ' 🏅小金' : ' 🏆大金') : '';
+      const badgeLabel = e.kind === 'new' ? ` ${e.tname || ''} ${subOf(e)}` : '';
       details.push(`${p.label} ${sizeLabel}${badgeLabel} → ${pts}分`);
     });
     totalPts += closePts;

@@ -897,7 +897,7 @@ const CLOSE_PLAN = { '20k':'2萬PV', '15k':'1.5萬PV', '10k':'1萬PV' };
 const CLOSE_SIZE = { full:'一套', half:'半套', sub:'訂閱' };
 const CLOSE_BADGE = { small_gold:'🏅小金×3', big_gold:'🏆大金×7' };
 const REJECT_REASONS = [
-  ['wrong_badge', '金牌填錯（不是這個倍率）'],
+  ['wrong_badge', '單位填錯（分號／單位數不對）'],   // key 沿用舊名，DB 已有資料
   ['wrong_plan',  '方案／規格填錯'],
   ['not_exist',   '沒有這筆締結'],
   ['duplicate',   '重複填報'],
@@ -2430,7 +2430,9 @@ function verdictOfMy(e) {
   if (!myCode) return { k:'pending', t:'（無法判定：你的會員編號未登錄）' };
   return code === myCode
     ? { k:'branch', t:'🏪 自己開分店（獎勵活動計分，不算推薦人數）' }
-    : { k:'new',    t:'🌱 推薦新人 001（推薦人數 +1）' };
+    : (((e.tsub || '').replace(/\D/g, '') || '1') * 1 <= 1
+        ? { k:'new', t:'🌱 推薦新人 001（推薦人數 +1）' }
+        : { k:'new', t:'🌱 同一位新人加開的單位（推薦人數不重複算）' });
 }
 function setMyWho(i, field, val) {
   myCloseEntries[i][field] = val; myCloseEntries[i].saved = false;
@@ -2442,7 +2444,8 @@ function getMyEntryPts(e) {
   if (!e.plan || !e.size) return 0;
   const p = PLANS.find(p => p.key === e.plan);
   if (!p) return 0;
-  return (p[e.size] || 0) * (e.size === 'full' ? badgeMult(e.badge) : 1);   // 小金／大金倍率只有一套才乘
+  // 2026-09-18：小金／大金拿掉（一個單位報一筆）；badge 只剩舊紀錄
+  return (p[e.size] || 0) * (e.size === 'full' && e.badge ? badgeMult(e.badge) : 1);
 }
 
 function renderMyCloseSection() {
@@ -2479,10 +2482,8 @@ function renderMyCloseSection() {
         ${e.plan ? `<div class="my-close-half-row">
           ${SIZES.map(s => `<div class="my-close-half ${e.size===s.key?'sel':''}" onclick="setMySize(${i},'${s.key}')">${s.label}</div>`).join('')}
         </div>` : ''}
-        ${e.plan && e.size === 'full' ? `<div class="my-close-badge-row">
-          ${BADGES.map(b => `<div class="my-close-badge ${e.badge===b.key?'sel':''}" onclick="toggleMyBadge(${i},'${b.key}')">${b.label}</div>`).join('')}
-        </div>` : ''}
-        ${pts > 0 ? `<div class="my-close-pts">＋${pts} 分${e.badge ? ' 🎖️' : ''}</div>` : ''}
+        ${pts > 0 ? `<div class="my-close-pts">＋${pts} 分</div>` : ''}
+        ${verdictOfMy(e).k === 'new' && e.plan && e.size ? `<button class="btn-add-my-close" style="margin-top:8px" onclick="addMyUnit(${i})">＋ 同一人再加一個單位</button>` : ''}
       </div>`;
     }
   });
@@ -2495,6 +2496,19 @@ function renderMyCloseSection() {
 function refreshMyClose() {
   const wrap = document.getElementById('myCloseSec');
   if (wrap) wrap.outerHTML = renderMyCloseSection();
+}
+
+// 同一位新人再加一個單位：編號、姓名帶上一筆，分號 +1（2026-09-18，與 daily 同步）
+function addMyUnit(i) {
+  const src = myCloseEntries[i];
+  let last = i, maxSub = 1;
+  myCloseEntries.forEach((e, k) => {
+    if (e.tcode !== src.tcode) return;
+    last = k; maxSub = Math.max(maxSub, parseInt(e.tsub || '1', 10) || 1);
+  });
+  myCloseEntries.splice(last + 1, 0, { plan:null, size:null, badge:null, saved:false,
+    tcode: src.tcode, tname: src.tname, tsub: String(maxSub + 1).padStart(3, '0') });
+  refreshMyClose();
 }
 
 function addMyClose() {
@@ -2575,7 +2589,7 @@ async function submitMyReport() {
         const sub  = ((e.tsub || '').replace(/\D/g, '') || '001').padStart(3, '0').slice(-3);
         return {
           member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
-          plan: e.plan, size: e.size, badge: e.size === 'full' ? e.badge : null,
+          plan: e.plan, size: e.size, badge: e.size === 'full' ? (e.badge || null) : null,
           target_code: code || null, target_sub: code ? sub : null, target_name: (e.tname || '').trim() || null,
           is_new: code ? code !== myCode : null,
           points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily',
