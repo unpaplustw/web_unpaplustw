@@ -1451,14 +1451,14 @@ function openCellEdit(ev, td, sid, ds, scope) {
   const e = engRows.find(r => r.student_id === sid && r.log_date === ds) || {};
   const now = e.homework === true ? ('已交・' + (e.homework_replied ? '已回' : '還沒回'))
             : e.homework === false ? '沒交' : '未回報';
+  const isMk = mkSet.has(sid + '|' + ds);
   box.innerHTML = `<b>${nm(s)}　${ds.slice(5).replace('-','/')}　<span style="color:var(--muted);font-weight:400">改的是：${src}</span></b>
-    <div style="font-size:12px;color:var(--muted);margin:-2px 0 4px">目前：${now}</div>
-    <button onclick="setCellHw(true, true)">✅ 已交＋💬 已回</button>
+    <div style="font-size:12px;color:var(--muted);margin:-2px 0 4px">目前：${now}${isMk ? '（紫「補」＝教練結案後才標的）' : ''}</div>`
+    + (isMk ? `<button onclick="clearMakeup()">🕊️ 取消補標，改回準時（變綠）</button>` : '')
+    + `<button onclick="setCellHw(true, true)">✅ 已交＋💬 已回</button>
     <button onclick="setCellHw(true, false)">✅ 已交（教練還沒回）</button>
     <button onclick="setCellHw(false)">❌ 沒交</button>
-    <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`
-    + (mkSet.has(sid + '|' + ds)
-        ? `<button onclick="clearMakeup()">🕊️ 取消補交標記（其實準時交）</button>` : '');
+    <button onclick="setCellHw(null)">↩️ 清掉（回到未回報）</button>`;
   const r = td.getBoundingClientRect();
   box.style.display = 'block';
   box.style.left = Math.min(r.left + window.scrollX, window.innerWidth - box.offsetWidth - 12) + 'px';
@@ -1474,6 +1474,8 @@ async function clearMakeup() {
   if (error) { alert('刪不掉：' + error.message); return; }
   makeupRows = makeupRows.filter(r => !(r.student_id === sid && r.log_date === ds && r.subject === 'student'));
   renderNow();
+  const s2 = students.find(x => x.id === sid) || {};
+  toast(`${nm(s2)} ${ds.slice(5).replace('-','/')} 補標紀錄已取消，改回準時`);
 }
 
 // 🔴 2026-09-16：一定要改「決定這一格的那條線」，否則點了畫面不動。
@@ -1521,6 +1523,8 @@ async function setCellHw(val, replied) {
   else engRows.push({ coach_id: stu.coach_id, student_id: sid, log_date: ds, homework: val, homework_replied: rep });
 
   renderNow();      // 重畫分析分頁，四張表一起跟上
+  // 2026-09-20：顏色常常不會變（綠→綠、紫→紫），沒有回饋就像沒反應 → 明確說改成什麼
+  toast(`${nm(stu)} ${ds.slice(5).replace('-','/')} 已改成「${val === null ? '未回報' : val ? (replied ? '已交・已回' : '已交・還沒回') : '沒交'}」`);
 }
 
 
