@@ -815,16 +815,19 @@ function renderHwMatrix(realStudents, coachById, scope) {
   //    8/24（一）才真正啟動（教練標記 12→19 人）。用「隔天」會把 8/21 列進表，
   //    那天沒填的 30 人平白多一筆缺件。28 期同理（10/2 週五 → 10/5 週一）。
   const actViewFrom = realStudents.map(s => actFromBy[s.id]).sort()[0] || learnActFrom();
-  const days = [];                           // 開班日到今天的平日，再依 scope 過濾
+  // 🔴 2026-09-20：行動天天都做，一覽表含週末（2026-08-30 定）；作業只有排課日，本來就靠 dayUnits 過濾。
+  //    原本一律跳過週六日 → 9/19（六）的 24 筆教練標記在 admin 完全看不到。
+  const days = [];
   if (b.start_date)
     for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
-      const w = d.getDay();
-      if (w < 1 || w > 5) continue;
-      const ds = localDateStr(d);
-      if (scope === 'study'  && !(dayUnits[ds] || []).length) continue;   // 沒排單元的日子不進作業表
-      if (scope === 'action' && actViewFrom && ds < actViewFrom) continue;  // 行動週之前不進行動表
+      const ds = localDateStr(d), w = d.getDay();
+      if (scope === 'study') {
+        if (w < 1 || w > 5) continue;
+        if (!(dayUnits[ds] || []).length) continue;        // 沒排單元的日子不進作業表
+      } else if (actViewFrom && ds < actViewFrom) continue; // 行動週之前不進行動表
       days.push(ds);
     }
+
   if (!days.length) return '';
 
   const hwBy  = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
