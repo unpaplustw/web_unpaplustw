@@ -905,7 +905,10 @@ async function init() {
 
     // 載入累積資料
     const { data: logs } = await sb.from('action_logs').select('name_list, meet, invite, present, seminar, ghosted, rejected, log_date, confirmed')
-      .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('confirmed', true);
+      .eq('batch_id', BATCH_ID).eq('student_id', studentId);
+    // 🔴 2026-09-20：原本還加 .eq('confirmed', true)——那是 26 期「教練逐項審核」留下的欄位，
+    //    27 期起改信任制（教練標 coach_engagement），這欄再也沒人寫 → 28 期 151 筆全是 false，
+    //    學員的累積永遠空白、天數永遠「第 1 天」（徐皓綸 9/19 回報）。排行榜從來沒看這欄，所以分數是對的。
     // ⚠️ 必須帶 batch_id：closing_records.member_id 指向跨期共用的 members_master，
     // 少了 batch_id 會把學員在其他期的締結算進本期累積（2026-08-09 修）
     // 🔴 上線退回的締結不計入學員自己的累積畫面（2026-08-23）
@@ -917,8 +920,9 @@ async function init() {
     const startDate = batch?.challenge_start || batch?.start_date || d;
     batchInfo = batch;
 
-    const allLogs = logs || [];
-    const allCloses = closes || [];
+    // 結果頁的累積是「以前的累積 ＋ 今天剛填的」，所以底數不能含今天，否則今天會算兩次
+    const allLogs = (logs || []).filter(l => l.log_date < d);
+    const allCloses = (closes || []).filter(c => c.close_date < d);
     const closePts = allCloses.reduce((s, c) => s + c.points, 0);
 
     // 連續天數計算
