@@ -1426,7 +1426,10 @@ function pendingSubmitDays() {
     if (ds < from) return;
     if (batchDates.end && ds > batchDates.end) return;
     const wd = new Date(ds + 'T00:00:00').getDay();
-    if (wd < 1 || wd > 5) return;                 // 只有平日要送出
+    // 🔴 2026-09-20：只有作業是平日的事；行動天天都要做（行動一覽表本來就含週末，2026-08-30）。
+    //    原本週末一律跳過 → 行動／精英組的教練週六日打開組員頁會停在「今天」，
+    //    標下去全記到錯的日期（9/20 楊美妍等四組共 13 筆，已搬回 9/19）。
+    if (isLearnGroup() && (wd < 1 || wd > 5)) return;
     if (isSubmitted(ds)) return;
     if (overDeadline(ds)) return;                 // 已經鎖住了 → 交給一覽表補交
     if (ds === todayStr && now.getHours() < 22) return;   // 學員還沒交完
