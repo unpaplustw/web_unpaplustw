@@ -122,7 +122,9 @@
   .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
   .eng-item{border-bottom:1px solid var(--border)}
   .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px}
-  .eng-name{flex:1;font-size:16px;font-weight:600;color:var(--text)}
+  /* 🔴 min-width:0 是手機版面爆掉的根因（2026-09-23）：flex 子項預設 min-width:auto＝
+     不縮到比內容窄，姓名那格撐爆整行 → 右邊「已回」被切、中文逐字直排。窄螢幕另見下方 @media。 */
+  .eng-name{flex:1;min-width:0;font-size:16px;font-weight:600;color:var(--text)}
   .eng-name .code{font-size:11px;color:var(--muted);margin-left:6px;font-weight:400}
   .eng-toggle{display:flex;gap:6px;flex-shrink:0}
   .eng-btn{padding:8px 15px;border-radius:22px;border:2px solid var(--border);background:var(--card);font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.12s}
@@ -191,6 +193,14 @@
   .eng-name .sym{flex-shrink:0;width:24px;font-size:15px;line-height:1}
   .eng-name .sym.no{opacity:.45}
   .eng-name .caret{color:var(--gold);font-weight:400;margin-left:5px;opacity:.65}
+  /* 🔴 2026-09-23 手機直立：姓名一行、兩顆按鈕另起一行靠右。
+     按鈕不縮——教練每天要按的就是那兩顆；姓名不截字——組裡有「殷鈺寒／殷慈敏」這種相似名。
+     一組只有 3～5 人，變兩行一螢幕仍看得完。430px 涵蓋到 iPhone Pro Max 直立，平板桌機維持一行。 */
+  @media (max-width:430px){
+    .eng-row{flex-wrap:wrap;gap:8px 10px}
+    .eng-name{flex:1 1 100%}
+    .eng-toggle{width:100%;justify-content:flex-end}
+  }
   .eng-det{display:none;padding:0 16px 13px}
   .eng-det.open{display:block}
   .eng-det-in{background:var(--bg);border-radius:11px;padding:12px 14px}
