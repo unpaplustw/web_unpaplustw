@@ -448,6 +448,19 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// 🔴 2026-09-23 乾淨重登（與 coach-review／daily 同一套，三頁各一份）：
+//    舊寫法 `localStorage.clear(); location.reload()` 會自己製造錯誤——
+//    clear() 連 LIFF 的 code_verifier（PKCE 密鑰）一起刪，reload() 又保留網址上的 ?code=…，
+//    於是拿舊授權碼配不上密鑰 → 「code_verifier does not match」，停在錯誤畫面不再自救。
+function reloginClean() {
+  try { if (window.liff && liff.logout) liff.logout(); } catch (_) {}
+  try { Object.keys(localStorage).filter(k => /^LIFF/i.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+  const u = new URL(location.href);
+  ['code','state','liffClientId','liffRedirectUri','liff.state','error','error_description']
+    .forEach(k => u.searchParams.delete(k));
+  location.replace(u.pathname + (u.search === '?' ? '' : u.search) + u.hash);
+}
+
 async function init() {
   // ── LIFF 門禁 ──
   try {
@@ -462,6 +475,7 @@ async function init() {
       return;
     }
     const profile = await liff.getProfile();
+    sessionStorage.removeItem('liffRetried');   // 登入成功，下次憑證過期還能再自動重登一次
 
     const { data: member } = await sb.from('members_master').select('id, name')
       .eq('line_user_id', profile.userId).single();
@@ -493,8 +507,15 @@ async function init() {
     const firstTab = document.querySelector('.tab[style=""]') || document.querySelector('.tab:not([style*="none"])');
     if (firstTab) showTab(firstTab.dataset.t);
   } catch (e) {
-    if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
-    document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">登入失敗：' + e.message + '</div></div>';
+    // 🔴 2026-09-23：憑證類錯誤一律乾淨重登，且用 sessionStorage 擋成「只自動重試一次」
+    //    （原本只認 revoked、又沒有擋迴圈，一旦持續失敗就會一直重整）。
+    const msg = (e && e.message) || String(e);
+    if (/revoked|expired|access.?token|invalid.*token|unauthorized|401|code_verifier|invalid_grant/i.test(msg)
+        && !sessionStorage.getItem('liffRetried')) {
+      sessionStorage.setItem('liffRetried', '1');
+      reloginClean(); return;
+    }
+    document.querySelector('.wrap').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">登入失敗：' + msg + '<br><br>請把分頁關掉，<b>回 LINE 聊天室重新點連結</b>。<br>還是不行請截這個畫面給總教練。</div></div>';
     return;
   }
 

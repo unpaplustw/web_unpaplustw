@@ -627,11 +627,13 @@ let accumData = null; // { meet, invite, present, seminar, ghosted, rejected, cl
 let memberName = '', batchInfo = null;
 
 // ── Block screen ──
-function showBlock(msg) {
+// o（2026-09-23 加，可省略）：{ emoji, title, sub } —— 載入失敗要的語氣跟「沒資格」不一樣
+function showBlock(msg, o) {
+  o = o || {};
   document.getElementById('declOverlay').style.display = 'none';
   document.getElementById('formArea').style.display = 'none';
   document.getElementById('warReport').style.display = 'none';
-  document.getElementById('userName').textContent = '⚠️ 無法使用';
+  document.getElementById('userName').textContent = o.title || '⚠️ 無法使用';
   document.getElementById('dayCount').style.display = 'none';
   // 沒資格的人不該看到班內資訊（截止時間、解鎖提示）→ 整頁只留擋頁
   document.querySelectorAll('.deadline-bar, .lock-note, #todayCard').forEach(el => el.style.display = 'none');
@@ -639,9 +641,9 @@ function showBlock(msg) {
   if (dt) dt.style.display = 'none';
   document.getElementById('resultArea').innerHTML = `
     <div class="result-card" style="margin-top:20px;text-align:center">
-      <div class="result-emoji">🚫</div>
+      <div class="result-emoji">${o.emoji || '🚫'}</div>
       <div class="result-msg">${msg}</div>
-      <div class="result-sub" style="margin-top:12px">如有疑問請聯繫實戰班委員會</div>
+      <div class="result-sub" style="margin-top:12px">${o.sub || '如有疑問請聯繫實戰班委員會'}</div>
     </div>`;
   document.getElementById('resultArea').classList.add('show');
 }
@@ -814,6 +816,19 @@ function renderCloseEntries() {
   document.getElementById('closeSec').classList.toggle('has-value', total > 0);
 }
 
+// 🔴 2026-09-23 乾淨重登（與 coach-review／admin 同一套，三頁各一份）：
+//    舊寫法 `localStorage.clear(); location.reload()` 會自己製造錯誤——
+//    clear() 連 LIFF 的 code_verifier（PKCE 密鑰）一起刪，reload() 又保留網址上的 ?code=…，
+//    於是拿舊授權碼配不上密鑰 → 「code_verifier does not match」，停在錯誤畫面不再自救。
+function reloginClean() {
+  try { if (window.liff && liff.logout) liff.logout(); } catch (_) {}
+  try { Object.keys(localStorage).filter(k => /^LIFF/i.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+  const u = new URL(location.href);
+  ['code','state','liffClientId','liffRedirectUri','liff.state','error','error_description']
+    .forEach(k => u.searchParams.delete(k));
+  location.replace(u.pathname + (u.search === '?' ? '' : u.search) + u.hash);
+}
+
 // ── Init ──
 async function init() {
   const d = today();
@@ -834,8 +849,11 @@ async function init() {
 
     // 身份取得：一律走 LIFF 登入（天神視角後門已於 2026-09-10 移除）
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
+    // 🔴 2026-09-23 指定不帶查詢字串的 redirectUri：不指定時 LIFF 用 location.href，
+    //    若網址還掛著上一輪的 ?code=… 回來就會兩個授權碼疊在一起。
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.origin + location.pathname }); return; }
     const profile = await liff.getProfile();
+    sessionStorage.removeItem('liffRetried');   // 登入成功，下次憑證過期還能再自動重登一次
     const { data: member } = await sb.from('members_master').select('id, name, member_code')
       .eq('line_user_id', profile.userId).single();
     if (!member) { showBlock('查無會員資料，請先完成報名。'); return; }
@@ -960,9 +978,20 @@ async function init() {
     renderWarReport(allLogs, allCloses, batch, d);
 
   } catch (e) {
-    if (e.message && e.message.includes('revoked')) { localStorage.clear(); location.reload(); return; }
-    document.getElementById('userName').textContent = '載入失敗';
-    toast('錯誤：' + e.message);
+    // 🔴 2026-09-23：憑證類錯誤一律乾淨重登，且只自動重試一次（原本只認 revoked、也沒擋迴圈）
+    const msg = (e && e.message) || String(e);
+    if (/revoked|expired|access.?token|invalid.*token|unauthorized|401|code_verifier|invalid_grant/i.test(msg)
+        && !sessionStorage.getItem('liffRetried')) {
+      sessionStorage.setItem('liffRetried', '1');
+      reloginClean(); return;
+    }
+    // 🔴 2026-09-23 不能只改個標題就算了：登入沒完成時表單照樣可以填，
+    //    學員填完按送出才發現存不進去。用 showBlock 把表單收起來，講清楚下一步。
+    showBlock(`登入沒有完成，<b>這個畫面填的數字不會存進系統</b>。<br>
+       <span style="font-size:12px;color:#c0392b;word-break:break-all">錯誤：${msg}</span>`,
+      { emoji: '⚠️', title: '⚠️ 載入失敗',
+        sub: '請把分頁關掉，回 LINE 聊天室重新點連結；還是不行請截這個畫面給教練' });
+    toast('錯誤：' + msg);
   }
 }
 

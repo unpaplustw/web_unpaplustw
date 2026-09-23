@@ -386,6 +386,13 @@
   .tk-learn{background:#e8f0fe;color:#1a56b8}
   .tk-action{background:#fff1e0;color:#b8690c}
   .tk-elite{background:#f3e8ff;color:#7c3aed}
+  /* 🔴 2026-09-23 登入沒完成時，把可操作的區塊整個收掉（見 init 的 catch）。
+     原本 init 中斷後照樣畫得出七大行動，教練填完按儲存才跳「找不到學員記錄」＝白填一次。 */
+  body.init-failed > div:not(.hd):not(#initErr):not(.toast){display:none!important}
+  #initErr{margin:18px 16px;padding:16px 18px;border:2px solid #f0c0b8;border-radius:12px;
+           background:#fdf3f1;color:#7b2d1d;font-size:14.5px;line-height:1.85;text-align:center}
+  #initErr b{color:#c0392b}
+  #initErr .e{display:inline-block;margin:6px 0;color:#c0392b;font-size:12px;word-break:break-all}
 </style>
 </head>
 <body>
@@ -1041,6 +1048,23 @@ function calcClosePts(d) {
   return d.close_entries.reduce((s,e) => s + e.pts, 0);
 }
 
+// 🔴 2026-09-23 重登要「乾淨」地重登——舊寫法 `localStorage.clear(); location.reload()` 會自己製造錯誤：
+//    ① localStorage.clear() 連 LIFF 存的 code_verifier（PKCE 密鑰）一起刪掉
+//    ② location.reload() 會保留網址上的 ?code=…（LINE 驗證回來帶的授權碼）
+//    → 重載時拿著舊授權碼、密鑰卻已被自己刪 → LINE 回「code_verifier does not match」，
+//      而那個字串不在重試名單裡、liffRetried 又已是 1，就停在紅字不再自救（2026-09-23 教練回報）。
+//    9/16 把重試正則從只認 revoked 放寬之後，這個本來就有的缺陷才浮出來。
+//    現在：先讓 SDK 自己清憑證，再導向「拿掉 OAuth 參數」的乾淨網址。
+function reloginClean() {
+  try { if (window.liff && liff.logout) liff.logout(); } catch (_) {}
+  // logout 失敗（init 沒成功時會）就自己清 LIFF 的 key——但不要動到別人的 localStorage
+  try { Object.keys(localStorage).filter(k => /^LIFF/i.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+  const u = new URL(location.href);
+  ['code','state','liffClientId','liffRedirectUri','liff.state','error','error_description']
+    .forEach(k => u.searchParams.delete(k));
+  location.replace(u.pathname + (u.search === '?' ? '' : u.search) + u.hash);
+}
+
 // ── Init（LIFF 登入 + 載入即時資料）──
 async function init() {
   document.getElementById('dateText').textContent = getDateStr('today').replace(/-/g,' / ');
@@ -1061,7 +1085,9 @@ async function init() {
 
     // LIFF 登入
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
+    // 🔴 2026-09-23 redirectUri 要指定成「不帶查詢字串」的網址：不指定時 LIFF 用 location.href，
+    //    若當下網址還掛著上一輪的 ?code=… 回來就會兩個授權碼疊在一起（admin 早就這樣寫了）。
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.origin + location.pathname }); return; }
     const profile = await liff.getProfile();
     sessionStorage.removeItem('liffRetried');   // 登入成功，下次過期還能再自動重登一次
 
@@ -1209,15 +1235,24 @@ async function init() {
     // 🔴 2026-09-15 張憶文：手機從 LINE 跳到 Safari 開，隔天 LINE 登入憑證過期 → getProfile 丟錯，
     //    原本只認 'revoked'，過期（expired／invalid token）直接停在「載入失敗」，錯誤只閃一下 toast 看不到。
     //    → 憑證類錯誤一律清掉重新登入（sessionStorage 擋一次，避免無限重整）；其他錯誤把訊息留在畫面上。
+    // 🔴 2026-09-23 加 code_verifier／invalid_grant：那是重登流程自己會產生的錯（見 reloginClean）。
     const msg = (e && e.message) || String(e);
-    if (/revoked|expired|access.?token|invalid.*token|unauthorized|401/i.test(msg) && !sessionStorage.getItem('liffRetried')) {
+    if (/revoked|expired|access.?token|invalid.*token|unauthorized|401|code_verifier|invalid_grant/i.test(msg)
+        && !sessionStorage.getItem('liffRetried')) {
       sessionStorage.setItem('liffRetried', '1');
-      localStorage.clear(); location.reload(); return;
+      reloginClean(); return;
     }
     document.getElementById('coachName').textContent = '載入失敗';
-    document.getElementById('coachName').insertAdjacentHTML('afterend',
-      `<div style="font-size:12px;color:#c0392b;margin-top:4px;word-break:break-all">錯誤：${msg}<br>請關掉重開；還是不行請截這個畫面給總教練</div>`);
+    document.body.classList.add('init-failed');
+    document.body.insertAdjacentHTML('beforeend',
+      `<div id="initErr">⚠️ <b>登入沒有完成</b><br>
+       這個畫面的數字不會存進系統，先不要填。<br>
+       <span class="e">錯誤：${msg}</span><br>
+       請把分頁關掉，<b>回 LINE 聊天室重新點連結</b>；還是不行請截這個畫面給總教練。</div>`);
     toast('錯誤：' + msg);
+    // 🔴 2026-09-23 不能再往下 render：init 中斷時 coachId／myStudentId 都是 null，
+    //    但下面照樣畫得出七大行動，教練填完按儲存才跳「找不到學員記錄」＝白填一次。
+    return;
   }
 
   renderMyReport();
