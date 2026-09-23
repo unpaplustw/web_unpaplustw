@@ -96,14 +96,14 @@ a{text-decoration:none}
 <div id="v-war">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🏛 戰情室 — 11–12 月期 160 個獨立循環</b><span class="mut" id="bdAsof"></span>
+      <b>🏛 戰情室 — 11–12 月期 160 個位置：① 重消不斷 ② 直推 ≥ 2</b><span class="mut" id="bdAsof"></span>
     </div>
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div id="bdRisk" style="margin-top:8px"></div>
     <div class="scroll" style="margin-top:10px"><table>
-      <thead><tr><th>將</th><th>談定</th><th>已成</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>池子</th><th>狀態</th></tr></thead>
+      <thead><tr><th>將</th><th>談定</th><th>已成</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>本週到重消日</th><th>狀態</th></tr></thead>
       <tbody id="bdRows"></tbody></table></div>
-    <div class="mut" style="margin-top:6px;font-size:13px">歸戶＝沿推薦線最近的將。談定＝作戰會議談定的數，沒談過就先用系統提案（<i>斜體</i>，按池子比例分 160）。狀態＝已成÷談定 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
+    <div class="mut" style="margin-top:6px;font-size:13px">① 重消以<b>登錄日為錨</b>：登錄 15 號的人要 10/15、11/15、12/15 三筆連著，11–12 月才算滿月有效（登錄 1 號只要 11/1、12/1）。預購到 12/31 或自動扣款＝已涵蓋。歸戶＝沿推薦線最近的將。談定＝作戰會議談定的數，沒談過先用系統提案（<i>斜體</i>，按池子比例分 160）。狀態＝已成÷談定 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
   </div>
 </div>
 <div id="v-ev" class="hidden">
@@ -373,6 +373,8 @@ async function loadBoard(){
    ['剩','<b style="font-size:26px">'+(T.days_left??'—')+'</b><span class="mut"> 天（'+(T.weeks_left||'—')+' 週）</span>','#e8ecf1'],
    ['這週全隊要','<b style="font-size:26px">+'+(T.weekly_need||0)+'</b>','#ffb020'],
    ['缺 1 件','<b style="font-size:26px">'+(T.miss1||0)+'</b><span class="mut"> 個位置</span>','#4f8cff'],
+   ['本週到重消日','<b style="font-size:26px">'+(T.due_week||0)+'</b><span class="mut"> 個（直推夠的）</span>','#ff5d5d'],
+   ['① 重消','<b style="font-size:20px">'+(T.g1_cover||0)+'</b><span class="mut"> 已涵蓋 ・ '+(T.g1_wait||0)+' 待重消'+(T.g1_broken?' ・ <span style="color:var(--bad)">'+T.g1_broken+' 斷了</span>':'')+'</span>','#e8ecf1'],
    ['時間進度','<b style="font-size:26px">'+(T.elapsed||0)+'%</b>','#8b96a5']
   ].forEach(([k,v,col])=>{const el=document.createElement('div');el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:120px;color:'+col;
     el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div>'+v+'</div>';top.appendChild(el);});
@@ -383,7 +385,7 @@ async function loadBoard(){
   (d.rows||[]).forEach(r=>{
     const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
     tr.innerHTML='<td><a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:12px">'+esc(r.tier||'')+'</span></td>'
-      +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+r.gap+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td><td>'+r.miss1+'</td><td>'+r.pool+'</td><td style="font-size:18px">'+r.status+'</td>';
+      +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+r.gap+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td><td>'+r.miss1+'</td><td>'+(r.due_week>0?'<b style="color:var(--bad)">'+r.due_week+'</b>':'—')+'</td><td style="font-size:18px">'+r.status+'</td>';
     tb.appendChild(tr);
   });
   if(!tb.children.length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有領袖資料。</td></tr>';
@@ -403,22 +405,24 @@ async function loadMeeting(id){
       +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">系統提案 '+H.proposed+(H.agreed_at?' ・ 談定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
       +'</div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">'
-      +[['目標',H.target],['已成',H.done],['差',H.gap],['每週要','+'+H.weekly],['缺 1 件',H.miss1],['缺 2 件',H.miss2]].map(([k,v])=>'<div style="border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:80px"><div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700">'+v+'</div></div>').join('')
+      +[['目標',H.target],['已成',H.done],['差',H.gap],['每週要','+'+H.weekly],['缺 1 件',H.miss1],['本週到重消日',H.due_week||0],['缺 2 件',H.miss2]].map(([k,v])=>'<div style="border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:80px"><div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700">'+v+'</div></div>').join('')
       +'</div><div class="mut" style="margin-top:6px;font-size:13px">進度線：到今天應該有 '+H.expected+' 個（時間進度 '+(T.elapsed||0)+'%，剩 '+(T.weeks_left||'—')+' 週）</div>';
   }else{
     hd.innerHTML='<div style="font-size:17px;font-weight:700">'+esc(H.name||'')+' <span class="mut" style="font-size:13px;font-weight:400">不在領袖表，沒有配額——以下是他安置樹底下的位置</span></div>'
       +'<div class="mut" style="margin-top:6px">活 '+(H.alive||0)+' ・ 已成 '+(H.done||0)+' ・ 缺 1 件 '+(H.miss1||0)+' ・ 缺 2 件 '+(H.miss2||0)+'</div>';
   }
+  const md=s=>s?String(s).slice(5).replace('-','/'):'';
   const row=x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.side||'')+'</span></td>'
+    +'<td>'+(x.next_due&&x.g1==='待重消'?'<b'+(new Date(x.next_due)-new Date()<7*864e5?' style="color:var(--bad)"':'')+'>'+md(x.next_due)+'</b>':(x.g1==='斷了'?'<span style="color:var(--bad)">斷</span>':'<span class="mut">✅</span>'))+'</td>'
     +'<td><span style="color:var(--warn)">'+esc(x.lack)+'</span></td><td>'+esc(x.action_text)+'</td>'
-    +'<td class="mut" style="font-size:12px">直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ '+esc(x.src)+'</td></tr>';
-  const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>缺</th><th>這通電話講什麼</th><th></th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
+    +'<td class="mut" style="font-size:12px">登錄 '+x.anchor_day+' 號 ・ 直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>';
+  const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>重消日</th><th>缺</th><th>這通電話講什麼</th><th>參考</th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
   const m1=d.miss1||[], m2=d.miss2||[], dn=d.done||[];
-  ls.innerHTML='<div><b>缺 1 件（本週著力點）</b> <span class="mut">'+m1.length+'</span></div>'
+  ls.innerHTML='<div><b>缺 1 件（跟進項目：照重消日排，直推在後）</b> <span class="mut">'+m1.length+'</span></div>'
     +(m1.length?tbl(m1):'<div class="mut" style="margin-top:4px">沒有只差一件的位置。</div>')
     +'<details style="margin-top:12px"><summary style="cursor:pointer"><b>缺 2 件（下週）</b> <span class="mut">'+m2.length+'</span></summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>'
     +'<details style="margin-top:8px"><summary style="cursor:pointer"><b>已成（守成）</b> <span class="mut">'+dn.length+(dn.filter(x=>x.at_risk).length?'　<span style="color:var(--bad)">⚠ '+dn.filter(x=>x.at_risk).length+' 個有風險</span>':'')+'</span></summary>'
-    +(dn.length?'<div class="scroll"><table><tbody>'+dn.map(x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff">'+nmb(x.name,x.member_id)+'</a></td><td>'+(x.at_risk?'<span style="color:var(--bad)">⚠ '+(x.auto_cancel_days?'倒數 '+esc(x.auto_cancel_days):'資格失效')+'</span>':'✅')+'</td><td class="mut">左 '+wan(x.pl)+'／右 '+wan(x.pr)+' ・ 直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+'</td></tr>').join('')+'</tbody></table></div>':'<div class="mut">無</div>')+'</details>';
+    +(dn.length?'<div class="scroll"><table><tbody>'+dn.map(x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff">'+nmb(x.name,x.member_id)+'</a></td><td>'+(x.at_risk?'<span style="color:var(--bad)">⚠ '+(x.auto_cancel_days?'倒數 '+esc(x.auto_cancel_days):'資格失效')+'</span>':'✅ '+esc(x.g1))+'</td><td class="mut">直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>').join('')+'</tbody></table></div>':'<div class="mut">無</div>')+'</details>';
 }
 async function setTarget(){
   const v=document.getElementById('mtgAgreed').value.trim();
@@ -932,7 +936,7 @@ function renderCard(d){
       <tr><td class="mut">7／8／9 月購買</td><td>${dot(b.m7)} ${dot(b.m8)} ${dot(b.m9)}</td></tr>
       <tr><td class="mut">最後購買</td><td>${esc(b.last_purchase_month||'—')}</td></tr>
       <tr><td class="mut">本期有效資格</td><td>${b.is_valid?'✅ 有效':'⚠️ 未達 10,000 點'}</td></tr>
-      <tr><td class="mut">🌀 三閘門（11–12 月）</td><td id="mcGates"><span class="mut">載入中…</span></td></tr>
+      <tr><td class="mut">🌀 11–12 月考核</td><td id="mcGates"><span class="mut">載入中…</span></td></tr>
      </tbody></table></div></div>
    <div class="card" style="margin-bottom:12px"><b>🌳 位置關係</b>
      <div class="scroll"><table><tbody>
@@ -966,8 +970,10 @@ async function loadGates(id){
   if(!d||d.success!==true){el.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>';return;}
   if(!g){el.innerHTML='<span class="mut">不在活位置名單（已解約或資格失效且無方案）</span>';return;}
   const ok=v=>v?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--bad)">❌</span>';
-  el.innerHTML='方案 '+ok(g.g1ok)+' <span class="mut">'+esc(g.g1)+'</span>　直推 '+ok(g.g2)+' <span class="mut">'+g.sp+'/2</span>　點數 '+ok(g.g3)+' <span class="mut">強邊 '+wan(Math.max(g.pl||0,g.pr||0))+'/25 萬（'+esc(g.src)+'）</span>'
-    +'<div style="margin-top:4px">'+(g.miss===0?'<b style="color:var(--ok)">已獨立循環</b>':'還缺 <b>'+g.miss+'</b> 件（'+esc(g.lack)+'）→ '+esc(g.action_text))+'　<span class="mut">歸戶 '+esc(g.leader_name||'')+'</span></div>';
+  const md=s=>s?String(s).slice(5).replace('-','/'):'';
+  el.innerHTML='① 重消 '+ok(g.g1ok)+' <span class="mut">'+esc(g.g1)+(g.dues&&g.dues.length?'（登錄 '+g.anchor_day+' 號：'+g.dues.map(md).join('→')+'）':'')+'</span>　② 直推 '+ok(g.g2)+' <span class="mut">'+g.sp+'/2</span>'
+    +'　<span class="mut">參考：點數 左 '+wan(g.pl)+'／右 '+wan(g.pr)+'（'+esc(g.src)+'）</span>'
+    +'<div style="margin-top:4px">'+(g.miss===0?'<b style="color:var(--ok)">兩件都過</b>':'還缺 <b>'+g.miss+'</b> 件（'+esc(g.lack)+'）→ '+esc(g.action_text))+'　<span class="mut">歸戶 '+esc(g.leader_name||'')+'</span></div>';
 }
 
 
