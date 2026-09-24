@@ -118,6 +118,15 @@
   .hl li:last-child { margin-bottom: 0; }
   .hl li::before { content: "▪"; position: absolute; left: 3px; color: var(--gold-main); }
 
+  /* 30 秒介紹詞：會員真正要唸出口的那段，接在重點摘要下面同一塊 */
+  .tupwrap { margin-top: 17px; padding-top: 15px; border-top: 1px dashed rgba(184,150,12,.35); }
+  .tupbox { background: var(--card); border: 1px solid rgba(184,150,12,.25); border-radius: 9px;
+    padding: 14px 16px; font-size: 14.5px; line-height: 1.95; color: var(--text-dark); }
+  .copytup { margin-top: 10px; font-size: 13px; font-weight: 700; padding: 8px 15px; border-radius: 7px;
+    border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep);
+    cursor: pointer; font-family: inherit; transition: .2s; }
+  .copytup:hover, .copytup.done { background: var(--gold-grad); color: #fff; border-color: transparent; }
+
   /* 折疊：要深入才點開 */
   details.fold { border: 1px solid var(--border); border-radius: 11px; margin: 14px 0; background: var(--card); }
   details.fold > summary { cursor: pointer; padding: 15px 18px; font-size: 15.5px; font-weight: 700;
@@ -326,8 +335,21 @@ function badgeHtml(b) {
   return `<span class="badge ${tierClass(b)}">${esc(show)}</span>`;
 }
 
-/* TUP 複製鈕已移除（2026-09-25）：網頁改顯示「重點摘要」條列。
-   TUP 仍留在 wiki 母體主檔，要用再加回來。 */
+/* 30 秒介紹詞的複製鈕。重點摘要是給人「掃」的，TUP 是給會員「唸」的，兩者都要。 */
+async function copyTup() {
+  const btn = document.getElementById("tupBtn");
+  const txt = document.getElementById("tupbox").textContent;
+  try { await navigator.clipboard.writeText(txt); }
+  catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (_) {}
+    ta.remove();
+  }
+  btn.textContent = "✓ 已複製，可以直接唸了";
+  btn.classList.add("done");
+  setTimeout(() => { btn.textContent = "複製這段介紹詞"; btn.classList.remove("done"); }, 2400);
+}
 
 /* chips 標籤帶人數，0 人的不顯示——避免按下去一片空白 */
 function drawChips() {
@@ -482,10 +504,21 @@ async function showDetail(id) {
       </div>
     </div>`;
 
-  /* 重點摘要：口語化條列，兩種使用者都看得懂，不必標「給夥伴用」 */
+  /* 重點摘要（掃的）＋ 30 秒介紹詞（唸的）——同一塊，不標「給夥伴用」 */
   const hls = Array.isArray(p.highlights) ? p.highlights : [];
-  if (hls.length) {
-    html += `<div class="hl"><h4>重點摘要</h4><ul>${hls.map(h => `<li>${esc(h)}</li>`).join("")}</ul></div>`;
+  if (hls.length || p.tup) {
+    html += `<div class="hl">`;
+    if (hls.length) {
+      html += `<h4>重點摘要</h4><ul>${hls.map(h => `<li>${esc(h)}</li>`).join("")}</ul>`;
+    }
+    if (p.tup) {
+      html += `<div class="${hls.length ? "tupwrap" : ""}">
+        <h4>30 秒這樣介紹他</h4>
+        <div class="tupbox" id="tupbox">${esc(p.tup)}</div>
+        <button class="copytup" id="tupBtn" onclick="copyTup()">複製這段介紹詞</button>
+      </div>`;
+    }
+    html += `</div>`;
   }
 
   if (p.story_base) {
@@ -528,7 +561,7 @@ async function showDetail(id) {
 
 async function init() {
   try {
-    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,quote,tags,highlights,story_base,expansions,created_at,honor_milestones(count)&order=name");
+    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,quote,tags,highlights,tup,story_base,expansions,created_at,honor_milestones(count)&order=name");
     profiles.forEach(classify);
     weightedShuffle(profiles);
     drawChips();
