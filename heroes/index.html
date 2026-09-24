@@ -173,6 +173,15 @@
   .expand.business { background: rgba(99,91,196,.09);  color: #3b3480; }
   .expand.other    { background: var(--gold-light);    color: #6b5606; }
 
+  /* 錨點對不上內文的展開內容，附在故事後面，不讓它消失 */
+  .orphan { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
+  .olab { font-size: 13.5px; font-weight: 700; margin-bottom: 5px; }
+  .olab.health   { color: #15803d; }
+  .olab.business { color: #4f46a8; }
+  .olab.other    { color: var(--gold-deep); }
+  .otxt { font-size: 14.5px; line-height: 1.9; color: var(--text-muted); margin-bottom: 14px; white-space: normal; }
+  .otxt:last-child { margin-bottom: 0; }
+
   .tl { margin-top: 4px; }
   .tli { display: flex; gap: 14px; }
   .tlrail { display: flex; flex-direction: column; align-items: center; }
@@ -454,14 +463,30 @@ function renderGrid() {
   document.getElementById("count").textContent = `共 ${rows.length} 位夥伴`;
 }
 
-function renderStory(p) {
-  let html = esc(p.story_base || "");
+/* 🔴 expansions 的錨點一律屬於「月刊那篇」：story_magazine 有值就對它，否則對 story_base。
+   同一人可同時有本人自述與月刊報導——兩份都留，網頁只決定呈現順序。 */
+function magText(p) { return p.story_magazine || (p.source_type === "self" ? "" : p.story_base || ""); }
+
+/* 回傳 [內文HTML, 對不上錨點的 expansions]。
+   ⚠️ 404 個錨點裡有 80 個（20%）對不上內文——那些是「標題式」寫法
+   （例：「女兒引薦母親入行」），不是內文裡的句子。原本的寫法會讓那些
+   展開內容永遠顯示不出來，等於被隱形刪掉。改成撈出來附在故事後面。 */
+function renderStory(p, text) {
+  let html = esc(text != null ? text : (p.story_base || ""));
+  const orphan = [];
   (p.expansions || []).forEach((ex, i) => {
     const anchor = esc(ex.anchor);
     if (anchor && html.includes(anchor)) {
       html = html.replace(anchor, `<span class="hook ${esc(ex.type)}" onclick="toggleEx(${i})">${anchor}</span><span id="exslot${i}"></span>`);
+    } else if (ex.content) {
+      orphan.push(ex);
     }
   });
+  if (orphan.length) {
+    html += `<div class="orphan">` + orphan.map(ex =>
+      `<p class="olab ${esc(ex.type)}">${esc(ex.anchor)}</p><p class="otxt">${esc(ex.content)}</p>`
+    ).join("") + `</div>`;
+  }
   return html;
 }
 function toggleEx(i) {
@@ -559,17 +584,26 @@ async function showDetail(id) {
     html += `</div>`;
   }
 
-  if (p.story_base) {
-    /* 🔴 月刊常寫夫妻檔／家族檔，一篇報導兩人共用——標清楚，讀者才知道
-       為什麼開頭寫的是另一個人。只標示，不合併、不刪除：
-       自我定位是第一人稱、每個人必然不同，替兩個人決定「你們只有一個故事」是錯的。 */
+  /* 🔴 本人自述在上（當下最新鮮、第一人稱），月刊報導折疊在下當佐證。
+     兩份都留、互不覆蓋——知識庫只進不出，網頁只決定呈現順序。 */
+  if (isSelf && p.story_base) {
+    html += `<details class="fold"><summary>看他完整的故事（本人自述）</summary><div>
+      <div class="story">${esc(p.story_base)}</div>
+    </div></details>`;
+  }
+
+  const mag = magText(p);
+  if (mag) {
+    /* 月刊常寫夫妻檔／家族檔，一篇報導兩人共用——標清楚，讀者才知道
+       為什麼開頭寫的是另一個人。只標示，不合併、不刪除。 */
     const co = p.co_with && p.co_with.name ? p.co_with : null;
-    const title = isSelf
-      ? "看他完整的故事（本人自述）"
-      : (co ? `展翅月刊報導（與 ${esc(co.name)} ${esc(co.relation)}共同）` : "展翅月刊報導");
+    const title = co
+      ? `展翅月刊報導（與 ${esc(co.name)} ${esc(co.relation)}共同）`
+      : "展翅月刊報導";
     html += `<details class="fold"><summary>${title}</summary><div>
       ${co ? `<p class="conote">這是一篇<strong>${esc(co.relation)}共同報導</strong>，內容同時講 ${esc(p.name)} 與 ${esc(co.name)} 兩個人，所以開頭不一定從 ${esc(p.name)} 講起。</p>` : ""}
-      <div class="story" id="storybox">${renderStory(p)}</div>
+      ${isSelf ? `<p class="conote">這是較早的月刊報導，放在這裡當佐證。上面那篇才是他自己現在講的版本。</p>` : ""}
+      <div class="story" id="storybox">${renderStory(p, mag)}</div>
       ${(p.expansions || []).length ? `<p class="hint">虛線文字可以點開，看更多細節</p>` : ""}
     </div></details>`;
   }
@@ -606,7 +640,7 @@ async function showDetail(id) {
 
 async function init() {
   try {
-    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,co_with,quote,tags,highlights,tup,story_base,expansions,created_at,honor_milestones(count)&order=name");
+    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,co_with,quote,tags,highlights,tup,story_base,story_magazine,expansions,created_at,honor_milestones(count)&order=name");
     profiles.forEach(classify);
     weightedShuffle(profiles);
     /* 桌機空間夠就攤開；手機收起來，先讓人看到人而不是一片按鈕 */
