@@ -216,10 +216,13 @@ a{text-decoration:none}
         <button class="btn sm" onclick="loadWater()">🔄</button>
       </span>
     </div>
-    <div class="mut" style="margin-top:4px">每個位置<b>左右兩邊的循環點數高度</b>（公司預測累積 P-200，本期含已排定定期單）。每 25 萬一個循環、125 萬成就線。弱邊決定循環，先補弱邊。</div>
+    <div class="mut" style="margin-top:4px">
+      <b>水位</b>＝公司預測的累積 P-200（本期、含已排定定期單，公司自己註明是<b>預測值</b>）。每 25 萬一個循環、125 萬成就線，弱邊決定循環。<br>
+      <b>每月保底</b>＝公司點數頁的<b>逐月實際</b>進點，取近 6 個月<b>最低</b>的那一個月（括號是平均）。上行左線、下行右線。<span style="color:var(--ok)">綠 ≥25 萬</span>＝每月自己就跑得出一個循環；<span style="color:var(--bad)">紅 &lt;10 萬</span>＝這邊等於沒有底。只有採過點數頁的位置才有這欄。
+    </div>
     <div id="waterLsum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>對象</th><th>線</th><th>左水位</th><th>右水位</th><th>弱邊</th><th>距下一循環</th><th>循環 左/右</th><th>底下有方案 左/右</th></tr></thead>
+      <thead><tr><th>對象</th><th>線</th><th>左水位</th><th>右水位</th><th>弱邊</th><th>距下一循環</th><th>每月保底 上左/下右</th><th>循環 左/右</th><th>底下有方案 左/右</th></tr></thead>
       <tbody id="waterLevels"></tbody></table></div>
     <div class="mut" id="waterNote" style="margin-top:6px"></div>
   </div>
@@ -886,6 +889,14 @@ function mrange(s,e){const a=+String(s||'').slice(5,7), b=+String(e||'').slice(5
 
 let WATER=null, WATER_SORT='weak';
 function waterSort(k){WATER_SORT=k;renderLevels();}
+// 每月保底＝逐月實際進點（公司點數頁）近 6 個月的最低單月；括號是平均
+function floorCell(x){
+  if(!x.floor_n) return '<span class="mut" title="這個位置還沒採過逐月點數頁">—</span>';
+  const one=(f,a)=>'<b'+(f>=250000?' style="color:var(--ok)"':(f<100000?' style="color:var(--bad)"':''))+'>'+wan(f)+'</b>'
+    +'<span class="mut" style="font-size:12px">（均 '+wan(a)+'）</span>';
+  return one(x.floor_l,x.avg_l)+'<br>'+one(x.floor_r,x.avg_r)
+    +'<div class="mut" style="font-size:11px">近 '+x.floor_n+' 月</div>';
+}
 function renderLevels(){
   if(!WATER)return;
   const rows=(WATER.levels||[]).slice();
@@ -901,11 +912,12 @@ function renderLevels(){
       +'<td>'+esc(x.leg||'')+'</td><td>'+wb(x.l)+'</td><td>'+wb(x.r)+'</td>'
       +'<td>'+ws+(x.balance!=null?'<br><span class="mut">平衡 '+Math.round(x.balance*100)+'%</span>':'')+'</td>'
       +'<td>'+(x.weak>=1250000?'🏆 過成就線':('弱邊再 '+wan(x.to_next)))+'</td>'
+      +'<td>'+floorCell(x)+'</td>'
       +'<td>'+(x.fc_l==null?'<span class="mut">—</span>':x.fc_l+' / '+x.fc_r)+'</td>'
       +'<td>'+x.l_plan+'/'+x.l_n+' ・ '+x.r_plan+'/'+x.r_n+(x.leak?' <span style="color:#f85149">漏'+x.leak+'</span>':'')+'</td>';
     tb.appendChild(tr);
   });
-  if(!rows.length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有水位資料。</td></tr>';
+  if(!rows.length) tb.innerHTML='<tr><td colspan="9" class="mut">沒有水位資料。</td></tr>';
 }
 
 async function loadWater(){
@@ -919,7 +931,7 @@ async function loadWater(){
   WATER=d; renderLevels();
   document.getElementById('waterAsof').textContent='（水位 '+((d.period||{}).water_asof||'—')+' ・ 循環數 '+((d.period||{}).cycle_asof||'—')+'）';
   const LS=d.level_summary||{}; const ls=document.getElementById('waterLsum'); ls.innerHTML='';
-  [['公司頁有水位的位置',LS.n],['弱邊 ≥25萬（有循環）',LS.both_over_25],['弱邊 ≥125萬（成就線）',LS.both_over_125],['弱邊在左',LS.weak_left],['弱邊在右',LS.weak_right]].forEach(([k,v])=>{
+  [['公司頁有水位的位置',LS.n],['弱邊 ≥25萬（有循環）',LS.both_over_25],['弱邊 ≥125萬（成就線）',LS.both_over_125],['有逐月點數可算保底',LS.has_floor],['保底弱邊 ≥25萬',LS.floor_ok],['弱邊在左',LS.weak_left],['弱邊在右',LS.weak_right]].forEach(([k,v])=>{
     const el=document.createElement('div'); el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:110px';
     el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700">'+(v??0)+'</div>'; ls.appendChild(el); });
   document.getElementById('waterNote').textContent='沒列出的位置＝公司預測表沒排進前 40 名／邊；要全部有數字得補「方案×商品→每月點數」表。';
