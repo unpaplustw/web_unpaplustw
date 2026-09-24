@@ -1018,6 +1018,7 @@ function renderTrack(target) {
   //    學習組 9/28 才進行動週，之前沒填行動不算失聯（原本 34 人裡大半是學習組）。
   const silent = [];
   realStudents.forEach(s => {
+    if (s.dropped_at) return;                                // 2026-09-24：退班的人不必叫教練去關心
     const from = stuActFrom(s);
     if (!from || from > today) return;                       // 這一組行動還沒開始
     const ls = (logsByStu[s.id] || []).filter(l => l.log_date >= from);
@@ -1561,7 +1562,11 @@ document.addEventListener('click', () => {
 
 function renderHwSection(target, scope) {
   const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
-  const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
+  // 🔴 2026-09-24 Randoph：一覽表不列退班者。退班只寫 dropped_at、status 維持 approved，
+  //    所以這裡要自己濾——否則人走了，格子還會一路長出「灰？」與「紅✕」畫到結業日
+  //    （記點早就凍結在退班當下，但畫面上看起來像個缺件越堆越高的人）。
+  //    ⚠️ 歷史沒有刪掉：歸隊（dropped_at 設回 null）他就整列回來，結案報表也另外撈全部的人。
+  const realStudents = students.filter(s => s.status === 'approved' && !s.dropped_at && !coachMemberIds.has(s.member_id));
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
     `<div class="dash-empty">${scope === 'action'
