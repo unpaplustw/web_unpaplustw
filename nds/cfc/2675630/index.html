@@ -118,9 +118,9 @@ a{text-decoration:none}
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div id="bdRisk" style="margin-top:8px"></div>
     <div class="scroll" style="margin-top:10px"><table>
-      <thead><tr><th>將</th><th>談定</th><th>已成</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>本週到重消日</th><th>狀態</th></tr></thead>
+      <thead><tr><th>將</th><th>目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>狀態</th></tr></thead>
       <tbody id="bdRows"></tbody></table></div>
-    <div class="mut" style="margin-top:6px;font-size:13px">① 重消以<b>登錄日為錨</b>：登錄 15 號的人要 10/15、11/15、12/15 三筆連著，11–12 月才算滿月有效（登錄 1 號只要 11/1、12/1）。預購到 12/31 或自動扣款＝已涵蓋。歸戶＝沿推薦線最近的將。談定＝作戰會議談定的數，沒談過先用系統提案（<i>斜體</i>，按池子比例分 160）。狀態＝已成÷談定 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
+    <div class="mut" style="margin-top:6px;font-size:13px">① 重消以<b>登錄日為錨</b>：登錄 15 號的人要 10/15、11/15、12/15 三筆連著，11–12 月才算滿月有效（登錄 1 號只要 11/1、12/1）。預購到 12/31 或自動扣款＝已涵蓋。<b>一組＝該將自己樹的左右各一個獨立循環</b>（本人那一格不算左右）——所以「左·右」裡<span style="color:var(--bad)">紅色那邊</span>就是他的小邊，補那邊才會多一組；「單掛」是大邊多出來、目前配不成對的。目標 80 組＝160 個位置。歸戶＝沿推薦線最近的將。目標沒設過先用系統提案（<i>斜體</i>，按各將池子能配出的組數比例分）。狀態＝已成÷目標 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
   </div>
 </div>
 <div id="v-ppl" class="hidden">
@@ -417,6 +417,14 @@ async function boardApi(extra){
   return r.json();
 }
 function tgtCell(r){ return r.agreed!=null?'<b>'+r.agreed+'</b>':'<i class="mut">'+r.proposed+'</i>'; }
+// 目標 0 不給綠燈——那是「池子配不出組」，不是達標
+function stLamp(r){ return r.target>0?r.status:'<span title="池子配不出任何一組，不是達標">⚪</span>'; }
+// 左·右：弱邊標紅（組＝取小邊，弱邊補一個才多一組）；本人不算左右
+function sideCell(r){
+  const w=v=>'<b'+(v===Math.min(r.done_l,r.done_r)&&r.done_l!==r.done_r?' style="color:var(--bad)"':'')+'>'+v+'</b>';
+  return w(r.done_l)+' · '+w(r.done_r)+(r.done_self?' <span class="mut" style="font-size:12px">＋本人</span>':'')
+    +(r.spare>0?' <span class="mut" style="font-size:12px">單掛 '+r.spare+'</span>':'');
+}
 async function loadBoard(){
   const tb=document.getElementById('bdRows'); tb.innerHTML='<tr><td colspan="8" class="mut">載入中…</td></tr>';
   const d=await boardApi({});
@@ -424,7 +432,8 @@ async function loadBoard(){
   const T=d.top||{};
   document.getElementById('bdAsof').textContent='（訂單 '+(T.as_of||'')+' ・ CSV '+(T.snap||'')+' ・ 今天 '+(T.today||'')+'）';
   const top=document.getElementById('bdTop'); top.innerHTML='';
-  [['已成 / 目標','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> / '+(T.target||160)+'</span>','#37c978'],
+  [['已成 / 目標','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> / '+(T.target||80)+' 組</span>','#37c978'],
+   ['單掛（配不成對）','<b style="font-size:26px">'+(T.spare||0)+'</b><span class="mut"> 個・已成位置共 '+(T.done_pos||0)+'</span>','#ffb020'],
    ['剩','<b style="font-size:26px">'+(T.days_left??'—')+'</b><span class="mut"> 天（'+(T.weeks_left||'—')+' 週）</span>','#e8ecf1'],
    ['這週全隊要','<b style="font-size:26px">+'+(T.weekly_need||0)+'</b>','#ffb020'],
    ['缺 1 件','<b style="font-size:26px">'+(T.miss1||0)+'</b><span class="mut"> 個位置</span>','#4f8cff'],
@@ -440,7 +449,8 @@ async function loadBoard(){
   (d.rows||[]).forEach(r=>{
     const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
     tr.innerHTML='<td><a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:12px">'+esc(r.tier||'')+'</span></td>'
-      +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+r.gap+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td><td>'+r.miss1+'</td><td>'+(r.due_week>0?'<b style="color:var(--bad)">'+r.due_week+'</b>':'—')+'</td><td style="font-size:18px">'+r.status+'</td>';
+      +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+sideCell(r)+'</td><td>'+r.gap+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td>'
+      +'<td>'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)">本週到期 '+r.due_week+'</b>':'')+'</td><td style="font-size:18px">'+stLamp(r)+'</td>';
     tb.appendChild(tr);
   });
   if(!tb.children.length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有領袖資料。</td></tr>';
@@ -455,25 +465,29 @@ async function loadMeeting(id){
   const H=d.head||{}, T=d.top||{};
   if(H.is_leader){
     hd.innerHTML='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
-      +'<div style="font-size:17px;font-weight:700">'+H.status+' '+esc(H.name)+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(H.tier||'')+' ・ 歸戶 '+H.alive+' 個活位置</span></div>'
-      +'<div>談定 <input id="mtgAgreed" class="inp" type="number" min="0" style="width:80px;padding:6px 8px" value="'+(H.agreed!=null?H.agreed:'')+'" placeholder="'+H.proposed+'"> '
-      +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">系統提案 '+H.proposed+(H.agreed_at?' ・ 談定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
+      +'<div style="font-size:17px;font-weight:700">'+stLamp(H)+' '+esc(H.name)+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(H.tier||'')+' ・ 歸戶 '+H.alive+' 個活位置</span></div>'
+      +'<div>目標設定 <input id="mtgAgreed" class="inp" type="number" min="0" style="width:74px;padding:6px 8px" value="'+(H.agreed!=null?H.agreed:'')+'" placeholder="'+H.proposed+'"> 組 '
+      +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">系統提案 '+H.proposed+' 組'+(H.agreed_at?' ・ 定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
       +'</div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">'
-      +[['目標',H.target],['已成',H.done],['差',H.gap],['每週要','+'+H.weekly],['缺 1 件',H.miss1],['本週到重消日',H.due_week||0],['缺 2 件',H.miss2]].map(([k,v])=>'<div style="border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:80px"><div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:20px;font-weight:700">'+v+'</div></div>').join('')
-      +'</div><div class="mut" style="margin-top:6px;font-size:13px">進度線：到今天應該有 '+H.expected+' 個（時間進度 '+(T.elapsed||0)+'%，剩 '+(T.weeks_left||'—')+' 週）</div>';
+      +[['目標',H.target+' 組'],['已成',H.done+' 組'],['差',H.gap+' 組'],['這週要','+'+H.weekly]].map(([k,v])=>'<div style="border:1px solid var(--line);border-radius:10px;padding:6px 14px;min-width:86px"><div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:22px;font-weight:700">'+v+'</div></div>').join('')
+      +'</div>'
+      +'<div style="margin-top:8px">一組＝他自己樹的<b>左右各一個</b>獨立循環：左 <b'+(H.done_l<H.done_r?' style="color:var(--bad)"':'')+'>'+H.done_l+'</b> ・ 右 <b'+(H.done_r<H.done_l?' style="color:var(--bad)"':'')+'>'+H.done_r+'</b>'
+      +(H.done_self?' ＋本人 '+H.done_self:'')+' → <b>'+H.done+' 組</b>'
+      +(H.spare>0?'，<span style="color:var(--warn)">'+H.spare+' 個單掛在'+(H.weak_side==='左'?'右':'左')+'邊配不成對——補'+esc(H.weak_side||'')+'邊最划算</span>':'')+'</div>'
+      +'<div class="mut" style="margin-top:6px;font-size:13px">缺 1 件 '+H.miss1+'（左 '+(H.miss1_l||0)+'／右 '+(H.miss1_r||0)+'）・缺 2 件 '+H.miss2+'　｜　進度線：到今天應該有 '+H.expected+' 組（時間進度 '+(T.elapsed||0)+'%，剩 '+(T.weeks_left||'—')+' 週）</div>';
   }else{
     hd.innerHTML='<div style="font-size:17px;font-weight:700">'+esc(H.name||'')+' <span class="mut" style="font-size:13px;font-weight:400">不在領袖表，沒有配額——以下是他安置樹底下的位置</span></div>'
-      +'<div class="mut" style="margin-top:6px">活 '+(H.alive||0)+' ・ 已成 '+(H.done||0)+' ・ 缺 1 件 '+(H.miss1||0)+' ・ 缺 2 件 '+(H.miss2||0)+'</div>';
+      +'<div class="mut" style="margin-top:6px">活 '+(H.alive||0)+' ・ 已成 '+(H.done_pos||0)+' 個位置（左 '+(H.done_l||0)+'／右 '+(H.done_r||0)+' → <b>'+(H.done||0)+' 組</b>）・ 缺 1 件 '+(H.miss1||0)+' ・ 缺 2 件 '+(H.miss2||0)+'</div>';
   }
   const md=s=>s?String(s).slice(5).replace('-','/'):'';
-  const row=x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.side||'')+'</span></td>'
+  const row=x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||x.side||'')+'</span></td>'
     +'<td>'+(x.next_due&&x.g1==='待重消'?'<b'+(new Date(x.next_due)-new Date()<7*864e5?' style="color:var(--bad)"':'')+'>'+md(x.next_due)+'</b>':(x.g1==='斷了'?'<span style="color:var(--bad)">斷</span>':'<span class="mut">✅</span>'))+'</td>'
     +'<td><span style="color:var(--warn)">'+esc(x.lack)+'</span></td><td>'+esc(x.action_text)+'</td>'
     +'<td class="mut" style="font-size:12px">登錄 '+x.anchor_day+' 號 ・ 直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>';
   const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>重消日</th><th>缺</th><th>這通電話講什麼</th><th>參考</th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
   const m1=d.miss1||[], m2=d.miss2||[], dn=d.done||[];
-  ls.innerHTML='<div><b>缺 1 件（跟進項目：照重消日排，直推在後）</b> <span class="mut">'+m1.length+'</span></div>'
+  ls.innerHTML='<div><b>缺 1 件（跟進項目：照重消日排，直推在後）</b> <span class="mut">'+m1.length+'　邊＝他自己樹的左右</span></div>'
     +(m1.length?tbl(m1):'<div class="mut" style="margin-top:4px">沒有只差一件的位置。</div>')
     +'<details style="margin-top:12px"><summary style="cursor:pointer"><b>缺 2 件（下週）</b> <span class="mut">'+m2.length+'</span></summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>'
     +'<details style="margin-top:8px"><summary style="cursor:pointer"><b>已成（守成）</b> <span class="mut">'+dn.length+(dn.filter(x=>x.at_risk).length?'　<span style="color:var(--bad)">⚠ '+dn.filter(x=>x.at_risk).length+' 個有風險</span>':'')+'</span></summary>'
@@ -482,7 +496,7 @@ async function loadMeeting(id){
 async function setTarget(){
   const v=document.getElementById('mtgAgreed').value.trim();
   const d=await boardApi({action:'set_target',member_id:MTG_ID,agreed:v});
-  document.getElementById('mtgMsg').textContent=d&&d.success?(v===''?'已清除談定數，改用系統提案':'已存談定 '+v):((d&&d.message)||'失敗');
+  document.getElementById('mtgMsg').textContent=d&&d.success?(v===''?'已清除，改用系統提案':'已存目標 '+v+' 組'):((d&&d.message)||'失敗');
   loadMeeting(MTG_ID);
 }
 function swData(sub){
