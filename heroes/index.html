@@ -93,6 +93,44 @@
   .share:hover { border-color: var(--gold-main); color: var(--gold-deep); }
   .share.done { background: var(--gold-grad); color: #fff; border-color: transparent; }
 
+  /* 金句：手機第一屏就看到重點，不是頭銜 */
+  .quote { max-width: 760px; margin: 0 auto 20px; text-align: center; }
+  .quote blockquote { font-family: 'Playfair Display', serif; font-size: 27px; font-weight: 700;
+    line-height: 1.55; color: var(--text-dark); position: relative; padding: 0 8px; }
+  .quote blockquote::before { content: "「"; color: var(--gold-main); }
+  .quote blockquote::after  { content: "」"; color: var(--gold-main); }
+  @media (max-width: 768px) { .quote blockquote { font-size: 21px; } }
+
+  /* 給夥伴用：淡底、小字，跟新朋友的動線視覺分開 */
+  .forpartner { background: var(--gold-light); border: 1px solid rgba(184,150,12,.22);
+    border-radius: 11px; padding: 17px 19px; margin: 22px 0; }
+  .fptag { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--gold-deep);
+    background: rgba(255,255,255,.7); border-radius: 999px; padding: 4px 11px; display: inline-block; margin-bottom: 12px; }
+  .fpline { font-size: 13px; font-weight: 700; color: var(--gold-deep); margin-bottom: 7px; }
+  .fpfor { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 15px; }
+  .fpfor li { font-size: 13px; background: var(--card); border: 1px solid rgba(184,150,12,.25);
+    border-radius: 7px; padding: 6px 11px; color: var(--text-dark); }
+  .tupbox { background: var(--card); border: 1px solid rgba(184,150,12,.25); border-radius: 9px;
+    padding: 14px 16px; font-size: 14.5px; line-height: 1.95; color: var(--text-dark); }
+  .copytup { margin-top: 10px; font-size: 13px; font-weight: 700; padding: 8px 15px; border-radius: 7px;
+    border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep);
+    cursor: pointer; font-family: inherit; transition: .2s; }
+  .copytup:hover { background: var(--gold-grad); color: #fff; border-color: transparent; }
+  .copytup.done { background: var(--gold-grad); color: #fff; border-color: transparent; }
+
+  /* 折疊：要深入才點開 */
+  details.fold { border: 1px solid var(--border); border-radius: 11px; margin: 14px 0; background: var(--card); }
+  details.fold > summary { cursor: pointer; padding: 15px 18px; font-size: 15.5px; font-weight: 700;
+    list-style: none; display: flex; align-items: center; gap: 8px; color: var(--text-dark); }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::before { content: "▸"; color: var(--gold-main); font-size: 13px; transition: transform .2s; }
+  details.fold[open] > summary::before { transform: rotate(90deg); }
+  details.fold > div { padding: 0 18px 20px; }
+
+  .src { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+    background: rgba(0,0,0,.05); color: var(--text-muted); }
+  .src.self { background: rgba(22,145,90,.13); color: #15803d; }
+
   .profile { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     padding: 32px 28px; box-shadow: var(--shadow); max-width: 760px; margin: 0 auto; }
   @media (max-width: 768px) { .profile { padding: 24px 20px; } }
@@ -162,6 +200,7 @@
       <button class="back" onclick="goList()">← 回列表</button>
       <button class="share" id="shareBtn" onclick="shareThis()">🔗 複製這個人的連結</button>
     </div>
+    <div class="quote" id="quoteBox"></div>
     <div class="profile" id="profile"></div>
   </div>
 </div>
@@ -247,6 +286,32 @@ function isMag(p) {
   return Array.isArray(m) ? (m[0]?.count || 0) > 0 : false;
 }
 
+/* 🔴 對外用語對照（Randoph 2026-09-23）：內部位階名新朋友聽不懂，聽不懂就接不到情緒。
+   只改「顯示」，資料庫的 current_badge 不動（榮譽榜重生腳本靠它分組）。
+   要改回原樣：把這張表清空即可。 */
+const BADGE_ALIAS = { "成就": "全球分紅" };
+/* 位階待補／空白的人不顯示徽章——公開頁面掛「待補」很難看 */
+function badgeHtml(b) {
+  if (!b || b === "待補") return "";
+  const show = BADGE_ALIAS[b] || b;
+  return `<span class="badge ${tierClass(b)}">${esc(show)}</span>`;
+}
+
+async function copyTup() {
+  const btn = document.getElementById("tupBtn");
+  const txt = document.getElementById("tupbox").textContent;
+  try { await navigator.clipboard.writeText(txt); }
+  catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (_) {}
+    ta.remove();
+  }
+  btn.textContent = "✓ 已複製，可以直接念了";
+  btn.classList.add("done");
+  setTimeout(() => { btn.textContent = "複製這段介紹詞"; btn.classList.remove("done"); }, 2400);
+}
+
 /* chips 標籤帶人數，0 人的不顯示——避免按下去一片空白 */
 function drawChips() {
   const roleN = {}, painN = {};
@@ -310,7 +375,7 @@ function renderGrid() {
       <div class="ava">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(p.name[0])}</div>
       <h3>${esc(p.name)}</h3>
       <p class="occ">${esc(p.occupation || "")}</p>
-      <span class="badge ${tierClass(p.current_badge)}">${esc(p.current_badge || "會員")}</span>${isMag(p) ? '<span class="mag">展翅月刊</span>' : ""}
+      ${badgeHtml(p.current_badge)}${p.source_type === "self" ? '<span class="src self">🗣 自述</span>' : ""}${isMag(p) ? '<span class="mag">展翅月刊</span>' : ""}
     </button>`).join("");
   document.getElementById("count").textContent = `共 ${rows.length} 位夥伴`;
 }
@@ -376,22 +441,45 @@ async function showDetail(id) {
   document.getElementById("detail-view").style.display = "block";
   window.scrollTo(0, 0);
 
+  /* 金句放最上面：手機第一屏看到的是處境，不是頭銜 */
+  document.getElementById("quoteBox").innerHTML =
+    p.quote ? `<blockquote>${esc(p.quote)}</blockquote>` : "";
+
+  const isSelf = p.source_type === "self";
   let html = `
     <div class="phead">
       <div class="ava">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(p.name[0])}</div>
       <div>
         <h2>${esc(p.name)}</h2>
         <p class="occ">${esc(p.occupation || "")}</p>
+        <p style="margin-top:7px;"><span class="src ${isSelf ? "self" : ""}">${isSelf ? "🗣 本人自述" : "📰 月刊報導"}</span></p>
       </div>
       <div style="margin-left:auto;text-align:right;">
-        <span class="badge ${tierClass(p.current_badge)}">${esc(p.current_badge || "會員")}</span>
-        ${isMag(p) ? '<br><span class="mag" style="margin:6px 0 0;">展翅月刊報導</span>' : ""}
+        ${badgeHtml(p.current_badge)}
       </div>
     </div>`;
 
+  /* 給夥伴用：適合拿給 ＋ TUP。兩者皆無就整塊不出現 */
+  const fits = Array.isArray(p.fits_for) ? p.fits_for : [];
+  if (fits.length || p.tup) {
+    html += `<div class="forpartner"><span class="fptag">給夥伴用</span>`;
+    if (fits.length) {
+      html += `<p class="fpline">適合拿給</p><ul class="fpfor">${fits.map(f => `<li>${esc(f)}</li>`).join("")}</ul>`;
+    }
+    if (p.tup) {
+      html += `<p class="fpline">30 秒這樣介紹他</p>
+        <div class="tupbox" id="tupbox">${esc(p.tup)}</div>
+        <button class="copytup" id="tupBtn" onclick="copyTup()">複製這段介紹詞</button>`;
+    }
+    html += `</div>`;
+  }
+
   if (p.story_base) {
-    html += `<p class="sec">起心動念</p><div class="story" id="storybox">${renderStory(p)}</div>`;
-    if ((p.expansions || []).length) html += `<p class="hint">虛線文字可以點開，看更多細節</p>`;
+    const title = isSelf ? "看他完整的故事（本人自述）" : "展翅月刊報導";
+    html += `<details class="fold"><summary>${title}</summary><div>
+      <div class="story" id="storybox">${renderStory(p)}</div>
+      ${(p.expansions || []).length ? `<p class="hint">虛線文字可以點開，看更多細節</p>` : ""}
+    </div></details>`;
   }
   html += `<p class="sec">成就歷程</p><div class="tl" id="tl"><p class="hint">載入中⋯</p></div>`;
   document.getElementById("profile").innerHTML = html;
@@ -426,7 +514,7 @@ async function showDetail(id) {
 
 async function init() {
   try {
-    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,story_base,expansions,created_at,honor_milestones(count)&order=name");
+    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,quote,fits_for,tup,story_base,expansions,created_at,honor_milestones(count)&order=name");
     profiles.forEach(classify);
     weightedShuffle(profiles);
     drawChips();
