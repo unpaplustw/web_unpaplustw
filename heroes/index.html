@@ -47,7 +47,10 @@
     font-size: 16px; background: var(--card); color: var(--text-dark); outline: none; font-family: inherit; box-shadow: var(--shadow); }
   .search input::placeholder { color: var(--text-muted); }
   .search input:focus { border-color: var(--gold-main); }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .filter { margin-bottom: 26px; }
+  .flabel { font-size: 12.5px; font-weight: 700; color: var(--text-muted); letter-spacing: .1em; margin: 14px 0 9px; }
+  .flabel:first-child { margin-top: 0; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .chips button { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 8px 16px;
     font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: .18s; font-family: inherit; }
   .chips button:hover { border-color: var(--gold-main); color: var(--gold-deep); }
@@ -144,7 +147,12 @@
     <div class="search">
       <input type="search" id="q" placeholder="搜尋姓名或職業，例如：保險、藥局、家庭主婦" />
     </div>
-    <div class="chips" id="chips"></div>
+    <div class="filter">
+      <p class="flabel">我是⋯</p>
+      <div class="chips" id="roleChips"></div>
+      <p class="flabel">我卡在⋯</p>
+      <div class="chips" id="painChips"></div>
+    </div>
     <div class="grid" id="grid"></div>
     <p class="count" id="count"></p>
   </div>
@@ -168,8 +176,52 @@ const SB_KEY = "sb_publishable_wZFrsu-4WYQfOHota6Yk4w_SQsR56tT";
 const HEADERS = { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY };
 const BADGE_ORDER = ["CFC世界大使","三千萬美金","兩千萬美金","千萬美金","百萬美金","CFC","高峰","星鑽","成就"];
 
+/* ══ 角色／處境分類 ══
+   為什麼不用勳章當篩選：282 人裡 187 個是「成就」（66% 擠同一格），
+   而且勳章對新朋友是外語（見 wiki 進稿診斷「對外用語對照」）。
+   新朋友是照自己的處境找人，不是照頭銜。勳章保留在卡片上當標記。
+
+   ⚠️ 比對吃「occupation ＋ story_base」兩欄：282 人裡 119 人 occupation 是空的，
+      但故事開頭通常寫「XXX 是美髮按摩店老闆⋯」，只比對 occupation 會漏掉 42% 的人。
+   ⚠️ 順序即優先序，先命中先算。例：「美髮店老闆」要歸老闆不是技術，
+      所以 boss 必須排在 skill 前面；「護理系學生」要歸年輕人，young 排在 care 前面。 */
+const ROLES = [
+  ["retired", "🌇 退休・銀髮", ["退休", "銀髮", "里長", "村長"]],
+  ["young",   "🌱 年輕人",     ["學生", "新鮮人", "青年", "碩士", "高材生", "剛出社會", "八年級生", "九年級生"]],
+  ["home",    "🏠 家庭主婦",   ["主婦", "媽媽"]],
+  ["boss",    "🏪 自己當老闆", ["老闆", "創辦", "負責人", "所長", "合夥", "股東", "二代", "三代", "經銷", "自主創業", "工作室", "自營", "開店", "創業"]],
+  ["sales",   "💼 業務・金融", ["業務", "理專", "保險", "銀行", "金融", "投資", "顧問", "貿易", "傳直銷", "講師", "電銷", "仲介", "房仲"]],
+  ["care",    "🩺 醫護・照護", ["護士", "護理", "治療師", "理療", "社工", "醫美", "照服", "藥師"]],
+  ["teach",   "📚 老師・教育", ["老師", "補教", "校長", "教育", "教材", "教練"]],
+  ["skill",   "🔧 技術・勞力", ["司機", "駕駛", "師傅", "維修", "廚師", "廚房", "營造", "工地", "造型師", "美睫", "紋繡", "導遊", "櫃姊", "美髮", "美容", "板模", "工人"]],
+  ["office",  "🏢 上班族",     ["工程師", "主管", "經理", "協理", "專員", "行政", "企劃", "設計", "會計", "記帳", "秘書", "白領", "員工", "副總", "課長", "店長", "採購", "研發", "人資", "上班", "公務", "竹科", "科技業", "財務", "建築", "派遣", "職場"]],
+];
+
+const PAINS = [
+  ["health", "健康亮紅燈",   ["健康", "身體", "生病", "紅燈", "開刀", "住院", "疲累", "疼痛", "失眠", "過敏", "疲勞", "體力", "痠痛", "酸痛", "中風", "血壓"]],
+  ["money",  "收入卡住",     ["收入", "經濟", "負債", "賺錢", "財務", "薪水", "入不敷出", "錢不夠", "貸款", "開銷", "存不到"]],
+  ["time",   "沒有時間",     ["時間", "全年無休", "沒日沒夜", "加班", "分身乏術", "蠟燭兩頭", "忙到", "休假"]],
+  ["family", "放不下家人",   ["家人", "孩子", "小孩", "父母", "照顧", "家庭", "女兒", "兒子", "母親", "父親", "先生", "太太", "婆婆"]],
+  ["future", "看不到未來",   ["未來", "年紀", "老後", "下半輩子", "天花板", "瓶頸", "茫然", "方向", "撐多久", "退休金"]],
+];
+
+function classify(p) {
+  const occ = p.occupation || "";
+  const story = p.story_base || "";
+  /* 兩段式：先只看 occupation（明確、可靠），判不出來才退回故事內文。
+     不可以把兩欄併起來一次比對——例：李春燕職業是「記帳事務所老闆」，
+     但故事裡提到「媽媽」，合併比對時 home 排在 boss 前面會先中，把老闆歸成家庭主婦。 */
+  let hit = ROLES.find(r => r[2].some(k => occ.includes(k)));
+  if (!hit) hit = ROLES.find(r => r[2].some(k => story.includes(k)));
+  p._role = (hit || ["other"])[0];
+  /* 處境是多標籤、不互斥，合併比對沒問題 */
+  const hay = occ + " " + story;
+  p._pains = PAINS.filter(x => x[2].some(k => hay.includes(k))).map(x => x[0]);
+}
+
 let profiles = [];
-let activeBadge = "";
+let activeRole = "";
+let activePain = "";
 
 async function api(path) {
   const res = await fetch(SB_URL + "/rest/v1/" + path, { headers: HEADERS });
@@ -195,14 +247,28 @@ function isMag(p) {
   return Array.isArray(m) ? (m[0]?.count || 0) > 0 : false;
 }
 
-function badgeChips() {
-  const badges = profiles.map(p => p.current_badge || "");
-  const list = ["", ...BADGE_ORDER.filter(b => badges.some(x => x.includes(b)))];
-  document.getElementById("chips").innerHTML = list.map(b =>
-    `<button class="${b === activeBadge ? "on" : ""}" onclick="setBadge('${b}')">${b || "全部"}</button>`
-  ).join("");
+/* chips 標籤帶人數，0 人的不顯示——避免按下去一片空白 */
+function drawChips() {
+  const roleN = {}, painN = {};
+  profiles.forEach(p => {
+    roleN[p._role] = (roleN[p._role] || 0) + 1;
+    p._pains.forEach(x => painN[x] = (painN[x] || 0) + 1);
+  });
+  document.getElementById("roleChips").innerHTML =
+    `<button class="${activeRole ? "" : "on"}" onclick="setRole('')">全部 ${profiles.length}</button>` +
+    ROLES.filter(r => roleN[r[0]]).map(r =>
+      `<button class="${r[0] === activeRole ? "on" : ""}" onclick="setRole('${r[0]}')">${r[1]} ${roleN[r[0]]}</button>`
+    ).join("") +
+    (roleN.other ? `<button class="${activeRole === "other" ? "on" : ""}" onclick="setRole('other')">其他 ${roleN.other}</button>` : "");
+
+  document.getElementById("painChips").innerHTML =
+    `<button class="${activePain ? "" : "on"}" onclick="setPain('')">不限</button>` +
+    PAINS.filter(x => painN[x[0]]).map(x =>
+      `<button class="${x[0] === activePain ? "on" : ""}" onclick="setPain('${x[0]}')">${x[1]} ${painN[x[0]]}</button>`
+    ).join("");
 }
-function setBadge(b) { activeBadge = b; badgeChips(); renderGrid(); }
+function setRole(r) { activeRole = (activeRole === r) ? "" : r; drawChips(); renderGrid(); }
+function setPain(x) { activePain = (activePain === x) ? "" : x; drawChips(); renderGrid(); }
 
 /* 加權洗牌：每次進頁洗一次，勳章高／有故事／越晚進榜者傾向領頭 */
 function tierRank(b) {
@@ -228,13 +294,14 @@ function weightedShuffle(arr) {
 function renderGrid() {
   const q = document.getElementById("q").value.trim();
   const rows = profiles.filter(p => {
-    const hitQ = !q || (p.name + (p.occupation || "")).includes(q);
-    const hitB = !activeBadge || (p.current_badge || "").includes(activeBadge);
-    return hitQ && hitB;
+    const hitQ = !q || (p.name + (p.occupation || "") + (p.story_base || "")).includes(q);
+    const hitR = !activeRole || p._role === activeRole;
+    const hitP = !activePain || p._pains.includes(activePain);
+    return hitQ && hitR && hitP;
   });
   const grid = document.getElementById("grid");
   if (!rows.length) {
-    grid.innerHTML = `<p class="empty" style="grid-column:1/-1;">找不到符合的夥伴，換個關鍵字試試</p>`;
+    grid.innerHTML = `<p class="empty" style="grid-column:1/-1;">這個組合目前沒有人，把「我卡在⋯」改成「不限」再試一次</p>`;
     document.getElementById("count").textContent = "";
     return;
   }
@@ -360,8 +427,9 @@ async function showDetail(id) {
 async function init() {
   try {
     profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,story_base,expansions,created_at,honor_milestones(count)&order=name");
+    profiles.forEach(classify);
     weightedShuffle(profiles);
-    badgeChips();
+    drawChips();
     renderGrid();
     const hash = location.hash.slice(1);
     if (hash) showDetail(hash);
