@@ -439,7 +439,8 @@ async function loadBoard(){
   document.getElementById('bdStar').innerHTML=
     '<div>⭐ <b>成就（真正計分）</b>　左 <b>'+al+'</b>／12 ・ 右 <b>'+ar+'</b>／12 → <b style="color:var(--ok);font-size:17px">'+starOf(Math.min(al,ar))+'</b>'
     +'　<span style="color:var(--warn)">⚠ 公司後台不是即時，這個數字會落後</span></div>'
-    +'<div style="margin-top:4px">📐 <b>組（能立即算的量）</b>　本人循環 左 <b>'+(S.my_fc_l??'—')+'</b> ・ 右 <b>'+(S.my_fc_r??'—')+'</b> → <b>'+myp+' 組</b>'
+    +'<div style="margin-top:4px">📐 <b>組（能立即算的量）</b>　我底下已獨立循環的位置：左線 <b>'+(S.my_fc_l??'—')+'</b> 個 ・ 右線 <b>'+(S.my_fc_r??'—')+'</b> 個 → <b>'+myp+' 組</b>'
+    +'　<span class="mut" style="font-size:12px">（FC数＝該線上有幾個位置達成獨立循環，不是我自己跑幾個循環）</span>'
     +'　｜　十二星約需 '+(T.target||80)+' 組——<b>量化用的方向，不是天花板，能多做就多做</b>'
     +'　<span class="mut" style="font-size:12px">（來源：公司頁 '+(S.fc_period||'')+' 期・採 '+(S.fc_asof||'')+'）</span></div>';
   const top=document.getElementById('bdTop'); top.innerHTML='';
