@@ -121,7 +121,7 @@ a{text-decoration:none}
     <div class="scroll" style="margin-top:10px"><table>
       <thead><tr><th>將</th><th>目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>狀態</th></tr></thead>
       <tbody id="bdRows"></tbody></table></div>
-    <div class="mut" style="margin-top:6px;font-size:13px">① 重消以<b>登錄日為錨</b>：登錄 15 號的人要 10/15、11/15、12/15 三筆連著，11–12 月才算滿月有效（登錄 1 號只要 11/1、12/1）。預購到 12/31 或自動扣款＝已涵蓋。<b>一組＝該將自己樹的左右各一個獨立循環</b>（本人那一格不算左右）——所以「左·右」裡<span style="color:var(--bad)">紅色那邊</span>就是他的小邊，補那邊才會多一組；「單掛」是大邊多出來、目前配不成對的。歸戶＝沿推薦線最近的將。<b>目標是各將自己設的，不由上往下分攤</b>——我的 80 組減掉夥伴自訂合計，差額是<b>我自己要想辦法補</b>的，不是再切給誰。沒設過就顯示「未設定」（⚪），不預填。狀態＝已成÷他自己的目標 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
+    <div class="mut" style="margin-top:6px;font-size:13px">① 重消以<b>登錄日為錨</b>：登錄 15 號的人要 10/15、11/15、12/15 三筆連著，11–12 月才算滿月有效（登錄 1 號只要 11/1、12/1）。預購到 12/31 或自動扣款＝已涵蓋。<b>一組＝該將自己樹的左右各一個獨立循環</b>（本人那一格不算左右）——所以「左·右」裡<span style="color:var(--bad)">紅色那邊</span>就是他的小邊，補那邊才會多一組；「單掛」是大邊多出來、目前配不成對的。<b>真正計分的是成就，組只是能立即算出來的量</b>——成就在公司後台不即時、會落後，所以組做得越多越好，80 是方向不是天花板。歸戶＝沿推薦線最近的將。<b>目標是各將自己設的，不由上往下分攤</b>——我的 80 組減掉夥伴自訂合計，差額是<b>我自己要想辦法補</b>的，不是再切給誰。沒設過就顯示「未設定」（⚪），不預填。狀態＝已成÷他自己的目標 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
   </div>
 </div>
 <div id="v-ppl" class="hidden">
@@ -420,7 +420,8 @@ async function boardApi(extra){
 // 目標是各將自己設的，不由上往下分攤；沒設就是沒設，不預填
 function tgtCell(r){ return r.agreed!=null?'<b>'+r.agreed+'</b>':'<span class="mut">未設定</span>'; }
 function stLamp(r){ return r.target==null?'<span title="他還沒設自己的目標">⚪</span>':r.status; }
-function starOf(n){ n=n||0; return n>=80?'十二星':n>=50?'九星':n>=40?'七星':n>=30?'五星':n>=20?'三星':n>=10?'一星':'零星'; }
+// 星等用「成就」算（左右取小邊），不是用組推——成就才是真正計分
+function starOf(n){ n=n||0; return n>=12?'十二星':n>=9?'九星':n>=7?'七星':n>=5?'五星':n>=3?'三星':n>=1?'一星':'零星'; }
 // 左·右：弱邊標紅（組＝取小邊，弱邊補一個才多一組）；本人不算左右
 function sideCell(r){
   const w=v=>'<b'+(v===Math.min(r.done_l,r.done_r)&&r.done_l!==r.done_r?' style="color:var(--bad)"':'')+'>'+v+'</b>';
@@ -434,13 +435,15 @@ async function loadBoard(){
   const T=d.top||{};
   document.getElementById('bdAsof').textContent='（訂單 '+(T.as_of||'')+' ・ CSV '+(T.snap||'')+' ・ 今天 '+(T.today||'')+'）';
   const S=T.star||{}, myp=S.my_pairs||0;
+  const al=S.ach_l??0, ar=S.ach_r??0;
   document.getElementById('bdStar').innerHTML=
-    '⭐ <b>我的星等</b>：本人循環 左 <b>'+(S.my_fc_l??'—')+'</b> ・ 右 <b>'+(S.my_fc_r??'—')+'</b> → <b style="color:var(--ok)">'+myp+' 組</b>'
-    +'　｜　組織成就達成者 左 <b>'+(S.ach_l??0)+'</b>／12 ・ 右 <b>'+(S.ach_r??0)+'</b>／12 → <b>'+starOf(myp)+'</b>'
-    +'　｜　十二星約需 <b>'+(T.target||80)+' 組</b>，還差 <b style="color:var(--warn)">'+Math.max(0,(T.target||80)-myp)+'</b>'
-    +'<span class="mut" style="font-size:12px">（循環數來源：公司頁 '+(S.fc_period||'')+' 期・採 '+(S.fc_asof||'')+'）</span>';
+    '<div>⭐ <b>成就（真正計分）</b>　左 <b>'+al+'</b>／12 ・ 右 <b>'+ar+'</b>／12 → <b style="color:var(--ok);font-size:17px">'+starOf(Math.min(al,ar))+'</b>'
+    +'　<span style="color:var(--warn)">⚠ 公司後台不是即時，這個數字會落後</span></div>'
+    +'<div style="margin-top:4px">📐 <b>組（能立即算的量）</b>　本人循環 左 <b>'+(S.my_fc_l??'—')+'</b> ・ 右 <b>'+(S.my_fc_r??'—')+'</b> → <b>'+myp+' 組</b>'
+    +'　｜　十二星約需 '+(T.target||80)+' 組——<b>量化用的方向，不是天花板，能多做就多做</b>'
+    +'　<span class="mut" style="font-size:12px">（來源：公司頁 '+(S.fc_period||'')+' 期・採 '+(S.fc_asof||'')+'）</span></div>';
   const top=document.getElementById('bdTop'); top.innerHTML='';
-  [['我的目標','<b style="font-size:26px">'+(T.target||80)+'</b><span class="mut"> 組</span>','#e8ecf1'],
+  [['我的方向','<b style="font-size:26px">'+(T.target||80)+'</b><span class="mut"> 組（不封頂）</span>','#e8ecf1'],
    ['夥伴自訂合計','<b style="font-size:26px">'+(T.partner_sum||0)+'</b><span class="mut"> 組（'+(T.set_count||0)+'/'+(T.leader_count||0)+' 位已設）</span>','#4f8cff'],
    ['我自己要補','<b style="font-size:26px">'+(T.my_gap??0)+'</b><span class="mut"> 組 ← 不往下分攤</span>','#ffb020'],
    ['各將已成合計','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> 組・單掛 '+(T.spare||0)+'</span>','#37c978'],
