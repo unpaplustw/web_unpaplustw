@@ -47,7 +47,14 @@
     font-size: 16px; background: var(--card); color: var(--text-dark); outline: none; font-family: inherit; box-shadow: var(--shadow); }
   .search input::placeholder { color: var(--text-muted); }
   .search input:focus { border-color: var(--gold-main); }
-  .filter { margin-bottom: 26px; }
+  .filter { margin-bottom: 26px; border: 1px solid var(--border); border-radius: 11px;
+    background: var(--card); box-shadow: var(--shadow); padding: 0 16px 16px; }
+  .filter > summary { cursor: pointer; padding: 14px 0; font-size: 14.5px; font-weight: 700;
+    list-style: none; display: flex; align-items: center; gap: 8px; color: var(--text-dark); }
+  .filter > summary::-webkit-details-marker { display: none; }
+  .filter > summary::before { content: "▸"; color: var(--gold-main); font-size: 13px; transition: transform .2s; }
+  .filter[open] > summary::before { transform: rotate(90deg); }
+  .filter:not([open]) { padding-bottom: 0; }
   .flabel { font-size: 12.5px; font-weight: 700; color: var(--text-muted); letter-spacing: .1em; margin: 14px 0 9px; }
   .flabel:first-child { margin-top: 0; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -195,12 +202,14 @@
     <div class="search">
       <input type="search" id="q" placeholder="搜尋姓名或職業，例如：保險、藥局、家庭主婦" />
     </div>
-    <div class="filter">
+    <!-- 手機預設收合：chips 是導覽，但一整片按鈕會把人擋在名單之外 -->
+    <details class="filter" id="filterBox">
+      <summary id="filterSum">篩選</summary>
       <p class="flabel">我是⋯</p>
       <div class="chips" id="roleChips"></div>
       <p class="flabel">我卡在⋯</p>
       <div class="chips" id="painChips"></div>
-    </div>
+    </details>
     <div class="grid" id="grid"></div>
     <p class="count" id="count"></p>
   </div>
@@ -234,16 +243,24 @@ const BADGE_ORDER = ["CFC世界大使","三千萬美金","兩千萬美金","千�
       但故事開頭通常寫「XXX 是美髮按摩店老闆⋯」，只比對 occupation 會漏掉 42% 的人。
    ⚠️ 順序即優先序，先命中先算。例：「美髮店老闆」要歸老闆不是技術，
       所以 boss 必須排在 skill 前面；「護理系學生」要歸年輕人，young 排在 care 前面。 */
+/* 🔴 MECE 治理（Randoph 2026-09-25）：標籤要 MECE 且不准過度擴充，
+   入口 chips 一多，使用者還沒看到任何一個人就先被按鈕淹沒。
+   ⚠️ 順序即優先序，先命中先算。**職業軸優先、年齡軸墊底**——
+      舊版把 retired/young 排最前面，導致「65 歲的老闆」被歸成退休、職業資訊整個丟掉
+      （違反 common.md 硬規定 6：同一主題不得同時存在兩種切分維度）。
+   ⚠️ 2026-09-25 實測後的取捨：
+      - 醫護（8 人 2.8%）併入 office —— 低於 5% 不給獨立 chip
+      - 年輕人類別移除 —— 年齡不是「他是誰」；年輕人的處境已由 future 接住
+      - 退休保留但墊底 —— 有職業的退休者歸職業，只有「退休人士／銀髮族」這類
+        真的沒職業可歸的才留在這（實測 12 → 6 人）。強行砍掉他們會掉進「其他」，更難找。 */
 const ROLES = [
-  ["retired", "🌇 退休・銀髮", ["退休", "銀髮", "里長", "村長"]],
-  ["young",   "🌱 年輕人",     ["學生", "新鮮人", "青年", "碩士", "高材生", "剛出社會", "八年級生", "九年級生"]],
   ["home",    "🏠 家庭主婦",   ["主婦", "媽媽"]],
   ["boss",    "🏪 自己當老闆", ["老闆", "創辦", "負責人", "所長", "合夥", "股東", "二代", "三代", "經銷", "自主創業", "工作室", "自營", "開店", "創業"]],
   ["sales",   "💼 業務・金融", ["業務", "理專", "保險", "銀行", "金融", "投資", "顧問", "貿易", "傳直銷", "講師", "電銷", "仲介", "房仲"]],
-  ["care",    "🩺 醫護・照護", ["護士", "護理", "治療師", "理療", "社工", "醫美", "照服", "藥師"]],
   ["teach",   "📚 老師・教育", ["老師", "補教", "校長", "教育", "教材", "教練"]],
   ["skill",   "🔧 技術・勞力", ["司機", "駕駛", "師傅", "維修", "廚師", "廚房", "營造", "工地", "造型師", "美睫", "紋繡", "導遊", "櫃姊", "美髮", "美容", "板模", "工人"]],
-  ["office",  "🏢 上班族",     ["工程師", "主管", "經理", "協理", "專員", "行政", "企劃", "設計", "會計", "記帳", "秘書", "白領", "員工", "副總", "課長", "店長", "採購", "研發", "人資", "上班", "公務", "竹科", "科技業", "財務", "建築", "派遣", "職場"]],
+  ["office",  "🏢 上班族",     ["工程師", "主管", "經理", "協理", "專員", "行政", "企劃", "設計", "會計", "記帳", "秘書", "白領", "員工", "副總", "課長", "店長", "採購", "研發", "人資", "上班", "公務", "竹科", "科技業", "財務", "建築", "派遣", "職場", "護士", "護理", "治療師", "理療", "社工", "醫美", "照服", "藥師"]],
+  ["retired", "🌇 退休・銀髮", ["退休", "銀髮", "里長", "村長"]],
 ];
 
 const PAINS = [
@@ -272,6 +289,8 @@ function jumpTag(id) {
      （實際踩過：點「自己當老闆」chip 顯示 72 人，畫面卻只剩 1 張） */
   document.getElementById("q").value = "";
   goList(); drawChips(); renderGrid();
+  /* 從人物頁點標籤跳回來，要讓他看到「現在正在篩什麼」 */
+  document.getElementById("filterBox").open = true;
   window.scrollTo(0, 0);
 }
 
@@ -370,6 +389,10 @@ function drawChips() {
     PAINS.filter(x => painN[x[0]]).map(x =>
       `<button class="${x[0] === activePain ? "on" : ""}" onclick="setPain('${x[0]}')">${x[1]} ${painN[x[0]]}</button>`
     ).join("");
+
+  /* 收合時也要看得出目前篩了什麼，否則使用者會忘記自己還在篩選中 */
+  const on = [activeRole && tagLabel(activeRole), activePain && tagLabel(activePain)].filter(Boolean);
+  document.getElementById("filterSum").textContent = on.length ? "篩選：" + on.join(" ＋ ") : "篩選";
 }
 function setRole(r) { activeRole = (activeRole === r) ? "" : r; drawChips(); renderGrid(); }
 function setPain(x) { activePain = (activePain === x) ? "" : x; drawChips(); renderGrid(); }
@@ -564,6 +587,8 @@ async function init() {
     profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,quote,tags,highlights,tup,story_base,expansions,created_at,honor_milestones(count)&order=name");
     profiles.forEach(classify);
     weightedShuffle(profiles);
+    /* 桌機空間夠就攤開；手機收起來，先讓人看到人而不是一片按鈕 */
+    if (window.innerWidth >= 768) document.getElementById("filterBox").open = true;
     drawChips();
     renderGrid();
     const hash = location.hash.slice(1);
