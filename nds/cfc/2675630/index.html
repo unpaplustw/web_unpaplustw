@@ -661,7 +661,7 @@ async function loadWar(){
   const pct=(l,r)=>Math.round(((l||0)+(r||0))/24*100)+'%';
   const cell=(v,hope)=>'<b style="font-size:20px">'+(v||0)+'</b><span class="mut">/12</span>'+(hope?' <span class="mut" style="font-size:12px">＋有希望 '+hope+'</span>':'');
   document.getElementById('warBoard').innerHTML=
-    '<thead><tr><th></th><th>本期 '+esc(c.start||'')+'～'+esc(c.end||'')+'<br><span class="mut">剩 '+(c.days_left??'—')+' 天</span></th><th>下期 11–12 月<br><span class="mut">CFC 挑戰期（推估）</span></th><th>下下期 1–2 月<br><span class="mut">（推估上限）</span></th></tr></thead>'
+    '<thead><tr><th></th><th>本期 '+mrange(c.start,c.end)+'<br><span class="mut">剩 '+(c.days_left??'—')+' 天</span></th><th>下期 11–12 月<br><span class="mut">CFC 挑戰期（推估）</span></th><th>下下期 1–2 月<br><span class="mut">（推估上限）</span></th></tr></thead>'
     +'<tbody><tr><th>左 成就位置</th><td>'+cell(c.l_done,c.l_hope)+'</td><td>'+cell(n.l_est)+' <span class="mut" style="font-size:12px">骨架 '+(n.l_picked||0)+' 格</span></td><td>'+cell(n2.l_est)+'</td></tr>'
     +'<tr><th>右 成就位置</th><td>'+cell(c.r_done,c.r_hope)+'</td><td>'+cell(n.r_est)+' <span class="mut" style="font-size:12px">骨架 '+(n.r_picked||0)+' 格</span></td><td>'+cell(n2.r_est)+'</td></tr>'
     +'<tr><th>達標率</th><td><b>'+pct(c.l_done,c.r_done)+'</b></td><td><b>'+pct(n.l_est,n.r_est)+'</b></td><td><b>'+pct(n2.l_est,n2.r_est)+'</b></td></tr></tbody>';
@@ -850,6 +850,9 @@ async function chApi(extra){
   return r.json();
 }
 function wan(v){return v==null?'—':(Math.round(v/10000)+'萬');}
+// 期間一律寫「9–10 月」，不寫完整日期
+function mrange(s,e){const a=+String(s||'').slice(5,7), b=+String(e||'').slice(5,7);
+  return (a&&b)?(a+'–'+b+' 月'):(esc(s||'')+'～'+esc(e||''));}
 
 let WATER=null, WATER_SORT='weak';
 function waterSort(k){WATER_SORT=k;renderLevels();}
