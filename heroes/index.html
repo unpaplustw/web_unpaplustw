@@ -247,7 +247,9 @@
 const SB_URL = "https://nsgqsopqlkhayuefdout.supabase.co";
 const SB_KEY = "sb_publishable_wZFrsu-4WYQfOHota6Yk4w_SQsR56tT";
 const HEADERS = { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY };
-const BADGE_ORDER = ["CFC世界大使","三千萬美金","兩千萬美金","千萬美金","百萬美金","CFC","高峰","星鑽","成就"];
+/* 只給加權洗牌用（勳章高的傾向排前面）。顯示用的排序在 RANK_ORDER／MONEY_ORDER。
+   ⚠️「CFC世界大使」已廢除——那是 CFC 與 CFC Master 的統稱，不是階級（Randoph 2026-09-25）。*/
+const BADGE_ORDER = ["AQA","CFC Master","CFC","高峰","12星鑽","7星鑽","5星鑽","3星鑽","1星鑽","星鑽","終身成就","進階成就","成就"];
 
 /* ══ 角色／處境分類 ══
    為什麼不用勳章當篩選：282 人裡 187 個是「成就」（66% 擠同一格），
@@ -354,8 +356,31 @@ function tierClass(b) {
 }
 
 function isMag(p) {
-  const m = p.honor_milestones;
-  return Array.isArray(m) ? (m[0]?.count || 0) > 0 : false;
+  return Array.isArray(p.honor_milestones) && p.honor_milestones.length > 0;
+}
+
+/* 🔴 一個人可以同時持有多個授勳，不是互相取代（Randoph 2026-09-25）。
+   實測 357 人中 73 人（20%）持有 2 種以上，最多 4 種。
+   所以徽章要全部列出，不能只顯示一個 current_badge。
+   排序見 優秀會員/README：AQA、CFC Master、CFC > 高峰 > 12→1星鑽 > 終身成就 > 進階成就 > 成就 */
+const RANK_ORDER = ["AQA", "CFC Master", "CFC", "高峰",
+  "12星鑽", "9星鑽", "7星鑽", "5星鑽", "3星鑽", "1星鑽", "星鑽",
+  "終身成就", "進階成就", "成就"];
+const MONEY_ORDER = ["4千萬美金", "三千萬美金", "兩千萬美金", "千萬美金", "百萬美金"];
+
+function allBadges(p) {
+  const seen = [];
+  (p.honor_milestones || []).forEach(m => {
+    if (m.badge && !seen.includes(m.badge)) seen.push(m.badge);
+  });
+  if (!seen.length && p.current_badge && p.current_badge !== "待補") seen.push(p.current_badge);
+  const idx = b => {
+    const i = RANK_ORDER.indexOf(b);
+    if (i >= 0) return i;
+    const j = MONEY_ORDER.indexOf(b);
+    return j >= 0 ? 100 + j : 200;   // 美金里程碑是另一軸，排在位階之後
+  };
+  return seen.sort((a, b) => idx(a) - idx(b));
 }
 
 /* 🔴 對外用語對照（Randoph 2026-09-23）：內部位階名新朋友聽不懂，聽不懂就接不到情緒。
@@ -427,7 +452,7 @@ function weightedShuffle(arr) {
   const newest = ts.length ? Math.max(...ts) : 0;
   const span = newest && ts.length ? newest - Math.min(...ts) : 0;
   arr.forEach(p => {
-    const w = 1 + tierRank(p.current_badge) * 0.5 + (p.story_base ? 1.2 : 0) + freshScore(p, newest, span) * 1.0;
+    const w = 1 + tierRank(allBadges(p)[0]) * 0.5 + (p.story_base ? 1.2 : 0) + freshScore(p, newest, span) * 1.0;
     p._k = Math.pow(Math.random() || 1e-9, 1 / w);
   });
   arr.sort((a, b) => b._k - a._k);
@@ -458,7 +483,7 @@ function renderGrid() {
       <div class="ava">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(p.name[0])}</div>
       <h3>${esc(p.name)}</h3>
       <p class="occ">${esc(p.occupation || "")}</p>
-      ${badgeHtml(p.current_badge)}${p.source_type === "self" ? '<span class="src self">🗣 自述</span>' : ""}${isMag(p) ? '<span class="mag">展翅月刊</span>' : ""}
+      ${allBadges(p).map(badgeHtml).join("")}${p.source_type === "self" ? '<span class="src self">🗣 自述</span>' : ""}
     </button>`).join("");
   document.getElementById("count").textContent = `共 ${rows.length} 位夥伴`;
 }
@@ -562,8 +587,8 @@ async function showDetail(id) {
         ${tags.length ? `<div class="ptags">${tags.map(t =>
           `<button class="ptag" onclick="jumpTag('${esc(t)}')">${esc(tagLabel(t))}</button>`).join("")}</div>` : ""}
       </div>
-      <div style="margin-left:auto;text-align:right;">
-        ${badgeHtml(p.current_badge)}
+      <div style="margin-left:auto;text-align:right;max-width:46%;">
+        ${allBadges(p).map(badgeHtml).join(" ")}
       </div>
     </div>`;
 
@@ -640,7 +665,8 @@ async function showDetail(id) {
 
 async function init() {
   try {
-    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,co_with,quote,tags,highlights,tup,story_base,story_magazine,expansions,created_at,honor_milestones(count)&order=name");
+    /* honor_milestones(badge) 取回全部授勳——一個人可能有多個，要全部顯示 */
+    profiles = await api("honor_profiles?select=id,name,photo_url,occupation,current_badge,source_type,co_with,quote,tags,highlights,tup,story_base,story_magazine,expansions,created_at,honor_milestones(badge)&order=name");
     profiles.forEach(classify);
     weightedShuffle(profiles);
     /* 桌機空間夠就攤開；手機收起來，先讓人看到人而不是一片按鈕 */
