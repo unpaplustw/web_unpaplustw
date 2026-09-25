@@ -217,8 +217,9 @@ a{text-decoration:none}
       </span>
     </div>
     <div class="mut" style="margin-top:4px">
-      <b>水位</b>＝公司預測的累積 P-200（本期、含已排定定期單，公司自己註明是<b>預測值</b>）。每 25 萬一個循環、125 萬成就線，弱邊決定循環。<br>
-      <b>每月保底</b>＝公司點數頁的<b>逐月實際</b>進點，取近 6 個月<b>最低</b>的那一個月（括號是平均）。上行左線、下行右線。<span style="color:var(--ok)">綠 ≥25 萬</span>＝每月自己就跑得出一個循環；<span style="color:var(--bad)">紅 &lt;10 萬</span>＝這邊等於沒有底。只有採過點數頁的位置才有這欄。
+      <b>這一頁是省錢用的，不是目標用的。</b>位置只要已經跑出獨立循環，水位唯一的用途就是告訴他「<b>別再往已經夠的那一邊多花錢</b>」——多買的點碰不到，是浪費。<br>
+      <b>水位</b>＝公司預測的累積 P-200（本期、含已排定定期單，公司自己註明是<b>預測值</b>）。每 25 萬一個循環，弱邊決定循環，<b>錢只值得花在弱邊</b>。<br>
+      <b>每月保底</b>＝公司點數頁的<b>逐月實際</b>進點，取近 6 個月<b>最低</b>那一個月（括號是平均）。上行左線、下行右線。<span style="color:var(--ok)">綠 ≥25 萬</span>＝這邊每月自己就跑得出一個循環、不必再加錢；<span style="color:var(--bad)">紅 &lt;10 萬</span>＝這邊沒有底。只有採過點數頁的位置才有這欄。
     </div>
     <div id="waterLsum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div class="scroll" style="margin-top:8px"><table>
@@ -489,15 +490,11 @@ async function loadMeeting(id){
       +'<div>目標設定 <input id="mtgAgreed" class="inp" type="number" min="0" style="width:74px;padding:6px 8px" value="'+(H.agreed!=null?H.agreed:'')+'" placeholder="'+(H.pool_pairs||0)+'"> 組 '
       +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">'+hint+'；參考：目前池子配得出 '+(H.pool_pairs||0)+' 組'+(H.agreed_at?' ・ 定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
       +'</div>'
-      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">'
-      +[[(H.is_mybc?'這個分店的目標':'他的目標'),(H.target==null?'未設定':H.target+' 組')],['已成',H.done+' 組'],['差',(H.gap==null?'—':H.gap+' 組')],['這週要',(H.weekly==null?'—':'+'+H.weekly)]].map(([k,v])=>'<div style="border:1px solid var(--line);border-radius:10px;padding:6px 14px;min-width:86px"><div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:22px;font-weight:700">'+v+'</div></div>').join('')
+      +'<div style="font-size:15px;font-weight:700;margin-top:12px">① 要幾組 <span class="mut" style="font-weight:400;font-size:13px">一組＝'+(H.is_mybc?'這個分店':'他自己')+'樹的左右各一個獨立循環</span></div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">'
+      +[['目標',(H.target==null?'未設定':H.target+' 組')],['已成',H.done+' 組'],['還差',(H.gap==null?'—':H.gap+' 組')]].map(([k,v])=>'<div style="border:1px solid var(--line);border-radius:10px;padding:6px 14px;min-width:86px"><div class="mut" style="font-size:12px">'+k+'</div><div style="font-size:22px;font-weight:700">'+v+'</div></div>').join('')
       +'</div>'
-      +'<div style="margin-top:8px">一組＝'+(H.is_mybc?'這個分店':'他自己')+'樹的<b>左右各一個</b>獨立循環：左 <b'+(H.done_l<H.done_r?' style="color:var(--bad)"':'')+'>'+H.done_l+'</b> ・ 右 <b'+(H.done_r<H.done_l?' style="color:var(--bad)"':'')+'>'+H.done_r+'</b>'
-      +(H.done_self?' ＋本人 '+H.done_self:'')+' → <b>'+H.done+' 組</b>'
-      +(H.spare>0?'，<span style="color:var(--warn)">'+H.spare+' 個單掛在'+(H.weak_side==='左'?'右':'左')+'邊配不成對——補'+esc(H.weak_side||'')+'邊最划算</span>':'')+'</div>'
-      +'<div class="mut" style="margin-top:6px;font-size:13px">缺 1 件 '+H.miss1+'（左 '+(H.miss1_l||0)+'／右 '+(H.miss1_r||0)+'）・缺 2 件 '+H.miss2
-      +(H.expected!=null?'　｜　進度線：到今天應該有 '+H.expected+' 組（時間進度 '+(T.elapsed||0)+'%，剩 '+(T.weeks_left||'—')+' 週）'
-        :(H.is_mybc?'　｜　這個分店還沒設目標':'　｜　他還沒設自己的目標，先在會議上問他這期要扛幾組'))+'</div>';
+      +(H.target==null?'<div class="mut" style="margin-top:6px;font-size:13px">'+(H.is_mybc?'這個分店還沒設目標':'他還沒設自己的目標——會議上問他這期要扛幾組，再填上面')+'</div>':'');
   }
   const md=s=>s?String(s).slice(5).replace('-','/'):'';
   const row=x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||x.side||'')+'</span></td>'
@@ -506,11 +503,28 @@ async function loadMeeting(id){
     +'<td class="mut" style="font-size:12px">登錄 '+x.anchor_day+' 號 ・ 直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>';
   const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>重消日</th><th>缺</th><th>這通電話講什麼</th><th>參考</th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
   const m1=d.miss1||[], m2=d.miss2||[], dn=d.done||[];
-  ls.innerHTML='<div><b>缺 1 件（跟進項目：照重消日排，直推在後）</b> <span class="mut">'+m1.length+'　邊＝他自己樹的左右</span></div>'
-    +(m1.length?tbl(m1):'<div class="mut" style="margin-top:4px">沒有只差一件的位置。</div>')
-    +'<details style="margin-top:12px"><summary style="cursor:pointer"><b>缺 2 件（下週）</b> <span class="mut">'+m2.length+'</span></summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>'
-    +'<details style="margin-top:8px"><summary style="cursor:pointer"><b>已成（守成）</b> <span class="mut">'+dn.length+(dn.filter(x=>x.at_risk).length?'　<span style="color:var(--bad)">⚠ '+dn.filter(x=>x.at_risk).length+' 個有風險</span>':'')+'</span></summary>'
-    +(dn.length?'<div class="scroll"><table><tbody>'+dn.map(x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff">'+nmb(x.name,x.member_id)+'</a></td><td>'+(x.at_risk?'<span style="color:var(--bad)">⚠ '+(x.auto_cancel_days?'倒數 '+esc(x.auto_cancel_days):'資格失效')+'</span>':'✅ '+esc(x.g1))+'</td><td class="mut">直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>').join('')+'</tbody></table></div>':'<div class="mut">無</div>')+'</details>';
+  // ② 符合的有誰：已獨立循環的位置，左右分開，看得出配成幾組、誰單掛
+  const chip=x=>'<span onclick="openCard(\''+esc(x.member_id)+'\')" style="cursor:pointer;display:inline-block;border:1px solid var(--line);border-radius:14px;padding:3px 10px;margin:3px 5px 0 0;font-size:13px'
+    +(x.at_risk?';border-color:var(--bad);color:var(--bad)':'')+'">'+(x.at_risk?'⚠ ':'')+nmb(x.name,x.member_id)+'</span>';
+  const dl=dn.filter(x=>x.own_side==='左'), dr=dn.filter(x=>x.own_side==='右'), dsf=dn.filter(x=>x.own_side==='本人');
+  const pairs=Math.min(dl.length,dr.length), weak=dl.length<dr.length?'左':(dr.length<dl.length?'右':null);
+  const risk=dn.filter(x=>x.at_risk).length;
+  const sideBox=(lab,arr)=>'<div style="flex:1;min-width:250px;border:1px solid var(--line);border-radius:10px;padding:8px 10px'
+    +(weak===lab?';border-color:var(--bad)':'')+'"><div class="mut" style="font-size:12px">'+lab+'線 <b style="font-size:16px;color:var(--tx)">'+arr.length+'</b> 個'
+    +(weak===lab?' <span style="color:var(--bad)">← 小邊，補這邊才會多一組</span>':'')+'</div>'
+    +(arr.length?arr.map(chip).join(''):'<span class="mut">還沒有</span>')+'</div>';
+  // ③ 還差誰：小邊排前面（補了會成組），大邊排後面（補了只是再單掛）
+  const w1=weak?m1.filter(x=>x.own_side===weak):m1, o1=weak?m1.filter(x=>x.own_side!==weak):[];
+  ls.innerHTML=
+    '<div style="font-size:15px;font-weight:700;margin-bottom:6px">② 符合的有誰 <span class="mut" style="font-weight:400;font-size:13px">已跑出獨立循環 '+dn.length+' 個 → 配成 <b style="color:var(--ok)">'+pairs+' 組</b>'
+      +(dsf.length?'（另有本人 '+dsf.length+'，不算左右）':'')+(risk?'　<span style="color:var(--bad)">⚠ '+risk+' 個資格有風險</span>':'')+'</span></div>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+sideBox('左',dl)+sideBox('右',dr)+'</div>'
+    +(weak?'<div style="margin-top:6px;color:var(--warn)">→ '+weak+'邊每補 1 個，就多 1 組（最多再 '+Math.abs(dl.length-dr.length)+' 組不用動大邊）</div>':'')
+    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">只差一件、照重消日排</span></div>'
+    +(weak?'<div class="mut" style="margin-bottom:4px">補'+weak+'邊會直接成組（'+w1.length+' 個）</div>':'')
+    +(w1.length?tbl(w1):'<div class="mut">這一邊沒有只差一件的位置。</div>')
+    +(o1.length?'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">另一邊（'+o1.length+' 個）——補了只是再單掛，先不急</summary>'+tbl(o1)+'</details>':'')
+    +'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">缺 2 件（'+m2.length+'）</summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>';
 }
 async function setTarget(){
   const v=document.getElementById('mtgAgreed').value.trim();
