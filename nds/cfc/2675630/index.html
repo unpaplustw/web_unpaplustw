@@ -100,20 +100,18 @@ a{text-decoration:none}
       <b>📊 三期看板 — 我離成就多遠</b><span class="mut" id="warAsof"></span>
     </div>
     <div class="scroll" style="margin-top:8px"><table id="warBoard"></table></div>
-    <div class="mut" style="margin-top:4px">本期＝公司 FC数 實績（左5右5）。下期＝骨架裡硬條件成立且循環≥2 或弱邊水位≥50 萬的推估。下下期＝全組織硬條件成立人數上限推估。<b>推估只是方向，不是承諾。</b></div>
     <div id="warStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🌀 循環池 — 真正跑出獨立循環的（含 25 萬那道）</b><span class="mut" id="poolAsof"></span>
+      <b>🌀 循環池</b><span class="mut" id="poolAsof"></span>
     </div>
-    <div class="mut" style="margin-top:4px">這裡是<b>三道閘門</b>：① 方案涵蓋到期末（或自動扣款）② 直推 ≥2 ③ 已有一邊 ≥25 萬——③ 是「真的跑出循環」的硬條件，所以留著。下面的計分板是<b>兩閘考核</b>（重消＋直推），數字本來就會比這裡大。<b>啟動優先</b>的名單在各將的戰術板裡討論。</div>
     <div id="poolFunnel" style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-top:10px"></div>
     <div id="poolGroups" style="margin-top:10px"></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🏛 將的計分板 — 11–12 月期 160 個位置：① 重消不斷 ② 直推 ≥ 2</b><span class="mut" id="bdAsof"></span>
+      <b>🏛 將的計分板（11–12 月）</b><span class="mut" id="bdAsof"></span>
     </div>
     <div id="bdStar" style="margin-top:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#12171d"></div>
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
@@ -121,7 +119,7 @@ a{text-decoration:none}
     <div class="scroll" style="margin-top:10px"><table>
       <thead><tr><th>將</th><th>目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>狀態</th></tr></thead>
       <tbody id="bdRows"></tbody></table></div>
-    <div class="mut" style="margin-top:6px;font-size:13px">① 重消以<b>登錄日為錨</b>：登錄 15 號的人要 10/15、11/15、12/15 三筆連著，11–12 月才算滿月有效（登錄 1 號只要 11/1、12/1）。預購到 12/31 或自動扣款＝已涵蓋。<b>一組＝該將自己樹的左右各一個獨立循環</b>（本人那一格不算左右）——所以「左·右」裡<span style="color:var(--bad)">紅色那邊</span>就是他的小邊，補那邊才會多一組；「單掛」是大邊多出來、目前配不成對的。<b>真正計分的是成就，組只是能立即算出來的量</b>——成就在公司後台不即時、會落後，所以組做得越多越好，80 是方向不是天花板。歸戶＝沿推薦線最近的將。<b>目標是各將自己設的，不由上往下分攤</b>——我的 80 組減掉夥伴自訂合計，差額是<b>我自己要想辦法補</b>的，不是再切給誰。沒設過就顯示「未設定」（⚪），不預填。狀態＝已成÷他自己的目標 對照時間進度（起算 9/9）：🟢 跟上　🟡 落後 20% 內　🔴 落後。點將名開他的戰術板。</div>
+    <div class="mut" style="margin-top:6px;font-size:13px">紅字＝小邊，補那邊才多一組。點將名開戰術板。</div>
   </div>
 </div>
 <div id="v-ppl" class="hidden">
@@ -441,28 +439,20 @@ async function loadBoard(){
   const S=T.star||{}, myp=S.my_pairs||0;
   const al=S.ach_l??0, ar=S.ach_r??0;
   document.getElementById('bdStar').innerHTML=
-    '<div>⭐ <b>成就（真正計分）</b>　左 <b>'+al+'</b>／12 ・ 右 <b>'+ar+'</b>／12 → <b style="color:var(--ok);font-size:17px">'+starOf(Math.min(al,ar))+'</b>'
-    +'　<span style="color:var(--warn)">⚠ 公司後台不是即時，這個數字會落後</span></div>'
-    +'<div style="margin-top:4px">📐 <b>組（能立即算的量）</b>　我底下已獨立循環的位置：左線 <b>'+(S.my_fc_l??'—')+'</b> 個 ・ 右線 <b>'+(S.my_fc_r??'—')+'</b> 個 → <b>'+myp+' 組</b>'
-    +'　<span class="mut" style="font-size:12px">（FC数＝該線上有幾個位置達成獨立循環，不是我自己跑幾個循環）</span>'
-    +'　｜　十二星約需 '+(T.target||80)+' 組——<b>量化用的方向，不是天花板，能多做就多做</b>'
-    +'　<span class="mut" style="font-size:12px">（來源：公司頁 '+(S.fc_period||'')+' 期・採 '+(S.fc_asof||'')+'）</span></div>';
+    '<div>⭐ <b>成就</b>　左 <b>'+al+'</b>／12 ・ 右 <b>'+ar+'</b>／12 → <b style="color:var(--ok)">'+starOf(Math.min(al,ar))+'</b> <span class="mut" style="font-size:12px">（後台會落後）</span></div>'
+    +'<div style="margin-top:4px">📐 <b>組</b>　左線 <b>'+(S.my_fc_l??'—')+'</b> ・ 右線 <b>'+(S.my_fc_r??'—')+'</b> → <b>'+myp+' 組</b></div>';
   const top=document.getElementById('bdTop'); top.innerHTML='';
-  [['我的方向','<b style="font-size:26px">'+(T.target||80)+'</b><span class="mut"> 組（不封頂）</span>','#e8ecf1'],
-   ['夥伴自訂合計','<b style="font-size:26px">'+(T.partner_sum||0)+'</b><span class="mut"> 組（'+(T.set_count||0)+'/'+(T.leader_count||0)+' 位已設）</span>','#4f8cff'],
-   ['我自己要補','<b style="font-size:26px">'+(T.my_gap??0)+'</b><span class="mut"> 組 ← 不往下分攤</span>','#ffb020'],
-   ['我的分店已規劃','<b style="font-size:26px">'+(T.mybc_sum||0)+'</b><span class="mut"> 組（'+((T.mybc||[]).length)+' 個分店）'+((T.mybc||[]).length?'<br>'+T.mybc.map(x=>nmb(x.name,x.member_id)+' '+x.agreed).join('、'):'')+'</span>','#a371f7'],
-   ['各將已成合計','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> 組・單掛 '+(T.spare||0)+'</span>','#37c978'],
-   ['剩','<b style="font-size:26px">'+(T.days_left??'—')+'</b><span class="mut"> 天（'+(T.weeks_left||'—')+' 週）</span>','#e8ecf1'],
-   ['缺 1 件','<b style="font-size:26px">'+(T.miss1||0)+'</b><span class="mut"> 個位置</span>','#4f8cff'],
-   ['本週到重消日','<b style="font-size:26px">'+(T.due_week||0)+'</b><span class="mut"> 個（直推夠的）</span>','#ff5d5d'],
-   ['① 重消','<b style="font-size:20px">'+(T.g1_cover||0)+'</b><span class="mut"> 已涵蓋 ・ '+(T.g1_wait||0)+' 待重消'+(T.g1_broken?' ・ <span style="color:var(--bad)">'+T.g1_broken+' 斷了</span>':'')+'</span>','#e8ecf1'],
-   ['時間進度','<b style="font-size:26px">'+(T.elapsed||0)+'%</b>','#8b96a5']
+  [['我的方向','<b style="font-size:26px">'+(T.target||80)+'</b><span class="mut"> 組</span>','#e8ecf1'],
+   ['夥伴自訂','<b style="font-size:26px">'+(T.partner_sum||0)+'</b><span class="mut"> 組（'+(T.set_count||0)+'/'+(T.leader_count||0)+'）</span>','#4f8cff'],
+   ['我自己要補','<b style="font-size:26px">'+(T.my_gap??0)+'</b><span class="mut"> 組</span>','#ffb020'],
+   ['分店已規劃','<b style="font-size:26px">'+(T.mybc_sum||0)+'</b><span class="mut"> 組</span>','#a371f7'],
+   ['各將已成','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> 組</span>','#37c978'],
+   ['本週到重消','<b style="font-size:26px">'+(T.due_week||0)+'</b>','#ff5d5d'],
+   ['剩','<b style="font-size:26px">'+(T.days_left??'—')+'</b><span class="mut"> 天</span>','#e8ecf1']
   ].forEach(([k,v,col])=>{const el=document.createElement('div');el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:120px;color:'+col;
     el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div>'+v+'</div>';top.appendChild(el);});
   const risk=document.getElementById('bdRisk');
-  risk.innerHTML=(T.at_risk>0?'<span style="color:var(--bad)">🛡 守成警示：已成 '+T.done+' 個裡有 <b>'+T.at_risk+'</b> 個資格失效或倒數中——掉一個要補兩個</span>':'<span class="mut">🛡 守成：已成 '+(T.done||0)+' 個目前都沒有失效或倒數</span>')
-    +((T.target_sum!=null&&T.target_sum!==T.target)?'　<span style="color:var(--warn)">⚠ 各將談定合計 '+T.target_sum+'，不等於 '+T.target+'</span>':'');
+  risk.innerHTML=T.at_risk>0?'<span style="color:var(--bad)">🛡 已成裡有 <b>'+T.at_risk+'</b> 個資格失效或倒數中</span>':'';
   tb.innerHTML='';
   (d.rows||[]).forEach(r=>{
     const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
@@ -497,11 +487,12 @@ async function loadMeeting(id){
       +(H.target==null?'<div class="mut" style="margin-top:6px;font-size:13px">'+(H.is_mybc?'這個分店還沒設目標':'他還沒設自己的目標——會議上問他這期要扛幾組，再填上面')+'</div>':'');
   }
   const md=s=>s?String(s).slice(5).replace('-','/'):'';
-  const row=x=>'<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||x.side||'')+'</span></td>'
+  const row=x=>'<tr'+((x.f_status==='完成'||x.f_status==='取消')?' style="opacity:.5"':'')+'><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||x.side||'')+'</span></td>'
+    +'<td style="white-space:nowrap">'+followCell(x)+'</td>'
     +'<td>'+(x.next_due&&x.g1==='待重消'?'<b'+(new Date(x.next_due)-new Date()<7*864e5?' style="color:var(--bad)"':'')+'>'+md(x.next_due)+'</b>':(x.g1==='斷了'?'<span style="color:var(--bad)">斷</span>':'<span class="mut">✅</span>'))+'</td>'
     +'<td><span style="color:var(--warn)">'+esc(x.lack)+'</span></td><td>'+esc(x.action_text)+'</td>'
     +'<td class="mut" style="font-size:12px">登錄 '+x.anchor_day+' 號 ・ 直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>';
-  const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>重消日</th><th>缺</th><th>這通電話講什麼</th><th>參考</th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
+  const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>狀況</th><th>重消日</th><th>缺</th><th>這通電話講什麼</th><th>參考</th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
   const m1=d.miss1||[], m2=d.miss2||[], dn=d.done||[];
   // ② 符合的有誰：已獨立循環的位置，左右分開，看得出配成幾組、誰單掛
   const chip=x=>'<span onclick="openCard(\''+esc(x.member_id)+'\')" style="cursor:pointer;display:inline-block;border:1px solid var(--line);border-radius:14px;padding:3px 10px;margin:3px 5px 0 0;font-size:13px'
@@ -520,11 +511,40 @@ async function loadMeeting(id){
       +(dsf.length?'（另有本人 '+dsf.length+'，不算左右）':'')+(risk?'　<span style="color:var(--bad)">⚠ '+risk+' 個資格有風險</span>':'')+'</span></div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+sideBox('左',dl)+sideBox('右',dr)+'</div>'
     +(weak?'<div style="margin-top:6px;color:var(--warn)">→ '+weak+'邊每補 1 個，就多 1 組（最多再 '+Math.abs(dl.length-dr.length)+' 組不用動大邊）</div>':'')
-    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">只差一件、照重消日排</span></div>'
+    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">只差一件、照重消日排'
+      +(m1.some(x=>x.f_status)?'　｜　已聯絡 '+m1.filter(x=>x.f_status==='已聯絡').length+' ・ 完成 '+m1.filter(x=>x.f_status==='完成').length+' ・ 失聯 '+m1.filter(x=>x.f_status==='失聯').length:'')
+      +'</span></div>'
     +(weak?'<div class="mut" style="margin-bottom:4px">補'+weak+'邊會直接成組（'+w1.length+' 個）</div>':'')
     +(w1.length?tbl(w1):'<div class="mut">這一邊沒有只差一件的位置。</div>')
     +(o1.length?'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">另一邊（'+o1.length+' 個）——補了只是再單掛，先不急</summary>'+tbl(o1)+'</details>':'')
     +'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">缺 2 件（'+m2.length+'）</summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>';
+}
+// 名單跟進狀況：存進命令紀錄（actions，task_type=CFC跟進），命令紀錄分頁也看得到
+const FOLLOW=['待處理','已聯絡','完成','失聯','取消'];
+const FCOL={'待處理':'var(--mut)','已聯絡':'var(--warn)','完成':'var(--ok)','失聯':'var(--bad)','取消':'var(--mut)'};
+function followCell(x){
+  const cur=x.f_status||'';
+  return '<select class="inp" style="padding:4px 6px;font-size:13px;width:auto;color:'+(FCOL[cur]||'var(--tx)')+'" onchange="followSet(this,\''+esc(x.member_id)+'\')">'
+    +'<option value=""'+(cur?'':' selected')+'>—</option>'
+    +FOLLOW.map(s=>'<option'+(s===cur?' selected':'')+'>'+s+'</option>').join('')+'</select>'
+    +' <a href="javascript:void 0" title="備註" onclick="followNote(\''+esc(x.member_id)+'\',this)" style="text-decoration:none">✎</a>'
+    +'<div class="mut" style="font-size:11px">'+(x.f_note?esc(x.f_note)+' ・ ':'')+(x.f_at?(+String(x.f_at).slice(5,7))+'/'+(+String(x.f_at).slice(8,10)):'')+'</div>';
+}
+async function followSet(sel,id,note){
+  const s=sel.value; if(!s) return;
+  const p={action:'follow',member_id:id,status:s,assignee:MTG_ID||''}; if(note!==undefined)p.note=note;
+  const d=await boardApi(p);
+  if(!d||d.success!==true){alert((d&&d.message)||'存檔失敗');return;}
+  sel.style.color=FCOL[s]||'var(--tx)';
+  const t=new Date(); const info=sel.parentElement.querySelector('div');
+  if(info) info.textContent=(note?note+' ・ ':'')+(t.getMonth()+1)+'/'+t.getDate();
+  const tr=sel.closest('tr'); if(tr) tr.style.opacity=(s==='完成'||s==='取消')?'.5':'';
+}
+function followNote(id,a){
+  const sel=a.parentElement.querySelector('select');
+  const n=prompt('備註（例：答應 10/3 刷卡）',''); if(n===null)return;
+  if(!sel.value) sel.value='已聯絡';
+  followSet(sel,id,n);
 }
 async function setTarget(){
   const v=document.getElementById('mtgAgreed').value.trim();
