@@ -89,7 +89,6 @@ a{text-decoration:none}
   <div class="tab" data-v="ch" onclick="sw(this)">🎯 戰術板</div>
   <div class="tab" data-v="ppl" onclick="sw(this)">👥 人員設定</div>
   <div class="tab" data-v="feed" onclick="sw(this)">📡 通報流</div>
-  <div class="tab" data-v="water" onclick="sw(this)">💧 水位</div>
   <div class="tab" data-v="work" onclick="sw(this)">📜 命令紀錄</div>
   <div class="tab" data-v="data" onclick="sw(this)">⚙️ 資料</div>
 </div>
@@ -117,7 +116,7 @@ a{text-decoration:none}
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div id="bdRisk" style="margin-top:8px"></div>
     <div class="scroll" style="margin-top:10px"><table>
-      <thead><tr><th>將</th><th>目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>狀態</th></tr></thead>
+      <thead><tr><th>將</th><th>目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>逾期</th><th>狀態</th></tr></thead>
       <tbody id="bdRows"></tbody></table></div>
     <div class="mut" style="margin-top:6px;font-size:13px">紅字＝小邊，補那邊才多一組。點將名開戰術板。</div>
   </div>
@@ -202,42 +201,6 @@ a{text-decoration:none}
     <summary style="cursor:pointer"><b>④ 推薦目標（本期）</b></summary>
     <div id="tacRecruit" style="margin-top:8px"></div>
   </details>
-</div>
-<div id="v-water" class="hidden">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><b>💧 水位</b> <span class="mut" id="waterAsof"></span></div>
-      <span>
-        <button class="btn sm" onclick="waterSort('weak')">弱邊最高</button>
-        <button class="btn sm" onclick="waterSort('to_next')">最接近下一循環</button>
-        <button class="btn sm" onclick="waterSort('gap')">左右最不平</button>
-        <button class="btn sm" onclick="loadWater()">🔄</button>
-      </span>
-    </div>
-    <div class="mut" style="margin-top:4px">
-      <b>這一頁是省錢用的，不是目標用的。</b>位置只要已經跑出獨立循環，水位唯一的用途就是告訴他「<b>別再往已經夠的那一邊多花錢</b>」——多買的點碰不到，是浪費。<br>
-      <b>水位</b>＝公司預測的累積 P-200（本期、含已排定定期單，公司自己註明是<b>預測值</b>）。每 25 萬一個循環，弱邊決定循環，<b>錢只值得花在弱邊</b>。<br>
-      <b>每月保底</b>＝公司點數頁的<b>逐月實際</b>進點，取近 6 個月<b>最低</b>那一個月（括號是平均）。上行左線、下行右線。<span style="color:var(--ok)">綠 ≥25 萬</span>＝這邊每月自己就跑得出一個循環、不必再加錢；<span style="color:var(--bad)">紅 &lt;10 萬</span>＝這邊沒有底。只有採過點數頁的位置才有這欄。
-    </div>
-    <div id="waterLsum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
-    <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>對象</th><th>線</th><th>左水位</th><th>右水位</th><th>弱邊</th><th>距下一循環</th><th>每月保底 上左/下右</th><th>循環 左/右</th><th>底下有方案 左/右</th></tr></thead>
-      <tbody id="waterLevels"></tbody></table></div>
-    <div class="mut" id="waterNote" style="margin-top:6px"></div>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <b>🩸 漏水口（再購窗口）</b>
-    </div>
-    <div class="mut" style="margin-top:4px">
-      再購方案只能在<b>入會後 18 個月內</b>買。窗口關了只剩 24M（每月扣款）。🔴 &lt;90天　🟠 &lt;180天　⚫ 已關　⏳ 倒數中
-    </div>
-    <div id="waterSum" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
-    <div class="msg" id="waterMsg"></div>
-    <div class="scroll" style="margin-top:8px"><table>
-      <thead><tr><th>急</th><th>對象</th><th>線</th><th>窗口剩</th><th>方案</th><th>方案到期</th><th>倒數</th><th>建議動作</th><th>歸戶領袖</th></tr></thead>
-      <tbody id="waterBody"></tbody></table></div>
-  </div>
 </div>
 <div id="dataSub" class="hidden" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm" onclick="swData('qa')">🧪 隔離區</button><button class="btn sm" onclick="swData('imp')">📥 CSV匯入</button><button class="btn sm" onclick="swData('bind')">👥 綁定審核</button></div>
 <div id="v-qa" class="card hidden">
@@ -362,8 +325,8 @@ async function login(){
   document.getElementById('app').classList.remove('hidden');
   renderTasks(d.rows); loadBoard(); loadWar();
 }
-const PANES=['war','ppl','feed','ch','water','qa','imp','tasks','assign','bind'];
-const GROUPS={war:['war'],ppl:['ppl'],feed:['feed'],ch:['ch'],water:['water'],work:['tasks','assign'],data:[]};
+const PANES=['war','ppl','feed','ch','qa','imp','tasks','assign','bind'];
+const GROUPS={war:['war'],ppl:['ppl'],feed:['feed'],ch:['ch'],work:['tasks','assign'],data:[]};
 let DATA_SUB='qa';
 function showPanes(list){ PANES.forEach(v=>document.getElementById('v-'+v).classList.toggle('hidden',!list.includes(v))); }
 function sw(el){
@@ -373,7 +336,7 @@ function sw(el){
   if(v==='data'){ swData(DATA_SUB); return; }
   showPanes(GROUPS[v]);
   if(v==='war'){loadBoard(); loadWar();} if(v==='ppl')loadPpl(); if(v==='feed')loadWar();
-  if(v==='ch')loadCh(); if(v==='water')loadWater(); if(v==='work')loadTasks();
+  if(v==='ch')loadCh(); if(v==='work')loadTasks();
 }
 // ===== 人員設定：候選名單＋點將（與戰術板 ③ 寫同一張 cfc_roster）=====
 let PICKS=null, PICK_G='符合';
@@ -431,9 +394,9 @@ function sideCell(r){
     +(r.spare>0?' <span class="mut" style="font-size:12px">單掛 '+r.spare+'</span>':'');
 }
 async function loadBoard(){
-  const tb=document.getElementById('bdRows'); tb.innerHTML='<tr><td colspan="8" class="mut">載入中…</td></tr>';
+  const tb=document.getElementById('bdRows'); tb.innerHTML='<tr><td colspan="9" class="mut">載入中…</td></tr>';
   const d=await boardApi({});
-  if(!d||d.success!==true){tb.innerHTML='<tr><td colspan="8" class="mut">'+esc((d&&d.message)||'讀取失敗')+'</td></tr>';return;}
+  if(!d||d.success!==true){tb.innerHTML='<tr><td colspan="9" class="mut">'+esc((d&&d.message)||'讀取失敗')+'</td></tr>';return;}
   const T=d.top||{};
   document.getElementById('bdAsof').textContent='（訂單 '+(T.as_of||'')+' ・ CSV '+(T.snap||'')+' ・ 今天 '+(T.today||'')+'）';
   const S=T.star||{}, myp=S.my_pairs||0;
@@ -458,10 +421,12 @@ async function loadBoard(){
     const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
     tr.innerHTML='<td><a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:12px">'+esc(r.tier||'')+'</span></td>'
       +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+sideCell(r)+'</td><td>'+(r.gap==null?'—':r.gap)+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td>'
-      +'<td>'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)">本週到期 '+r.due_week+'</b>':'')+'</td><td style="font-size:18px">'+stLamp(r)+'</td>';
+      +'<td>'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)">本週到期 '+r.due_week+'</b>':'')+'</td>'
+      +'<td>'+(r.overdue>0?'<b style="color:var(--bad)">'+r.overdue+'</b>':'<span class="mut">—</span>')+'</td>'
+      +'<td style="font-size:18px">'+stLamp(r)+'</td>';
     tb.appendChild(tr);
   });
-  if(!tb.children.length) tb.innerHTML='<tr><td colspan="8" class="mut">沒有領袖資料。</td></tr>';
+  if(!tb.children.length) tb.innerHTML='<tr><td colspan="9" class="mut">沒有領袖資料。</td></tr>';
 }
 let MTG_ID=null, MTG_SEQ=0;
 async function loadMeeting(id){
@@ -486,14 +451,10 @@ async function loadMeeting(id){
       +'</div>'
       +(H.target==null?'<div class="mut" style="margin-top:6px;font-size:13px">'+(H.is_mybc?'這個分店還沒設目標':'他還沒設自己的目標——會議上問他這期要扛幾組，再填上面')+'</div>':'');
   }
-  const md=s=>s?String(s).slice(5).replace('-','/'):'';
-  const row=x=>'<tr'+(((x.follow||{}).status==='拒絕')?' style="opacity:.5"':'')+'><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||x.side||'')+'</span></td>'
-    +'<td style="white-space:nowrap">'+followCell(x)+'</td>'
-    +'<td>'+(x.next_due&&x.g1==='待重消'?'<b'+(new Date(x.next_due)-new Date()<7*864e5?' style="color:var(--bad)"':'')+'>'+md(x.next_due)+'</b>':(x.g1==='斷了'?'<span style="color:var(--bad)">斷</span>':'<span class="mut">✅</span>'))+'</td>'
-    +'<td><span style="color:var(--warn)">'+esc(x.lack)+'</span></td><td>'+esc(x.action_text)+'</td>'
-    +'<td class="mut" style="font-size:12px">登錄 '+x.anchor_day+' 號 ・ 直推 '+x.sp+(x.plan_until?' ・ 方案到 '+esc(x.plan_until):'')+' ・ 點數 '+wan(x.pl)+'/'+wan(x.pr)+'</td></tr>';
-  const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>狀況</th><th>重消日</th><th>缺</th><th>這通電話講什麼</th><th>參考</th></tr></thead><tbody>'+rows.map(row).join('')+'</tbody></table></div>';
+  const tbl=rows=>'<div class="scroll"><table><thead><tr><th>位置</th><th>缺什麼・講什麼</th><th>最新跟進</th><th>下一步</th><th></th></tr></thead><tbody>'+rows.map(rowHTML).join('')+'</tbody></table></div>';
   const m1=d.miss1||[], m2=d.miss2||[], dn=d.done||[];
+  MTG_M1=m1; MTG_M2=m2; MTG_OWNERS=d.owners||[];
+  MTG_DEFAULT_OWNER=H.is_leader?H.member_id:((MTG_OWNERS.find(o=>o.tier==='總部')||{}).member_id||'');
   // ② 符合的有誰：已獨立循環的位置，左右分開，看得出配成幾組、誰單掛
   const chip=x=>'<span onclick="openCard(\''+esc(x.member_id)+'\')" style="cursor:pointer;display:inline-block;border:1px solid var(--line);border-radius:14px;padding:3px 10px;margin:3px 5px 0 0;font-size:13px'
     +(x.at_risk?';border-color:var(--bad);color:var(--bad)':'')+'">'+(x.at_risk?'⚠ ':'')+nmb(x.name,x.member_id)+'</span>';
@@ -505,70 +466,114 @@ async function loadMeeting(id){
     +(weak===lab?' <span style="color:var(--bad)">← 小邊，補這邊才會多一組</span>':'')+'</div>'
     +(arr.length?arr.map(chip).join(''):'<span class="mut">還沒有</span>')+'</div>';
   // ③ 還差誰：小邊排前面（補了會成組），大邊排後面（補了只是再單掛）
-  const w1=weak?m1.filter(x=>x.own_side===weak):m1, o1=weak?m1.filter(x=>x.own_side!==weak):[];
+  // 到期／逾期的一律拉到最上面那張表；拒絕的沉到各表最後
+  const dueTop=x=>['overdue','today'].includes((x.follow||{}).due), rej=x=>(x.follow||{}).status==='拒絕';
+  const sinkRej=a=>a.filter(x=>!rej(x)).concat(a.filter(rej));
+  const w1=sinkRej(weak?m1.filter(x=>dueTop(x)||x.own_side===weak):m1), o1=sinkRej(weak?m1.filter(x=>!dueTop(x)&&x.own_side!==weak):[]);
   ls.innerHTML=
     '<div style="font-size:15px;font-weight:700;margin-bottom:6px">② 符合的有誰 <span class="mut" style="font-weight:400;font-size:13px">已跑出獨立循環 '+dn.length+' 個 → 配成 <b style="color:var(--ok)">'+pairs+' 組</b>'
       +(dsf.length?'（另有本人 '+dsf.length+'，不算左右）':'')+(risk?'　<span style="color:var(--bad)">⚠ '+risk+' 個資格有風險</span>':'')+'</span></div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+sideBox('左',dl)+sideBox('右',dr)+'</div>'
     +(weak?'<div style="margin-top:6px;color:var(--warn)">→ '+weak+'邊每補 1 個，就多 1 組（最多再 '+Math.abs(dl.length-dr.length)+' 組不用動大邊）</div>':'')
-    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">只差一件、照重消日排'
-      +'<span id="m3cnt">'+m3Count((MTG_M1=m1))+'</span>'
+    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">只差一件，下一步到期的排最前'
+      +'<span id="m3cnt">'+m3Count(m1)+'</span>'
       +'</span></div>'
-    +(weak?'<div class="mut" style="margin-bottom:4px">補'+weak+'邊會直接成組（'+w1.length+' 個）</div>':'')
+    +(weak?'<div class="mut" style="margin-bottom:4px">補'+weak+'邊會直接成組（'+w1.length+' 個，含下一步到期的）</div>':'')
     +(w1.length?tbl(w1):'<div class="mut">這一邊沒有只差一件的位置。</div>')
     +(o1.length?'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">另一邊（'+o1.length+' 個）——補了只是再單掛，先不急</summary>'+tbl(o1)+'</details>':'')
     +'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">缺 2 件（'+m2.length+'）</summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>';
 }
-// 名單跟進：一串紀錄不互蓋（member_notes kind=CFC跟進），會員卡同一條線、將的 LINE 回報也寫這裡
-// 「完成」不給人選——做到了公司資料會顯示，每週採集後自動從名單消失
-const FOLLOW=['尚未聯絡','已聯絡','未聯繫上','答應','拒絕'];
-const FCOL={'尚未聯絡':'var(--mut)','已聯絡':'var(--warn)','未聯繫上':'var(--bad)','答應':'var(--ok)','拒絕':'var(--mut)'};
-function fdate(s){ if(!s) return ''; const d=new Date(s); return isNaN(d)?'':(d.getMonth()+1)+'/'+d.getDate(); }
-function followCell(x){
-  const F=x.follow||{}, cur=F.status||'', id=esc(x.member_id);
-  let h='<select class="inp" data-cur="'+esc(cur)+'" style="padding:4px 6px;font-size:13px;width:auto;color:'+(FCOL[cur]||'var(--tx)')+'" onchange="followSet(this,\''+id+'\')">'
-    +(cur?'':'<option value="" selected>—</option>')
-    +FOLLOW.map(s=>'<option'+(s===cur?' selected':'')+'>'+s+'</option>').join('')+'</select>'
-    +' <a href="javascript:void 0" title="補一句註記（狀態不變）" onclick="followNote(this,\''+id+'\')" style="text-decoration:none">✎</a>';
+// ===== 跟進（2026-09-28 架構定案）=====
+// 一筆＝時間／方式／負責人（將或你）＋記錄人／結論／註記／下一步（日期＋負責人＋要做什麼）
+// 只新增不覆蓋（member_notes kind=CFC跟進）；戰術板、將的 LINE、會員卡同一串
+// 「完成」不給人選——做到了公司資料會顯示，採集後自動離開名單
+const METHODS=['見面','電話','LINE訊息'];
+const CONCL=['未聯繫上','考慮中','卡關','答應','拒絕'];
+const FCOL={'未聯繫上':'var(--bad)','考慮中':'var(--warn)','卡關':'#d2a8ff','答應':'var(--ok)','拒絕':'var(--mut)'};
+let MTG_M1=[], MTG_M2=[], MTG_OWNERS=[], MTG_DEFAULT_OWNER='';
+function fdate(s){ if(!s) return ''; const d=new Date(s); return isNaN(d)?String(s).slice(5).replace('-','/'):(d.getMonth()+1)+'/'+d.getDate(); }
+function findRow(id){ return MTG_M1.find(x=>x.member_id===id)||MTG_M2.find(x=>x.member_id===id); }
+// 推薦人是本人（自己的分店）或就是這位將 → 不顯示，免得叫他去請自己幫忙
+const samePerson=(a,b)=>!!(a&&b)&&String(a).split('-')[0]===String(b).split('-')[0];
+function showSponsor(E,mid,leader){ return E.sponsor_name&&!samePerson(E.sponsor_id,mid)&&!samePerson(E.sponsor_id,leader); }
+function rowHTML(x){
+  const F=x.follow||{}, E=x.extra||{}, id=esc(x.member_id);
+  const due=x.next_due&&x.g1==='待重消'?'<b'+((new Date(x.next_due)-new Date()<7*864e5)?' style="color:var(--bad)"':'')+'>'+fdate(x.next_due)+' 前</b>　':(x.g1==='斷了'?'<b style="color:var(--bad)">已斷</b>　':'');
+  const who='<a href="javascript:openCard(\''+id+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||x.side||'')+'</span>'
+    +(showSponsor(E,x.member_id,MTG_ID)?'<div class="mut" style="font-size:12px">推薦人：'+esc(E.sponsor_name)+'</div>':'');
+  const what='<span style="color:var(--warn)">'+esc(x.lack)+'</span>　'+due+esc(x.action_text)
+    +(E.win_hint?'<div style="font-size:12px;color:var(--bad)">⏳ '+esc(E.win_hint)+'</div>':'')
+    +(E.water_hint?'<div class="mut" style="font-size:12px">💧 '+esc(E.water_hint)+'</div>':'');
+  let last='<span class="mut">還沒跟進</span>';
   if(F.status){
-    h+='<div style="font-size:12px;margin-top:2px;white-space:normal;max-width:260px">'
-      +(F.conflict?'<b style="color:var(--bad)" title="兩個人最近說法不同，開會時問清楚">⚠ 說法不同 </b>':'')
-      +esc(F.note||'')+'<span class="mut"> ・ '+esc(F.by||'')+' '+fdate(F.at)+'</span>'
-      +(F.n>1?' <a href="javascript:void 0" class="mut" onclick="this.parentElement.nextElementSibling.classList.toggle(\'hidden\')">歷程 '+F.n+' ▸</a>':'')+'</div>'
-      +'<div class="hidden" style="font-size:12px;white-space:normal;max-width:260px">'
-      +(F.history||[]).slice(1).map(k=>'<div class="mut">'+fdate(k.at)+' '+esc(k.by||'')+'：'+esc(k.status)+(k.note?'｜'+esc(k.note):'')+'</div>').join('')+'</div>';
+    last=(F.conflict?'<b style="color:var(--bad)" title="同一天兩個人記的結論不同，開會問清楚">⚠ 說法不同</b><br>':'')
+      +'<span class="mut" style="font-size:12px">'+fdate(F.at)+' '+esc(F.method||'')+' ・ '+esc(F.owner_name||'')+(F.by&&F.by!==F.owner_name?'（記：'+esc(F.by)+'）':'')+'</span><br>'
+      +'<b style="color:'+(FCOL[F.status]||'var(--tx)')+'">'+esc(F.status)+'</b>　'+esc(F.note||'')
+      +(F.n>1?' <a href="javascript:void 0" class="mut" style="font-size:12px" onclick="this.nextElementSibling.classList.toggle(\'hidden\')">歷程 '+F.n+' ▸</a>'
+        +'<div class="hidden" style="font-size:12px;margin-top:4px">'+(F.history||[]).slice(1).map(k=>'<div class="mut">'+fdate(k.at)+' '+esc(k.method||'')+' '+esc(k.owner_name||'')+'：'+esc(k.status)+(k.note?'｜'+esc(k.note):'')+(k.next_date?'　→ '+fdate(k.next_date)+' '+esc(k.next_action||''):'')+'</div>').join('')+'</div>':'');
   }
-  return h;
+  let nxt='<span class="mut">—</span>';
+  if(F.next_date){
+    const col=F.due==='overdue'?'var(--bad)':(F.due==='today'?'var(--warn)':'var(--tx)');
+    nxt='<b style="color:'+col+'">'+(F.due==='overdue'?'逾期 ':(F.due==='today'?'今天 ':''))+fdate(F.next_date)+'</b> '+esc(F.next_owner_name||'')+'<br>'+esc(F.next_action||'');
+  }
+  return '<tr data-mid="'+id+'"'+(F.status==='拒絕'?' style="opacity:.5"':'')+'><td>'+who+'</td><td style="max-width:320px">'+what+'</td>'
+    +'<td style="max-width:300px">'+last+'</td><td style="max-width:200px">'+nxt+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn sm" onclick="openFollowForm(this,\''+id+'\')">＋記一筆</button></td></tr>';
 }
-let MTG_M1=[];
 function m3Count(m1){
   if(!m1.some(x=>x.follow)) return '';
-  const n=s=>m1.filter(x=>(x.follow||{}).status===s).length, cf=m1.filter(x=>(x.follow||{}).conflict).length;
-  return '　｜　'+['已聯絡','未聯繫上','答應','拒絕'].map(s=>s+' '+n(s)).join(' ・ ')+(cf?' ・ <span style="color:var(--bad)">⚠ 說法不同 '+cf+'</span>':'');
+  const n=s=>m1.filter(x=>(x.follow||{}).status===s).length;
+  const od=m1.filter(x=>(x.follow||{}).due==='overdue').length, td=m1.filter(x=>(x.follow||{}).due==='today').length, cf=m1.filter(x=>(x.follow||{}).conflict).length;
+  return '　｜　'+CONCL.map(s=>s+' '+n(s)).join(' ・ ')
+    +(od?' ・ <b style="color:var(--bad)">逾期 '+od+'</b>':'')+(td?' ・ <b style="color:var(--warn)">今天 '+td+'</b>':'')
+    +(cf?' ・ <span style="color:var(--bad)">⚠ 說法不同 '+cf+'</span>':'');
 }
-async function followPost(td,id,s,note){
-  const d=await boardApi({action:'follow',member_id:id,status:s,note:note||''});
-  if(!d||d.success!==true){alert((d&&d.message)||'存檔失敗');return false;}
-  td.innerHTML=followCell({member_id:id,follow:d.follow});
-  const it=MTG_M1.find(x=>x.member_id===id); if(it){ it.follow=d.follow; const c=document.getElementById('m3cnt'); if(c) c.innerHTML=m3Count(MTG_M1); }
-  const tr=td.closest('tr'); if(tr) tr.style.opacity=(s==='拒絕')?'.5':'';
-  return true;
+function openFollowForm(btn,id){
+  const tr=btn.closest('tr'), nx=tr.nextElementSibling;
+  if(nx&&nx.classList.contains('ffrow')){ nx.remove(); return; }
+  const x=findRow(id)||{member_id:id}, F=x.follow||{};
+  const d3=new Date(Date.now()+3*864e5), d3s=d3.getFullYear()+'-'+String(d3.getMonth()+1).padStart(2,'0')+'-'+String(d3.getDate()).padStart(2,'0');
+  const pills=(name,arr)=>arr.map(v=>'<label style="margin-right:12px;white-space:nowrap;cursor:pointer"><input type="radio" name="'+name+'" value="'+v+'"> '+v+'</label>').join('');
+  const own=F.next_owner||MTG_DEFAULT_OWNER;
+  const opts=sel=>MTG_OWNERS.map(o=>'<option value="'+esc(o.member_id)+'"'+(o.member_id===sel?' selected':'')+'>'+esc(o.name)+(o.tier==='總部'?'（你）':'')+'</option>').join('');
+  const f=document.createElement('tr'); f.className='ffrow';
+  f.innerHTML='<td colspan="5" style="background:#12171d;border-left:3px solid var(--acc)">'
+    +'<div style="display:flex;gap:22px;flex-wrap:wrap">'
+      +'<div><div class="mut" style="font-size:12px">方式</div>'+pills('fm_'+id,METHODS)+'</div>'
+      +'<div><div class="mut" style="font-size:12px">結論</div>'+pills('fc_'+id,CONCL)+'</div>'
+      +'<div><div class="mut" style="font-size:12px">負責人</div><select class="inp fown" style="width:auto;padding:4px 8px">'+opts(own)+'</select></div>'
+    +'</div>'
+    +'<input class="inp fnote" style="width:100%;margin-top:8px" placeholder="註記（必填）例：答應 10/3 刷卡／打兩次沒接">'
+    +'<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="mut" style="font-size:12px">下一步</span>'
+      +'<input type="date" class="inp fnd" value="'+d3s+'" style="width:auto;padding:4px 8px">'
+      +'<select class="inp fno" style="width:auto;padding:4px 8px">'+opts(own)+'</select>'
+      +'<input class="inp fna" style="flex:1;min-width:220px" placeholder="要做什麼 例：確認有沒有刷卡"></div>'
+    +'<div style="margin-top:8px"><button class="btn sm" onclick="saveFollow(this,\''+id+'\')">存</button> '
+      +'<button class="btn sm ghost" onclick="this.closest(\'tr\').remove()">取消</button> <span class="fmsg" style="color:var(--bad);font-size:13px"></span></div></td>';
+  tr.after(f);
+  f.querySelectorAll('input[name="fc_'+id+'"]').forEach(r=>r.onchange=()=>{
+    const v=r.value;
+    f.querySelector('.fnote').placeholder=v==='卡關'?'卡在什麼條件（必填）例：等發薪 10/5 才買':(v==='拒絕'?'原因（必填）':'註記（必填）');
+    f.querySelector('.fna').placeholder=v==='拒絕'?'（拒絕可以不填下一步）':'要做什麼 例：確認有沒有刷卡';
+  });
+  f.querySelector('.fown').onchange=e=>{ f.querySelector('.fno').value=e.target.value; };
 }
-async function followSet(sel,id){
-  const s=sel.value, prev=sel.dataset.cur||'';
-  if(!s){sel.value=prev;return;}
-  let note='';
-  if(s!=='尚未聯絡'){
-    note=prompt('「'+s+'」寫一句註記（必填）\n例：答應 10/3 刷卡／打兩次沒接／說先吃完這盒','');
-    if(note===null||!note.trim()){ if(note!==null) alert('沒寫註記就不會存'); sel.value=prev; return; }
-  }
-  const ok=await followPost(sel.closest('td'),id,s,note);
-  if(!ok) sel.value=prev;
-}
-function followNote(a,id){
-  const td=a.closest('td'), sel=td.querySelector('select'), s=sel.dataset.cur||'已聯絡';
-  const note=prompt('補一句註記（狀態維持「'+s+'」）',''); if(note===null||!note.trim()) return;
-  followPost(td,id,s,note);
+async function saveFollow(btn,id){
+  const f=btn.closest('tr'), msg=f.querySelector('.fmsg');
+  const pick=n=>{const c=f.querySelector('input[name="'+n+'"]:checked');return c?c.value:'';};
+  const status=pick('fc_'+id), na=f.querySelector('.fna').value.trim();
+  const p={action:'follow',member_id:id,method:pick('fm_'+id),status,note:f.querySelector('.fnote').value.trim(),
+    owner:f.querySelector('.fown').value,next_owner:f.querySelector('.fno').value,next_action:na,
+    next_date:(status==='拒絕'&&!na)?'':f.querySelector('.fnd').value};
+  btn.disabled=true; msg.textContent='';
+  const d=await boardApi(p);
+  btn.disabled=false;
+  if(!d||d.success!==true){ msg.textContent=(d&&d.message)||'存檔失敗'; return; }
+  const x=findRow(id); if(x) x.follow=d.follow;
+  const tr=f.previousElementSibling; f.remove();
+  if(tr&&x){ tr.outerHTML=rowHTML(x); }
+  const c=document.getElementById('m3cnt'); if(c) c.innerHTML=m3Count(MTG_M1);
 }
 async function setTarget(){
   const v=document.getElementById('mtgAgreed').value.trim();
@@ -1134,10 +1139,19 @@ async function loadGates(id){
   el.innerHTML='① 重消 '+ok(g.g1ok)+' <span class="mut">'+esc(g.g1)+(g.dues&&g.dues.length?'（登錄 '+g.anchor_day+' 號：'+g.dues.map(md).join('→')+'）':'')+'</span>　② 直推 '+ok(g.g2)+' <span class="mut">'+g.sp+'/2</span>'
     +'　<span class="mut">參考：點數 左 '+wan(g.pl)+'／右 '+wan(g.pr)+'（'+esc(g.src)+'）</span>'
     +'<div style="margin-top:4px">'+(g.miss===0?'<b style="color:var(--ok)">兩件都過</b>':'還缺 <b>'+g.miss+'</b> 件（'+esc(g.lack)+'）→ '+esc(g.action_text))+'　<span class="mut">歸戶 '+esc(g.leader_name||'')+'</span></div>'
-    // 跟進時間軸：戰術板、將的 LINE 回報寫的是同一串
+    // 水位（併進會員卡）：左右水位＋每月保底；錢只值得花在弱邊
+    +(()=>{const E=g.extra||{}, FL=g.floor||{};
+      return '<div style="margin-top:6px;font-size:13px">💧 水位 左 <b>'+wan(g.pl)+'</b>／右 <b>'+wan(g.pr)+'</b>'
+        +(FL.n?'　每月保底 左 '+wan(FL.floor_l)+'／右 '+wan(FL.floor_r)+' <span class="mut">（近 '+FL.n+' 月最低）</span>':'')
+        +(E.water_hint?'<div style="color:var(--warn)">'+esc(E.water_hint)+'</div>':'')
+        +(E.win_hint?'<div style="color:var(--bad)">⏳ '+esc(E.win_hint)+'</div>':'')
+        +(showSponsor(E,g.member_id,null)?'<div class="mut">推薦人：'+esc(E.sponsor_name)+'</div>':'')+'</div>';})()
+    // 跟進時間軸：戰術板、將的 LINE 寫的是同一串
     +(d.follow?'<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px">📝 <b>跟進</b>'
-      +(d.follow.conflict?' <b style="color:var(--bad)">⚠ 最近兩個人說法不同</b>':'')
-      +(d.follow.history||[]).map(k=>'<div style="font-size:13px"><span class="mut">'+fdate(k.at)+' '+esc(k.by||'')+(k.src==='LINE'?'（LINE）':'')+'</span>　<b style="color:'+(FCOL[k.status]||'var(--tx)')+'">'+esc(k.status)+'</b>'+(k.note?'　'+esc(k.note):'')+'</div>').join('')
+      +(d.follow.conflict?' <b style="color:var(--bad)">⚠ 同一天兩個人說法不同</b>':'')
+      +(d.follow.next_date?'　<b style="color:'+(d.follow.due==='overdue'?'var(--bad)':(d.follow.due==='today'?'var(--warn)':'var(--tx)'))+'">下一步 '+(d.follow.due==='overdue'?'逾期 ':'')+fdate(d.follow.next_date)+' '+esc(d.follow.next_owner_name||'')+'：'+esc(d.follow.next_action||'')+'</b>':'')
+      +(d.follow.history||[]).map(k=>'<div style="font-size:13px;margin-top:3px"><span class="mut">'+fdate(k.at)+' '+esc(k.method||'')+' ・ '+esc(k.owner_name||'')+(k.by&&k.by!==k.owner_name?'（記：'+esc(k.by)+'）':'')+(k.src==='LINE'?'・LINE':'')+'</span>　<b style="color:'+(FCOL[k.status]||'var(--tx)')+'">'+esc(k.status)+'</b>'+(k.note?'　'+esc(k.note):'')
+        +(k.next_date?'<span class="mut">　→ '+fdate(k.next_date)+' '+esc(k.next_owner_name||'')+' '+esc(k.next_action||'')+'</span>':'')+'</div>').join('')
       +'</div>':'');
 }
 
