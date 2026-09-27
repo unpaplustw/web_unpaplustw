@@ -61,17 +61,19 @@ details summary{cursor:pointer;color:var(--mut);font-size:15px;margin:14px 2px 6
     <div id="alertBox"></div>
     <div id="tipBox"></div>
   </div>
+  <div id="toast" class="tip hidden" style="background:#e7efe9;border-color:#bcd6c6;color:var(--acc)"></div>
+  <div id="ownWrap" class="hidden"><div class="sec" id="h0"></div><div id="L0"></div></div>
   <div class="sec" id="h1"></div>
   <div id="L1"></div>
-  <details id="dOther" class="hidden"><summary id="h2"></summary><div id="L2"></div></details>
-  <details id="dMiss2" class="hidden"><summary id="h3"></summary><div id="L3"></div></details>
+  <details id="dAll" class="hidden"><summary id="h2"></summary><div id="L2"></div></details>
   <div id="taskWrap" class="hidden"><div class="sec">📌 總部交辦</div><div id="L4"></div></div>
   <p class="mut" style="margin:18px 4px">做到了不用回報——公司資料更新後，這個人會自己從名單上消失。</p>
 </div>
 
 <script>
-// ⚠️ 在 LINE Developers 建好 LIFF（Endpoint＝https://unpaplus.com.tw/nds/leader.html）後，把 ID 填進來
-const LIFF_ID = "REPLACE_WITH_LIFF_ID";
+// LIFF「NDS 我的名單」（2026-09-28 Randoph 建；Endpoint＝https://unpaplus.com.tw/nds/leader.html、Full）
+// 入口：https://liff.line.me/2009692859-IpsyNXD9
+const LIFF_ID = "2009692859-IpsyNXD9";
 const SUPABASE_URL="https://nsgqsopqlkhayuefdout.supabase.co";
 const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y";
 let UID=null, DNAME='', ME='';
@@ -130,18 +132,38 @@ async function load(){
     ?'<div class="alert">⏰ '+(d.overdue?'逾期 '+d.overdue+' 位':'')+(d.overdue&&d.today?'・':'')+(d.today?'今天要跟 '+d.today+' 位':'')+'（排在最上面）</div>':'';
   document.getElementById('tipBox').innerHTML=d.weak?'<div class="tip">👉 你的小邊是<b>'+d.weak+'邊</b>：'+d.weak+'邊每多 1 個，就多 1 組</div>':'';
   const m1=d.miss1||[], m2=d.miss2||[];
-  const dueTop=x=>['overdue','today'].includes((x.follow||{}).due), rej=x=>(x.follow||{}).status==='拒絕';
+  const isOwn=x=>samePerson(x.member_id,ME);
+  const due=x=>['overdue','today'].includes((x.follow||{}).due), rej=x=>(x.follow||{}).status==='拒絕';
   const sink=a=>a.filter(x=>!rej(x)).concat(a.filter(rej));
-  const a=sink(d.weak?m1.filter(x=>dueTop(x)||x.on_weak):m1), b=sink(d.weak?m1.filter(x=>!dueTop(x)&&!x.on_weak):[]);
-  document.getElementById('h1').textContent=d.weak?'先找這些（補'+d.weak+'邊會直接成組）'+a.length+' 位':'只差一件 '+a.length+' 位';
-  fill('L1',a);
-  document.getElementById('dOther').classList.toggle('hidden',!b.length);
-  document.getElementById('h2').textContent='另一邊 '+b.length+' 位（補了先單掛，不急）'; fill('L2',b);
-  document.getElementById('dMiss2').classList.toggle('hidden',!m2.length);
-  document.getElementById('h3').textContent='差兩件 '+m2.length+' 位'; fill('L3',sink(m2));
+  const byDue=(a,b)=>String(a.next_due||'9').localeCompare(String(b.next_due||'9'));
+  // 🏠 自己的分店：問題就是自己，只看狀況、不記跟進
+  const own=m1.concat(m2).filter(isOwn).sort(byDue);
+  const p1=m1.filter(x=>!isOwn(x)), p2=m2.filter(x=>!isOwn(x));
+  // 📌 今天要找的人＝逾期＋今天到期＋還沒跟進過的小邊前 5 位（重消日最早的在前）
+  const dueList=p1.concat(p2).filter(due);
+  const fresh=p1.filter(x=>!x.follow&&!due(x)&&(d.weak?x.on_weak:true)).sort(byDue).slice(0,5);
+  const today=dueList.concat(fresh);
+  const rest=sink(p1.concat(p2));
+  document.getElementById('ownWrap').classList.toggle('hidden',!own.length);
+  document.getElementById('h0').textContent='🏠 你自己的分店（'+own.length+'）——只看狀況';
+  const L0=document.getElementById('L0'); L0.innerHTML=''; own.forEach(x=>L0.appendChild(ownCard(x)));
+  document.getElementById('h1').textContent='📌 今天要找的人（'+today.length+'）';
+  if(today.length) fill('L1',today);
+  else document.getElementById('L1').innerHTML='<div class="card" style="text-align:center">今天沒有要做的 🎉<div class="mut">要找其他人，打開下面的全部名單</div></div>';
+  document.getElementById('dAll').classList.toggle('hidden',!rest.length);
+  document.getElementById('h2').textContent='全部名單（'+rest.length+'）'; fill('L2',rest);
   show('main');
   loadTasks();
 }
+function ownCard(x){
+  const c=document.createElement('div'); c.className='card'; const E=x.extra||{}, bc=String(x.member_id).split('-')[1];
+  c.innerHTML='<div><span class="who" style="font-size:17px">'+esc(x.name)+'-'+esc(bc)+'</span><span class="side'+(x.on_weak?' weak':'')+'">'+esc(x.side||'')+'邊</span></div>'
+    +'<div class="act">'+((x.g1==='待重消'&&x.next_due)?'<span class="red">'+md(x.next_due)+' 前</span>　':'')+esc(x.action_text||'')+'</div>'
+    +(E.win_hint?'<div class="hint red">⏳ '+esc(E.win_hint)+'</div>':'')
+    +(E.water_hint?'<div class="hint mut">💧 '+esc(E.water_hint)+'</div>':'');
+  return c;
+}
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),4000); }
 function fill(boxId,rows){
   const box=document.getElementById(boxId); box.innerHTML='';
   if(!rows.length){box.innerHTML='<div class="card mut">這裡沒有人 🎉</div>';return;}
@@ -202,7 +224,9 @@ function buildForm(form,x,c){
       next_date:(concl==='拒絕'&&!act)?'':q('[data-f=nd]').value,next_action:act});
     ev.target.disabled=false; ev.target.textContent='送出';
     if(!d||!d.success){msg.textContent=(d&&d.message)||'失敗，再試一次';return;}
-    x.follow=d.follow; c.replaceWith(card(x));
+    // 重新整理名單：下一步移到之後的人，會自己離開「今天要找的人」
+    toast('✅ 已記錄：'+x.name+'　下一步 '+(d.follow&&d.follow.next_date?md(d.follow.next_date):'—'));
+    window.scrollTo({top:0,behavior:'smooth'}); load();
   };
 }
 // 戰術板「發令」產生的交辦（actions）；沒有就不顯示

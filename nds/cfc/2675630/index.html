@@ -469,19 +469,31 @@ async function loadMeeting(id){
   // 到期／逾期的一律拉到最上面那張表；拒絕的沉到各表最後
   const dueTop=x=>['overdue','today'].includes((x.follow||{}).due), rej=x=>(x.follow||{}).status==='拒絕';
   const sinkRej=a=>a.filter(x=>!rej(x)).concat(a.filter(rej));
-  const w1=sinkRej(weak?m1.filter(x=>dueTop(x)||x.own_side===weak):m1), o1=sinkRej(weak?m1.filter(x=>!dueTop(x)&&x.own_side!==weak):[]);
+  // 將自己的分店：問題就是將本人，不是去找誰 → 只看狀況、不記跟進（Randoph 2026-09-28）
+  const isOwn=x=>samePerson(x.member_id,MTG_ID);
+  const own=m1.concat(m2).filter(isOwn).sort((a,b)=>String(a.next_due||'9').localeCompare(String(b.next_due||'9')));
+  const pm1=m1.filter(x=>!isOwn(x)), pm2=m2.filter(x=>!isOwn(x));
+  const w1=sinkRej(weak?pm1.filter(x=>dueTop(x)||x.own_side===weak):pm1), o1=sinkRej(weak?pm1.filter(x=>!dueTop(x)&&x.own_side!==weak):[]);
+  const ownRow=x=>{const E=x.extra||{};
+    return '<tr><td><a href="javascript:openCard(\''+esc(x.member_id)+'\')" style="color:#58a6ff;font-weight:600">'+nmb(x.name,x.member_id)+'</a> <span class="mut">'+esc(x.own_side||'')+'</span></td>'
+      +'<td><span style="color:var(--warn)">'+esc(x.lack)+'</span>　'+(x.next_due&&x.g1==='待重消'?'<b>'+fdate(x.next_due)+' 前</b>　':'')+esc(x.action_text)+'</td>'
+      +'<td class="mut" style="font-size:12px">'+(E.win_hint?'<span style="color:var(--bad)">⏳ '+esc(E.win_hint)+'</span> ':'')+(E.water_hint?'💧 '+esc(E.water_hint):'')+'</td></tr>';};
+  const ownBlock=own.length?'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">🏠 '+(H.is_leader?'他':'')+'自己的分店 <span class="mut" style="font-weight:400;font-size:13px">'+own.length+' 個——只看狀況，不用記跟進；做到了公司資料會自己消掉</span></div>'
+    +'<div class="scroll"><table><tbody>'+own.map(ownRow).join('')+'</tbody></table></div>':'';
   ls.innerHTML=
     '<div style="font-size:15px;font-weight:700;margin-bottom:6px">② 符合的有誰 <span class="mut" style="font-weight:400;font-size:13px">已跑出獨立循環 '+dn.length+' 個 → 配成 <b style="color:var(--ok)">'+pairs+' 組</b>'
       +(dsf.length?'（另有本人 '+dsf.length+'，不算左右）':'')+(risk?'　<span style="color:var(--bad)">⚠ '+risk+' 個資格有風險</span>':'')+'</span></div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+sideBox('左',dl)+sideBox('右',dr)+'</div>'
     +(weak?'<div style="margin-top:6px;color:var(--warn)">→ '+weak+'邊每補 1 個，就多 1 組（最多再 '+Math.abs(dl.length-dr.length)+' 組不用動大邊）</div>':'')
-    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">只差一件，下一步到期的排最前'
-      +'<span id="m3cnt">'+m3Count(m1)+'</span>'
+    +ownBlock
+    +'<div style="font-size:15px;font-weight:700;margin:16px 0 6px">③ 還差誰 <span class="mut" style="font-weight:400;font-size:13px">要去找的人，只差一件，下一步到期的排最前'
+      +'<span id="m3cnt">'+m3Count(pm1)+'</span>'
       +'</span></div>'
     +(weak?'<div class="mut" style="margin-bottom:4px">補'+weak+'邊會直接成組（'+w1.length+' 個，含下一步到期的）</div>':'')
     +(w1.length?tbl(w1):'<div class="mut">這一邊沒有只差一件的位置。</div>')
     +(o1.length?'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">另一邊（'+o1.length+' 個）——補了只是再單掛，先不急</summary>'+tbl(o1)+'</details>':'')
-    +'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">缺 2 件（'+m2.length+'）</summary>'+(m2.length?tbl(m2):'<div class="mut">無</div>')+'</details>';
+    +'<details style="margin-top:10px"><summary style="cursor:pointer" class="mut">缺 2 件（'+pm2.length+'）</summary>'+(pm2.length?tbl(pm2):'<div class="mut">無</div>')+'</details>';
+  MTG_P1=pm1;
 }
 // ===== 跟進（2026-09-28 架構定案）=====
 // 一筆＝時間／方式／負責人（將或你）＋記錄人／結論／註記／下一步（日期＋負責人＋要做什麼）
@@ -490,7 +502,7 @@ async function loadMeeting(id){
 const METHODS=['見面','電話','LINE訊息'];
 const CONCL=['未聯繫上','考慮中','卡關','答應','拒絕'];
 const FCOL={'未聯繫上':'var(--bad)','考慮中':'var(--warn)','卡關':'#d2a8ff','答應':'var(--ok)','拒絕':'var(--mut)'};
-let MTG_M1=[], MTG_M2=[], MTG_OWNERS=[], MTG_DEFAULT_OWNER='';
+let MTG_M1=[], MTG_M2=[], MTG_P1=[], MTG_OWNERS=[], MTG_DEFAULT_OWNER='';
 function fdate(s){ if(!s) return ''; const d=new Date(s); return isNaN(d)?String(s).slice(5).replace('-','/'):(d.getMonth()+1)+'/'+d.getDate(); }
 function findRow(id){ return MTG_M1.find(x=>x.member_id===id)||MTG_M2.find(x=>x.member_id===id); }
 // 推薦人是本人（自己的分店）或就是這位將 → 不顯示，免得叫他去請自己幫忙
@@ -573,7 +585,7 @@ async function saveFollow(btn,id){
   const x=findRow(id); if(x) x.follow=d.follow;
   const tr=f.previousElementSibling; f.remove();
   if(tr&&x){ tr.outerHTML=rowHTML(x); }
-  const c=document.getElementById('m3cnt'); if(c) c.innerHTML=m3Count(MTG_M1);
+  const c=document.getElementById('m3cnt'); if(c) c.innerHTML=m3Count(MTG_P1);
 }
 async function setTarget(){
   const v=document.getElementById('mtgAgreed').value.trim();
