@@ -388,7 +388,7 @@ function stLamp(r){ return r.target==null?'<span title="他還沒設自己的目
 // 建議＝Randoph 的看法，只當參考；owner 才能填，其他人唯讀
 function sugCell(r,can){
   if(!can) return r.suggested!=null?'<b>'+r.suggested+'</b>':'<span class="mut">—</span>';
-  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" data-hq="'+(r.tier==='總部'?1:0)+'" onchange="setSuggest(this)" style="width:62px;padding:4px 6px"> <span class="mut" style="font-size:12px"></span>';
+  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" data-hq="'+(r.tier==='總部'||r.tier==='我的分店'?1:0)+'" onchange="setSuggest(this)" style="width:62px;padding:4px 6px"> <span class="mut" style="font-size:12px"></span>';
 }
 async function setSuggest(el){
   const v=el.value.trim(), ok=el.nextElementSibling; ok.textContent='…';
@@ -429,7 +429,10 @@ async function loadBoard(){
   const risk=document.getElementById('bdRisk');
   risk.innerHTML=T.at_risk>0?'<span style="color:var(--bad)">🛡 已成裡有 <b>'+T.at_risk+'</b> 個資格失效或倒數中</span>':'';
   tb.innerHTML='';
+  let bcHdr=false;
   (d.rows||[]).forEach(r=>{
+    if(r.tier==='我的分店'&&!bcHdr){ bcHdr=true;  // 分店接在將後面：算在「我自己要補」裡，不進夥伴自訂
+      const h=document.createElement('tr'); h.innerHTML='<td colspan="10" class="mut" style="font-size:13px;padding-top:12px">🏠 我的分店（點將的都列；算在「我自己要補」裡）</td>'; tb.appendChild(h); }
     const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
     tr.innerHTML='<td><a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:12px">'+esc(r.tier||'')+'</span></td>'
       +'<td onclick="event.stopPropagation()" style="cursor:default">'+sugCell(r,T.can_suggest)+'</td>'
