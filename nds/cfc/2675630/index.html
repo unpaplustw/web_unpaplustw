@@ -169,7 +169,7 @@ a{text-decoration:none}
       <span><button class="btn sm" id="tsL" onclick="tacSide('左')">左線</button> <button class="btn sm ghost" id="tsR" onclick="tacSide('右')">右線</button>
       深度 <select id="tacDepth" class="inp" onchange="loadTac()" style="width:70px"><option>3</option><option selected>5</option><option>7</option><option>10</option><option>15</option></select></span>
     </summary>
-    <div class="mut" style="margin-top:4px">● 有方案　○ 沒方案　⚠ 倒數中　綠框＝已點將　灰點＝已解約（只當橋接）。點節點看會員卡。</div>
+    <div class="mut" style="margin-top:4px">● 有方案　○ 沒方案　⚠ 倒數中　綠框＝已點將。已解約的橋接已壓縮：虛線上標「已解約 N 層」＝中間跳過幾層；灰點＝已解約但左右都還有人的分岔。點節點看會員卡。</div>
     <div id="tacTree" class="scroll" style="margin-top:8px"></div>
   </details>
   <div class="card">
@@ -883,9 +883,25 @@ function renderTacTree(){
   const root=(d.me||{}).member_id;
   const kids={}; all.forEach(n=>{const k=(kids[n.parent]=kids[n.parent]||{}); const ps=n.pos||n.side||'左'; k[ps]=k[ps]||n;});
   const byId={}; all.forEach(n=>byId[n.member_id]=n);
+  // 壓縮已解約的橋接（Randoph 2026-09-28）：已解約且底下只剩一條線 → 跳過、把下面的人往上接，虛線標「已解約 N 層」。
+  // 已解約但左右兩邊都還有人 → 不能跳（兩人會擠同一格），留小灰點當分岔；已解約且底下沒人 → 不畫。
+  // 只看「底下真的還有活人」的分支（深度截斷處、整支都解約的直接不畫）
+  const HL={}, hasLive=id=>{ if(id in HL) return HL[id]; const n=byId[id], k=kids[id]||{};
+    return HL[id]=!!(n&&!n.dead)||[k['左'],k['右']].some(c=>c&&hasLive(c.member_id)); };
+  const live=id=>{const k=kids[id]||{};return [k['左'],k['右']].filter(c=>c&&hasLive(c.member_id));};
+  const K2={}, P2={}, SKIP={};
+  (function build(id){
+    const k=kids[id]||{}, out={};
+    ['左','右'].forEach(s=>{
+      let c=k[s]&&hasLive(k[s].member_id)?k[s]:null, n=0;
+      while(c&&c.dead){ const ch=live(c.member_id); if(ch.length===1){c=ch[0];n++;} else if(!ch.length){c=null;} else break; }
+      if(c){ out[s]=c; P2[c.member_id]=id; SKIP[c.member_id]=n; build(c.member_id); }
+    });
+    K2[id]=out;
+  })(root);
   const BW=92,BH=32,GX=12,GY=52; let col=0; const pos={};
   (function lay(id,dep){
-    const k=kids[id]||{}, Lc=k['左'], Rc=k['右'];
+    const k=K2[id]||{}, Lc=k['左'], Rc=k['右'];
     if(!Lc&&!Rc){pos[id]={x:col++,d:dep};return;}
     if(Lc)lay(Lc.member_id,dep+1);
     if(!Lc||!Rc)col++;
@@ -900,9 +916,10 @@ function renderTacTree(){
   const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+6;
   let lines='',boxes='';
   Object.keys(pos).forEach(id=>{
-    const n=byId[id], p=pos[id];
-    if(n&&pos[n.parent]){const pp=pos[n.parent];
-      lines+='<path d="M'+(X(pp)+BW/2)+','+(Y(pp)+BH)+' V'+(Y(p)-8)+' H'+(X(p)+BW/2)+' V'+Y(p)+'" fill="none" stroke="#2a3340" stroke-width="1.5"/>';}
+    const n=byId[id], p=pos[id], par=P2[id], sk=SKIP[id]||0;
+    if(n&&par&&pos[par]){const pp=pos[par];
+      lines+='<path d="M'+(X(pp)+BW/2)+','+(Y(pp)+BH)+' V'+(Y(p)-8)+' H'+(X(p)+BW/2)+' V'+Y(p)+'" fill="none" stroke="'+(sk?'#484f58':'#2a3340')+'" stroke-width="1.5"'+(sk?' stroke-dasharray="4 3"':'')+'/>';
+      if(sk) lines+='<text x="'+(X(p)+BW/2+4)+'" y="'+(Y(p)-11)+'" font-size="10" fill="#6e7681">已解約 '+sk+' 層</text>';}
     const isRoot=!n;
     if(n&&n.dead){ boxes+='<g onclick="openCard(\''+n.member_id+'\')" style="cursor:pointer"><circle cx="'+(X(p)+BW/2)+'" cy="'+(Y(p)+BH/2)+'" r="5" fill="#30363d"/><title>已解約 '+esc(n.name||'')+' '+n.member_id+'</title></g>'; return; }
     const mark = isRoot?'':(n.cd?'⚠':(n.has_plan?'●':'○'));
