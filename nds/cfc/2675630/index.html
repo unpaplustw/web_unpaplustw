@@ -116,9 +116,9 @@ a{text-decoration:none}
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div id="bdRisk" style="margin-top:8px"></div>
     <div class="scroll" style="margin-top:10px"><table>
-      <thead><tr><th>將</th><th>目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>逾期</th><th>狀態</th></tr></thead>
+      <thead><tr><th>將</th><th title="你的看法，只當參考，不算進差額">建議</th><th title="作戰會議談定後，在戰術板調整">目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>逾期</th><th>狀態</th></tr></thead>
       <tbody id="bdRows"></tbody></table></div>
-    <div class="mut" style="margin-top:6px;font-size:13px">紅字＝小邊，補那邊才多一組。點將名開戰術板。</div>
+    <div class="mut" style="margin-top:6px;font-size:13px">建議＝你的看法，直接填、只當參考；目標＝開會談定後在戰術板調整。紅字＝小邊，補那邊才多一組。點將名開戰術板。</div>
   </div>
 </div>
 <div id="v-ppl" class="hidden">
@@ -385,6 +385,18 @@ async function boardApi(extra){
 // 目標是各將自己設的，不由上往下分攤；沒設就是沒設，不預填
 function tgtCell(r){ return r.agreed!=null?'<b>'+r.agreed+'</b>':'<span class="mut">未設定</span>'; }
 function stLamp(r){ return r.target==null?'<span title="他還沒設自己的目標">⚪</span>':r.status; }
+// 建議＝Randoph 的看法，只當參考；owner 才能填，其他人唯讀
+function sugCell(r,can){
+  if(!can) return r.suggested!=null?'<b>'+r.suggested+'</b>':'<span class="mut">—</span>';
+  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" data-hq="'+(r.tier==='總部'?1:0)+'" onchange="setSuggest(this)" style="width:62px;padding:4px 6px"> <span class="mut" style="font-size:12px"></span>';
+}
+async function setSuggest(el){
+  const v=el.value.trim(), ok=el.nextElementSibling; ok.textContent='…';
+  const d=await boardApi({action:'set_suggest',member_id:el.dataset.id,suggested:v});
+  ok.textContent=d&&d.success?'✓':'✗ '+((d&&d.message)||'失敗'); ok.style.color=d&&d.success?'var(--ok)':'var(--bad)';
+  const sum=[...document.querySelectorAll('#bdRows input[data-id]')].filter(i=>i.dataset.hq!=='1').reduce((a,i)=>a+(parseInt(i.value)||0),0);
+  const s=document.getElementById('sugSum'); if(s) s.textContent=sum;
+}
 // 星等用「成就」算（左右取小邊），不是用組推——成就才是真正計分
 function starOf(n){ n=n||0; return n>=12?'十二星':n>=9?'九星':n>=7?'七星':n>=5?'五星':n>=3?'三星':n>=1?'一星':'零星'; }
 // 左·右：弱邊標紅（組＝取小邊，弱邊補一個才多一組）；本人不算左右
@@ -394,9 +406,9 @@ function sideCell(r){
     +(r.spare>0?' <span class="mut" style="font-size:12px">單掛 '+r.spare+'</span>':'');
 }
 async function loadBoard(){
-  const tb=document.getElementById('bdRows'); tb.innerHTML='<tr><td colspan="9" class="mut">載入中…</td></tr>';
+  const tb=document.getElementById('bdRows'); tb.innerHTML='<tr><td colspan="10" class="mut">載入中…</td></tr>';
   const d=await boardApi({});
-  if(!d||d.success!==true){tb.innerHTML='<tr><td colspan="9" class="mut">'+esc((d&&d.message)||'讀取失敗')+'</td></tr>';return;}
+  if(!d||d.success!==true){tb.innerHTML='<tr><td colspan="10" class="mut">'+esc((d&&d.message)||'讀取失敗')+'</td></tr>';return;}
   const T=d.top||{};
   document.getElementById('bdAsof').textContent='（訂單 '+(T.as_of||'')+' ・ CSV '+(T.snap||'')+' ・ 今天 '+(T.today||'')+'）';
   const S=T.star||{}, myp=S.my_pairs||0;
@@ -406,7 +418,7 @@ async function loadBoard(){
     +'<div style="margin-top:4px">📐 <b>組</b>　左線 <b>'+(S.my_fc_l??'—')+'</b> ・ 右線 <b>'+(S.my_fc_r??'—')+'</b> → <b>'+myp+' 組</b></div>';
   const top=document.getElementById('bdTop'); top.innerHTML='';
   [['我的方向','<b style="font-size:26px">'+(T.target||80)+'</b><span class="mut"> 組</span>','#e8ecf1'],
-   ['夥伴自訂','<b style="font-size:26px">'+(T.partner_sum||0)+'</b><span class="mut"> 組（'+(T.set_count||0)+'/'+(T.leader_count||0)+'）</span>','#4f8cff'],
+   ['夥伴自訂','<b style="font-size:26px">'+(T.partner_sum||0)+'</b><span class="mut"> 組（'+(T.set_count||0)+'/'+(T.leader_count||0)+'）</span><div class="mut" style="font-size:12px">你建議 <b id="sugSum">'+(T.suggest_sum||0)+'</b> 組</div>','#4f8cff'],
    ['我自己要補','<b style="font-size:26px">'+(T.my_gap??0)+'</b><span class="mut"> 組</span>','#ffb020'],
    ['分店已規劃','<b style="font-size:26px">'+(T.mybc_sum||0)+'</b><span class="mut"> 組</span>','#a371f7'],
    ['各將已成','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> 組</span>','#37c978'],
@@ -420,13 +432,14 @@ async function loadBoard(){
   (d.rows||[]).forEach(r=>{
     const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
     tr.innerHTML='<td><a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:12px">'+esc(r.tier||'')+'</span></td>'
+      +'<td onclick="event.stopPropagation()" style="cursor:default">'+sugCell(r,T.can_suggest)+'</td>'
       +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+sideCell(r)+'</td><td>'+(r.gap==null?'—':r.gap)+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td>'
       +'<td>'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)">本週到期 '+r.due_week+'</b>':'')+'</td>'
       +'<td>'+(r.overdue>0?'<b style="color:var(--bad)">'+r.overdue+'</b>':'<span class="mut">—</span>')+'</td>'
       +'<td style="font-size:18px">'+stLamp(r)+'</td>';
     tb.appendChild(tr);
   });
-  if(!tb.children.length) tb.innerHTML='<tr><td colspan="9" class="mut">沒有領袖資料。</td></tr>';
+  if(!tb.children.length) tb.innerHTML='<tr><td colspan="10" class="mut">沒有領袖資料。</td></tr>';
 }
 let MTG_ID=null, MTG_SEQ=0;
 async function loadMeeting(id){
@@ -439,11 +452,12 @@ async function loadMeeting(id){
   {  // 領袖、我的分店、任何位置都用同一套：都能設自己的目標
     const who = H.is_leader?esc(H.name):nmb(H.name,H.member_id);
     const scope = H.is_leader?('歸戶 '+H.alive+' 個活位置'):('安置樹底下 '+H.alive+' 個活位置');
-    const hint = H.is_mybc?'我自己這個分店這期要扛幾組':'他自己定的數';
+    const hint = H.is_mybc?'我自己這個分店這期要扛幾組':'會議上跟他談定再填';
+    const sug = H.suggested!=null?'<span style="color:#a371f7">你的建議 <b>'+H.suggested+'</b> 組</span> ・ ':'';
     hd.innerHTML='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
       +'<div style="font-size:17px;font-weight:700">'+stLamp(H)+' '+who+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(H.tier||'')+' ・ '+scope+'</span></div>'
       +'<div>目標設定 <input id="mtgAgreed" class="inp" type="number" min="0" style="width:74px;padding:6px 8px" value="'+(H.agreed!=null?H.agreed:'')+'" placeholder="'+(H.pool_pairs||0)+'"> 組 '
-      +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">'+hint+'；參考：目前池子配得出 '+(H.pool_pairs||0)+' 組'+(H.agreed_at?' ・ 定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
+      +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">'+sug+hint+'；參考：目前池子配得出 '+(H.pool_pairs||0)+' 組'+(H.agreed_at?' ・ 定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
       +'</div>'
       +'<div style="font-size:15px;font-weight:700;margin-top:12px">① 要幾組 <span class="mut" style="font-weight:400;font-size:13px">一組＝'+(H.is_mybc?'這個分店':'他自己')+'樹的左右各一個獨立循環</span></div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">'
