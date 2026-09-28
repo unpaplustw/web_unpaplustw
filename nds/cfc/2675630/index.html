@@ -27,6 +27,7 @@ select.inp{padding:8px}
 .mut{color:var(--mut)}
 /* 觸控與捲動 */
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#bdSides th,#bdSides td{padding:6px 5px;font-size:13px}
 .tab,.btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 a{text-decoration:none}
 /* 平板（含直式 iPad） */
@@ -115,7 +116,7 @@ a{text-decoration:none}
     <div id="bdStar" style="margin-top:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#12171d"></div>
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div id="bdRisk" style="margin-top:8px"></div>
-    <div id="bdSides" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(560px,100%),1fr));gap:12px;margin-top:10px"></div>
+    <div id="bdSides" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(470px,100%),1fr));gap:12px;margin-top:10px"></div>
     <div class="mut" style="margin-top:6px;font-size:13px">組＝各自安置樹左右取小邊，上下線重疊、不加總。覆蓋＝每條線最上層有填的人 ×2。建議在這裡填，目標在戰術板開會後調整。缺1件／逾期照推薦線歸戶。點名字開戰術板。</div>
   </div>
 </div>
@@ -381,12 +382,12 @@ async function boardApi(extra){
   return r.json();
 }
 // 目標是各將自己設的，不由上往下分攤；沒設就是沒設，不預填
-function tgtCell(r){ return r.agreed!=null?'<b>'+r.agreed+'</b>':'<span class="mut">未設定</span>'; }
+function tgtCell(r){ return r.agreed!=null?'<b>'+r.agreed+'</b>':'<span class="mut" title="還沒設定">—</span>'; }
 function stLamp(r){ return r.target==null?'<span title="他還沒設自己的目標">⚪</span>':r.status; }
 // 建議＝Randoph 的看法，只當參考；owner 才能填，其他人唯讀
 function sugCell(r,can){
   if(!can) return r.suggested!=null?'<b>'+r.suggested+'</b>':'<span class="mut">—</span>';
-  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" onchange="setSuggest(this)" style="width:56px;padding:4px 6px"><span class="mut" style="font-size:12px;margin-left:3px"></span>';
+  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" onchange="setSuggest(this)" style="width:48px;padding:4px 6px"><span class="mut" style="font-size:12px;margin-left:3px"></span>';
 }
 async function setSuggest(el){
   const v=el.value.trim(), ok=el.nextElementSibling; ok.textContent='…';
@@ -455,7 +456,7 @@ async function loadBoard(){
       +'<div id="cov'+s+'" class="mut" style="font-size:13px;margin:2px 0 6px"></div>'
       +'<div class="scroll"><table><thead><tr><th>人</th><th title="你的看法，只當參考">建議</th><th title="作戰會議談定後，在戰術板調整">目標</th><th>已成</th><th>差</th><th>缺1件</th><th>逾期</th><th></th></tr></thead><tbody>'
       +(ord.length?ord.map(([r,dep])=>'<tr style="cursor:pointer" onclick="openTac(\''+esc(r.member_id)+'\')">'
-        +'<td style="white-space:nowrap;padding-left:'+(6+dep*16)+'px">'+(dep?'<span class="mut">└ </span>':'')+'<a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:11px">'+esc(r.tier||'')+'</span></td>'
+        +'<td style="white-space:nowrap;padding-left:'+(5+dep*12)+'px">'+(dep?'<span class="mut">└ </span>':'')+'<a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:11px">'+esc(r.tier==='我的分店'?'分店':(r.tier||''))+'</span></td>'
         +'<td onclick="event.stopPropagation()" style="cursor:default;white-space:nowrap">'+sugCell(r,T.can_suggest)+'</td>'
         +'<td>'+tgtCell(r)+'</td><td style="white-space:nowrap">'+doneCell(r)+'</td><td>'+(r.gap==null?'—':r.gap)+'</td>'
         +'<td style="white-space:nowrap">'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)" title="本週到重消">⏰'+r.due_week+'</b>':'')+'</td>'
