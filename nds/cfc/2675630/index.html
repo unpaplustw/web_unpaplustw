@@ -115,10 +115,8 @@ a{text-decoration:none}
     <div id="bdStar" style="margin-top:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#12171d"></div>
     <div id="bdTop" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
     <div id="bdRisk" style="margin-top:8px"></div>
-    <div class="scroll" style="margin-top:10px"><table>
-      <thead><tr><th>將</th><th title="你的看法，只當參考，不算進差額">建議</th><th title="作戰會議談定後，在戰術板調整">目標（組）</th><th>已成（組）</th><th>左 · 右</th><th>差</th><th>這週要</th><th>缺 1 件</th><th>逾期</th><th>狀態</th></tr></thead>
-      <tbody id="bdRows"></tbody></table></div>
-    <div class="mut" style="margin-top:6px;font-size:13px">建議＝你的看法，直接填、只當參考；目標＝開會談定後在戰術板調整。紅字＝小邊，補那邊才多一組。點將名開戰術板。</div>
+    <div id="bdSides" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(560px,100%),1fr));gap:12px;margin-top:10px"></div>
+    <div class="mut" style="margin-top:6px;font-size:13px">組＝各自安置樹左右取小邊，上下線重疊、不加總。覆蓋＝每條線最上層有填的人 ×2。建議在這裡填，目標在戰術板開會後調整。缺1件／逾期照推薦線歸戶。點名字開戰術板。</div>
   </div>
 </div>
 <div id="v-ppl" class="hidden">
@@ -388,61 +386,86 @@ function stLamp(r){ return r.target==null?'<span title="他還沒設自己的目
 // 建議＝Randoph 的看法，只當參考；owner 才能填，其他人唯讀
 function sugCell(r,can){
   if(!can) return r.suggested!=null?'<b>'+r.suggested+'</b>':'<span class="mut">—</span>';
-  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" data-hq="'+(r.tier==='總部'||r.tier==='我的分店'?1:0)+'" onchange="setSuggest(this)" style="width:62px;padding:4px 6px"> <span class="mut" style="font-size:12px"></span>';
+  return '<input class="inp" type="number" min="0" value="'+(r.suggested!=null?r.suggested:'')+'" data-id="'+esc(r.member_id)+'" onchange="setSuggest(this)" style="width:56px;padding:4px 6px"><span class="mut" style="font-size:12px;margin-left:3px"></span>';
 }
 async function setSuggest(el){
   const v=el.value.trim(), ok=el.nextElementSibling; ok.textContent='…';
   const d=await boardApi({action:'set_suggest',member_id:el.dataset.id,suggested:v});
   ok.textContent=d&&d.success?'✓':'✗ '+((d&&d.message)||'失敗'); ok.style.color=d&&d.success?'var(--ok)':'var(--bad)';
-  const sum=[...document.querySelectorAll('#bdRows input[data-id]')].filter(i=>i.dataset.hq!=='1').reduce((a,i)=>a+(parseInt(i.value)||0),0);
-  const s=document.getElementById('sugSum'); if(s) s.textContent=sum;
+  if(d&&d.success){ const r=BD.rows.find(x=>x.member_id===el.dataset.id); if(r) r.suggested=v===''?null:parseInt(v,10); renderCover(); }
 }
 // 星等用「成就」算（左右取小邊），不是用組推——成就才是真正計分
 function starOf(n){ n=n||0; return n>=12?'十二星':n>=9?'九星':n>=7?'七星':n>=5?'五星':n>=3?'三星':n>=1?'一星':'零星'; }
-// 左·右：弱邊標紅（組＝取小邊，弱邊補一個才多一組）；本人不算左右
-function sideCell(r){
-  const w=v=>'<b'+(v===Math.min(r.done_l,r.done_r)&&r.done_l!==r.done_r?' style="color:var(--bad)"':'')+'>'+v+'</b>';
-  return w(r.done_l)+' · '+w(r.done_r)+(r.done_self?' <span class="mut" style="font-size:12px">＋本人</span>':'')
-    +(r.spare>0?' <span class="mut" style="font-size:12px">單掛 '+r.spare+'</span>':'');
+// 已成：他自己安置樹的左·右 → 組（小邊標紅）；上下線重疊，不加總
+function doneCell(r){
+  const w=v=>'<span'+(v===Math.min(r.done_l,r.done_r)&&r.done_l!==r.done_r?' style="color:var(--bad)"':'')+'>'+v+'</span>';
+  return '<b>'+r.done+'</b> 組 <span class="mut" style="font-size:12px">'+w(r.done_l)+'·'+w(r.done_r)+(r.done_self?' ＋本人':'')+'</span>';
 }
+// 覆蓋：同一條線上，最上層有填的人 ×2（他左右各 N 個＝落在你這條線至少 2N 個）；他底下的人已經包含在內，不重算
+function coverOf(side,key){
+  const rows=BD.rows.filter(r=>r.side===side), by=Object.fromEntries(rows.map(r=>[r.member_id,r]));
+  let sum=0;
+  rows.forEach(r=>{ if(r[key]==null) return;
+    for(let p=r.parent_id;p&&by[p];p=by[p].parent_id) if(by[p][key]!=null) return;
+    sum+=2*r[key]; });
+  return sum;
+}
+function renderCover(){
+  ['左','右'].forEach(s=>{ const el=document.getElementById('cov'+s); if(!el) return;
+    const f=(k,v)=>k+' <b style="color:'+(v>=BD.need?'var(--ok)':'var(--warn)')+'">'+v+'</b>／'+BD.need+(v>=BD.need?' ✅':'');
+    el.innerHTML=f('建議覆蓋',coverOf(s,'suggested'))+' ・ '+f('目標覆蓋',coverOf(s,'target')); });
+}
+let BD={rows:[],need:80,L:0,R:0};
 async function loadBoard(){
-  const tb=document.getElementById('bdRows'); tb.innerHTML='<tr><td colspan="10" class="mut">載入中…</td></tr>';
+  const box=document.getElementById('bdSides'); box.innerHTML='<div class="mut">載入中…</div>';
   const d=await boardApi({});
-  if(!d||d.success!==true){tb.innerHTML='<tr><td colspan="10" class="mut">'+esc((d&&d.message)||'讀取失敗')+'</td></tr>';return;}
+  if(!d||d.success!==true){box.innerHTML='<div class="mut">'+esc((d&&d.message)||'讀取失敗')+'</div>';return;}
   const T=d.top||{};
   document.getElementById('bdAsof').textContent='（訂單 '+(T.as_of||'')+' ・ CSV '+(T.snap||'')+' ・ 今天 '+(T.today||'')+'）';
   const S=T.star||{}, myp=S.my_pairs||0;
   const al=S.ach_l??0, ar=S.ach_r??0;
   document.getElementById('bdStar').innerHTML=
     '<div>⭐ <b>成就</b>　左 <b>'+al+'</b>／12 ・ 右 <b>'+ar+'</b>／12 → <b style="color:var(--ok)">'+starOf(Math.min(al,ar))+'</b> <span class="mut" style="font-size:12px">（後台會落後）</span></div>'
-    +'<div style="margin-top:4px">📐 <b>組</b>　左線 <b>'+(S.my_fc_l??'—')+'</b> ・ 右線 <b>'+(S.my_fc_r??'—')+'</b> → <b>'+myp+' 組</b></div>';
+    +'<div style="margin-top:4px">📐 <b>組</b>　左線 <b>'+(S.my_fc_l??'—')+'</b> ・ 右線 <b>'+(S.my_fc_r??'—')+'</b> → <b>'+myp+' 組</b> <span class="mut" style="font-size:12px">（官方現況）</span></div>';
+  // 你（root）這期：左線、右線各要 need 個；組＝取小邊
+  const need=T.target||80, L=T.root_l||0, R=T.root_r||0, weak=L<R?'左':(R<L?'右':null);
+  BD={rows:d.rows||[],need,L,R};
   const top=document.getElementById('bdTop'); top.innerHTML='';
-  [['我的方向','<b style="font-size:26px">'+(T.target||80)+'</b><span class="mut"> 組</span>','#e8ecf1'],
-   ['夥伴自訂','<b style="font-size:26px">'+(T.partner_sum||0)+'</b><span class="mut"> 組（'+(T.set_count||0)+'/'+(T.leader_count||0)+'）</span><div class="mut" style="font-size:12px">你建議 <b id="sugSum">'+(T.suggest_sum||0)+'</b> 組</div>','#4f8cff'],
-   ['我自己要補','<b style="font-size:26px">'+(T.my_gap??0)+'</b><span class="mut"> 組</span>','#ffb020'],
-   ['分店已規劃','<b style="font-size:26px">'+(T.mybc_sum||0)+'</b><span class="mut"> 組</span>','#a371f7'],
-   ['各將已成','<b style="font-size:26px">'+(T.done||0)+'</b><span class="mut"> 組</span>','#37c978'],
-   ['本週到重消','<b style="font-size:26px">'+(T.due_week||0)+'</b>','#ff5d5d'],
-   ['剩','<b style="font-size:26px">'+(T.days_left??'—')+'</b><span class="mut"> 天</span>','#e8ecf1']
-  ].forEach(([k,v,col])=>{const el=document.createElement('div');el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:120px;color:'+col;
+  const big=(v,u,fs)=>'<b style="font-size:'+(fs||26)+'px">'+v+'</b><span class="mut">'+u+'</span>';
+  [['左線'+(weak==='左'?'（小邊）':''),big(L,'／'+need),weak==='左'?'#ff5d5d':'#e8ecf1'],
+   ['右線'+(weak==='右'?'（小邊）':''),big(R,'／'+need),weak==='右'?'#ff5d5d':'#e8ecf1'],
+   ['組',big(Math.min(L,R),'／'+need+' 組'),'#37c978'],
+   ['還差',big('左 '+Math.max(0,need-L)+' ・ 右 '+Math.max(0,need-R),' 個',20),'#ffb020'],
+   ['本週到重消',big(T.due_week||0,''),'#ff5d5d'],
+   ['剩',big(T.days_left??'—',' 天'),'#e8ecf1']
+  ].forEach(([k,v,col])=>{const el=document.createElement('div');el.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:110px;color:'+col;
     el.innerHTML='<div class="mut" style="font-size:12px">'+k+'</div><div>'+v+'</div>';top.appendChild(el);});
   const risk=document.getElementById('bdRisk');
-  risk.innerHTML=T.at_risk>0?'<span style="color:var(--bad)">🛡 已成裡有 <b>'+T.at_risk+'</b> 個資格失效或倒數中</span>':'';
-  tb.innerHTML='';
-  let bcHdr=false;
-  (d.rows||[]).forEach(r=>{
-    if(r.tier==='我的分店'&&!bcHdr){ bcHdr=true;  // 分店接在將後面：算在「我自己要補」裡，不進夥伴自訂
-      const h=document.createElement('tr'); h.innerHTML='<td colspan="10" class="mut" style="font-size:13px;padding-top:12px">🏠 我的分店（點將的都列；算在「我自己要補」裡）</td>'; tb.appendChild(h); }
-    const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.onclick=()=>openTac(r.member_id);
-    tr.innerHTML='<td><a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:12px">'+esc(r.tier||'')+'</span></td>'
-      +'<td onclick="event.stopPropagation()" style="cursor:default">'+sugCell(r,T.can_suggest)+'</td>'
-      +'<td>'+tgtCell(r)+'</td><td><b>'+r.done+'</b></td><td>'+sideCell(r)+'</td><td>'+(r.gap==null?'—':r.gap)+'</td><td>'+(r.weekly>0?'+'+r.weekly:'—')+'</td>'
-      +'<td>'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)">本週到期 '+r.due_week+'</b>':'')+'</td>'
-      +'<td>'+(r.overdue>0?'<b style="color:var(--bad)">'+r.overdue+'</b>':'<span class="mut">—</span>')+'</td>'
-      +'<td style="font-size:18px">'+stLamp(r)+'</td>';
-    tb.appendChild(tr);
-  });
-  if(!tb.children.length) tb.innerHTML='<tr><td colspan="10" class="mut">沒有領袖資料。</td></tr>';
+  risk.innerHTML=(T.hq_miss1>0?'<a href="javascript:openTac(\''+esc(T.root_id)+'\')" style="color:#58a6ff">🏢 總部直屬（沒歸到將的）缺 1 件 <b>'+T.hq_miss1+'</b>'
+      +(T.hq_overdue>0?' ・ 逾期 <b style="color:var(--bad)">'+T.hq_overdue+'</b>':'')+' → 開戰術板</a>':'')
+    +(T.at_risk>0?'　<span style="color:var(--bad)">🛡 已成裡有 <b>'+T.at_risk+'</b> 個資格失效或倒數中</span>':'');
+  // 左右兩線：照安置樹排，上線在上、下線縮排
+  const sideTbl=s=>{
+    const rows=BD.rows.filter(r=>r.side===s), ids=new Set(rows.map(r=>r.member_id)), kids={};
+    rows.forEach(r=>{const p=ids.has(r.parent_id)?r.parent_id:''; (kids[p]=kids[p]||[]).push(r);});
+    const ord=[], walk=(p,dep)=>(kids[p]||[]).sort((a,b)=>b.done-a.done||b.alive-a.alive).forEach(r=>{ord.push([r,dep]);walk(r.member_id,dep+1);});
+    walk('',0);
+    return '<div style="border:1px solid '+(weak===s?'var(--bad)':'var(--line)')+';border-radius:10px;padding:8px 10px;min-width:0">'
+      +'<div style="font-weight:700">'+s+'線 <b style="font-size:18px">'+(s==='左'?L:R)+'</b>／'+need+(weak===s?' <span style="color:var(--bad);font-size:13px">小邊</span>':'')+'</div>'
+      +'<div id="cov'+s+'" class="mut" style="font-size:13px;margin:2px 0 6px"></div>'
+      +'<div class="scroll"><table><thead><tr><th>人</th><th title="你的看法，只當參考">建議</th><th title="作戰會議談定後，在戰術板調整">目標</th><th>已成</th><th>差</th><th>缺1件</th><th>逾期</th><th></th></tr></thead><tbody>'
+      +(ord.length?ord.map(([r,dep])=>'<tr style="cursor:pointer" onclick="openTac(\''+esc(r.member_id)+'\')">'
+        +'<td style="white-space:nowrap;padding-left:'+(6+dep*16)+'px">'+(dep?'<span class="mut">└ </span>':'')+'<a href="javascript:void 0" style="color:#58a6ff;font-weight:600">'+esc(r.name)+'</a> <span class="mut" style="font-size:11px">'+esc(r.tier||'')+'</span></td>'
+        +'<td onclick="event.stopPropagation()" style="cursor:default;white-space:nowrap">'+sugCell(r,T.can_suggest)+'</td>'
+        +'<td>'+tgtCell(r)+'</td><td style="white-space:nowrap">'+doneCell(r)+'</td><td>'+(r.gap==null?'—':r.gap)+'</td>'
+        +'<td style="white-space:nowrap">'+r.miss1+(r.due_week>0?' <b style="color:var(--bad)" title="本週到重消">⏰'+r.due_week+'</b>':'')+'</td>'
+        +'<td>'+(r.overdue>0?'<b style="color:var(--bad)">'+r.overdue+'</b>':'<span class="mut">—</span>')+'</td>'
+        +'<td style="font-size:16px">'+stLamp(r)+'</td></tr>').join('')
+        :'<tr><td colspan="8" class="mut">這條線還沒有將或分店。</td></tr>')
+      +'</tbody></table></div></div>';
+  };
+  box.innerHTML=sideTbl('左')+sideTbl('右');
+  renderCover();
 }
 let MTG_ID=null, MTG_SEQ=0;
 async function loadMeeting(id){
@@ -454,7 +477,7 @@ async function loadMeeting(id){
   const H=d.head||{}, T=d.top||{};
   {  // 領袖、我的分店、任何位置都用同一套：都能設自己的目標
     const who = H.is_leader?esc(H.name):nmb(H.name,H.member_id);
-    const scope = H.is_leader?('歸戶 '+H.alive+' 個活位置'):('安置樹底下 '+H.alive+' 個活位置');
+    const scope = '安置樹底下 '+H.alive+' 個活位置';  // ①② 都照安置樹算（跟戰情室同一套）；③ 將才照歸戶
     const hint = H.is_mybc?'我自己這個分店這期要扛幾組':'會議上跟他談定再填';
     const sug = H.suggested!=null?'<span style="color:#a371f7">你的建議 <b>'+H.suggested+'</b> 組</span> ・ ':'';
     hd.innerHTML='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
