@@ -1136,14 +1136,19 @@ function renderCard(d){
       <td>${t.max_depth?t.max_depth+' 代':'—'}</td></tr>`).join('')+'</tbody></table></div>'
       +(dTot?'<div class="mut" style="font-size:13px;margin-top:4px">另有 '+dTot+' 個已解約位置，不列入計算</div>':'');
   }
+  // ④～⑦ 是「人」的資料（一個人不會分割），只在本人主卡（-001）出現；分店卡只留一行指回主卡（Randoph 2026-09-28）
+  const mainId=b.member_id.split('-')[0]+'-001', isMain=b.member_id===mainId;
   document.getElementById('mcBody').innerHTML =
      mcBlk('mcB1','①','身分與位置','公司 CSV／組織圖',false)
     +mcBlk('mcB2','②','考核與水位','公司採集（每週）',true)
     +mcBlk('mcB3','③','跟進','戰術板（你）／將的 LINE 名單',true)
-    +mcBlk('mcB4','④','進程','care.html（經營者幫記／本人自填）',false)
-    +mcBlk('mcB5','⑤','服用','care.html 服用計畫／dose.html 每天回報',false)
-    +mcBlk('mcB6','⑥','名單','care.html',false)
-    +mcBlk('mcB7','⑦','他主動說的','dose.html 留言／care.html 建議',false)
+    +(isMain
+      ? mcBlk('mcB4','④','進程','care.html（經營者幫記／本人自填）',false)
+       +mcBlk('mcB5','⑤','服用','care.html 服用計畫／dose.html 每天回報',false)
+       +mcBlk('mcB6','⑥','名單','care.html',false)
+       +mcBlk('mcB7','⑦','他主動說的','dose.html 留言／care.html 建議',false)
+      : '<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>④～⑦ 進程・服用・名單・他主動說的</b>　<span class="mut" style="font-size:13px">是「人」的資料，分店沒有——看本人 </span>'
+       +'<a href="javascript:openCard(\''+esc(mainId)+'\')" style="color:var(--acc);font-weight:600">'+esc(b.name)+'-001 的會員卡</a></div>')
     +'<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>⑧ 跟 OA 的對話</b>　<span class="mut" style="font-size:12px">📥 LINE AI　— 管道未開（會員綁定 LINE 後再接）</span></div>'
     +mcBlk('mcB9','⑨','他的組織','公司採集',false);
   // ①
@@ -1176,7 +1181,7 @@ function renderCard(d){
      </div>
      <div id="treeBox" class="scroll" style="max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:#0d1116">${treeSVG(b,d.nodes)}</div>
      <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　｜已解約：底下沒人的整支不畫；只剩一條線的壓縮（虛線標「已解約 N 層」）；左右都還有人的留小灰點　｜點方塊開那個人的卡</div>`);
-  loadBcMap(b.member_id); loadGates(b.member_id); loadPerson(b.member_id);
+  loadBcMap(b.member_id); loadGates(b.member_id); if(isMain) loadPerson(b.member_id);
 }
 async function loadGates(id){
   const el=document.getElementById('mcGates'); if(!el)return;
