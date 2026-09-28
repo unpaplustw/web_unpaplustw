@@ -1076,19 +1076,35 @@ function openCard(id,depth){
     body:JSON.stringify({p:{...CRED,member_id:id,depth:depth||4}})}).then(r=>r.json()).then(renderCard);
 }
 function closeCard(){document.getElementById('mcard').classList.add('hidden');}
-function pm(n){return {0:'❌已解約',1:'自動扣款',2:'匯款',3:'預購一次付',4:'信用卡'}[n]||('代碼'+n);}
+function pm(n){ if(n==null||n==='') return '—'; return {0:'❌已解約',1:'自動扣款',2:'匯款',3:'預購一次付',4:'信用卡'}[n]||('代碼'+n);}
+// ===== 會員卡：九個區塊（2026-09-28 Randoph 定案）=====
+// 依「這是什麼事實」分塊，不依來源；每塊標題寫「📥 進來的管道・最後更新」。
+// ④～⑦ 是會員自述內容（健康、名單），沿用健康線隱私規則：只有 owner 帳號看得到。
+function mcBlk(id,num,title,chan,open){
+  return '<details id="'+id+'" class="card"'+(open?' open':'')+' style="margin-bottom:10px;padding:10px 14px">'
+    +'<summary style="cursor:pointer"><b>'+num+' '+title+'</b>　<span class="mut" style="font-size:12px">📥 '+chan+'<span class="mcu"></span></span></summary>'
+    +'<div class="mcb" style="margin-top:8px"><span class="mut">載入中…</span></div></details>';
+}
+function mcFill(id,html,upd,open){ const el=document.getElementById(id); if(!el)return;
+  el.querySelector('.mcb').innerHTML=html; if(upd) el.querySelector('.mcu').textContent='　最後更新 '+upd;
+  if(open!==undefined) el.open=open; }
+function mcEmpty(id,msg){ const el=document.getElementById(id); if(!el)return;
+  el.open=false; el.querySelector('.mcb').innerHTML='<span class="mut">'+msg+'</span>';
+  el.querySelector('.mcu').textContent='　— '+msg; }
+const mcUpd=u=>u&&u.at?fdate(u.at)+(u.by?'・'+u.by:''):'';
+
 function renderCard(d){
   if(!d.success){document.getElementById('mcHead').innerHTML='<b>'+esc(d.message||'讀取失敗')+'</b>';return;}
   CARD_D=d; TREE_SIDE='左';
   const b=d.base, isBC=b.sponsor_member_id&&b.sponsor_member_id.split('-')[0]===b.member_id.split('-')[0];
   const dead=b.payment_method===0;
+  // ① 標題列：編號・線・入會・歸戶將・推薦人
   document.getElementById('mcHead').innerHTML=
     `<div style="font-size:20px;font-weight:700">${esc(b.name)} ${dead?'<span style="color:var(--bad);font-size:13px">已解約</span>':''}</div>
-     <div class="mut">${esc(b.member_id)}${b.verify_status?' <span style="background:#3a2f18;color:var(--warn);border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">⚠️ 待核對</span>':''}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）｜歸戶 <b>${esc(b.route_leader)}</b></div>`;
+     <div class="mut">${esc(b.member_id)}${b.verify_status?' <span style="background:#3a2f18;color:var(--warn);border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700">⚠️ 待核對</span>':''}｜<b>${esc(b.leg||'?')}線</b>｜入會 ${esc(b.registered_at)}（${b.tenure_months} 個月）｜歸戶 <b>${esc(b.route_leader)}</b>｜推薦人 ${b.sponsor_member_id?(isBC?'本人分店':esc(b.sponsor_name||'')):'—'}</div>`;
   const dot=v=>v==='1'?'<span style="color:var(--ok)">●</span>':'<span style="color:#484f58">○</span>';
   const cd=b.auto_cancel_days?`<div style="background:#3d1418;border:1px solid var(--bad);border-radius:8px;padding:9px;margin-bottom:10px">
      🚨 <b style="color:var(--bad)">自動解約倒數 ${esc(b.auto_cancel_days)}</b>　<span class="mut">歸零後位置永久消失、編號不可回收</span></div>`:'';
-  // 機會名單
   let hope='<div class="mut">底下目前沒有明顯好切入的人。</div>';
   if((d.hopes||[]).length){
     hope='<div class="scroll"><table><thead><tr><th>對象</th><th>線</th><th>代</th><th>為什麼好切入</th></tr></thead><tbody>'+
@@ -1120,10 +1136,25 @@ function renderCard(d){
       <td>${t.max_depth?t.max_depth+' 代':'—'}</td></tr>`).join('')+'</tbody></table></div>'
       +(dTot?'<div class="mut" style="font-size:13px;margin-top:4px">另有 '+dTot+' 個已解約位置，不列入計算</div>':'');
   }
-  document.getElementById('mcBody').innerHTML = cd + intentBox(d) + healthBox(d) + readOut(b,d) + `
-   <div class="card" style="margin-bottom:12px"><b>🎯 機會名單（先打這些）</b><div style="margin-top:6px">${hope}</div></div>
-   <div class="card" style="margin-bottom:12px"><b>💳 方案與消費</b>
-     <div class="scroll"><table><tbody>
+  document.getElementById('mcBody').innerHTML =
+     mcBlk('mcB1','①','身分與位置','公司 CSV／組織圖',false)
+    +mcBlk('mcB2','②','考核與水位','公司採集（每週）',true)
+    +mcBlk('mcB3','③','跟進','戰術板（你）／將的 LINE 名單',true)
+    +mcBlk('mcB4','④','進程','care.html（經營者幫記／本人自填）',false)
+    +mcBlk('mcB5','⑤','服用','care.html 服用計畫／dose.html 每天回報',false)
+    +mcBlk('mcB6','⑥','名單','care.html',false)
+    +mcBlk('mcB7','⑦','他主動說的','dose.html 留言／care.html 建議',false)
+    +'<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>⑧ 跟 OA 的對話</b>　<span class="mut" style="font-size:12px">📥 LINE AI　— 管道未開（會員綁定 LINE 後再接）</span></div>'
+    +mcBlk('mcB9','⑨','他的組織','公司採集',false);
+  // ①
+  mcFill('mcB1',`<div class="scroll"><table><tbody>
+      <tr><td class="mut" style="width:36%">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:var(--acc)">${esc(b.sponsor_name||'')} ${esc(b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人分身)</span>':''):'—'}</td></tr>
+      <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:var(--acc)">${esc(b.placement_parent_name||'')} ${esc(b.placement_parent_id)}</a>`:'—'} <b>${esc(b.placement_position||'')}</b></td></tr>
+     </tbody></table></div>
+     <div style="margin-top:8px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div></div>
+     <div style="margin-top:10px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div><div id="bcMap" style="margin-top:10px"></div></div>`);
+  // ②（公司資料部分先畫，兩閘／水位等 gates 回來再補）
+  mcFill('mcB2',cd+`<div class="scroll"><table><tbody>
       <tr><td class="mut" style="width:36%">付款別</td><td>${esc(pm(b.payment_method))}</td></tr>
       <tr><td class="mut">方案</td><td>${esc(b.plan_code||'—')}${b.plan_until?'（至 '+esc(b.plan_until)+'）'+(b.plan_ok?' <span style="color:var(--ok)">仍有效</span>':' <span style="color:var(--bad)">已過期</span>'):''}</td></tr>
       <tr><td class="mut">商品</td><td>${esc(b.goods_name||'—')}</td></tr>
@@ -1131,59 +1162,92 @@ function renderCard(d){
       <tr><td class="mut">最後購買</td><td>${esc(b.last_purchase_month||'—')}</td></tr>
       <tr><td class="mut">本期有效資格</td><td>${b.is_valid?'✅ 有效':'⚠️ 未達 10,000 點'}</td></tr>
       <tr><td class="mut">🌀 11–12 月考核</td><td id="mcGates"><span class="mut">載入中…</span></td></tr>
-     </tbody></table></div></div>
-   <div class="card" style="margin-bottom:12px"><b>🌳 位置關係</b>
-     <div class="scroll"><table><tbody>
-      <tr><td class="mut" style="width:36%">推薦人</td><td>${b.sponsor_member_id?`<a href="javascript:openCard('${esc(b.sponsor_member_id)}')" style="color:var(--acc)">${esc(b.sponsor_name||'')} ${esc(b.sponsor_member_id)}</a>`+(isBC?' <span class="mut">(＝本人分身)</span>':''):'—'}</td></tr>
-      <tr><td class="mut">安置上手</td><td>${b.placement_parent_id?`<a href="javascript:openCard('${esc(b.placement_parent_id)}')" style="color:var(--acc)">${esc(b.placement_parent_name||'')} ${esc(b.placement_parent_id)}</a>`:'—'} <b>${esc(b.placement_position||'')}</b></td></tr>
-     </tbody></table></div>
-     <div style="margin-top:8px"><b>🤝 直接推薦（${(d.directs||[]).length}）</b><div style="margin-top:4px">${dir}</div></div>
-     <div style="margin-top:10px"><b>🏠 同一個人的其他位置</b><div style="margin-top:4px">${hs}</div>
-       <div id="bcMap" style="margin-top:10px"></div></div>
-   </div>
-   <div class="card"><b>🗺️ 底下組織</b>
-     <div style="margin-top:6px">${tsum}</div>
+     </tbody></table></div>`);
+  // ⑨
+  mcFill('mcB9',`<b>🎯 機會名單（先打這些）</b><div style="margin-top:6px">${hope}</div>
+     <div style="margin-top:12px">${tsum}</div>
      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px">
        <span><button class="btn sm sdbtn on" data-s="左" onclick="switchSide('左')">◀ 左線</button>
              <button class="btn sm sdbtn" data-s="右" onclick="switchSide('右')">右線 ▶</button></span>
-       <span class="mut" style="font-size:13px">看 
+       <span class="mut" style="font-size:13px">看
          <a href="javascript:drawDepth('${esc(b.member_id)}',3)" style="color:var(--acc)">3代</a>／
          <a href="javascript:drawDepth('${esc(b.member_id)}',5)" style="color:var(--acc)">5代</a>／
          <a href="javascript:drawDepth('${esc(b.member_id)}',8)" style="color:var(--acc)">8代</a></span>
      </div>
-     <div id="treeBox" class="scroll" style="max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:#0d1116">
-       ${treeSVG(b,d.nodes)}
-     </div>
-     <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　｜解約位置：底下沒人的整支隱藏，還有人的縮成小灰點　｜點方塊開那個人的卡</div>
-   </div>`;
-  loadBcMap(b.member_id); loadGates(b.member_id);
+     <div id="treeBox" class="scroll" style="max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:#0d1116">${treeSVG(b,d.nodes)}</div>
+     <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　｜已解約：底下沒人的整支不畫；只剩一條線的壓縮（虛線標「已解約 N 層」）；左右都還有人的留小灰點　｜點方塊開那個人的卡</div>`);
+  loadBcMap(b.member_id); loadGates(b.member_id); loadPerson(b.member_id);
 }
 async function loadGates(id){
   const el=document.getElementById('mcGates'); if(!el)return;
   const d=await boardApi({action:'gates',member_id:id}); const g=d&&d.gates;
-  if(!d||d.success!==true){el.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>';return;}
-  if(!g){el.innerHTML='<span class="mut">不在活位置名單（已解約或資格失效且無方案）</span>';return;}
-  const ok=v=>v?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--bad)">❌</span>';
-  const md=s=>s?String(s).slice(5).replace('-','/'):'';
-  el.innerHTML='① 重消 '+ok(g.g1ok)+' <span class="mut">'+esc(g.g1)+(g.dues&&g.dues.length?'（登錄 '+g.anchor_day+' 號：'+g.dues.map(md).join('→')+'）':'')+'</span>　② 直推 '+ok(g.g2)+' <span class="mut">'+g.sp+'/2</span>'
-    +'　<span class="mut">參考：點數 左 '+wan(g.pl)+'／右 '+wan(g.pr)+'（'+esc(g.src)+'）</span>'
-    +'<div style="margin-top:4px">'+(g.miss===0?'<b style="color:var(--ok)">兩件都過</b>':'還缺 <b>'+g.miss+'</b> 件（'+esc(g.lack)+'）→ '+esc(g.action_text))+'　<span class="mut">歸戶 '+esc(g.leader_name||'')+'</span></div>'
-    // 水位（併進會員卡）：左右水位＋每月保底；錢只值得花在弱邊
-    +(()=>{const E=g.extra||{}, FL=g.floor||{};
-      return '<div style="margin-top:6px;font-size:13px">💧 水位 左 <b>'+wan(g.pl)+'</b>／右 <b>'+wan(g.pr)+'</b>'
+  if(!d||d.success!==true){el.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>'; mcEmpty('mcB3','讀取失敗'); return;}
+  const u2=document.querySelector('#mcB2 .mcu'); if(u2) u2.textContent='　最後更新 訂單 '+(d.as_of||'—')+'・CSV '+(d.snap||'—');
+  const u1=document.querySelector('#mcB1 .mcu'); if(u1) u1.textContent='　最後更新 CSV '+(d.snap||'—');
+  if(!g){ el.innerHTML='<span class="mut">不在活位置名單（已解約或資格失效且無方案）</span>'; }
+  else {
+    const ok=v=>v?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--bad)">❌</span>';
+    const md=s=>s?String(s).slice(5).replace('-','/'):'';
+    const E=g.extra||{}, FL=g.floor||{};
+    el.innerHTML='① 重消 '+ok(g.g1ok)+' <span class="mut">'+esc(g.g1)+(g.dues&&g.dues.length?'（登錄 '+g.anchor_day+' 號：'+g.dues.map(md).join('→')+'）':'')+'</span>　② 直推 '+ok(g.g2)+' <span class="mut">'+g.sp+'/2</span>'
+      +'<div style="margin-top:4px">'+(g.miss===0?'<b style="color:var(--ok)">兩件都過</b>':'還缺 <b>'+g.miss+'</b> 件（'+esc(g.lack)+'）→ '+esc(g.action_text))+'　<span class="mut">歸戶 '+esc(g.leader_name||'')+'</span></div>'
+      +'<div style="margin-top:6px;font-size:13px">💧 水位 左 <b>'+wan(g.pl)+'</b>／右 <b>'+wan(g.pr)+'</b> <span class="mut">（'+esc(g.src)+'）</span>'
         +(FL.n?'　每月保底 左 '+wan(FL.floor_l)+'／右 '+wan(FL.floor_r)+' <span class="mut">（近 '+FL.n+' 月最低）</span>':'')
         +(E.water_hint?'<div style="color:var(--warn)">'+esc(E.water_hint)+'</div>':'')
-        +(E.win_hint?'<div style="color:var(--bad)">⏳ '+esc(E.win_hint)+'</div>':'')
-        +(showSponsor(E,g.member_id,null)?'<div class="mut">推薦人：'+esc(E.sponsor_name)+'</div>':'')+'</div>';})()
-    // 跟進時間軸：戰術板、將的 LINE 寫的是同一串
-    +(d.follow?'<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px">📝 <b>跟進</b>'
-      +(d.follow.conflict?' <b style="color:var(--bad)">⚠ 同一天兩個人說法不同</b>':'')
-      +(d.follow.next_date?'　<b style="color:'+(d.follow.due==='overdue'?'var(--bad)':(d.follow.due==='today'?'var(--warn)':'var(--tx)'))+'">下一步 '+(d.follow.due==='overdue'?'逾期 ':'')+fdate(d.follow.next_date)+' '+esc(d.follow.next_owner_name||'')+'：'+esc(d.follow.next_action||'')+'</b>':'')
-      +(d.follow.history||[]).map(k=>'<div style="font-size:13px;margin-top:3px"><span class="mut">'+fdate(k.at)+' '+esc(k.method||'')+' ・ '+esc(k.owner_name||'')+(k.by&&k.by!==k.owner_name?'（記：'+esc(k.by)+'）':'')+(k.src==='LINE'?'・LINE':'')+'</span>　<b style="color:'+(FCOL[k.status]||'var(--tx)')+'">'+esc(k.status)+'</b>'+(k.note?'　'+esc(k.note):'')
-        +(k.next_date?'<span class="mut">　→ '+fdate(k.next_date)+' '+esc(k.next_owner_name||'')+' '+esc(k.next_action||'')+'</span>':'')+'</div>').join('')
-      +'</div>':'');
+        +(E.win_hint?'<div style="color:var(--bad)">⏳ '+esc(E.win_hint)+'</div>':'')+'</div>';
+  }
+  // ③ 跟進：戰術板、將的 LINE 寫的是同一串
+  const F=d.follow;
+  if(!F){ mcEmpty('mcB3','還沒有跟進紀錄——在戰術板「＋記一筆」，或由將在 LINE 記'); return; }
+  mcFill('mcB3',
+    (F.conflict?'<div><b style="color:var(--bad)">⚠ 同一天兩個人說法不同</b></div>':'')
+    +(F.next_date?'<div><b style="color:'+(F.due==='overdue'?'var(--bad)':(F.due==='today'?'var(--warn)':'var(--tx)'))+'">下一步 '+(F.due==='overdue'?'逾期 ':(F.due==='today'?'今天 ':''))+fdate(F.next_date)+' '+esc(F.next_owner_name||'')+'：'+esc(F.next_action||'')+'</b></div>':'')
+    +(F.history||[]).map(k=>'<div style="font-size:13px;margin-top:4px"><span class="mut">'+fdate(k.at)+' '+esc(k.method||'')+' ・ '+esc(k.owner_name||'')+(k.by&&k.by!==k.owner_name?'（記：'+esc(k.by)+'）':'')+(k.src==='LINE'?'・LINE':'')+'</span>　<b style="color:'+(FCOL[k.status]||'var(--tx)')+'">'+esc(k.status)+'</b>'+(k.note?'　'+esc(k.note):'')
+      +(k.next_date?'<span class="mut">　→ '+fdate(k.next_date)+' '+esc(k.next_owner_name||'')+' '+esc(k.next_action||'')+'</span>':'')+'</div>').join('')
+    +(F.n>8?'<div class="mut" style="font-size:12px">只列最近 8 筆，共 '+F.n+' 筆</div>':''),
+    mcUpd(F), true);
 }
-
+// ④～⑦：會員自述（以「人」為單位，主編號底下所有分店共用）
+async function loadPerson(id){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_member_person',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,member_id:id}})});
+  const d=await r.json(); const ids=['mcB4','mcB5','mcB6','mcB7'];
+  if(!d||d.success!==true){ ids.forEach(x=>mcEmpty(x,'讀取失敗：'+((d&&d.message)||''))); return; }
+  if(!d.owner){ ids.forEach(x=>mcEmpty(x,'🔒 僅總部帳號可看')); return; }
+  // ④ 進程
+  const P=d.progress||{}, cs=P.conditions||[], ms=P.metrics||[];
+  if(!cs.length&&!ms.length&&!P.intent) mcEmpty('mcB4','還沒有資料——下次面談用 care.html 幫他記一次');
+  else mcFill('mcB4',
+    cs.map(c=>{const L=c.last||{}, sc=L.score;
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--line)">'+(c.cat==='財富'?'💰':'🩺')+' <b>'+esc(c.condition)+'</b>'
+        +(c.closed_on?' <span class="mut">（已結案 '+fdate(c.closed_on)+'）</span>':'')
+        +'　'+(sc!=null?'<b style="font-size:16px">'+sc+'</b><span class="mut">/5</span>'+(c.first_score!=null&&c.first_score!==sc?' <span class="mut">（原本 '+c.first_score+'）</span>':''):'<span class="mut">未打分</span>')
+        +((c.lo||c.hi)?'<div class="mut" style="font-size:12px">1 分＝'+esc(c.lo||'')+'　5 分＝'+esc(c.hi||'')+'</div>':'')
+        +(c.said||[]).map(s=>'<div style="font-size:13px">「'+esc(s.said)+'」<span class="mut"> '+fdate(s.logged_on)+(s.by_self?' 本人說':' 轉述')+'</span></div>').join('')
+        +(L.answer?'<div class="mut" style="font-size:12px">追問：'+esc(L.answer)+'</div>':'')+'</div>';}).join('')
+    +(ms.length?'<div style="margin-top:6px">'+ms.map(m=>'<span style="display:inline-block;background:#0f2e17;color:#7ee787;border-radius:12px;padding:2px 10px;margin:3px 5px 0 0;font-size:13px">'+esc(m.metric)+' <b>'+m.value+'</b>'+esc(m.unit||'')+' <span style="opacity:.7">'+fdate(m.measured_on)+'</span></span>').join('')+'</div>':'')
+    +(P.intent?'<div class="mut" style="margin-top:6px;font-size:12px">（舊資料）為什麼加入：'+esc(P.intent.category||'')+' '+esc((P.intent.topics||[]).join('、'))+(P.intent.detail?'「'+esc(P.intent.detail)+'」':'')+'</div>':''),
+    mcUpd(P.updated), true);
+  // ⑤ 服用
+  const I=d.intake||{}, pl=I.plan||[], d14=I.days14||{}, st=I.stock||[];
+  if(!pl.length&&!d14.days&&!st.length) mcEmpty('mcB5','還沒有資料——服用計畫在 care.html 設；每天回報要本人綁 LINE 後用 dose.html');
+  else mcFill('mcB5',
+    (pl.length?'<div><b>服用計畫</b>'+pl.map(x=>'<div style="font-size:13px">'+esc(x.name||x.product_code)+'　每天 <b>'+x.daily_qty+'</b>　<span class="mut">'+fdate(x.effective_from)+' 起・'+esc(x.set_by||'')+'</span></div>').join('')+'</div>':'')
+    +(d14.days?'<div style="margin-top:6px"><b>近 14 天</b>　回報 '+d14.days+' 天'+(d14.plan>0?'，服用率 <b>'+Math.round(d14.actual/d14.plan*100)+'%</b>':'')+'　<span class="mut">最後 '+fdate(d14.last)+'</span></div>':'<div class="mut" style="margin-top:6px">近 14 天沒有每天回報</div>')
+    +(st.length?'<div style="margin-top:6px"><b>庫存</b>'+st.map(s=>'<div style="font-size:13px">'+fdate(s.on_date)+' '+esc(s.product_code)+' '+esc(s.event)+(s.note?'　'+esc(s.note):'')+'</div>').join('')+'</div>':''),
+    mcUpd(I.updated), true);
+  // ⑥ 名單
+  const R=(d.prospects||{}).rows||[];
+  if(!R.length) mcEmpty('mcB6','還沒有資料——面談時用 care.html 幫他記心裡的名單');
+  else mcFill('mcB6','<div class="scroll"><table><tbody>'+R.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+esc(x.status||'')+'</td><td class="mut">'+esc(x.memo||'')+'</td><td class="mut" style="font-size:12px">'+fdate(x.updated_on)+(x.updated_by?'・'+esc(x.updated_by):'')+'</td></tr>').join('')+'</tbody></table></div>',
+    mcUpd((d.prospects||{}).updated), true);
+  // ⑦ 他主動說的
+  const V=(d.voice||{}).rows||[];
+  if(!V.length) mcEmpty('mcB7','還沒有資料——本人在 dose.html 留言（要綁 LINE），或經營者在 care.html 寫建議');
+  else mcFill('mcB7',V.map(v=>'<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)"><span class="mut">'+fdate(v.at)+'</span>　<b>'+esc(v.kind)+'</b>　'+esc(v.body||'')+'<span class="mut">　'+(v.by_self?'本人':'轉述')+(v.by?'・'+esc(v.by):'')+'・'+esc(v.source||'')+'</span></div>').join(''),
+    fdate(V[0].at)+(V[0].by?'・'+V[0].by:''), true);
+}
 
 let CARD_ID=null, CARD_D=null, TREE_SIDE='左';
 async function loadBcMap(id){
@@ -1276,10 +1340,21 @@ function treeSVG(root,nodes){
   if(!all.length)return '<div class="mut" style="padding:16px">'+TREE_SIDE+'邊 '+side.length+' 個位置全部已解約，沒有還在的人。</div>';
   const kids={}; all.forEach(n=>{(kids[n.parent]=kids[n.parent]||{})[n.pos]=n;});
   const byId={}; all.forEach(n=>byId[n.member_id]=n);
+  // 壓縮已解約的橋接（同戰術板）：已解約且底下只剩一條線 → 跳過往上接、虛線標層數；左右都有人 → 留小灰點
+  const K2={}, P2={}, SKIP={};
+  (function build(id){
+    const k=kids[id]||{}, out={};
+    ['左','右'].forEach(s=>{
+      let c=k[s], n=0;
+      while(c&&c.cancelled){ const kk=kids[c.member_id]||{}, a=[kk['左'],kk['右']].filter(Boolean); if(a.length===1){c=a[0];n++;} else if(!a.length){c=null;} else break; }
+      if(c){ out[s]=c; P2[c.member_id]=id; SKIP[c.member_id]=n; build(c.member_id); }
+    });
+    K2[id]=out;
+  })(root.member_id);
   const BW=84,BH=34,GX=13,GY=56;
   let col=0; const pos={};
   (function lay(id,depth){
-    const k=kids[id]||{}, L=k['左'], R=k['右'];
+    const k=K2[id]||{}, L=k['左'], R=k['右'];
     if(!L&&!R){pos[id]={x:col++,d:depth};return;}
     if(L)lay(L.member_id,depth+1);
     if(!L||!R)col++;
@@ -1295,13 +1370,14 @@ function treeSVG(root,nodes){
   const X=p=>p.x*(BW+GX)+GX, Y=p=>p.d*GY+8;
   let lines='',boxes='';
   Object.keys(pos).forEach(id=>{
-    const n=byId[id], p=pos[id], par=n?n.parent:null;
+    const n=byId[id], p=pos[id], par=P2[id], sk=SKIP[id]||0;
     if(par&&pos[par]){const pp=pos[par];
-      lines+=`<path d="M${X(pp)+BW/2},${Y(pp)+BH} V${Y(p)-8} H${X(p)+BW/2} V${Y(p)}" fill="none" stroke="#2a3340" stroke-width="1.5"/>`;}
+      lines+=`<path d="M${X(pp)+BW/2},${Y(pp)+BH} V${Y(p)-8} H${X(p)+BW/2} V${Y(p)}" fill="none" stroke="${sk?'#484f58':'#2a3340'}" stroke-width="1.5"${sk?' stroke-dasharray="4 3"':''}/>`;
+      if(sk) lines+=`<text x="${X(p)+BW/2+4}" y="${Y(p)-11}" font-size="10" fill="#6e7681">已解約 ${sk} 層</text>`;}
     const isRoot=!n;
-    if(n&&n.cancelled){   // 已解約但底下還有人 → 縮成小灰點，只當連接點
+    if(n&&n.cancelled){   // 已解約、左右都還有人 → 小灰點當分岔
       boxes+=`<g><circle cx="${X(p)+BW/2}" cy="${Y(p)+BH/2}" r="5" fill="#2a3340" stroke="#3d4653"/>
-        <title>已解約位置（僅為連接點）</title></g>`;
+        <title>已解約位置（左右都還有人，僅為分岔點）</title></g>`;
       return;
     }
     const c=isRoot?{bg:'#1f6feb',bd:'#58a6ff',fg:'#fff'}:nodeColor(n);
