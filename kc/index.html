@@ -119,13 +119,13 @@ h2{font-size:1.25rem;font-weight:700}
     <button class="chip" data-dim="tier">身分</button>
     <button class="chip" data-dim="occupation">職業</button>
     <button class="chip" data-dim="gender">性別</button>
-    <button class="chip" data-dim="units">每天幾單位</button>
+    <button class="chip" data-dim="units">每天幾粒</button>
   </div>
   <div class="card">
     <div class="legend"><span><i style="background:#d3d1c7"></i>沒吃</span><span><i style="background:#b8960c"></i>有吃</span></div>
     <div class="chartbox"><canvas id="c-chart"></canvas></div>
   </div>
-  <p class="sub" style="text-align:center;margin:0 0 18px">「有吃」＝每天至少 1 單位並吃滿 1 個月。不足 3 人的組別暫不顯示平均。</p>
+  <p class="sub" style="text-align:center;margin:0 0 18px">「有吃」＝每天吃識霸明力多並吃滿 1 個月。不足 3 人的組別暫不顯示平均。</p>
   <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
 </section>
 
@@ -178,6 +178,9 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
 const OCC = {office:'上班', self:'自營', home:'家管', retired:'退休', student:'學生', other:'其他'};
+// 識霸明力多每天粒數五級（2026-10-17 游育杰定：保養量 4 粒、補充量 15 粒當刻度）
+const UNIT_OPTS = [['0-3','極低保養','3 粒以下'],['4-7','低保養','4–7 粒'],['8-11','中保養','8–11 粒'],['12-14','高保養','12–14 粒'],['15+','極高保養','15 粒以上']];
+const UNIT_NAME = Object.fromEntries(UNIT_OPTS.map(([v,l])=>[v,l]));
 const LIGHT_TXT = {red:'紅', yellow:'黃', green:'綠'};
 const LIGHT_NAME = {red:'紅燈', yellow:'黃燈', green:'綠燈'};
 
@@ -251,8 +254,9 @@ const ITEMS = [
   { id:'nocturia_times', step:2, label:'晚上起來上廁所幾次', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
   { id:'smoke_drink', step:2, label:'有抽菸或常喝酒嗎', type:'choice', cols:2, opts:[['none','都沒有'],['smoke','有抽菸'],['drink','常喝酒'],['both','都有']] },
   { id:'chronic_meds', step:2, label:'有在吃慢性病的藥嗎', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
-  { id:'is_taking', step:3, label:'有在吃綠佳利的產品嗎', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']], when:showUsage },
-  { id:'daily_units', step:3, label:'一天吃幾單位', type:'choice', cols:3, opts:[['1','1'],['2','2'],['3','3'],['4','4'],['5+','5 以上']], when:()=>showUsage() && ANS.is_taking===true },
+  { id:'is_taking', step:3, label:'有在吃識霸明力多嗎', hint:'含素食版', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']], when:showUsage },
+  { id:'daily_units', step:3, label:'一天吃幾粒', type:'choice', cols:1, when:()=>showUsage() && ANS.is_taking===true,
+    opts:UNIT_OPTS },
   { id:'taking_months', step:3, label:'吃多久了', type:'choice', cols:2, opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']], when:()=>showUsage() && ANS.is_taking===true },
   { id:'score', step:3, label:'機器測出來的 KC', type:'score', hint:'轉到機器上的數字' },
 ];
@@ -448,13 +452,14 @@ let currentDim = 'age';
 document.querySelectorAll('#c-chips .chip').forEach(c => c.onclick = () => {
   document.querySelectorAll('#c-chips .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); loadCompare(c.dataset.dim);
 });
-const LABEL = { male:'男', female:'女', ...OCC };
+const LABEL = { male:'男', female:'女', ...OCC, ...UNIT_NAME };
 async function loadCompare(dim){
   currentDim = dim;
   const { data, error } = await sb.rpc('kc_compare', { p_dim: dim });
   if (error || !data) { toast('讀取失敗'); return; }
   const g = data.groups.filter(x => x.label);
-  if (dim==='units') g.sort((a,b)=> (a.label==='沒吃'?-1:b.label==='沒吃'?1:a.label.localeCompare(b.label)));
+  const UORD = ['沒吃', ...UNIT_OPTS.map(o=>o[0])];
+  if (dim==='units') g.sort((a,b)=> UORD.indexOf(a.label) - UORD.indexOf(b.label));
   const labels = g.map(x => LABEL[x.label] || x.label);
   if (compareChart) compareChart.destroy();
   compareChart = new Chart($('c-chart').getContext('2d'), { type:'bar', data:{ labels,
@@ -469,7 +474,7 @@ async function loadCompare(dim){
   $('c-stats').innerHTML = `
     <div class="stat"><div class="l">沒吃</div><div class="v">${fmt(o.not_taking)}</div><div class="n">${o.not_taking.n} 人</div></div>
     <div class="stat hi"><div class="l">有吃</div><div class="v">${fmt(o.taking)}</div><div class="n">${o.taking.n} 人</div></div>
-    <div class="stat"><div class="l">5 單位以上</div><div class="v">${fmt(o.heavy)}</div><div class="n">${o.heavy.n} 人</div></div>`;
+    <div class="stat"><div class="l">極高保養</div><div class="v">${fmt(o.heavy)}</div><div class="n">${o.heavy.n} 人</div></div>`;
   $('c-sub').textContent = `全台 ${o.total_subjects} 人實測 · 共 ${o.total_records} 筆` + (o.updated_at ? ` · 更新 ${o.updated_at.slice(0,10)}` : '');
 }
 
@@ -497,7 +502,7 @@ async function loadMe(){
         <span class="big" style="font-size:4rem">${Number(last.score).toFixed(1)}</span>
         <span class="pill ${last.light}" style="font-size:1rem">${LIGHT_NAME[last.light]}</span>
       </div>
-      <p class="sub" style="text-align:center;margin-top:4px">${last.test_date} · ${last.is_taking?'一天 '+last.daily_units+' 單位':'沒吃'} · 測過 ${rs.length} 次</p>
+      <p class="sub" style="text-align:center;margin-top:4px">${last.test_date} · ${last.is_taking?(UNIT_NAME[last.daily_units]||last.daily_units):'沒吃明力多'} · 測過 ${rs.length} 次</p>
       <div class="chartbox" style="height:220px;margin-top:12px"><canvas id="m-chart"></canvas></div>
       ${h.reference.avg!=null?`<p class="sub" style="text-align:center;margin-top:6px">虛線：${h.reference.label} ${h.reference.avg}</p>`:''}
     </div>
