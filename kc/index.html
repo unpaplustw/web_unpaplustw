@@ -250,10 +250,13 @@ const ITEMS = [
     opts:[['office','上班','契約薪資'],['self','自營','負責人'],['sales','業務','銷售型<br>保險、房仲、直銷'],['ambassador','代言','非銷售型<br>綠佳利'],
           ['home','家管','家人供應'],['retired','退休','退休金、積蓄'],['student','學生','還在讀書'],['other','其他','兼差、打零工']] },
   { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, hint:'是綠佳利會員才填，只要編號、不用分店號。填了資料只有會員看得到' },
-  { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
+  { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', hint:'1 份＝自己一個拳頭大', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
+  { id:'veggie_colors', step:2, label:'常吃哪些顏色的蔬果', hint:'可複選，至少選一色', type:'multi', cols:2,
+    opts:[['green','綠色','花椰菜、地瓜葉'],['yellow','黃橘','胡蘿蔔、南瓜'],['red','紅色','番茄、西瓜'],['purple','紫黑','茄子、黑木耳'],['white','白色','白蘿蔔、洋蔥']] },
   { id:'sleep_hours', step:2, label:'昨晚睡了幾小時', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
   { id:'nocturia_times', step:2, label:'晚上起來上廁所幾次', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
-  { id:'smoke_drink', step:2, label:'有抽菸或常喝酒嗎', type:'choice', cols:2, opts:[['none','都沒有'],['smoke','有抽菸'],['drink','常喝酒'],['both','都有']] },
+  { id:'habits', step:2, label:'有以下習慣嗎', hint:'可複選', type:'multi', cols:2,
+    opts:[['smoke','抽菸'],['drink','喝酒'],['betel','檳榔'],['none','沒有','',true]] },
   { id:'chronic_meds', step:2, label:'有在吃慢性病的藥嗎', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
   { id:'is_taking', step:3, label:'有在吃識霸明力多嗎', hint:'含素食版', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']], when:showUsage },
   { id:'daily_units', step:3, label:'一天吃幾粒', type:'choice', cols:1, when:()=>showUsage() && ANS.is_taking===true,
@@ -316,6 +319,28 @@ function buildControl(q){
       };
       host.appendChild(o);
     });
+  } else if (q.type==='multi') {
+    // 複選：ANS[id] 存陣列；有 exclusive 的選項（如「沒有」）點了會清掉其他
+    host.className = 'opts' + (q.cols===2?' g2':q.cols===3?' g3':'');
+    const cur = new Set(ANS[q.id] || []);
+    const paint = () => host.querySelectorAll('.opt').forEach(b => b.classList.toggle('sel', cur.has(b.dataset.v)));
+    q.opts.forEach(([v,l,sub,excl]) => {
+      const o = document.createElement('button');
+      o.className = 'opt'; o.dataset.v = v;
+      o.innerHTML = l + (sub ? `<small style="display:block;font-size:.85rem;font-weight:400;color:var(--txt2);margin-top:2px">${sub}</small>` : '');
+      o.onclick = () => {
+        if (cur.has(v)) cur.delete(v);
+        else {
+          if (excl) cur.clear();
+          else q.opts.filter(x=>x[3]).forEach(x=>cur.delete(x[0]));
+          cur.add(v);
+        }
+        if (cur.size) ANS[q.id] = [...cur]; else delete ANS[q.id];
+        $('qb-'+q.id).classList.remove('bad'); paint();
+      };
+      host.appendChild(o);
+    });
+    paint();
   } else if (q.type==='phone' || q.type==='text') {
     const isPhone = q.type==='phone';
     host.innerHTML = `<input id="in-${q.id}" ${isPhone?'type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="09xxxxxxxx"':'type="tel" inputmode="numeric" placeholder="例：2675630"'}
@@ -418,8 +443,9 @@ async function submit(){
     p_caller: caller,
     p_phone: ANS.phone,
     p_subject: { gender: ANS.gender, birth_year: ANS.birth_year, occupation: ANS.occupation, member_no: ANS.member_no || null },
-    p_record: { score: ANS.score, veggie_servings: ANS.veggie_servings, sleep_hours: ANS.sleep_hours,
-      nocturia_times: ANS.nocturia_times, smoke_drink: ANS.smoke_drink, chronic_meds: ANS.chronic_meds,
+    p_record: { score: ANS.score, veggie_servings: ANS.veggie_servings, veggie_colors: ANS.veggie_colors || [],
+      sleep_hours: ANS.sleep_hours, nocturia_times: ANS.nocturia_times,
+      habits: (ANS.habits || []).filter(h => h !== 'none'), chronic_meds: ANS.chronic_meds,
       is_taking: ANS.is_taking===true, daily_units: ANS.daily_units, taking_months: ANS.taking_months } });
   btn.disabled = false; btn.textContent = '送出';
   if (error || !data) { console.error(error); toast('送出失敗，再試一次'); return; }
