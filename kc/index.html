@@ -129,22 +129,6 @@ h2{font-size:1.25rem;font-weight:700}
   <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
 </section>
 
-<!-- ═══ 選身分（未登入時才出現）═══ -->
-<section id="s-pick" class="screen">
-  <div class="hd"><div class="kicker">開始檢測</div><h1>要保存紀錄嗎</h1></div>
-  <div class="card">
-    <h2 style="margin-bottom:6px">先試試看</h2>
-    <p class="sub">3 題就好，看到自己的燈號。<b>不會留下任何資料</b>，下次也查不到。</p>
-  </div>
-  <button class="btn btn-line" onclick="startSurvey('guest')">試試看，不留紀錄</button>
-  <div class="card" style="margin-top:18px">
-    <h2 style="margin-bottom:6px">用 LINE 保存</h2>
-    <p class="sub">每次的分數都留著，一個月後回測就看得到自己的變化，時間到了也會提醒你。</p>
-  </div>
-  <button class="btn btn-gold" onclick="doLogin()">用 LINE 登入保存紀錄</button>
-  <button class="btn btn-ghost" onclick="go('compare')">← 回大家的對照</button>
-</section>
-
 <!-- ═══ 問卷 ═══ -->
 <section id="s-survey" class="screen">
   <div class="steps" id="steps"></div>
@@ -243,57 +227,65 @@ function doLogin(){
   // per-page LIFF：Endpoint 就是本頁，login() 不帶 redirectUri（帶了會觸發 relay → 無限登入迴圈）
   try { liff.login(); } catch(e) { toast('請從 LINE 開啟這個頁面'); }
 }
-function beginTest(){
-  if (caller) startSurvey(TIER); else go('pick');
-}
+function beginTest(){ startSurvey(); }
 
-// ══════════════ 問卷（依身分決定問幾題）══════════════
-// guest 只問 3 題且不存；trial 完整基本資料＋生活習慣；member 再加用量
+// ══════════════ 問卷（v4：手機當鑰匙，所有人同一條路）══════════════
+// 第一題手機 → 查得到就帶入基本資料、跳過；查不到填一次。用量題只在受測者或操作者是會員時出現
 const ANS = {};
 let STEP = 0;
 let PREFILLED = new Set();
+let LOOKUP = null;   // kc_lookup 結果
 
+function showUsage(){
+  return (profile && profile.tier === 'member') || (LOOKUP && LOOKUP.subject && LOOKUP.subject.tier === 'member') || !!(ANS.member_no);
+}
 const ITEMS = [
-  { id:'gender', step:0, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']], tiers:['guest','trial','member'] },
-  { id:'birth_year', step:0, label:'幾年次的', type:'year', tiers:['guest','trial','member'] },
-  { id:'occupation', step:0, label:'平常做什麼', type:'choice', cols:2, opts:Object.entries(OCC), tiers:['trial','member'] },
-  { id:'veggie_servings', step:1, label:'平常一天吃幾份蔬果', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']], tiers:['trial','member'] },
-  { id:'sleep_hours', step:1, label:'昨晚睡了幾小時', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']], tiers:['trial','member'] },
-  { id:'nocturia_times', step:1, label:'晚上起來上廁所幾次', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']], tiers:['trial','member'] },
-  { id:'smoke_drink', step:1, label:'有抽菸或常喝酒嗎', type:'choice', cols:2, opts:[['none','都沒有'],['smoke','有抽菸'],['drink','常喝酒'],['both','都有']], tiers:['trial','member'] },
-  { id:'chronic_meds', step:1, label:'有在吃慢性病的藥嗎', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']], tiers:['trial','member'] },
-  { id:'is_taking', step:2, label:'有在吃綠佳利的產品嗎', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']], tiers:['member'] },
-  { id:'daily_units', step:2, label:'一天吃幾單位', type:'choice', cols:3, opts:[['1','1'],['2','2'],['3','3'],['4','4'],['5+','5 以上']], tiers:['member'], when:()=>ANS.is_taking===true },
-  { id:'taking_months', step:2, label:'吃多久了', type:'choice', cols:2, opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']], tiers:['member'], when:()=>ANS.is_taking===true },
-  { id:'score', step:2, label:'機器測出來的 KC', type:'score', hint:'轉到機器上的數字', tiers:['guest','trial','member'] },
+  { id:'phone', step:0, label:'手機號碼', type:'phone', hint:'被測的人的手機。測過的人會自動帶出上次資料' },
+  { id:'gender', step:1, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
+  { id:'birth_year', step:1, label:'幾年次的', type:'year' },
+  { id:'occupation', step:1, label:'平常做什麼', type:'choice', cols:2, opts:Object.entries(OCC) },
+  { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, hint:'是綠佳利會員才填，只要編號、不用分店號。填了資料只有會員看得到' },
+  { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
+  { id:'sleep_hours', step:2, label:'昨晚睡了幾小時', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
+  { id:'nocturia_times', step:2, label:'晚上起來上廁所幾次', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
+  { id:'smoke_drink', step:2, label:'有抽菸或常喝酒嗎', type:'choice', cols:2, opts:[['none','都沒有'],['smoke','有抽菸'],['drink','常喝酒'],['both','都有']] },
+  { id:'chronic_meds', step:2, label:'有在吃慢性病的藥嗎', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
+  { id:'is_taking', step:3, label:'有在吃綠佳利的產品嗎', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']], when:showUsage },
+  { id:'daily_units', step:3, label:'一天吃幾單位', type:'choice', cols:3, opts:[['1','1'],['2','2'],['3','3'],['4','4'],['5+','5 以上']], when:()=>showUsage() && ANS.is_taking===true },
+  { id:'taking_months', step:3, label:'吃多久了', type:'choice', cols:2, opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']], when:()=>showUsage() && ANS.is_taking===true },
+  { id:'score', step:3, label:'機器測出來的 KC', type:'score', hint:'轉到機器上的數字' },
 ];
-const STEP_NAMES = ['基本資料', '生活習慣', '綠佳利與檢測'];
+const STEP_NAMES = ['手機', '基本資料', '生活習慣', '綠佳利與檢測'];
+const NSTEP = STEP_NAMES.length;
 
-function startSurvey(tier){
-  TIER = tier;
+function startSurvey(){
   for (const k in ANS) delete ANS[k];
-  if (tier !== 'guest' && profile) {
-    if (profile.gender) ANS.gender = profile.gender;
-    if (profile.birth_year) ANS.birth_year = profile.birth_year;
-    if (profile.occupation) ANS.occupation = profile.occupation;
-  }
-  PREFILLED = new Set(Object.keys(ANS));
-  STEP = firstStep(); go('survey'); renderStep();
+  LOOKUP = null;
+  PREFILLED = new Set();
+  STEP = 0; go('survey'); renderStep();
 }
 function isOptional(q){ return typeof q.optional === 'function' ? q.optional() : !!q.optional; }
 function stepItems(s){
-  return ITEMS.filter(q => q.step===s && q.tiers.includes(TIER) && !PREFILLED.has(q.id) && (!q.when || q.when()));
+  return ITEMS.filter(q => q.step===s && !PREFILLED.has(q.id) && (!q.when || q.when()));
 }
-function firstStep(){ for (let s=0;s<3;s++) if (stepItems(s).length) return s; return 2; }
-function lastStep(){ for (let s=2;s>=0;s--) if (stepItems(s).length) return s; return 2; }
+function firstStep(){ for (let s=0;s<NSTEP;s++) if (stepItems(s).length) return s; return NSTEP-1; }
+function lastStep(){ for (let s=NSTEP-1;s>=0;s--) if (stepItems(s).length) return s; return NSTEP-1; }
+
+// 查到人之後，問卷上方顯示上次的紀錄
+function lookupNote(){
+  if (!LOOKUP || !LOOKUP.found || STEP===0) return '';
+  if (LOOKUP.locked) return `<div class="note">這支手機是<b>會員</b>的紀錄，基本資料已帶入，內容只有會員看得到。</div>`;
+  const l = LOOKUP.last;
+  return `<div class="note">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}。基本資料已帶入。</div>`;
+}
 
 function renderStep(){
   const items = stepItems(STEP);
-  const shown = [0,1,2].filter(s=>stepItems(s).length);
+  const shown = [...Array(NSTEP).keys()].filter(s=>stepItems(s).length);
   $('steps').innerHTML = shown.map(s=>`<div class="${s===STEP?'on':''}">${STEP_NAMES[s]}</div>`).join('');
   $('q-back').style.visibility = STEP===firstStep() ? 'hidden' : 'visible';
   $('q-next').textContent = STEP===lastStep() ? '送出' : '下一步';
-  $('q-body').innerHTML = items.map(q => `
+  $('q-body').innerHTML = lookupNote() + items.map(q => `
     <div class="qblock" id="qb-${q.id}">
       <div class="qlabel">${q.label}${isOptional(q)?'（可不填）':''}</div>
       ${q.hint?`<p class="hint" style="text-align:left;margin:-6px 0 12px">${q.hint}</p>`:''}
@@ -317,6 +309,18 @@ function buildControl(q){
       };
       host.appendChild(o);
     });
+  } else if (q.type==='phone' || q.type==='text') {
+    const isPhone = q.type==='phone';
+    host.innerHTML = `<input id="in-${q.id}" ${isPhone?'type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="09xxxxxxxx"':'type="tel" inputmode="numeric" placeholder="例：2675630"'}
+      style="width:100%;font-size:1.6rem;font-weight:700;padding:16px;border:2px solid var(--border);border-radius:14px;font-family:inherit;text-align:center;letter-spacing:2px" value="${ANS[q.id]||''}">`;
+    const inp = $('in-'+q.id);
+    inp.oninput = () => {
+      let v = inp.value.trim();
+      if (isPhone) { v = v.replace(/\D/g,''); inp.value = v; }
+      else { v = v.split('-')[0].replace(/\D/g,''); inp.value = v; }   // 會員編號只認人，不帶分店號
+      if (v) ANS[q.id] = v; else delete ANS[q.id];
+      $('qb-'+q.id).classList.remove('bad');
+    };
   } else if (q.type==='year') {
     host.innerHTML = `<div class="wheels"><div class="wheel" id="w-year"></div></div>
       <p class="hint" id="year-msg" style="margin-top:10px">上下轉，或直接點想要的年次</p>`;
@@ -371,31 +375,45 @@ function makeWheel(host, vals, initIdx, onChange){
   return { set, get: () => vals[idx].value };
 }
 function prevStep(){ for (let s=STEP-1;s>=0;s--) if (stepItems(s).length) { STEP=s; renderStep(); return; } }
-function nextStep(){
+async function nextStep(){
   const miss = stepItems(STEP).filter(q => !isOptional(q) && !(q.id in ANS));
   if (miss.length) {
     miss.forEach(q => $('qb-'+q.id).classList.add('bad'));
     $('qb-'+miss[0].id).scrollIntoView({ behavior:'smooth', block:'center' });
     return;
   }
-  for (let s=STEP+1;s<3;s++) if (stepItems(s).length) { STEP=s; renderStep(); return; }
+  if (STEP===0) {
+    if (!/^09\d{8}$/.test(ANS.phone||'')) { toast('手機要 09 開頭、共 10 碼'); $('qb-phone').classList.add('bad'); return; }
+    const btn = $('q-next'); btn.disabled = true; btn.textContent = '查詢中…';
+    const { data, error } = await sb.rpc('kc_lookup', { p_phone: ANS.phone, p_caller: caller });
+    btn.disabled = false;
+    if (error) { console.error(error); toast('查詢失敗，再試一次'); renderStep(); return; }
+    LOOKUP = data;
+    PREFILLED = new Set();
+    if (data.found) {
+      ['gender','birth_year','occupation'].forEach(k => PREFILLED.add(k));
+      if (data.locked || (data.subject && data.subject.has_member_no)) PREFILLED.add('member_no');
+      if (data.subject) {
+        if (data.subject.gender) ANS.gender = data.subject.gender;
+        if (data.subject.birth_year) ANS.birth_year = data.subject.birth_year;
+        if (data.subject.occupation) ANS.occupation = data.subject.occupation;
+      }
+    }
+  }
+  for (let s=STEP+1;s<NSTEP;s++) if (stepItems(s).length) { STEP=s; renderStep(); return; }
   submit();
 }
 
 // ══════════════ 送出 ══════════════
 async function submit(){
   const btn = $('q-next'); btn.disabled = true; btn.textContent = '送出中…';
-  let data, error;
-  if (TIER === 'guest') {
-    ({ data, error } = await sb.rpc('kc_try', { p_score: ANS.score, p_gender: ANS.gender || null, p_birth_year: ANS.birth_year || null }));
-  } else {
-    ({ data, error } = await sb.rpc('kc_submit', {
-      p_caller: caller,
-      p_subject: { gender: ANS.gender, birth_year: ANS.birth_year, occupation: ANS.occupation },
-      p_record: { score: ANS.score, veggie_servings: ANS.veggie_servings, sleep_hours: ANS.sleep_hours,
-        nocturia_times: ANS.nocturia_times, smoke_drink: ANS.smoke_drink, chronic_meds: ANS.chronic_meds,
-        is_taking: ANS.is_taking===true, daily_units: ANS.daily_units, taking_months: ANS.taking_months } }));
-  }
+  const { data, error } = await sb.rpc('kc_submit', {
+    p_caller: caller,
+    p_phone: ANS.phone,
+    p_subject: { gender: ANS.gender, birth_year: ANS.birth_year, occupation: ANS.occupation, member_no: ANS.member_no || null },
+    p_record: { score: ANS.score, veggie_servings: ANS.veggie_servings, sleep_hours: ANS.sleep_hours,
+      nocturia_times: ANS.nocturia_times, smoke_drink: ANS.smoke_drink, chronic_meds: ANS.chronic_meds,
+      is_taking: ANS.is_taking===true, daily_units: ANS.daily_units, taking_months: ANS.taking_months } });
   btn.disabled = false; btn.textContent = '送出';
   if (error || !data) { console.error(error); toast('送出失敗，再試一次'); return; }
   showResult(data);
@@ -405,18 +423,22 @@ function showResult(r){
   const l = $('r-light'); l.className = 'light '+r.light; l.textContent = LIGHT_TXT[r.light];
   $('r-sub').textContent = `${LIGHT_NAME[r.light]} · ` + (r.trend==='first'?'第一次檢測':r.trend==='up'?'比上次進步':r.trend==='down'?'比上次低一點':'和上次差不多');
   $('r-msg').textContent = r.message || '';
-  const ref = r.reference && r.reference.avg;
-  $('r-extra').innerHTML = ref ? `<div class="note">跟你同性別、同年齡層而且有在吃的人，平均是 <b>${ref}</b>。</div>` : '';
-  if (r.saved) {
-    $('r-actions').innerHTML = `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>
-      <button class="btn btn-line" onclick="go('compare')">📊 看大家的對照</button>`;
-  } else {
-    $('r-actions').innerHTML = `<div class="card" style="text-align:center">
-        <p style="font-size:1.05rem">這次沒有保存。<br>用 LINE 登入，下個月回測就看得到自己的變化。</p></div>
-      <button class="btn btn-gold" onclick="doLogin()">用 LINE 登入保存紀錄</button>
-      <button class="btn btn-line" onclick="go('compare')">📊 看大家的對照</button>`;
-  }
+  $('r-extra').innerHTML = r.prev_score!=null ? `<div class="note">上次是 <b>${Number(r.prev_score).toFixed(1)}</b>，這次 <b>${Number(r.score).toFixed(1)}</b>。28 天後再測一次看變化。</div>`
+    : `<div class="note">已經記下來了。28 天後用同一支手機再測，就看得到變化。</div>`;
+  let acts = '';
+  if (r.is_mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
+  else if (r.can_bind) acts += `<button class="btn btn-gold" onclick="bindSelf('${r.subject_id}')">🙋 這是我本人，綁定我的 LINE</button>`;
+  acts += `<button class="btn btn-line" onclick="startSurvey()">📝 再測一位</button>
+    <button class="btn btn-ghost" onclick="go('compare')">📊 看大家的對照</button>`;
+  $('r-actions').innerHTML = acts;
   go('result');
+}
+async function bindSelf(id){
+  const { data, error } = await sb.rpc('kc_bind_self', { p_caller: caller, p_subject_id: id });
+  if (error || !data) { toast('綁定失敗，再試一次'); return; }
+  if (!data.ok) { toast(data.reason==='already_bound' ? '你的 LINE 已經綁過別的手機了' : '這支手機已經有人綁定'); return; }
+  toast('綁好了，以後在「我的」就看得到');
+  go('me');
 }
 
 // ══════════════ 對照 ══════════════
@@ -451,13 +473,13 @@ async function loadCompare(dim){
 
 // ══════════════ 我的 KC ══════════════
 async function loadMe(){
-  if (!caller) { go('pick'); return; }
+  if (!caller) { $('m-body').innerHTML = '<div class="card"><p>用 LINE 登入，才看得到自己的歷次紀錄。</p></div><button class="btn btn-gold" onclick="doLogin()">用 LINE 登入</button>'; return; }
   $('m-body').innerHTML = '<div class="loading">讀取中…</div>';
   const { data: h, error } = await sb.rpc('kc_my_history', { p_caller: caller });
   if (error || !h) { $('m-body').innerHTML = '<p class="sub">讀取失敗</p>'; return; }
   const rs = h.records || [];
   if (!rs.length) {
-    $('m-body').innerHTML = '<div class="card"><p>還沒有紀錄。</p></div><button class="btn btn-gold" onclick="beginTest()">📝 填第一次</button>';
+    $('m-body').innerHTML = '<div class="card"><p>還沒有綁定的紀錄。測完之後按「這是我本人」，紀錄就會出現在這裡。</p></div><button class="btn btn-gold" onclick="beginTest()">📝 開始檢測</button>';
     return;
   }
   const s = h.subject, last = rs[rs.length-1];
