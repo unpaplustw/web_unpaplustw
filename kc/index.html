@@ -73,12 +73,60 @@ h2{font-size:1.25rem;font-weight:700}
 .light.red{background:var(--red)}.light.yellow{background:var(--yellow)}.light.green{background:var(--green)}
 .msg{font-size:1.25rem;line-height:1.7;text-align:center;padding:6px 4px}
 
+/* 封面 */
+.hero{margin:-16px -16px 0;min-height:100vh;min-height:100svh;background:radial-gradient(120% 80% at 50% 30%,#1f2a44 0%,#0b1020 60%,#05070f 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px 90px;position:relative;overflow:hidden}
+.hero .stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 20% 30%,rgba(255,255,255,.5),transparent),radial-gradient(1px 1px at 70% 20%,rgba(255,255,255,.4),transparent),radial-gradient(1.5px 1.5px at 85% 65%,rgba(212,175,55,.6),transparent),radial-gradient(1px 1px at 35% 80%,rgba(255,255,255,.35),transparent),radial-gradient(1.5px 1.5px at 10% 60%,rgba(212,175,55,.5),transparent);animation:tw 4s ease-in-out infinite alternate}
+@keyframes tw{from{opacity:.5}to{opacity:1}}
+.hero .kick{letter-spacing:6px;font-size:.85rem;color:var(--gold2);font-weight:700;margin-bottom:18px;position:relative}
+.gauge{position:relative;width:230px;height:230px;margin:0 auto 26px}
+.gauge svg{width:100%;height:100%;transform:rotate(135deg)}
+.gauge .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .num b{font-size:4.2rem;font-weight:900;line-height:1;letter-spacing:1px}
+.gauge .num span{font-size:.8rem;letter-spacing:3px;color:rgba(255,255,255,.6);margin-top:6px}
+.gauge.glow{animation:glow 2.6s ease-in-out infinite}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 8px rgba(212,175,55,.35))}50%{filter:drop-shadow(0 0 26px rgba(22,163,74,.7))}}
+.hero h1{font-size:1.75rem;line-height:1.35;letter-spacing:1px;position:relative}
+.hero p{color:rgba(255,255,255,.75);margin-top:10px;font-size:1.05rem;position:relative}
+.hero .down{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);color:var(--gold2);font-size:1.6rem;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+.story{padding:34px 0 6px}
+.story h2{text-align:center;margin-bottom:16px}
+.sc{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px 18px 18px 64px;margin-bottom:14px;position:relative;box-shadow:var(--shadow);opacity:0;transform:translateY(24px);transition:all .6s ease-out}
+.sc.in{opacity:1;transform:none}
+.sc .ic{position:absolute;left:16px;top:18px;width:36px;height:36px;border-radius:10px;background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.sc h3{font-size:1.15rem;font-weight:900;margin-bottom:4px}
+.sc p{color:var(--txt2);font-size:1rem;line-height:1.6}
+.entry{padding:18px 0 4px}
+.entry h2{text-align:center;margin-bottom:14px}
+
 /* 分析中＋分析結果 */
 .spin{width:64px;height:64px;margin:0 auto;border-radius:50%;border:6px solid var(--gold-bg);border-top-color:var(--gold);animation:sp 0.9s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.an-step{font-size:1.05rem;color:var(--txt2);margin:8px 0;opacity:0;transform:translateY(6px);transition:all .35s}
+.scan{margin:-16px -16px 0;min-height:100vh;min-height:100svh;background:radial-gradient(120% 70% at 50% 25%,#16233d 0%,#070b16 70%);color:#fff;padding:36px 22px 120px;text-align:center}
+.scan-kick{letter-spacing:5px;font-size:.75rem;color:var(--gold2);font-weight:700;margin-bottom:14px}
+.body-box{position:relative;width:130px;height:230px;margin:0 auto;overflow:hidden}
+.body-svg{width:100%;height:100%;fill:rgba(212,175,55,.12);stroke:rgba(212,175,55,.75);stroke-width:1.5}
+.scan-line{position:absolute;left:-10%;right:-10%;height:3px;top:0;background:linear-gradient(90deg,transparent,#f5d76e,transparent);box-shadow:0 0 18px 6px rgba(245,215,110,.45);animation:scanmv 1.6s ease-in-out infinite alternate}
+@keyframes scanmv{from{top:0}to{top:calc(100% - 3px)}}
+.scan-pct{font-size:1rem;color:rgba(255,255,255,.65);margin:14px 0 18px}
+.scan-pct b{font-size:2.6rem;color:#fff;font-weight:900;font-variant-numeric:tabular-nums}
+.scan-steps{display:inline-block;text-align:left;min-width:260px}
+.an-step{display:flex;justify-content:space-between;gap:14px;font-size:1rem;color:rgba(255,255,255,.55);margin:9px 0;opacity:0;transform:translateY(6px);transition:all .35s}
 .an-step.on{opacity:1;transform:none}
-.an-step.done{color:var(--txt)}
+.an-step.done{color:#fff}
+.an-step .val{font-weight:900;color:var(--gold2);font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s}
+.an-step.done .val{opacity:1}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+.flash.go{animation:flash .7s ease-out}
+@keyframes flash{0%{opacity:0}25%{opacity:.9}100%{opacity:0}}
+.rep-head{margin:-16px -16px 16px;padding:22px 20px 18px;background:linear-gradient(135deg,#16233d,#0b1020);color:#fff}
+.rep-head .t{font-size:1.25rem;font-weight:900;letter-spacing:1px}
+.rep-head .t small{display:block;font-size:.7rem;letter-spacing:4px;color:var(--gold2);font-weight:700;margin-bottom:4px}
+.rep-head .meta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin-top:12px;font-size:.92rem;color:rgba(255,255,255,.7)}
+.rep-head .meta b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+.chap{font-size:.85rem;font-weight:900;color:var(--gold3);letter-spacing:2px;margin-bottom:8px}
+#s-result.rise{animation:rise .7s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
 .band{display:inline-block;padding:6px 18px;border-radius:999px;font-weight:900;font-size:1.15rem;margin-top:6px}
 .band.severe{background:var(--red-bg);color:var(--red)}.band.sub{background:var(--yellow-bg);color:var(--yellow)}.band.healthy{background:var(--green-bg);color:var(--green)}
 .cmp{padding:12px 0;border-top:1px solid var(--border)}
@@ -130,8 +178,42 @@ h2{font-size:1.25rem;font-weight:700}
 <body>
 <div class="wrap">
 
-<!-- ═══ 首頁＝大數據對照 ═══ -->
-<section id="s-compare" class="screen on">
+<!-- ═══ 封面：故事＋直接開始（2026-10-18 改；統計移到「統計」頁）═══ -->
+<section id="s-home" class="screen on">
+  <div class="hero">
+    <div class="stars"></div>
+    <div class="kick">KC 抗氧化力檢測</div>
+    <div class="gauge" id="gauge">
+      <svg viewBox="0 0 200 200">
+        <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#16a34a"/><stop offset="50%" stop-color="#d97706"/><stop offset="100%" stop-color="#dc2626"/></linearGradient></defs>
+        <circle cx="100" cy="100" r="86" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14" stroke-dasharray="405 541" stroke-linecap="round"/>
+        <circle id="g-arc" cx="100" cy="100" r="86" fill="none" stroke="url(#gg)" stroke-width="14" stroke-dasharray="0 541" stroke-linecap="round"/>
+      </svg>
+      <div class="num"><b id="g-num">0.0</b><span>KC 0.1 – 12</span></div>
+    </div>
+    <h1>你的身體，<br>還剩多少抗氧化力？</h1>
+    <p>用光照一下皮膚，數字就看得到</p>
+    <div class="down">⌄</div>
+  </div>
+
+  <div class="story">
+    <h2>為什麼要測</h2>
+    <div class="sc"><div class="ic">🔥</div><h3>每天都在消耗</h3><p>熬夜、壓力、外食，抗氧化力一直在用掉。平常吃的量，往往只是打平。</p></div>
+    <div class="sc"><div class="ic">🥕</div><h3>蔬果吃不夠</h3><p>類胡蘿蔔素來自有顏色的蔬果，現代人普遍吃不夠，單靠三餐很難補足。</p></div>
+    <div class="sc"><div class="ic">📈</div><h3>用數字說話</h3><p>KC 以「葉黃素之父」Khachik 博士命名，他研究了 40 年。先測一次，照量吃 28 天再測，有沒有變化自己看得到。</p></div>
+  </div>
+
+  <div class="entry" id="entry">
+    <h2>現在開始</h2>
+    <button class="btn btn-line" onclick="pickPhone()" style="padding:16px">📱 用手機號碼<small style="display:block;font-size:.9rem;font-weight:400;color:var(--txt2);margin-top:4px">幫別人測，或沒有 LINE</small></button>
+    <button class="btn btn-gold" onclick="pickLine()" style="padding:16px">用 LINE 進入<small style="display:block;font-size:.9rem;font-weight:400;opacity:.9;margin-top:4px">LINEAI 會員，或想自己保存紀錄</small></button>
+    <button class="btn btn-ghost" onclick="go('compare')">看大家的測量統計 →</button>
+  </div>
+</section>
+
+<!-- ═══ 統計＝大數據對照 ═══ -->
+<section id="s-compare" class="screen">
   <div class="hd">
     <div class="kicker">KC 抗氧化力</div>
     <h1>有保養 vs 沒保養</h1>
@@ -153,13 +235,6 @@ h2{font-size:1.25rem;font-weight:700}
   <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
 </section>
 
-<!-- ═══ 選怎麼進入：手機（幫別人／沒 LINE）或 LINE（測自己）═══ -->
-<section id="s-pick" class="screen">
-  <div class="hd"><div class="kicker">開始檢測</div><h1>怎麼開始</h1></div>
-  <button class="btn btn-line" onclick="pickPhone()" style="padding:16px">📱 用手機號碼<small style="display:block;font-size:.9rem;font-weight:400;color:var(--txt2);margin-top:4px">幫別人測，或沒有 LINE</small></button>
-  <button class="btn btn-gold" onclick="pickLine()" style="padding:16px">用 LINE 登入<small style="display:block;font-size:.9rem;font-weight:400;opacity:.9;margin-top:4px">測自己，下次自動帶出</small></button>
-  <button class="btn btn-ghost" onclick="go('compare')">← 回大家的對照</button>
-</section>
 
 <!-- ═══ 問卷 ═══ -->
 <section id="s-survey" class="screen">
@@ -173,17 +248,26 @@ h2{font-size:1.25rem;font-weight:700}
 
 <!-- ═══ 分析中（送出後的過場）═══ -->
 <section id="s-analyzing" class="screen">
-  <div style="text-align:center;padding:70px 0 20px">
-    <div class="spin"></div>
-    <h2 style="margin:22px 0 18px">分析中</h2>
-    <div id="an-steps" style="display:inline-block;text-align:left"></div>
+  <div class="scan">
+    <div class="scan-kick">KC HEALTH ANALYSIS</div>
+    <div class="body-box">
+      <svg viewBox="0 0 120 220" class="body-svg">
+        <circle cx="60" cy="26" r="18"/>
+        <path d="M60 46 C38 46 28 58 26 78 L20 128 C19 136 30 138 32 130 L38 92 L40 140 L36 208 C35 218 50 218 51 208 L58 150 L62 150 L69 208 C70 218 85 218 84 208 L80 140 L82 92 L88 130 C90 138 101 136 100 128 L94 78 C92 58 82 46 60 46 Z"/>
+      </svg>
+      <div class="scan-line" id="scan-line"></div>
+    </div>
+    <div class="scan-pct"><b id="scan-pct">0</b>%</div>
+    <div id="an-steps" class="scan-steps"></div>
   </div>
+  <div class="flash" id="flash"></div>
 </section>
 
 <!-- ═══ 結果 ═══ -->
 <section id="s-result" class="screen">
-  <div class="hd"><div class="kicker">健康分數</div></div>
+  <div class="rep-head" id="r-head"></div>
   <div class="card">
+    <div class="chap">一、健康分數</div>
     <div class="big" id="r-score">8.8</div>
     <div class="light green" id="r-light">綠</div>
     <p class="sub" style="text-align:center" id="r-sub"></p>
@@ -202,8 +286,8 @@ h2{font-size:1.25rem;font-weight:700}
 </div>
 
 <nav class="nav">
-  <button class="on" data-s="compare" onclick="go('compare')"><span>📊</span>對照</button>
-  <button data-s="survey" onclick="beginTest()"><span>📝</span>檢測</button>
+  <button class="on" data-s="home" onclick="go('home')"><span>🏠</span>首頁</button>
+  <button data-s="compare" onclick="go('compare')"><span>📊</span>統計</button>
   <button data-s="me" id="nav-me" onclick="go('me')" style="display:none"><span>👤</span>我的</button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -239,7 +323,28 @@ function go(s){
   window.scrollTo(0,0);
   if (s==='compare') loadCompare(currentDim);
   if (s==='me') loadMe();
+  if (s==='home') playGauge();
+  document.querySelector('.nav').style.display = s==='analyzing' ? 'none' : '';
+  $('s-result').classList.toggle('rise', s==='result');
 }
+// 封面儀表：0 → 12 跑一圈（紅→黃→綠），跑完持續呼吸發光
+function playGauge(){
+  const arc = $('g-arc'), num = $('g-num'), g = $('gauge'); if (!arc) return;
+  g.classList.remove('glow');
+  const FULL = 405, t0 = performance.now(), ms = 1800;
+  const tick = t => {
+    const k = Math.min(1, (t-t0)/ms), e = 1 - Math.pow(1-k, 3);
+    arc.setAttribute('stroke-dasharray', `${(FULL*e).toFixed(1)} 541`);
+    num.textContent = (12*e).toFixed(1);
+    if (k < 1) requestAnimationFrame(tick); else g.classList.add('glow');
+  };
+  requestAnimationFrame(tick);
+}
+// 故事卡：滑到才浮出來
+const scObs = ('IntersectionObserver' in window) ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('in'); scObs.unobserve(e.target); }
+}), { threshold: .25 }) : null;
+document.querySelectorAll('.sc').forEach((el,i) => { el.style.transitionDelay = (i*0.12)+'s'; scObs ? scObs.observe(el) : el.classList.add('in'); });
 function previewTier(){
   const q = new URLSearchParams(location.search);
   if (q.has('preview')) return q.get('preview') || 'member';
@@ -251,7 +356,7 @@ function roc(y){ return y ? (y-1911) : null; }
 
 // ══════════════ 啟動 ══════════════
 async function init(){
-  loadCompare('age');
+  playGauge();
   const pv = previewTier();
   if (pv) { caller = 'U_demo_kc'; }
   else {
@@ -277,7 +382,8 @@ function doLogin(){
 }
 // MODE：phone＝輸入手機（幫別人測或沒 LINE）｜line＝測自己，送出後自動綁 LINE
 let MODE = 'phone';
-function beginTest(){ go('pick'); }
+// 「開始」一律回封面的兩個按鈕
+function beginTest(){ go('home'); setTimeout(() => $('entry').scrollIntoView({ behavior:'smooth' }), 50); }
 function pickPhone(){ MODE = 'phone'; startSurvey(); }
 function pickLine(){
   if (!caller) {
@@ -541,7 +647,7 @@ function peersHTML(a){
       <div class="track"><div class="mid"></div><div class="fill ${up?'up':'down'}" data-w="${w}%"></div></div>
       <div class="t ${up?'up':'down'}">${up?'高於':'低於'}平均 ${pct}%</div></div>`;
   }).join('');
-  return `<div class="card"><h2 style="margin-bottom:4px">📊 你 vs 同群組平均</h2><p class="sub" style="margin-bottom:6px">比的是機器測出來的 KC</p>${rows}</div>`;
+  return `<div class="card"><div class="chap">二、同群比較</div><h2 style="margin-bottom:4px">你 vs 同群組平均</h2><p class="sub" style="margin-bottom:6px">比的是機器測出來的 KC</p>${rows}</div>`;
 }
 function ladderHTML(a){
   const levels = [['none','沒吃明力多'], ...UNIT_OPTS.map(o=>[o[0], o[1]])];
@@ -557,28 +663,48 @@ function ladderHTML(a){
   const next = levels.slice(idx+1).find(([k]) => L[k] && L[k].avg != null);
   const tip = next ? `吃到「${next[1]}」的人，平均 KC 是 <b>${Number(L[next[0]].avg).toFixed(1)}</b>。`
                    : '人數夠了，這裡就會顯示每一級的平均 KC。';
-  return `<div class="card"><h2 style="margin-bottom:4px">🔬 識霸明力多吃多少，KC 多少</h2>
+  return `<div class="card"><div class="chap">三、保養建議</div><h2 style="margin-bottom:4px">識霸明力多吃多少，KC 多少</h2>
     <p class="sub" style="margin-bottom:6px">吃滿 1 個月的人，最新一次的平均</p>${rows}<div class="note" style="margin-bottom:0">${tip}</div></div>`;
 }
 
 async function showResult(r){
   go('analyzing');
-  const steps = ['計算健康分數', '比對同性別', '比對同年齡層', '比對同職業', '比對同地區', '整理明力多大數據'];
-  $('an-steps').innerHTML = steps.map((t,i) => `<div class="an-step" id="an${i}">○ ${t}</div>`).join('');
-  const anP = sb.rpc('kc_analysis', { p_record_id: r.record_id });
+  $('an-steps').innerHTML = ''; $('scan-pct').textContent = '0';
   // 選 LINE＝測自己：第一次送出就自動綁定，不用再按「這是我本人」
   const bindP = (MODE === 'line' && r.can_bind) ? bindSelf(r.subject_id) : Promise.resolve(r.is_mine);
-  for (let i=0; i<steps.length; i++) {
-    const e = $('an'+i); e.classList.add('on'); await sleep(330);
-    e.classList.add('done'); e.textContent = '✓ ' + steps[i];
-  }
-  const [an, mine] = await Promise.all([anP, bindP]);
+  const an = await sb.rpc('kc_analysis', { p_record_id: r.record_id });
   const a = an && an.data;
+  // 過場每一項跳出的都是真實數字（人數照資料庫實際筆數，不灌水）
+  const pn = d => { const p = a && (a.peers||[]).find(x => x.dim===d); return p ? `${p.n} 人` : '—'; };
+  const steps = [
+    ['讀取機器 KC 數值', Number(r.score).toFixed(1)],
+    ['校正慢性病用藥', a && a.deduct ? `−${a.deduct}` : '無'],
+    ['比對同年齡層資料', pn('age')],
+    ['比對同職業資料', pn('occupation')],
+    ['比對同地區資料', pn('region')],
+    ['比對全台 KC 資料庫', a ? `${a.total_records} 筆` : '—'],
+    ['產生個人健康報告', '✓'],
+  ];
+  $('an-steps').innerHTML = steps.map(([t,v],i) => `<div class="an-step" id="an${i}"><span id="ant${i}">○ ${t}</span><span class="val">${v}</span></div>`).join('');
+  for (let i=0; i<steps.length; i++) {
+    $('an'+i).classList.add('on');
+    const from = Math.round(i/steps.length*100), to = Math.round((i+1)/steps.length*100);
+    for (let k=1; k<=6; k++) { $('scan-pct').textContent = Math.round(from + (to-from)*k/6); await sleep(130); }
+    $('an'+i).classList.add('done'); $('ant'+i).textContent = '✓ ' + steps[i][0];
+  }
+  const mine = await bindP;
+  await sleep(250);
+  $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go');
+  await sleep(180);
 
   const score = Number(r.score);
   const health = a ? Number(a.health) : score;
   const band = a ? a.band : (score<5 ? 'severe' : score<8 ? 'sub' : 'healthy');
   $('r-light').style.display = 'none';
+  $('r-head').innerHTML = `<div class="t"><small>KC HEALTH REPORT</small>個人抗氧化力檢測報告</div>
+    <div class="meta"><span>報告編號</span><b>${a ? a.report_no : '—'}</b>
+      <span>檢測日期</span><b>${a ? a.test_date : new Date().toISOString().slice(0,10)}</b>
+      <span>受測者</span><b>手機末三碼 ${a ? a.phone_tail : (ANS.phone||'').slice(-3)}</b></div>`;
   const trend = r.trend==='first'?'第一次檢測':r.trend==='up'?'比上次進步':r.trend==='down'?'比上次低一點':'和上次差不多';
   $('r-sub').innerHTML = `<span class="band ${band}">${BAND_NAME[band]}</span>
     <div style="margin-top:10px">機器 KC <b>${score.toFixed(1)}</b>${a && a.deduct ? ` → 健康分數 <b>${health.toFixed(1)}</b>（慢性病藥 ${MEDS_NAME[a.chronic_meds]} −${a.deduct}）` : ''}</div>
@@ -590,7 +716,7 @@ async function showResult(r){
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
-    <button class="btn btn-ghost" onclick="go('compare')">📊 看大家的對照</button>`;
+    <button class="btn btn-ghost" onclick="go('compare')">📊 看大家的測量統計</button>`;
   $('r-actions').innerHTML = acts;
   go('result');
   $('r-score').textContent = '0.0';
