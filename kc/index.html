@@ -129,6 +129,14 @@ h2{font-size:1.25rem;font-weight:700}
   <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
 </section>
 
+<!-- ═══ 選怎麼進入：手機（幫別人／沒 LINE）或 LINE（測自己）═══ -->
+<section id="s-pick" class="screen">
+  <div class="hd"><div class="kicker">開始檢測</div><h1>怎麼開始</h1></div>
+  <button class="btn btn-line" onclick="pickPhone()" style="padding:16px">📱 用手機號碼<small style="display:block;font-size:.9rem;font-weight:400;color:var(--txt2);margin-top:4px">幫別人測，或沒有 LINE</small></button>
+  <button class="btn btn-gold" onclick="pickLine()" style="padding:16px">用 LINE 登入<small style="display:block;font-size:.9rem;font-weight:400;opacity:.9;margin-top:4px">測自己，下次自動帶出</small></button>
+  <button class="btn btn-ghost" onclick="go('compare')">← 回大家的對照</button>
+</section>
+
 <!-- ═══ 問卷 ═══ -->
 <section id="s-survey" class="screen">
   <div class="steps" id="steps"></div>
@@ -223,6 +231,10 @@ async function init(){
     try { const { data } = await sb.rpc('kc_my_profile', { p_caller: caller }); profile = data || {}; } catch(_) { profile = {}; }
     TIER = (pv === 'trial') ? 'trial' : (pv === 'member' ? 'member' : (profile.tier || 'trial'));
     $('nav-me').style.display = '';
+    // 從 LINE 登入頁回來 → 直接接著填
+    let resume = null;
+    try { resume = localStorage.getItem('kc_resume'); localStorage.removeItem('kc_resume'); } catch(_) {}
+    if (resume === 'line') startLine();
   }
 }
 function doLogin(){
@@ -230,7 +242,22 @@ function doLogin(){
   // per-page LIFF：Endpoint 就是本頁，login() 不帶 redirectUri（帶了會觸發 relay → 無限登入迴圈）
   try { liff.login(); } catch(e) { toast('請從 LINE 開啟這個頁面'); }
 }
-function beginTest(){ startSurvey(); }
+// MODE：phone＝輸入手機（幫別人測或沒 LINE）｜line＝測自己，送出後自動綁 LINE
+let MODE = 'phone';
+function beginTest(){ go('pick'); }
+function pickPhone(){ MODE = 'phone'; startSurvey(); }
+function pickLine(){
+  if (!caller) {
+    try { localStorage.setItem('kc_resume', 'line'); } catch(_) {}
+    doLogin(); return;
+  }
+  startLine();
+}
+function startLine(){
+  MODE = 'line'; startSurvey();
+  // 綁過的直接用自己的手機查，跳過手機題
+  if (profile && profile.phone) { ANS.phone = profile.phone; nextStep(); }
+}
 
 // ══════════════ 問卷（v4：手機當鑰匙，所有人同一條路）══════════════
 // 第一題手機 → 查得到就帶入基本資料、跳過；查不到填一次。用量題只在受測者或操作者是會員時出現
@@ -243,7 +270,8 @@ function showUsage(){
   return (profile && profile.tier === 'member') || (LOOKUP && LOOKUP.subject && LOOKUP.subject.tier === 'member') || !!(ANS.member_no);
 }
 const ITEMS = [
-  { id:'phone', step:0, label:'手機號碼', type:'phone', hint:'被測的人的手機。測過的人會自動帶出上次資料' },
+  { id:'phone', step:0, label:'手機號碼', type:'phone',
+    hint:()=> MODE==='line' ? '你自己的手機，只要填這一次，之後用 LINE 進來就自動帶出' : '被測的人的手機。測過的人會自動帶出上次資料' },
   { id:'gender', step:1, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
   { id:'birth_year', step:1, label:'幾年次的', type:'year' },
   { id:'occupation', step:1, label:'現在的工作', type:'choice', cols:2, hint:'以八成收入來源為準',
@@ -297,7 +325,7 @@ function renderStep(){
   $('q-body').innerHTML = lookupNote() + items.map(q => `
     <div class="qblock" id="qb-${q.id}">
       <div class="qlabel">${q.label}${isOptional(q)?'（可不填）':''}</div>
-      ${q.hint?`<p class="hint" style="text-align:left;margin:-6px 0 12px">${q.hint}</p>`:''}
+      ${q.hint?`<p class="hint" style="text-align:left;margin:-6px 0 12px">${typeof q.hint==='function'?q.hint():q.hint}</p>`:''}
       <div id="qc-${q.id}"></div>
       <div class="qerr">這題還沒填</div>
     </div>`).join('');
@@ -451,27 +479,30 @@ async function submit(){
   if (error || !data) { console.error(error); toast('送出失敗，再試一次'); return; }
   showResult(data);
 }
-function showResult(r){
+async function showResult(r){
   $('r-score').textContent = Number(r.score).toFixed(1);
   const l = $('r-light'); l.className = 'light '+r.light; l.textContent = LIGHT_TXT[r.light];
   $('r-sub').textContent = `${LIGHT_NAME[r.light]} · ` + (r.trend==='first'?'第一次檢測':r.trend==='up'?'比上次進步':r.trend==='down'?'比上次低一點':'和上次差不多');
   $('r-msg').textContent = r.message || '';
   $('r-extra').innerHTML = r.prev_score!=null ? `<div class="note">上次是 <b>${Number(r.prev_score).toFixed(1)}</b>，這次 <b>${Number(r.score).toFixed(1)}</b>。28 天後再測一次看變化。</div>`
     : `<div class="note">已經記下來了。28 天後用同一支手機再測，就看得到變化。</div>`;
+  // 選 LINE＝測自己：第一次送出就自動綁定，不用再按「這是我本人」
+  let mine = r.is_mine;
+  if (MODE === 'line' && r.can_bind) mine = await bindSelf(r.subject_id);
   let acts = '';
-  if (r.is_mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
-  else if (r.can_bind) acts += `<button class="btn btn-gold" onclick="bindSelf('${r.subject_id}')">🙋 這是我本人，綁定我的 LINE</button>`;
-  acts += `<button class="btn btn-line" onclick="startSurvey()">📝 再測一位</button>
+  if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
+  acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
     <button class="btn btn-ghost" onclick="go('compare')">📊 看大家的對照</button>`;
   $('r-actions').innerHTML = acts;
   go('result');
 }
 async function bindSelf(id){
   const { data, error } = await sb.rpc('kc_bind_self', { p_caller: caller, p_subject_id: id });
-  if (error || !data) { toast('綁定失敗，再試一次'); return; }
-  if (!data.ok) { toast(data.reason==='already_bound' ? '你的 LINE 已經綁過別的手機了' : '這支手機已經有人綁定'); return; }
-  toast('綁好了，以後在「我的」就看得到');
-  go('me');
+  if (error || !data) { toast('紀錄已存，但綁定 LINE 失敗'); return false; }
+  if (!data.ok) { toast(data.reason==='already_bound' ? '你的 LINE 已經綁過別的手機了' : '這支手機已經綁定別的 LINE'); return false; }
+  try { const { data: p } = await sb.rpc('kc_my_profile', { p_caller: caller }); profile = p || profile; } catch(_) {}
+  toast('已綁定你的 LINE，下次直接帶出');
+  return true;
 }
 
 // ══════════════ 對照 ══════════════
