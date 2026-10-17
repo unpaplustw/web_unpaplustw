@@ -73,6 +73,30 @@ h2{font-size:1.25rem;font-weight:700}
 .light.red{background:var(--red)}.light.yellow{background:var(--yellow)}.light.green{background:var(--green)}
 .msg{font-size:1.25rem;line-height:1.7;text-align:center;padding:6px 4px}
 
+/* 分析中＋分析結果 */
+.spin{width:64px;height:64px;margin:0 auto;border-radius:50%;border:6px solid var(--gold-bg);border-top-color:var(--gold);animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.an-step{font-size:1.05rem;color:var(--txt2);margin:8px 0;opacity:0;transform:translateY(6px);transition:all .35s}
+.an-step.on{opacity:1;transform:none}
+.an-step.done{color:var(--txt)}
+.band{display:inline-block;padding:6px 18px;border-radius:999px;font-weight:900;font-size:1.15rem;margin-top:6px}
+.band.severe{background:var(--red-bg);color:var(--red)}.band.sub{background:var(--yellow-bg);color:var(--yellow)}.band.healthy{background:var(--green-bg);color:var(--green)}
+.cmp{padding:12px 0;border-top:1px solid var(--border)}
+.cmp:first-of-type{border-top:0}
+.cmp .h{display:flex;justify-content:space-between;align-items:baseline;font-size:1rem}
+.cmp .h b{font-size:1.15rem}
+.track{position:relative;height:10px;background:rgba(0,0,0,.06);border-radius:5px;margin:8px 0 4px;overflow:hidden}
+.track .mid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(0,0,0,.25)}
+.track .fill{position:absolute;top:0;bottom:0;width:0;border-radius:5px;transition:width 1s ease-out}
+.track .fill.up{left:50%;background:var(--green)}.track .fill.down{right:50%;background:var(--red)}
+.cmp .t{font-size:.9rem;font-weight:700}.cmp .t.up{color:var(--green)}.cmp .t.down{color:var(--red)}.cmp .t.wait{color:var(--muted);font-weight:400}
+.lad{display:flex;align-items:center;gap:8px;margin:8px 0}
+.lad .n{flex:0 0 6.6em;font-size:.95rem;font-weight:700;white-space:nowrap}
+.lad .bar{flex:1;height:22px;background:rgba(0,0,0,.05);border-radius:6px;overflow:hidden}
+.lad .bar i{display:block;height:100%;width:0;background:#d3d1c7;border-radius:6px;transition:width 1s ease-out}
+.lad.me .n{color:var(--gold3)}.lad.me .bar i{background:var(--gold)}
+.lad .v{flex:0 0 3.6em;text-align:right;font-weight:900}
+
 /* 對照 */
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
 .chip{flex:0 0 auto;border:2px solid var(--gold);background:#fff;color:var(--gold3);border-radius:999px;padding:10px 18px;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer}
@@ -147,9 +171,18 @@ h2{font-size:1.25rem;font-weight:700}
   </div>
 </section>
 
+<!-- ═══ 分析中（送出後的過場）═══ -->
+<section id="s-analyzing" class="screen">
+  <div style="text-align:center;padding:70px 0 20px">
+    <div class="spin"></div>
+    <h2 style="margin:22px 0 18px">分析中</h2>
+    <div id="an-steps" style="display:inline-block;text-align:left"></div>
+  </div>
+</section>
+
 <!-- ═══ 結果 ═══ -->
 <section id="s-result" class="screen">
-  <div class="hd"><div class="kicker">你的 KC</div></div>
+  <div class="hd"><div class="kicker">健康分數</div></div>
   <div class="card">
     <div class="big" id="r-score">8.8</div>
     <div class="light green" id="r-light">綠</div>
@@ -277,6 +310,8 @@ const ITEMS = [
   { id:'occupation', step:1, label:'現在的工作', type:'choice', cols:2, hint:'以八成收入來源為準',
     opts:[['office','上班','契約薪資'],['self','自營','負責人'],['sales','業務','銷售型<br>保險、房仲、直銷'],['ambassador','代言','非銷售型<br>綠佳利'],
           ['home','家管','家人供應'],['retired','退休','退休金、積蓄'],['student','學生','還在讀書'],['other','其他','兼差、打零工']] },
+  { id:'region', step:1, label:'住在哪一區', type:'choice', cols:1,
+    opts:[['north','北部','基隆、台北、新北、桃園、新竹、宜蘭'],['central','中部','苗栗、台中、彰化、南投、雲林'],['south','南部','嘉義、台南、高雄、屏東'],['east','東部','花蓮、台東'],['islands','離島','澎湖、金門、馬祖']] },
   { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, hint:'是綠佳利會員才填，只要編號、不用分店號。填了資料只有會員看得到' },
   { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', hint:'1 份＝自己一個拳頭大', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
   { id:'veggie_colors', step:2, label:'常吃哪些顏色的蔬果', hint:'可複選，至少選一色', type:'multi', cols:2,
@@ -452,11 +487,13 @@ async function nextStep(){
     PREFILLED = new Set();
     if (data.found) {
       ['gender','birth_year','occupation'].forEach(k => PREFILLED.add(k));
+      if (data.has_region || data.locked) PREFILLED.add('region');   // 舊紀錄沒填過地區就補問
       if (data.locked || (data.subject && data.subject.has_member_no)) PREFILLED.add('member_no');
       if (data.subject) {
         if (data.subject.gender) ANS.gender = data.subject.gender;
         if (data.subject.birth_year) ANS.birth_year = data.subject.birth_year;
         if (data.subject.occupation) ANS.occupation = data.subject.occupation;
+        if (data.subject.region) ANS.region = data.subject.region;
       }
     }
   }
@@ -470,7 +507,7 @@ async function submit(){
   const { data, error } = await sb.rpc('kc_submit', {
     p_caller: caller,
     p_phone: ANS.phone,
-    p_subject: { gender: ANS.gender, birth_year: ANS.birth_year, occupation: ANS.occupation, member_no: ANS.member_no || null },
+    p_subject: { gender: ANS.gender, birth_year: ANS.birth_year, occupation: ANS.occupation, region: ANS.region || null, member_no: ANS.member_no || null },
     p_record: { score: ANS.score, veggie_servings: ANS.veggie_servings, veggie_colors: ANS.veggie_colors || [],
       sleep_hours: ANS.sleep_hours, nocturia_times: ANS.nocturia_times,
       habits: (ANS.habits || []).filter(h => h !== 'none'), chronic_meds: ANS.chronic_meds,
@@ -479,22 +516,87 @@ async function submit(){
   if (error || !data) { console.error(error); toast('送出失敗，再試一次'); return; }
   showResult(data);
 }
+// ── 結果頁：分析中過場 → 健康分數＋三級 → 同群比較 → 明力多五級 ──
+const BAND_NAME = { severe:'嚴重', sub:'亞健康', healthy:'健康' };
+const REGION_NAME = { north:'北部', central:'中部', south:'南部', east:'東部', islands:'離島' };
+const MEDS_NAME = { '1':'1 種', '2':'2 種', '3+':'3 種以上' };
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+function countUp(el, to, ms){
+  const t0 = performance.now();
+  const tick = t => { const k = Math.min(1, (t-t0)/ms); el.textContent = (to * (1-Math.pow(1-k,3))).toFixed(1); if (k<1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+function peersHTML(a){
+  const lab = { gender: a.gender ? `同性別（${a.gender==='male'?'男':'女'}）` : null,
+    age: a.age_band ? `同年齡層（${a.age_band}）` : null,
+    occupation: a.occupation ? `同職業（${OCC[a.occupation]||a.occupation}）` : null,
+    region: a.region ? `同地區（${REGION_NAME[a.region]}）` : null };
+  const you = Number(a.score);
+  const rows = (a.peers||[]).filter(p => lab[p.dim]).map(p => {
+    if (p.avg == null) return `<div class="cmp"><div class="h"><span>${lab[p.dim]}</span><span class="sub">你 <b>${you.toFixed(1)}</b></span></div>
+      <div class="track"><div class="mid"></div></div><div class="t wait">資料累積中（目前 ${p.n} 人，滿 3 人顯示）</div></div>`;
+    const avg = Number(p.avg), diff = you - avg, up = diff >= 0;
+    const pct = Math.round(Math.abs(diff) / avg * 100), w = Math.min(Math.abs(diff) / avg * 50, 50);
+    return `<div class="cmp"><div class="h"><span>${lab[p.dim]}</span><span class="sub">你 <b>${you.toFixed(1)}</b>　平均 <b>${avg.toFixed(1)}</b></span></div>
+      <div class="track"><div class="mid"></div><div class="fill ${up?'up':'down'}" data-w="${w}%"></div></div>
+      <div class="t ${up?'up':'down'}">${up?'高於':'低於'}平均 ${pct}%</div></div>`;
+  }).join('');
+  return `<div class="card"><h2 style="margin-bottom:4px">📊 你 vs 同群組平均</h2><p class="sub" style="margin-bottom:6px">比的是機器測出來的 KC</p>${rows}</div>`;
+}
+function ladderHTML(a){
+  const levels = [['none','沒吃明力多'], ...UNIT_OPTS.map(o=>[o[0], o[1]])];
+  const me = a.is_taking && a.daily_units ? a.daily_units : 'none';
+  const L = a.ladder || {};
+  const rows = levels.map(([k,name]) => {
+    const c = L[k], avg = c && c.avg != null ? Number(c.avg) : null;
+    return `<div class="lad ${k===me?'me':''}"><span class="n">${name}${k===me?' ←你':''}</span>
+      <span class="bar"><i data-w="${avg!=null ? avg/12*100 : 0}%"></i></span>
+      <span class="v">${avg!=null ? avg.toFixed(1) : '<small style="font-weight:400;color:var(--muted)">累積中</small>'}</span></div>`;
+  }).join('');
+  const idx = levels.findIndex(l => l[0]===me);
+  const next = levels.slice(idx+1).find(([k]) => L[k] && L[k].avg != null);
+  const tip = next ? `吃到「${next[1]}」的人，平均 KC 是 <b>${Number(L[next[0]].avg).toFixed(1)}</b>。`
+                   : '人數夠了，這裡就會顯示每一級的平均 KC。';
+  return `<div class="card"><h2 style="margin-bottom:4px">🔬 識霸明力多吃多少，KC 多少</h2>
+    <p class="sub" style="margin-bottom:6px">吃滿 1 個月的人，最新一次的平均</p>${rows}<div class="note" style="margin-bottom:0">${tip}</div></div>`;
+}
+
 async function showResult(r){
-  $('r-score').textContent = Number(r.score).toFixed(1);
-  const l = $('r-light'); l.className = 'light '+r.light; l.textContent = LIGHT_TXT[r.light];
-  $('r-sub').textContent = `${LIGHT_NAME[r.light]} · ` + (r.trend==='first'?'第一次檢測':r.trend==='up'?'比上次進步':r.trend==='down'?'比上次低一點':'和上次差不多');
-  $('r-msg').textContent = r.message || '';
-  $('r-extra').innerHTML = r.prev_score!=null ? `<div class="note">上次是 <b>${Number(r.prev_score).toFixed(1)}</b>，這次 <b>${Number(r.score).toFixed(1)}</b>。28 天後再測一次看變化。</div>`
-    : `<div class="note">已經記下來了。28 天後用同一支手機再測，就看得到變化。</div>`;
+  go('analyzing');
+  const steps = ['計算健康分數', '比對同性別', '比對同年齡層', '比對同職業', '比對同地區', '整理明力多大數據'];
+  $('an-steps').innerHTML = steps.map((t,i) => `<div class="an-step" id="an${i}">○ ${t}</div>`).join('');
+  const anP = sb.rpc('kc_analysis', { p_record_id: r.record_id });
   // 選 LINE＝測自己：第一次送出就自動綁定，不用再按「這是我本人」
-  let mine = r.is_mine;
-  if (MODE === 'line' && r.can_bind) mine = await bindSelf(r.subject_id);
+  const bindP = (MODE === 'line' && r.can_bind) ? bindSelf(r.subject_id) : Promise.resolve(r.is_mine);
+  for (let i=0; i<steps.length; i++) {
+    const e = $('an'+i); e.classList.add('on'); await sleep(330);
+    e.classList.add('done'); e.textContent = '✓ ' + steps[i];
+  }
+  const [an, mine] = await Promise.all([anP, bindP]);
+  const a = an && an.data;
+
+  const score = Number(r.score);
+  const health = a ? Number(a.health) : score;
+  const band = a ? a.band : (score<5 ? 'severe' : score<8 ? 'sub' : 'healthy');
+  $('r-light').style.display = 'none';
+  const trend = r.trend==='first'?'第一次檢測':r.trend==='up'?'比上次進步':r.trend==='down'?'比上次低一點':'和上次差不多';
+  $('r-sub').innerHTML = `<span class="band ${band}">${BAND_NAME[band]}</span>
+    <div style="margin-top:10px">機器 KC <b>${score.toFixed(1)}</b>${a && a.deduct ? ` → 健康分數 <b>${health.toFixed(1)}</b>（慢性病藥 ${MEDS_NAME[a.chronic_meds]} −${a.deduct}）` : ''}</div>
+    <div style="margin-top:2px">${trend}</div>`;
+  $('r-msg').textContent = r.message || '';
+  const note = r.prev_score!=null ? `<div class="note">上次機器 KC 是 <b>${Number(r.prev_score).toFixed(1)}</b>，這次 <b>${score.toFixed(1)}</b>。28 天後再測一次看變化。</div>`
+    : `<div class="note">已經記下來了。28 天後用同一支手機再測，就看得到變化。</div>`;
+  $('r-extra').innerHTML = note + (a ? peersHTML(a) + ladderHTML(a) : '');
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
     <button class="btn btn-ghost" onclick="go('compare')">📊 看大家的對照</button>`;
   $('r-actions').innerHTML = acts;
   go('result');
+  $('r-score').textContent = '0.0';
+  countUp($('r-score'), health, 1000);
+  requestAnimationFrame(() => setTimeout(() =>
+    document.querySelectorAll('#r-extra [data-w]').forEach(e => e.style.width = e.dataset.w), 150));
 }
 async function bindSelf(id){
   const { data, error } = await sb.rpc('kc_bind_self', { p_caller: caller, p_subject_id: id });
