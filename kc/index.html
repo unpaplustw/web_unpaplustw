@@ -177,7 +177,7 @@ const SB_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
-const OCC = {office:'上班族', self:'自營商', home:'家管', retired:'退休', student:'學生', other:'其他'};
+const OCC = {office:'上班', self:'自營', home:'家管', retired:'退休', student:'學生', other:'其他'};
 const LIGHT_TXT = {red:'紅', yellow:'黃', green:'綠'};
 const LIGHT_NAME = {red:'紅燈', yellow:'黃燈', green:'綠燈'};
 
@@ -243,7 +243,8 @@ const ITEMS = [
   { id:'phone', step:0, label:'手機號碼', type:'phone', hint:'被測的人的手機。測過的人會自動帶出上次資料' },
   { id:'gender', step:1, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
   { id:'birth_year', step:1, label:'幾年次的', type:'year' },
-  { id:'occupation', step:1, label:'平常做什麼', type:'choice', cols:2, opts:Object.entries(OCC) },
+  { id:'occupation', step:1, label:'現在的工作', type:'choice', cols:2, hint:'選最接近的一個',
+    opts:[['office','上班','受雇領薪水'],['self','自營','自己當老闆'],['home','家管','照顧家裡'],['retired','退休','不再工作'],['student','學生','還在讀書'],['other','其他','兼差、打零工']] },
   { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, hint:'是綠佳利會員才填，只要編號、不用分店號。填了資料只有會員看得到' },
   { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
   { id:'sleep_hours', step:2, label:'昨晚睡了幾小時', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
@@ -299,9 +300,10 @@ function buildControl(q){
   const host = $('qc-'+q.id);
   if (q.type==='choice') {
     host.className = 'opts' + (q.cols===2?' g2':q.cols===3?' g3':'');
-    q.opts.forEach(([v,l]) => {
+    q.opts.forEach(([v,l,sub]) => {
       const o = document.createElement('button');
-      o.className = 'opt' + (ANS[q.id]===v?' sel':''); o.textContent = l;
+      o.className = 'opt' + (ANS[q.id]===v?' sel':'');
+      o.innerHTML = l + (sub ? `<small style="display:block;font-size:.85rem;font-weight:400;color:var(--txt2);margin-top:2px">${sub}</small>` : '');
       o.onclick = () => {
         ANS[q.id] = v; $('qb-'+q.id).classList.remove('bad');
         host.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel');
