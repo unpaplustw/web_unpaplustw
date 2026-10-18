@@ -668,7 +668,9 @@ function editItem(id){
 function lookupNote(){
   if (!LOOKUP || !LOOKUP.found || STEP===0) return '';
   if (LIFE_PREFILLED && !LOOKUP.locked) return STEP===lastStep() ? summaryCard() : '';
-  if (LOOKUP.locked) return `<div class="note">這支手機是<b>會員</b>的紀錄，基本資料已帶入，內容只有會員看得到。</div>`;
+  if (LOOKUP.locked) return LOOKUP.bound
+    ? `<div class="note">🔒 這支手機已經綁定 LINE，紀錄<b>只有本人</b>看得到。<br>可以照樣幫他測，這次的結果會存進他的紀錄。</div>`
+    : `<div class="note">🔒 這支手機是<b>會員</b>的紀錄，內容只有會員看得到。<br>可以照樣幫他測，這次的結果會存進他的紀錄。</div>`;
   const l = LOOKUP.last;
   return `<div class="note">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}。基本資料已帶入。</div>`;
 }
