@@ -198,20 +198,45 @@ h2{font-size:1.25rem;font-weight:700}
 .lad.me .n{color:var(--gold3)}.lad.me .bar i{background:var(--gold)}
 .lad .v{flex:0 0 3.6em;text-align:right;font-weight:900}
 
-/* 對照 */
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
-.chip{flex:0 0 auto;border:2px solid var(--gold);background:#fff;color:var(--gold3);border-radius:999px;padding:10px 18px;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer}
-.chip.on{background:var(--gold);color:#fff}
+/* 統計頁：跟封面同一套深色（2026-10-18 重做） */
+.st{margin:-16px -16px -96px;min-height:100vh;min-height:100svh;padding:34px 18px 120px;color:#fff;background:radial-gradient(120% 60% at 50% 0%,#1d2740 0%,#0b1020 55%,#05070f 100%)}
+.st .kick{letter-spacing:5px;font-size:.8rem;color:var(--gold2);font-weight:700;text-align:center}
+.st h1{text-align:center;font-size:1.7rem;margin-top:6px}
+.st-total{display:flex;justify-content:center;align-items:baseline;gap:6px;margin-top:18px}
+.st-total b{font-size:2.8rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+.st-total span{color:rgba(255,255,255,.6);margin-right:12px}
+.st-upd{text-align:center;color:rgba(255,255,255,.45);font-size:.85rem;margin-top:6px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:22px 0 10px}
+.vs .side{border-radius:18px;padding:16px 8px;text-align:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.vs .side.gold{border-color:rgba(212,175,55,.7);box-shadow:0 0 24px rgba(212,175,55,.25)}
+.vs .l{font-size:.9rem;color:rgba(255,255,255,.65)}
+.vs .v{font-size:2.6rem;font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums}
+.vs .side.gold .v{color:var(--gold2)}
+.vs .w{font-size:1rem;font-weight:700;color:rgba(255,255,255,.55);padding:14px 0 6px}
+.vs .n{font-size:.8rem;color:rgba(255,255,255,.45)}
+.vs .mid{font-weight:900;color:rgba(255,255,255,.4);font-size:1.1rem}
+.diff{text-align:center;margin-bottom:6px}
+.diff span{display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(22,163,74,.18);color:#6ee7a0;font-weight:900}
+.heavy{text-align:center;color:rgba(255,255,255,.6);font-size:.9rem;margin-bottom:18px}
+.heavy b{color:#fff}
+.chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0 12px}
+.chip{border:1px solid rgba(212,175,55,.6);background:transparent;color:var(--gold2);border-radius:999px;padding:6px 10px;font-size:.85rem;white-space:nowrap;font-weight:700;font-family:inherit;cursor:pointer}
+.chip.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.st-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:6px 14px}
+.st-leg{display:flex;gap:14px;justify-content:flex-end;font-size:.8rem;color:rgba(255,255,255,.55);padding:8px 0 2px}
+.st-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:0}
+.st-row{padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}
+.st-row:first-of-type{border-top:0}
+.st-row .t{font-weight:700;margin-bottom:6px}
+.st-bar{display:flex;align-items:center;gap:8px;margin:4px 0}
+.st-bar .b{flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
+.st-bar .b i{display:block;height:100%;width:0;border-radius:5px;transition:width 1s ease-out}
+.st-bar.no .b i{background:#8f8d86}.st-bar.yes .b i{background:var(--gold2)}
+.st-bar .v{flex:0 0 5.6em;text-align:right;font-size:.85rem;color:rgba(255,255,255,.75);font-variant-numeric:tabular-nums}
+.st-bar .v b{color:#fff;font-size:1rem}
+.st-empty{text-align:center;color:rgba(255,255,255,.5);padding:22px 0}
+.st-note{text-align:center;color:rgba(255,255,255,.45);font-size:.85rem;margin:14px 0 18px;line-height:1.6}
 .chartbox{position:relative;height:250px}
-.stats3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center}
-.stat.hi{border:2px solid var(--gold)}
-.stat .l{font-size:.85rem;color:var(--txt2)}
-.stat .v{font-size:1.9rem;font-weight:900;line-height:1.2}
-.stat.hi .v{color:var(--gold3)}
-.stat .n{font-size:.8rem;color:var(--muted)}
-.legend{display:flex;gap:16px;justify-content:center;font-size:.9rem;color:var(--txt2);margin-bottom:6px}
-.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 
 /* 我的 */
 .hist{border-top:1px solid var(--border);padding:12px 0}
@@ -316,29 +341,31 @@ h2{font-size:1.25rem;font-weight:700}
   </div>
 </section>
 
-<!-- ═══ 統計＝大數據對照 ═══ -->
+<!-- ═══ 統計＝大數據對照（2026-10-18 重做：深色、累積進度、有吃 vs 沒吃、分組橫條）═══ -->
 <section id="s-compare" class="screen">
-  <div class="hd">
-    <div class="kicker">KC 抗氧化力</div>
+  <div class="st">
+    <div class="kick">KC 大數據</div>
     <h1>有保養 vs 沒保養</h1>
-    <p class="sub" id="c-sub">全台實測資料</p>
+    <div class="st-total"><b id="st-n">0</b><span>人實測</span><b id="st-r">0</b><span>筆</span></div>
+    <div class="st-upd" id="st-upd"></div>
+    <div class="vs" id="st-vs"></div>
+    <div class="diff" id="st-diff"></div>
+    <div class="heavy" id="st-heavy"></div>
+    <div class="chips" id="c-chips">
+      <button class="chip on" data-dim="age">年齡</button>
+      <button class="chip" data-dim="gender">性別</button>
+      <button class="chip" data-dim="occupation">職業</button>
+      <button class="chip" data-dim="region">地區</button>
+      <button class="chip" data-dim="units">每天幾粒</button>
+    </div>
+    <div class="st-card">
+      <div class="st-leg"><span><i style="background:#8f8d86"></i>沒吃</span><span><i style="background:var(--gold2)"></i>有吃</span></div>
+      <div id="st-rows"></div>
+    </div>
+    <p class="st-note">「有吃」＝每天吃識霸明力多並吃滿 1 個月。<br>每一組滿 3 人才公開平均，數字都是實測。</p>
+    <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
   </div>
-  <div class="stats3" id="c-stats"></div>
-  <div class="chips" id="c-chips" style="margin-top:16px">
-    <button class="chip on" data-dim="age">年齡層</button>
-    <button class="chip" data-dim="tier">身分</button>
-    <button class="chip" data-dim="occupation">職業</button>
-    <button class="chip" data-dim="gender">性別</button>
-    <button class="chip" data-dim="units">每天幾粒</button>
-  </div>
-  <div class="card">
-    <div class="legend"><span><i style="background:#d3d1c7"></i>沒吃</span><span><i style="background:#b8960c"></i>有吃</span></div>
-    <div class="chartbox"><canvas id="c-chart"></canvas></div>
-  </div>
-  <p class="sub" style="text-align:center;margin:0 0 18px">「有吃」＝每天吃識霸明力多並吃滿 1 個月。不足 3 人的組別暫不顯示平均。</p>
-  <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
 </section>
-
 
 <!-- ═══ 問卷 ═══ -->
 <section id="s-survey" class="screen">
@@ -521,6 +548,7 @@ const ANS = {};
 let STEP = 0;
 let PREFILLED = new Set();
 let LOOKUP = null;   // kc_lookup 結果
+let LIFE_PREFILLED = false;   // 回測時生活習慣已帶入上次答案
 
 function showUsage(){
   return (profile && profile.tier === 'member') || (LOOKUP && LOOKUP.subject && LOOKUP.subject.tier === 'member') || !!(ANS.member_no);
@@ -555,7 +583,7 @@ const NSTEP = STEP_NAMES.length;
 
 function startSurvey(){
   for (const k in ANS) delete ANS[k];
-  LOOKUP = null;
+  LOOKUP = null; LIFE_PREFILLED = false;
   PREFILLED = new Set();
   STEP = 0; go('survey'); renderStep();
 }
@@ -569,6 +597,7 @@ function lastStep(){ for (let s=NSTEP-1;s>=0;s--) if (stepItems(s).length) retur
 // 查到人之後，問卷上方顯示上次的紀錄
 function lookupNote(){
   if (!LOOKUP || !LOOKUP.found || STEP===0) return '';
+  if (STEP===2 && LIFE_PREFILLED) return `<div class="note">上次的生活習慣已經帶入，<b>有變的再點</b>，沒變直接按下一步。</div>`;
   if (LOOKUP.locked) return `<div class="note">這支手機是<b>會員</b>的紀錄，基本資料已帶入，內容只有會員看得到。</div>`;
   const l = LOOKUP.last;
   return `<div class="note">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}。基本資料已帶入。</div>`;
@@ -718,6 +747,14 @@ async function nextStep(){
         if (data.subject.occupation) ANS.occupation = data.subject.occupation;
         if (data.subject.region) ANS.region = data.subject.region;
       }
+      // 回測：上次的生活習慣先點好，沒變就直接下一步
+      const ll = data.last_life;
+      if (ll) {
+        ['veggie_servings','sleep_hours','nocturia_times','chronic_meds'].forEach(k => { if (ll[k]) ANS[k] = ll[k]; });
+        if (Array.isArray(ll.veggie_colors) && ll.veggie_colors.length) ANS.veggie_colors = ll.veggie_colors;
+        if (Array.isArray(ll.habits)) ANS.habits = ll.habits.length ? ll.habits : ['none'];
+        LIFE_PREFILLED = true;
+      }
     }
   }
   for (let s=STEP+1;s<NSTEP;s++) if (stepItems(s).length) { STEP=s; renderStep(); return; }
@@ -850,35 +887,41 @@ async function bindSelf(id){
   return true;
 }
 
-// ══════════════ 對照 ══════════════
+// ══════════════ 統計 ══════════════
 let currentDim = 'age';
 document.querySelectorAll('#c-chips .chip').forEach(c => c.onclick = () => {
   document.querySelectorAll('#c-chips .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); loadCompare(c.dataset.dim);
 });
 const LABEL = { male:'男', female:'女', ...OCC, ...UNIT_NAME };
+const stLabel = x => LABEL[x] || (typeof REGION_NAME !== 'undefined' && REGION_NAME[x]) || x;
 async function loadCompare(dim){
   currentDim = dim;
   const { data, error } = await sb.rpc('kc_compare', { p_dim: dim });
   if (error || !data) { toast('讀取失敗'); return; }
+  const o = data.overall, MIN = o.min_n || 3;
+  countTo($('st-n'), o.total_subjects, 900, v => Math.round(v));
+  countTo($('st-r'), o.total_records, 900, v => Math.round(v));
+  $('st-upd').textContent = o.updated_at ? `最後更新 ${o.updated_at.slice(0,10)}` : '';
+  // 有吃 vs 沒吃：不滿 3 人老實寫「還差幾人」
+  const side = (c, name, gold) => `<div class="side ${gold?'gold':''}"><div class="l">${name}</div>` +
+    (c.avg != null ? `<div class="v">${Number(c.avg).toFixed(1)}</div><div class="n">${c.n} 人</div>`
+                   : `<div class="w">還差 ${Math.max(0, MIN - c.n)} 人</div><div class="n">目前 ${c.n} 人</div>`) + `</div>`;
+  $('st-vs').innerHTML = side(o.not_taking, '沒吃', false) + `<div class="mid">VS</div>` + side(o.taking, '有吃明力多', true);
+  const both = o.not_taking.avg != null && o.taking.avg != null;
+  const d = both ? Number(o.taking.avg) - Number(o.not_taking.avg) : null;
+  $('st-diff').innerHTML = both ? `<span>有吃的人 ${d >= 0 ? '高' : '低'} ${d >= 0 ? '+' : ''}${d.toFixed(1)}</span>` : '';
+  $('st-heavy').innerHTML = `極高保養（每天 15 粒以上）：` + (o.heavy.avg != null ? `<b>${Number(o.heavy.avg).toFixed(1)}</b>（${o.heavy.n} 人）` : `還差 ${Math.max(0, MIN - o.heavy.n)} 人`);
+  // 分組橫條
   const g = data.groups.filter(x => x.label);
-  const UORD = ['沒吃', ...UNIT_OPTS.map(o=>o[0])];
+  const UORD = ['沒吃', ...UNIT_OPTS.map(x=>x[0])];
   if (dim==='units') g.sort((a,b)=> UORD.indexOf(a.label) - UORD.indexOf(b.label));
-  const labels = g.map(x => LABEL[x.label] || x.label);
-  if (compareChart) compareChart.destroy();
-  compareChart = new Chart($('c-chart').getContext('2d'), { type:'bar', data:{ labels,
-    datasets:[
-      { label:'沒吃', data:g.map(x=>x.not_taking.avg), backgroundColor:'#d3d1c7', borderRadius:6, maxBarThickness:36 },
-      { label:'有吃', data:g.map(x=>x.taking.avg), backgroundColor:'#b8960c', borderRadius:6, maxBarThickness:36 } ] },
-    options:{ responsive:true, maintainAspectRatio:false, animation:{duration:500},
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(t)=>{ const c = t.datasetIndex===0 ? g[t.dataIndex].not_taking : g[t.dataIndex].taking; return `${t.dataset.label}：${c.avg ?? '資料累積中'}（${c.n} 人）`; } } } },
-      scales:{ y:{ min:0, max:12, ticks:{ stepSize:4, font:{size:14} }, grid:{ color:'rgba(0,0,0,.06)' } }, x:{ grid:{display:false}, ticks:{ font:{size:15, weight:'700'} } } } } });
-  const o = data.overall;
-  const fmt = c => c.avg!=null ? c.avg.toFixed(1) : '<span style="font-size:.9rem">累積中</span>';
-  $('c-stats').innerHTML = `
-    <div class="stat"><div class="l">沒吃</div><div class="v">${fmt(o.not_taking)}</div><div class="n">${o.not_taking.n} 人</div></div>
-    <div class="stat hi"><div class="l">有吃</div><div class="v">${fmt(o.taking)}</div><div class="n">${o.taking.n} 人</div></div>
-    <div class="stat"><div class="l">極高保養</div><div class="v">${fmt(o.heavy)}</div><div class="n">${o.heavy.n} 人</div></div>`;
-  $('c-sub').textContent = `全台 ${o.total_subjects} 人實測 · 共 ${o.total_records} 筆` + (o.updated_at ? ` · 更新 ${o.updated_at.slice(0,10)}` : '');
+  const bar = (c, cls) => `<div class="st-bar ${cls}"><span class="b"><i data-w="${c.avg!=null ? c.avg/12*100 : 0}%"></i></span>
+      <span class="v">${c.avg!=null ? `<b>${Number(c.avg).toFixed(1)}</b>` : `還差 ${Math.max(0, MIN - c.n)} 人`}</span></div>`;
+  $('st-rows').innerHTML = g.length ? g.map(x => `<div class="st-row"><div class="t">${stLabel(x.label)}</div>` +
+      (dim==='units' ? bar(x.label==='沒吃' ? x.not_taking : x.taking, x.label==='沒吃' ? 'no' : 'yes')
+                     : bar(x.not_taking, 'no') + bar(x.taking, 'yes')) + `</div>`).join('')
+    : `<div class="st-empty">還沒有這一組的資料</div>`;
+  setTimeout(() => document.querySelectorAll('#st-rows [data-w]').forEach(e => e.style.width = e.dataset.w), 80);
 }
 
 // ══════════════ 我的 KC ══════════════
