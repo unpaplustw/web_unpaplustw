@@ -276,7 +276,7 @@ h2{font-size:1.25rem;font-weight:700}
 .lad .bar{background:rgba(255,255,255,.07)}
 .lad .bar i{background:#6b6a66}
 .toast{background:#1c2338;border:1px solid rgba(212,175,55,.4);color:#fff}
-#q-body input{background:rgba(255,255,255,.06)!important;color:#fff;border-color:rgba(255,255,255,.18)!important}
+#q-body input:not([type=range]){background:rgba(255,255,255,.06)!important;color:#fff;border-color:rgba(255,255,255,.18)!important}
 #q-body input::placeholder{color:rgba(255,255,255,.3)}
 .band.severe{color:#ff8a8a}.band.sub{color:#fcd34d}.band.healthy{color:#6ee7a0}
 .note b{color:var(--gold2)}
@@ -295,6 +295,18 @@ h2{font-size:1.25rem;font-weight:700}
 .bcard .k{font-size:.8rem;letter-spacing:2px;color:var(--gold2);font-weight:900;margin-bottom:2px}
 .bcard .t{font-size:1.05rem;line-height:1.55}
 .bcard.warn{border-color:rgba(248,113,113,.45)}.bcard.do{border-color:rgba(74,222,128,.45)}
+/* 滑桿：只停在刻度上；刻度字可直接點；綠＝好的那端、紅＝不好的那端 */
+.sld{padding:4px 2px 0}
+.sld .cur{text-align:center;font-size:1.5rem;font-weight:900;color:var(--gold2);min-height:2.1rem;margin-bottom:6px}
+.sld .cur.unset{color:var(--muted);font-size:1rem;font-weight:400;padding-top:8px}
+.sld input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:14px;border-radius:7px;outline:none;margin:6px 0}
+.sld input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:#fff;border:4px solid var(--gold);box-shadow:0 0 12px rgba(212,175,55,.6);cursor:pointer}
+.sld input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:#fff;border:4px solid var(--gold);cursor:pointer}
+.sld.unset input[type=range]::-webkit-slider-thumb{opacity:.35;box-shadow:none}
+.sld .ticks{display:flex;justify-content:space-between;gap:2px;margin-top:4px}
+.sld .ticks button{flex:1;border:0;background:none;color:var(--txt2);font-family:inherit;font-size:.82rem;line-height:1.3;padding:6px 0;cursor:pointer}
+.sld .ticks button.on{color:var(--gold2);font-weight:900}
+.sld .ends{display:flex;justify-content:space-between;font-size:.82rem;color:var(--txt2);margin-top:2px}
 /* 我辦得到：承諾按鈕＋即時結論 */
 .bcard .can{margin-top:10px;border:1.5px solid rgba(212,175,55,.6);background:none;color:var(--gold2);border-radius:999px;padding:7px 16px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s}
 .bcard .can.on{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 0 14px rgba(212,175,55,.5)}
@@ -636,21 +648,45 @@ const ITEMS = [
   { id:'region', step:1, label:'住在哪一區', type:'choice', cols:1,
     opts:[['north','北部','基隆、台北、新北、桃園、新竹、宜蘭'],['central','中部','苗栗、台中、彰化、南投、雲林'],['south','南部','嘉義、台南、高雄、屏東'],['east','東部','花蓮、台東'],['islands','離島','澎湖、金門、馬祖']] },
   { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, hint:'是綠佳利會員才填，只要編號、不用分店號。填了資料只有會員看得到' },
-  { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', hint:'1 份＝自己一個拳頭大', type:'choice', cols:1, opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
+  // ── 生活習慣 v5（2026-10-18 游育杰定）：程度、頻率用滑桿；來源用複選（點越多＝分數越高）──
+  // 第 2 頁：飲食作息
+  { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', hint:'1 份＝自己一個拳頭大', type:'slider', good:'right',
+    opts:[['0-2','2 份以下'],['3-4','3–4 份'],['5-6','5–6 份'],['7-8','7–8 份'],['9+','9 份以上']] },
   { id:'veggie_colors', step:2, label:'常吃哪些顏色的蔬果', hint:'可複選，至少選一色', type:'multi', cols:2,
     opts:[['green','綠色','花椰菜、地瓜葉'],['yellow','黃橘','胡蘿蔔、南瓜'],['red','紅色','番茄、西瓜'],['purple','紫黑','茄子、黑木耳'],['white','白色','白蘿蔔、洋蔥']] },
-  { id:'sleep_hours', step:2, label:'昨晚睡了幾小時', type:'choice', cols:2, opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
-  { id:'nocturia_times', step:2, label:'晚上起來上廁所幾次', type:'choice', cols:2, opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
-  { id:'habits', step:2, label:'有以下習慣嗎', hint:'可複選', type:'multi', cols:2,
-    opts:[['smoke','抽菸'],['drink','喝酒'],['betel','檳榔'],['none','沒有','',true]] },
-  { id:'chronic_meds', step:2, label:'有在吃慢性病的藥嗎', type:'choice', cols:2, opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
-  { id:'is_taking', step:3, label:'有在吃識霸明力多嗎', hint:'含素食版', type:'choice', cols:2, opts:[[false,'沒有'],[true,'有']], when:showUsage },
-  { id:'daily_units', step:3, label:'一天吃幾粒', type:'choice', cols:1, when:()=>showUsage() && ANS.is_taking===true,
-    opts:UNIT_OPTS },
-  { id:'taking_months', step:3, label:'吃多久了', type:'choice', cols:2, opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']], when:()=>showUsage() && ANS.is_taking===true },
-  { id:'score', step:3, label:'機器測出來的 KC', type:'score', hint:'轉到機器上的數字' },
+  { id:'food_src', step:2, label:'這些食物常吃嗎', hint:'可複選', type:'multi', cols:2,
+    opts:[['fried','炸物','鹹酥雞、炸雞'],['bbq','燒烤','烤肉、串燒'],['processed','加工肉品','香腸、火腿、培根'],['instant','泡麵零食','泡麵、餅乾洋芋片'],['sugar','含糖飲料','手搖飲、汽水'],['none','都沒有','',true]] },
+  { id:'sleep_hours', step:2, label:'一天睡幾小時', type:'slider', good:'right',
+    opts:[['<5','5 小時以下'],['5-6','5–6 小時'],['7-8','7–8 小時'],['9+','9 小時以上']] },
+  { id:'sleep_q', step:2, label:'你的睡眠有這些狀況嗎', hint:'可複選', type:'multi', cols:2,
+    opts:[['light','淺眠','一點聲音就醒'],['wake','易醒','半夜醒來很難再睡'],['dream','多夢','很容易作夢'],['screen','睡前滑手機','追劇、滑手機'],['tired','睡不飽','起床還是覺得累'],['none','都沒有','',true]] },
+  { id:'nocturia_times', step:2, label:'晚上起來上廁所幾次', type:'slider', good:'left',
+    opts:[['0','不用起來'],['1','1 次'],['2','2 次'],['3+','3 次以上']] },
+  // 第 3 頁：情緒環境
+  { id:'mood_lv', step:3, label:'最近情緒起伏大嗎', type:'slider', good:'left', unit:'分', ends:['很平穩','很容易生氣'],
+    opts:[[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5']] },
+  { id:'stress_src', step:3, label:'壓力從哪裡來', hint:'可複選', type:'multi', cols:2,
+    opts:[['work','工作','業績、主管、同事'],['money','錢','債務、開銷、收入'],['family','家庭','家人、小孩、照顧'],['health','健康','自己或家人的病'],['people','人際','朋友、人情壓力'],['none','都沒有','',true]] },
+  { id:'air_src', step:3, label:'這些情況，你常遇到嗎', hint:'可複選。PM2.5 最常從這幾個地方來', type:'multi', cols:1,
+    opts:[['commute','馬路通勤','騎機車或走路，每天在馬路上 30 分鐘以上'],['cook','炒菜煎炸','常在家開伙，尤其沒開抽油煙機'],['incense','燒香拜拜','家裡或工作的地方常燒香'],['nightmarket','夜市燒烤','常去夜市、燒烤店、熱炒店'],['smoke2','二手菸','身邊有人抽菸'],['none','都沒有','',true]] },
+  { id:'sun_lv', step:3, label:'平常曬太陽的時間', type:'slider', good:'left', unit:'分', ends:['很少曬','每天長時間在戶外'],
+    opts:[[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5']] },
+  { id:'smoke_lv', step:3, label:'抽菸', type:'slider', good:'left',
+    opts:[[0,'不抽'],[1,'偶爾'],[2,'每天幾根'],[3,'半包'],[4,'一包以上']] },
+  { id:'drink_lv', step:3, label:'喝酒', type:'slider', good:'left',
+    opts:[[0,'不喝'],[1,'偶爾'],[2,'每週 1–2 次'],[3,'每週 3 次以上'],[4,'每天']] },
+  { id:'betel_lv', step:3, label:'檳榔', type:'slider', good:'left',
+    opts:[[0,'不吃'],[1,'偶爾'],[2,'每週幾次'],[3,'每天'],[4,'每天很多']] },
+  { id:'chronic_meds', step:3, label:'有在吃慢性病的藥嗎', type:'slider', good:'left',
+    opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
+  // 第 4 頁：綠佳利與檢測（「有沒有吃」併進粒數滑桿：選「沒吃」＝沒有）
+  { id:'units_all', step:4, label:'一天吃幾粒識霸明力多', hint:'含素食版', type:'slider', good:'right', when:showUsage,
+    opts:[['none','沒吃'],['0-3','極低'],['4-7','低'],['8-11','中'],['12-14','高'],['15+','極高']] },
+  { id:'taking_months', step:4, label:'吃多久了', type:'slider', good:'right', when:()=>showUsage() && ANS.units_all && ANS.units_all!=='none',
+    opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']] },
+  { id:'score', step:4, label:'機器測出來的 KC', type:'score', hint:'轉到機器上的數字' },
 ];
-const STEP_NAMES = ['手機', '基本資料', '生活習慣', '綠佳利與檢測'];
+const STEP_NAMES = ['手機', '基本資料', '飲食作息', '情緒環境', '綠佳利與檢測'];
 const NSTEP = STEP_NAMES.length;
 
 function startSurvey(){
@@ -666,17 +702,22 @@ function stepItems(s){
 function firstStep(){ for (let s=0;s<NSTEP;s++) if (stepItems(s).length) return s; return NSTEP-1; }
 function lastStep(){ for (let s=NSTEP-1;s>=0;s--) if (stepItems(s).length) return s; return NSTEP-1; }
 
+function sliderText(q, i){ const o = q.opts[i]; return q.unit ? `${o[1]} ${q.unit}` + (q.ends ? `（${i===0 ? q.ends[0] : i===q.opts.length-1 ? q.ends[1] : '中間'}）` : '') : o[1]; }
 // 回測摘要卡：把帶入的答案壓成一行一項
 const SUM_KEYS = [['gender','性別'],['birth_year','年次'],['occupation','工作'],['region','地區'],['member_no','會員編號'],
-  ['veggie_servings','蔬果'],['veggie_colors','顏色'],['sleep_hours','睡眠'],['nocturia_times','夜尿'],['habits','習慣'],['chronic_meds','慢性病藥'],
-  ['is_taking','明力多'],['daily_units','每天'],['taking_months','吃多久']];
+  ['veggie_servings','蔬果'],['veggie_colors','顏色'],['food_src','常吃'],['sleep_hours','睡眠'],['sleep_q','睡眠品質'],['nocturia_times','夜尿'],
+  ['mood_lv','情緒'],['stress_src','壓力'],['air_src','空污'],['sun_lv','日曬'],['smoke_lv','抽菸'],['drink_lv','喝酒'],['betel_lv','檳榔'],['chronic_meds','慢性病藥'],
+  ['units_all','明力多'],['taking_months','吃多久']];
+// 生活習慣 v5 所有欄位（回測帶入、代填鎖定都用這份清單）
+const LIFE_KEYS = ['veggie_servings','veggie_colors','food_src','sleep_hours','sleep_q','nocturia_times','mood_lv','stress_src','air_src','sun_lv','smoke_lv','drink_lv','betel_lv','chronic_meds'];
+const MULTI_KEYS = ['veggie_colors','food_src','sleep_q','stress_src','air_src'];
 function ansText(id){
   const q = ITEMS.find(x => x.id===id), v = ANS[id];
   if (id==='birth_year') return v ? `民國 ${v-1911} 年次` : '';
   if (id==='member_no') return v || (LOOKUP && LOOKUP.subject && LOOKUP.subject.has_member_no ? '已填' : '<span style="color:var(--muted);font-weight:400">未填</span>');
   if (!q || !q.opts) return v;
   if (Array.isArray(v)) return v.map(x => (q.opts.find(o => o[0]===x)||[,x])[1]).join('、');
-  const o = q.opts.find(o => o[0]===v); return o ? o[1].replace(/<br>.*/,'') : v;
+  const o = q.opts.find(o => o[0]===v); return o ? o[1].replace(/<br>.*/,'') + (q.unit ? ` ${q.unit}` : '') : v;
 }
 function summaryCard(){
   const l = LOOKUP.last;
@@ -686,7 +727,7 @@ function summaryCard(){
 }
 function editItem(id){
   PREFILLED.delete(id);
-  if (id==='is_taking') { PREFILLED.delete('daily_units'); PREFILLED.delete('taking_months'); }
+  if (id==='units_all') PREFILLED.delete('taking_months');
   STEP = ITEMS.find(x => x.id===id).step; renderStep();
 }
 // 查到人之後，問卷上方顯示上次的紀錄
@@ -732,6 +773,26 @@ function buildControl(q){
       };
       host.appendChild(o);
     });
+  } else if (q.type==='slider') {
+    const n = q.opts.length, idx0 = q.opts.findIndex(o => o[0]===ANS[q.id]);
+    const grad = q.good==='right' ? 'linear-gradient(90deg,#dc2626,#d97706,#16a34a)' : 'linear-gradient(90deg,#16a34a,#d97706,#dc2626)';
+    host.innerHTML = `<div class="sld ${idx0<0?'unset':''}" id="sl-${q.id}">
+      <div class="cur ${idx0<0?'unset':''}" id="slv-${q.id}">${idx0<0 ? '拉動或點下面的刻度' : sliderText(q, idx0)}</div>
+      <input type="range" min="0" max="${n-1}" step="1" value="${idx0<0 ? Math.floor((n-1)/2) : idx0}" style="background:${grad}">
+      <div class="ticks">${q.opts.map((o,i)=>`<button data-i="${i}" class="${i===idx0?'on':''}">${o[1]}</button>`).join('')}</div>
+      ${q.ends ? `<div class="ends"><span>${q.ends[0]}</span><span>${q.ends[1]}</span></div>` : ''}</div>`;
+    const wrap = $('sl-'+q.id), rng = wrap.querySelector('input');
+    const setI = i => {
+      i = Math.max(0, Math.min(n-1, +i)); rng.value = i;
+      const prev = ANS[q.id]; ANS[q.id] = q.opts[i][0];
+      wrap.classList.remove('unset'); $('slv-'+q.id).className = 'cur'; $('slv-'+q.id).textContent = sliderText(q, i);
+      wrap.querySelectorAll('.ticks button').forEach((b,j) => b.classList.toggle('on', j===i));
+      $('qb-'+q.id).classList.remove('bad');
+      if (q.id==='units_all' && (prev==='none') !== (ANS[q.id]==='none')) renderStep();   // 「沒吃」↔ 有吃：顯示／隱藏「吃多久」
+    };
+    rng.addEventListener('input', () => setI(rng.value));
+    rng.addEventListener('change', () => setI(rng.value));
+    wrap.querySelectorAll('.ticks button').forEach(b => b.onclick = () => setI(b.dataset.i));
   } else if (q.type==='multi') {
     // 複選：ANS[id] 存陣列；有 exclusive 的選項（如「沒有」）點了會清掉其他
     host.className = 'opts' + (q.cols===2?' g2':q.cols===3?' g3':'');
@@ -840,7 +901,7 @@ async function nextStep(){
       if (data.has_region || data.locked) PREFILLED.add('region');   // 舊紀錄沒填過地區就補問
       PREFILLED.add('member_no');   // 回測不再擋會員編號那一頁；沒填過的在摘要卡「填寫」
       // 綁了 LINE、操作者不是本人：只能輸入 KC，其他題全部跳過（伺服器沿用本人上次的答案）
-      if (data.bound) ['veggie_servings','veggie_colors','sleep_hours','nocturia_times','habits','chronic_meds','is_taking','daily_units','taking_months'].forEach(k => PREFILLED.add(k));
+      if (data.bound) [...LIFE_KEYS, 'units_all', 'taking_months'].forEach(k => PREFILLED.add(k));
       if (data.subject) {
         if (data.subject.gender) ANS.gender = data.subject.gender;
         if (data.subject.birth_year) ANS.birth_year = data.subject.birth_year;
@@ -850,12 +911,14 @@ async function nextStep(){
       // 回測：上次的生活習慣＋明力多用量全部帶入、收進摘要卡，直接跳到量 KC；有變的點「修改」只改那一題
       const ll = data.last_life;
       if (ll && !data.locked) {
-        ['veggie_servings','sleep_hours','nocturia_times','chronic_meds'].forEach(k => { if (ll[k]) { ANS[k] = ll[k]; PREFILLED.add(k); } });
-        if (Array.isArray(ll.veggie_colors) && ll.veggie_colors.length) { ANS.veggie_colors = ll.veggie_colors; PREFILLED.add('veggie_colors'); }
-        if (Array.isArray(ll.habits)) { ANS.habits = ll.habits.length ? ll.habits : ['none']; PREFILLED.add('habits'); }
+        // 只帶入上次有答過的；舊版沒有的新題目（情緒、空污…）這次照問
+        LIFE_KEYS.forEach(k => {
+          const v = ll[k];
+          if (MULTI_KEYS.includes(k)) { if (Array.isArray(v)) { ANS[k] = v.length ? v : (k==='veggie_colors' ? null : ['none']); if (ANS[k]) PREFILLED.add(k); else delete ANS[k]; } }
+          else if (v !== null && v !== undefined) { ANS[k] = v; PREFILLED.add(k); }
+        });
         if (showUsage() && typeof ll.is_taking === 'boolean') {
-          ANS.is_taking = ll.is_taking; PREFILLED.add('is_taking');
-          if (ll.is_taking && ll.daily_units) { ANS.daily_units = ll.daily_units; PREFILLED.add('daily_units'); }
+          ANS.units_all = ll.is_taking ? (ll.daily_units || '0-3') : 'none'; PREFILLED.add('units_all');
           if (ll.is_taking && ll.taking_months) { ANS.taking_months = ll.taking_months; PREFILLED.add('taking_months'); }
         }
         LIFE_PREFILLED = true;
@@ -873,10 +936,17 @@ async function submit(){
     p_caller: caller,
     p_phone: ANS.phone,
     p_subject: { gender: ANS.gender, birth_year: ANS.birth_year, occupation: ANS.occupation, region: ANS.region || null, member_no: ANS.member_no || null },
-    p_record: { score: ANS.score, veggie_servings: ANS.veggie_servings, veggie_colors: ANS.veggie_colors || [],
-      sleep_hours: ANS.sleep_hours, nocturia_times: ANS.nocturia_times,
-      habits: (ANS.habits || []).filter(h => h !== 'none'), chronic_meds: ANS.chronic_meds,
-      is_taking: ANS.is_taking===true, daily_units: ANS.daily_units, taking_months: ANS.taking_months } });
+    p_record: (() => {
+      const arr = k => (ANS[k] || []).filter(v => v !== 'none');
+      const taking = !!ANS.units_all && ANS.units_all !== 'none';
+      // habits 由三條滑桿推得（偶爾以上就算有），統計頁「不碰菸酒檳榔」沿用
+      const habits = [['smoke','smoke_lv'],['drink','drink_lv'],['betel','betel_lv']].filter(([,k]) => (ANS[k]||0) >= 1).map(([h]) => h);
+      return { score: ANS.score, veggie_servings: ANS.veggie_servings, veggie_colors: arr('veggie_colors'),
+        sleep_hours: ANS.sleep_hours, nocturia_times: ANS.nocturia_times, chronic_meds: ANS.chronic_meds, habits,
+        smoke_lv: ANS.smoke_lv, drink_lv: ANS.drink_lv, betel_lv: ANS.betel_lv, mood_lv: ANS.mood_lv, sun_lv: ANS.sun_lv,
+        food_src: arr('food_src'), sleep_q: arr('sleep_q'), stress_src: arr('stress_src'), air_src: arr('air_src'),
+        is_taking: taking, daily_units: taking ? ANS.units_all : null, taking_months: taking ? ANS.taking_months : null };
+    })() });
   btn.disabled = false; btn.textContent = '送出';
   if (error || !data) { console.error(error); toast('送出失敗，再試一次'); return; }
   showResult(data);
@@ -920,20 +990,53 @@ function personalCardsHTML(a, band){
   if (miss.length) items.push({ id:'colors', p:3, ic:'🌈', k:'顏色吃不齊',
     t:`你常吃的蔬果裡，少了${miss.map(c => '「'+c[1]+'」').join('')}。`,
     why:'類胡蘿蔔素主要藏在綠、黃橘、紅三種顏色裡。', how: miss.map(c => `${c[1]}：${c[2]}`).join('；') + '。' });
-  if (L.sleep_hours === '<5' || L.sleep_hours === '5-6') items.push({ id:'sleep', p:4, ic:'🌙', k:'睡得太少',
-    t:`你昨晚只睡了 ${L.sleep_hours === '<5' ? '5 小時以下' : '5–6 小時'}。`,
-    why:'熬夜和壓力，會把體內的類胡蘿蔔素用掉。', how:'先固定上床時間，目標睡滿 7 小時。' });
+  // ── v5 規則（2026-10-18）：滑桿看程度、複選看項數。出處：原廠 Khachik Check 說明、PubMed 氧化壓力回顧（菸、酒、空污、心理壓力、紫外線）、國衛院 PM2.5 實測、國健署減少 PM2.5 建議 ──
+  const pick = (arr, names) => (Array.isArray(arr) ? arr : []).filter(x => x !== 'none' && names[x]);
+  const join = (ks, names) => ks.map(k => '「' + names[k] + '」').join('');
+  if (L.sleep_hours === '<5' || L.sleep_hours === '5-6') items.push({ id:'sleep', p:6, ic:'🌙', k:'睡得太少',
+    t:`你一天只睡 ${L.sleep_hours === '<5' ? '5 小時以下' : '5–6 小時'}。`,
+    why:'睡眠不足，體內的類胡蘿蔔素被用得更快。', how:'先固定上床時間，目標睡滿 7 小時。' });
+  const SQ = { light:'淺眠', wake:'半夜易醒', dream:'多夢', screen:'睡前滑手機', tired:'起床還是累' };
+  const sq = pick(L.sleep_q, SQ);
+  if (sq.length >= 2) items.push({ id:'sleepq', p:7, ic:'😴', k:'睡眠品質差',
+    t:`你的睡眠有${join(sq, SQ)}，共 ${sq.length} 項。`,
+    why:'睡不好，身體修復的時間不夠，抗氧化力就撐不住。',
+    how:(sq.includes('screen') ? '睡前 1 小時放下手機、不追劇；' : '') + '固定時間上床，房間保持暗、安靜。' });
+  if ((L.mood_lv||0) >= 4) items.push({ id:'mood', p:5, ic:'😤', k:'情緒起伏大',
+    t:`你的情緒起伏打了 ${L.mood_lv} 分（滿分 5 分＝很容易生氣）。`,
+    why:'原廠說明：壓力對類胡蘿蔔素程度有很大的影響。', how:'火上來先離開現場、深呼吸；每天做一件讓自己開心的事。' });
+  const ST = { work:'工作', money:'錢', family:'家庭', health:'健康', people:'人際' };
+  const st = pick(L.stress_src, ST);
+  if (st.length >= 2) items.push({ id:'stress', p:4, ic:'🌀', k:'壓力來源多',
+    t:`你的壓力來自${join(st, ST)}，共 ${st.length} 個。`,
+    why:'研究發現：心理壓力越大，體內的抗氧化能力越低。', how:'原廠建議：適當運動、好好休息，做讓自己快樂的事；煩惱寫下來，找人聊聊。' });
+  const AIR = { commute:'馬路通勤', cook:'炒菜油煙', incense:'燒香', nightmarket:'夜市燒烤', smoke2:'二手菸' };
+  const AIR_HOW = { commute:'騎車、走路戴口罩', cook:'煮飯一定開抽油煙機，多用蒸、煮', incense:'燒香時開窗，人不要一直待在旁邊', nightmarket:'夜市、燒烤店少待一點', smoke2:'遠離二手菸' };
+  const air = pick(L.air_src, AIR);
+  if (air.length >= 2) items.push({ id:'air', p:8, ic:'😷', k:'常接觸 PM2.5',
+    t:`你常遇到${join(air, AIR)}，共 ${air.length} 項。`,
+    why:'空氣污染會一直消耗體內的抗氧化物。', how: air.map(k => AIR_HOW[k]).join('；') + '。' });
+  const FOOD = { fried:'炸物', bbq:'燒烤', processed:'加工肉品', instant:'泡麵零食', sugar:'含糖飲料' };
+  const food = pick(L.food_src, FOOD);
+  if (food.length >= 2) items.push({ id:'food', p:9, ic:'🍟', k:'常吃負擔大的食物',
+    t:`你常吃${join(food, FOOD)}，共 ${food.length} 樣。`,
+    why:'油炸、燒烤、加工食品會增加自由基。', how:'一週先少吃一次，換成蒸、煮、涼拌' + (food.includes('sugar') ? '；含糖飲料換成白開水或無糖茶' : '') + '。' });
   const H = Array.isArray(L.habits) ? L.habits : [];
-  if (H.includes('smoke')) items.push({ id:'smoke', p:1, ic:'🚭', k:'有抽菸',
-    t:'你有抽菸的習慣。', why:'抽菸會大量消耗類胡蘿蔔素。', how:'能減就減，同時把蔬果和保養的量拉高。' });
-  if (H.includes('drink')) items.push({ id:'drink', p:5, ic:'🍺', k:'常喝酒',
-    t:'你有喝酒的習慣。', why:'飲酒過量會消耗類胡蘿蔔素。', how:'減少喝酒的次數和量，喝酒那天蔬果吃更多。' });
-  if (H.includes('betel')) items.push({ id:'betel', p:6, ic:'⚠️', k:'吃檳榔',
-    t:'你有吃檳榔的習慣。', why:'菸、酒、檳榔都在增加身體的負擔。', how:'能減就減，同時把蔬果和保養的量拉高。' });
+  const LV = (lv, opts) => lv == null ? null : (opts[lv] || [,''])[1];
+  const SMK = [[0,'不抽'],[1,'偶爾'],[2,'每天幾根'],[3,'半包'],[4,'一包以上']], DRK = [[0,'不喝'],[1,'偶爾'],[2,'每週 1–2 次'],[3,'每週 3 次以上'],[4,'每天']], BTL = [[0,'不吃'],[1,'偶爾'],[2,'每週幾次'],[3,'每天'],[4,'每天很多']];
+  if ((L.smoke_lv ?? (H.includes('smoke') ? 1 : 0)) >= 1) items.push({ id:'smoke', p:1, ic:'🚭', k:'有抽菸',
+    t: L.smoke_lv != null ? `你抽菸「${LV(L.smoke_lv, SMK)}」。` : '你有抽菸的習慣。', why:'抽菸會產生大量自由基，大量消耗類胡蘿蔔素。', how:'能減就減，同時把蔬果和保養的量拉高。' });
+  if ((L.drink_lv ?? (H.includes('drink') ? 2 : 0)) >= 2) items.push({ id:'drink', p:10, ic:'🍺', k:'常喝酒',
+    t: L.drink_lv != null ? `你喝酒「${LV(L.drink_lv, DRK)}」。` : '你有喝酒的習慣。', why:'飲酒過量會消耗類胡蘿蔔素。', how:'減少喝酒的次數和量，喝酒那天蔬果吃更多。' });
+  if ((L.betel_lv ?? (H.includes('betel') ? 1 : 0)) >= 1) items.push({ id:'betel', p:11, ic:'⚠️', k:'吃檳榔',
+    t: L.betel_lv != null ? `你吃檳榔「${LV(L.betel_lv, BTL)}」。` : '你有吃檳榔的習慣。', why:'菸、酒、檳榔都在增加身體的負擔。', how:'能減就減，同時把蔬果和保養的量拉高。' });
+  if ((L.sun_lv||0) >= 4) items.push({ id:'sun', p:12, ic:'☀️', k:'日曬時間長',
+    t:`你的日曬打了 ${L.sun_lv} 分（滿分 5 分＝每天長時間在戶外）。`,
+    why:'長時間曬紫外線，會在皮膚產生自由基。', how:'出門戴帽子、撐傘、擦防曬，避開中午 10 點到 2 點的太陽。' });
   if (L.usage_asked) {
-    if (!a.is_taking) items.push({ id:'care', p:7, ic:'💊', k:'還沒開始保養',
+    if (!a.is_taking) items.push({ id:'care', p:13, ic:'💊', k:'還沒開始保養',
       t:'你目前沒有吃識霸明力多。', why:'光靠三餐，很難補足類胡蘿蔔素。', how:'先從保養量每天 4 粒開始，28 天後再測，看差多少。' });
-    else if (a.daily_units === '0-3' || a.daily_units === '4-7') items.push({ id:'units', p:8, ic:'💊', k:'保養量偏低',
+    else if (a.daily_units === '0-3' || a.daily_units === '4-7') items.push({ id:'units', p:14, ic:'💊', k:'保養量偏低',
       t:`你目前是「${UNIT_NAME[a.daily_units]}」。`, why:'吃得少，KC 上升就有限。', how:'往上加一級，28 天後回測，用數字確認有沒有差。' });
   }
   if (!items.length) return `<div class="bcards"><div class="bcard do"><div class="ic">🌟</div><div><div class="k">你的生活習慣</div>
@@ -951,7 +1054,8 @@ function personalCardsHTML(a, band){
     (COMMIT.rec ? `<div class="verdict ${COMMIT.set.size ? 'some' : 'none'}" id="verdict">${verdictHTML()}</div>` : '') + `</div>`;
 }
 // ── 我辦得到：承諾即時結論＋自動存檔 ──
-const COMMIT_NAME = { smoke:'減少抽菸', veggie:'蔬果吃滿 5 份', colors:'五色蔬果吃齊', sleep:'睡滿 7 小時', drink:'減少喝酒', betel:'減少檳榔', care:'開始吃明力多保養', units:'保養量加一級' };
+const COMMIT_NAME = { smoke:'減少抽菸', veggie:'蔬果吃滿 5 份', colors:'五色蔬果吃齊', sleep:'睡滿 7 小時', drink:'減少喝酒', betel:'減少檳榔', care:'開始吃明力多保養', units:'保養量加一級',
+  mood:'調適情緒', stress:'紓解壓力', sleepq:'改善睡眠品質', air:'減少吸 PM2.5', food:'少吃炸物燒烤加工品', sun:'做好防曬' };
 let COMMIT = { rec: null, set: new Set(), items: [] }, commitTimer = null;
 function verdictHTML(){
   const n = COMMIT.set.size, all = COMMIT.items.length;
@@ -1217,7 +1321,9 @@ async function loadCompare(){
 
   // 為什麼要改變：生活習慣差距
   const L = s.life || {};
-  const lifeRows = [['veggie','蔬果吃滿 5 份','吃滿 5 份','不到 5 份'], ['sleep','睡滿 7 小時','7 小時以上','不到 7 小時'], ['habits','不碰菸酒檳榔','都沒有','有其中一樣']];
+  const lifeRows = [['veggie','蔬果吃滿 5 份','吃滿 5 份','不到 5 份'], ['sleep','睡滿 7 小時','7 小時以上','不到 7 小時'],
+    ['sleepq','睡眠品質','狀況 0–1 項','狀況 3 項以上'], ['mood','情緒穩定','1–2 分','4–5 分'], ['stress','壓力來源少','0–1 個','3 個以上'],
+    ['air','少吸 PM2.5','0–1 項','3 項以上'], ['food','少吃負擔大的食物','0–1 樣','3 樣以上'], ['habits','不碰菸酒檳榔','都沒有','有其中一樣']];
   $('st-life').innerHTML = lifeRows.map(([k, title, gl, bl]) => {
     const r = L[k] || { good:{n:0}, bad:{n:0} };
     const g = r.good.n >= ST_MIN ? Number(r.good.avg) : null, b = r.bad.n >= ST_MIN ? Number(r.bad.avg) : null;
