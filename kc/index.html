@@ -679,7 +679,8 @@ function renderStep(){
   const items = stepItems(STEP);
   const shown = [...Array(NSTEP).keys()].filter(s=>stepItems(s).length);
   $('steps').innerHTML = shown.map(s=>`<div class="${s===STEP?'on':''}">${STEP_NAMES[s]}</div>`).join('');
-  $('q-back').style.visibility = STEP===firstStep() ? 'hidden' : 'visible';
+  // 第一步沒有上一步：整顆拿掉（不是隱形佔位），下一步才會置中佔滿
+  $('q-back').style.display = STEP===firstStep() ? 'none' : '';
   $('q-next').textContent = STEP===lastStep() ? '送出' : '下一步';
   $('q-body').innerHTML = lookupNote() + items.map(q => `
     <div class="qblock" id="qb-${q.id}">
