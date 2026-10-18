@@ -198,44 +198,50 @@ h2{font-size:1.25rem;font-weight:700}
 .lad.me .n{color:var(--gold3)}.lad.me .bar i{background:var(--gold)}
 .lad .v{flex:0 0 3.6em;text-align:right;font-weight:900}
 
-/* 統計頁：跟封面同一套深色（2026-10-18 重做） */
-.st{margin:-16px -16px -96px;min-height:100vh;min-height:100svh;padding:34px 18px 120px;color:#fff;background:radial-gradient(120% 60% at 50% 0%,#1d2740 0%,#0b1020 55%,#05070f 100%)}
+/* 統計頁：讓受測者看到自己的位置、為什麼要改變（2026-10-18 第二版） */
+.st{margin:-16px -16px -96px;min-height:100vh;min-height:100svh;padding:34px 16px 120px;color:#fff;background:radial-gradient(120% 60% at 50% 0%,#1d2740 0%,#0b1020 55%,#05070f 100%)}
 .st .kick{letter-spacing:5px;font-size:.8rem;color:var(--gold2);font-weight:700;text-align:center}
-.st h1{text-align:center;font-size:1.7rem;margin-top:6px}
-.st-total{display:flex;justify-content:center;align-items:baseline;gap:6px;margin-top:18px}
-.st-total b{font-size:2.8rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
-.st-total span{color:rgba(255,255,255,.6);margin-right:12px}
-.st-upd{text-align:center;color:rgba(255,255,255,.45);font-size:.85rem;margin-top:6px}
-.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:22px 0 10px}
-.vs .side{border-radius:18px;padding:16px 8px;text-align:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
-.vs .side.gold{border-color:rgba(212,175,55,.7);box-shadow:0 0 24px rgba(212,175,55,.25)}
-.vs .l{font-size:.9rem;color:rgba(255,255,255,.65)}
-.vs .v{font-size:2.6rem;font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums}
-.vs .side.gold .v{color:var(--gold2)}
-.vs .w{font-size:1rem;font-weight:700;color:rgba(255,255,255,.55);padding:14px 0 6px}
-.vs .n{font-size:.8rem;color:rgba(255,255,255,.45)}
-.vs .mid{font-weight:900;color:rgba(255,255,255,.4);font-size:1.1rem}
-.diff{text-align:center;margin-bottom:6px}
-.diff span{display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(22,163,74,.18);color:#6ee7a0;font-weight:900}
-.heavy{text-align:center;color:rgba(255,255,255,.6);font-size:.9rem;margin-bottom:18px}
-.heavy b{color:#fff}
-.chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0 12px}
-.chip{border:1px solid rgba(212,175,55,.6);background:transparent;color:var(--gold2);border-radius:999px;padding:6px 10px;font-size:.85rem;white-space:nowrap;font-weight:700;font-family:inherit;cursor:pointer}
-.chip.on{background:var(--gold);border-color:var(--gold);color:#fff}
-.st-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:6px 14px}
-.st-leg{display:flex;gap:14px;justify-content:flex-end;font-size:.8rem;color:rgba(255,255,255,.55);padding:8px 0 2px}
-.st-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:0}
-.st-row{padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}
-.st-row:first-of-type{border-top:0}
-.st-row .t{font-weight:700;margin-bottom:6px}
-.st-bar{display:flex;align-items:center;gap:8px;margin:4px 0}
-.st-bar .b{flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
-.st-bar .b i{display:block;height:100%;width:0;border-radius:5px;transition:width 1s ease-out}
-.st-bar.no .b i{background:#8f8d86}.st-bar.yes .b i{background:var(--gold2)}
-.st-bar .v{flex:0 0 5.6em;text-align:right;font-size:.85rem;color:rgba(255,255,255,.75);font-variant-numeric:tabular-nums}
-.st-bar .v b{color:#fff;font-size:1rem}
-.st-empty{text-align:center;color:rgba(255,255,255,.5);padding:22px 0}
-.st-note{text-align:center;color:rgba(255,255,255,.45);font-size:.85rem;margin:14px 0 18px;line-height:1.6}
+.st-total{text-align:center;margin:10px 0 2px}
+.st-total b{font-size:3.6rem;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,#fff,#f5d76e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.st-total span{display:block;color:rgba(255,255,255,.6);letter-spacing:3px;margin-top:4px}
+.st h2{font-size:1.25rem;margin-bottom:4px}
+.st .sub2{color:rgba(255,255,255,.55);font-size:.88rem;margin-bottom:10px}
+.st-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:16px 14px;margin-top:16px;position:relative}
+.tag-wait{position:absolute;right:14px;top:16px;font-size:.75rem;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.6)}
+.dist{width:100%;height:auto;display:block}
+.dist-leg{display:flex;gap:14px;font-size:.82rem;color:rgba(255,255,255,.7);margin-top:6px;flex-wrap:wrap}
+.dist-leg i{display:inline-block;width:12px;height:4px;border-radius:2px;margin-right:5px;vertical-align:3px}
+.pos{margin-top:12px;display:grid;gap:8px}
+.pos div{background:rgba(255,255,255,.05);border-radius:12px;padding:10px 12px;font-size:.98rem}
+.pos b{color:var(--gold2);font-size:1.25rem}
+.gap{margin-top:16px;text-align:center;border-radius:20px;padding:20px 14px;background:linear-gradient(135deg,rgba(212,175,55,.22),rgba(22,163,74,.15));border:1px solid rgba(212,175,55,.5)}
+.gap .l{font-size:.95rem;color:rgba(255,255,255,.8)}
+.gap .v{font-size:3rem;font-weight:900;color:#f5d76e;line-height:1.1;font-variant-numeric:tabular-nums}
+.gap .v small{font-size:1.2rem;color:#7dffb0;margin-left:6px}
+.gap.wait .v{font-size:1.5rem;color:rgba(255,255,255,.55)}
+.xrow{padding:12px 0;border-top:1px solid rgba(255,255,255,.08)}
+.xrow:first-of-type{border-top:0}
+.xrow .t{display:flex;justify-content:space-between;font-weight:700;margin-bottom:10px}
+.xrow .t small{color:rgba(255,255,255,.5);font-weight:400}
+.rule{position:relative;height:30px}
+.rule .ln{position:absolute;left:0;right:0;top:13px;height:4px;border-radius:2px;background:linear-gradient(90deg,#dc2626 0%,#dc2626 41%,#d97706 41%,#d97706 66%,#16a34a 66%)}
+.rule .mk{position:absolute;top:4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;border:3px solid #0b1020;transition:left 1s ease-out}
+.rule .mk.me{background:#fff;box-shadow:0 0 12px #fff}
+.rule .mk.care{background:var(--gold2)}
+.rule .mk.no{background:#8f8d86}
+.rule-leg{display:flex;gap:12px;font-size:.8rem;color:rgba(255,255,255,.65);margin-top:4px;flex-wrap:wrap}
+.rule-leg b{color:#fff}
+.lrow{padding:12px 0;border-top:1px solid rgba(255,255,255,.08)}
+.lrow:first-of-type{border-top:0}
+.lrow .t{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;margin-bottom:8px}
+.lrow .t .d{color:#7dffb0;font-size:1.1rem}
+.lbar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:.85rem;color:rgba(255,255,255,.75)}
+.lbar .n{flex:0 0 6.2em}
+.lbar .b{flex:1;height:12px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden}
+.lbar .b i{display:block;height:100%;width:0;border-radius:6px;transition:width 1s ease-out}
+.lbar.good .b i{background:linear-gradient(90deg,#16a34a,#7dffb0)}.lbar.bad .b i{background:linear-gradient(90deg,#7f1d1d,#dc2626)}
+.lbar .v{flex:0 0 2.6em;text-align:right;font-weight:900;color:#fff}
+.st-note{text-align:center;color:rgba(255,255,255,.45);font-size:.82rem;margin:16px 0;line-height:1.6}
 .chartbox{position:relative;height:250px}
 
 /* 我的 */
@@ -341,28 +347,35 @@ h2{font-size:1.25rem;font-weight:700}
   </div>
 </section>
 
-<!-- ═══ 統計＝大數據對照（2026-10-18 重做：深色、累積進度、有吃 vs 沒吃、分組橫條）═══ -->
+<!-- ═══ 統計（2026-10-18 第二版）：業務開發用——讓受測者看到自己的位置、為什麼要改變 ═══ -->
 <section id="s-compare" class="screen">
   <div class="st">
     <div class="kick">KC 大數據</div>
-    <h1>有保養 vs 沒保養</h1>
-    <div class="st-total"><b id="st-n">0</b><span>人實測</span><b id="st-r">0</b><span>筆</span></div>
-    <div class="st-upd" id="st-upd"></div>
-    <div class="vs" id="st-vs"></div>
-    <div class="diff" id="st-diff"></div>
-    <div class="heavy" id="st-heavy"></div>
-    <div class="chips" id="c-chips">
-      <button class="chip on" data-dim="age">年齡</button>
-      <button class="chip" data-dim="gender">性別</button>
-      <button class="chip" data-dim="occupation">職業</button>
-      <button class="chip" data-dim="region">地區</button>
-      <button class="chip" data-dim="units">每天幾粒</button>
+    <div class="st-total"><b id="st-r">0</b><span>筆實測</span></div>
+
+    <div class="st-card" id="st-dist-card">
+      <h2>你站在哪裡？</h2>
+      <div class="sub2">全台每個人最新一次的 KC 分布</div>
+      <svg class="dist" id="st-dist" viewBox="0 0 340 190"></svg>
+      <div class="dist-leg"><span><i style="background:var(--gold2)"></i>有植化素保養</span><span><i style="background:#8f8d86"></i>沒保養</span><span><i style="background:#fff"></i>你</span></div>
+      <div class="pos" id="st-pos"></div>
     </div>
+
+    <div class="gap" id="st-gap"></div>
+
     <div class="st-card">
-      <div class="st-leg"><span><i style="background:#8f8d86"></i>沒吃</span><span><i style="background:var(--gold2)"></i>有吃</span></div>
-      <div id="st-rows"></div>
+      <h2>跟你同類的人</h2>
+      <div class="sub2">同樣條件下，有保養和沒保養差多少</div>
+      <div id="st-cross"></div>
     </div>
-    <p class="st-note">「有吃」＝每天吃識霸明力多並吃滿 1 個月。<br>每一組滿 3 人才公開平均，數字都是實測。</p>
+
+    <div class="st-card">
+      <h2>為什麼要改變</h2>
+      <div class="sub2">生活習慣不同，KC 平均差多少</div>
+      <div id="st-life"></div>
+    </div>
+
+    <p class="st-note">「有植化素保養」＝每天吃識霸明力多並吃滿 1 個月。<br>每一組滿 3 人才公開數字，全部是實測。</p>
     <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
   </div>
 </section>
@@ -853,6 +866,8 @@ async function showResult(r){
 
   const score = Number(r.score);
   const health = a ? Number(a.health) : score;
+  // 記在這支手機上，統計頁才能標出「你」的位置
+  if (a) { try { localStorage.setItem('kc_me', JSON.stringify({ score: Number(a.score), gender: a.gender, age_band: a.age_band, occupation: a.occupation, region: a.region, date: a.test_date })); } catch(_) {} }
   const band = a ? a.band : (score<5 ? 'severe' : score<8 ? 'sub' : 'healthy');
   $('r-light').style.display = 'none';
   $('r-head').innerHTML = `<div class="t"><small>KC HEALTH REPORT</small>個人抗氧化力檢測報告</div>
@@ -870,7 +885,7 @@ async function showResult(r){
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
-    <button class="btn btn-ghost" onclick="go('compare')">📊 看大家的測量統計</button>`;
+    <button class="btn btn-ghost" onclick="go('compare')">📍 看你在全台的位置</button>`;
   $('r-actions').innerHTML = acts;
   go('result');
   $('r-score').textContent = '0.0';
@@ -887,41 +902,108 @@ async function bindSelf(id){
   return true;
 }
 
-// ══════════════ 統計 ══════════════
-let currentDim = 'age';
-document.querySelectorAll('#c-chips .chip').forEach(c => c.onclick = () => {
-  document.querySelectorAll('#c-chips .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); loadCompare(c.dataset.dim);
-});
-const LABEL = { male:'男', female:'女', ...OCC, ...UNIT_NAME };
-const stLabel = x => LABEL[x] || (typeof REGION_NAME !== 'undefined' && REGION_NAME[x]) || x;
-async function loadCompare(dim){
-  currentDim = dim;
-  const { data, error } = await sb.rpc('kc_compare', { p_dim: dim });
-  if (error || !data) { toast('讀取失敗'); return; }
-  const o = data.overall, MIN = o.min_n || 3;
-  countTo($('st-n'), o.total_subjects, 900, v => Math.round(v));
-  countTo($('st-r'), o.total_records, 900, v => Math.round(v));
-  $('st-upd').textContent = o.updated_at ? `最後更新 ${o.updated_at.slice(0,10)}` : '';
-  // 有吃 vs 沒吃：不滿 3 人老實寫「還差幾人」
-  const side = (c, name, gold) => `<div class="side ${gold?'gold':''}"><div class="l">${name}</div>` +
-    (c.avg != null ? `<div class="v">${Number(c.avg).toFixed(1)}</div><div class="n">${c.n} 人</div>`
-                   : `<div class="w">還差 ${Math.max(0, MIN - c.n)} 人</div><div class="n">目前 ${c.n} 人</div>`) + `</div>`;
-  $('st-vs').innerHTML = side(o.not_taking, '沒吃', false) + `<div class="mid">VS</div>` + side(o.taking, '有吃明力多', true);
-  const both = o.not_taking.avg != null && o.taking.avg != null;
-  const d = both ? Number(o.taking.avg) - Number(o.not_taking.avg) : null;
-  $('st-diff').innerHTML = both ? `<span>有吃的人 ${d >= 0 ? '高' : '低'} ${d >= 0 ? '+' : ''}${d.toFixed(1)}</span>` : '';
-  $('st-heavy').innerHTML = `極高保養（每天 15 粒以上）：` + (o.heavy.avg != null ? `<b>${Number(o.heavy.avg).toFixed(1)}</b>（${o.heavy.n} 人）` : `還差 ${Math.max(0, MIN - o.heavy.n)} 人`);
-  // 分組橫條
-  const g = data.groups.filter(x => x.label);
-  const UORD = ['沒吃', ...UNIT_OPTS.map(x=>x[0])];
-  if (dim==='units') g.sort((a,b)=> UORD.indexOf(a.label) - UORD.indexOf(b.label));
-  const bar = (c, cls) => `<div class="st-bar ${cls}"><span class="b"><i data-w="${c.avg!=null ? c.avg/12*100 : 0}%"></i></span>
-      <span class="v">${c.avg!=null ? `<b>${Number(c.avg).toFixed(1)}</b>` : `還差 ${Math.max(0, MIN - c.n)} 人`}</span></div>`;
-  $('st-rows').innerHTML = g.length ? g.map(x => `<div class="st-row"><div class="t">${stLabel(x.label)}</div>` +
-      (dim==='units' ? bar(x.label==='沒吃' ? x.not_taking : x.taking, x.label==='沒吃' ? 'no' : 'yes')
-                     : bar(x.not_taking, 'no') + bar(x.taking, 'yes')) + `</div>`).join('')
-    : `<div class="st-empty">還沒有這一組的資料</div>`;
-  setTimeout(() => document.querySelectorAll('#st-rows [data-w]').forEach(e => e.style.width = e.dataset.w), 80);
+// ══════════════ 統計（業務開發用：你站在哪裡、為什麼要改變）══════════════
+let currentDim = 'age';   // 保留給 go('compare') 呼叫，統計頁已不分維度
+const ST_MIN = 3;         // 每一組滿 3 人才公開數字
+const stLabel = (dim, v) => dim==='gender' ? (v==='male'?'男':'女') : dim==='occupation' ? (OCC[v]||v) : dim==='region' ? (REGION_NAME[v]||v) : v;
+function myKC(){ try { return JSON.parse(localStorage.getItem('kc_me') || 'null'); } catch(_) { return null; } }
+function kde(xs, bw){ const out = []; for (let x=0; x<=12.001; x+=0.1) { let s=0; xs.forEach(v => { const z=(x-v)/bw; s += Math.exp(-.5*z*z); }); out.push([x, s/xs.length]); } return out; }
+
+function drawDist(svg, care, nocare, me){
+  const X = v => 20 + v/12*310, B = 150, TOP = 14;
+  let h = `<rect x="${X(0)}" y="${TOP}" width="${X(5)-X(0)}" height="${B-TOP}" fill="rgba(220,38,38,.10)"/>
+    <rect x="${X(5)}" y="${TOP}" width="${X(8)-X(5)}" height="${B-TOP}" fill="rgba(217,119,6,.10)"/>
+    <rect x="${X(8)}" y="${TOP}" width="${X(12)-X(8)}" height="${B-TOP}" fill="rgba(22,163,74,.12)"/>
+    <text x="${(X(0)+X(5))/2}" y="${TOP+14}" fill="rgba(255,120,120,.8)" font-size="11" text-anchor="middle">嚴重</text>
+    <text x="${(X(5)+X(8))/2}" y="${TOP+14}" fill="rgba(255,190,100,.8)" font-size="11" text-anchor="middle">亞健康</text>
+    <text x="${(X(8)+X(12))/2}" y="${TOP+14}" fill="rgba(120,230,160,.85)" font-size="11" text-anchor="middle">健康</text>
+    <line x1="${X(0)}" y1="${B}" x2="${X(12)}" y2="${B}" stroke="rgba(255,255,255,.3)"/>`;
+  [0,4,8,12].forEach(v => h += `<text x="${X(v)}" y="${B+16}" fill="rgba(255,255,255,.5)" font-size="11" text-anchor="middle">${v}</text>`);
+  const ok = [care.length >= ST_MIN, nocare.length >= ST_MIN];
+  const curves = [ok[1] ? kde(nocare, .9) : null, ok[0] ? kde(care, .9) : null];
+  const peak = Math.max(...curves.filter(Boolean).flatMap(c => c.map(p => p[1])), 1e-9);
+  const path = (c, col, id) => {
+    const pts = c.map(([x,y]) => `${X(x).toFixed(1)},${(B - y/peak*(B-TOP-26)).toFixed(1)}`);
+    return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${col}" stop-opacity=".55"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+      <path d="M${X(0)},${B} L${pts.join(' L')} L${X(12)},${B} Z" fill="url(#${id})"/>
+      <path d="M${pts.join(' L')}" fill="none" stroke="${col}" stroke-width="2.5" style="filter:drop-shadow(0 0 6px ${col})"/>`;
+  };
+  if (curves[0]) h += path(curves[0], '#8f8d86', 'gNo');
+  if (curves[1]) h += path(curves[1], '#f5d76e', 'gCare');
+  if (!curves[0] && !curves[1]) h += `<text x="${X(6)}" y="${(B+TOP)/2+10}" fill="rgba(255,255,255,.45)" font-size="13" text-anchor="middle">分布圖收集中，每組滿 ${ST_MIN} 人出現</text>`;
+  if (me) {
+    const x = X(Math.max(0, Math.min(12, me.score)));
+    h += `<line x1="${x}" y1="${TOP+20}" x2="${x}" y2="${B}" stroke="#fff" stroke-width="2" stroke-dasharray="4 3"/>
+      <circle cx="${x}" cy="${TOP+20}" r="6" fill="#fff" style="filter:drop-shadow(0 0 6px #fff)"/>
+      <text x="${x}" y="${B+32}" fill="#fff" font-size="13" font-weight="900" text-anchor="middle">你 ${Number(me.score).toFixed(1)}</text>`;
+  }
+  svg.innerHTML = h;
+  return ok;
+}
+
+async function loadCompare(){
+  const { data: s, error } = await sb.rpc('kc_stats');
+  if (error || !s) { toast('讀取失敗'); return; }
+  const me = myKC();
+  countTo($('st-r'), s.total_records, 1000, v => Math.round(v));
+  const care = s.care_scores || [], no = s.nocare_scores || [], all = care.concat(no);
+  const ok = drawDist($('st-dist'), care, no, me);
+
+  // 你的位置
+  let pos = '';
+  if (!me) pos = `<div>測完之後，這裡會標出<b> 你 </b>的位置</div>`;
+  else {
+    if (all.length >= ST_MIN) pos += `<div>你贏過全台 <b>${Math.round(all.filter(v => v < me.score).length / all.length * 100)}%</b> 的人</div>`;
+    if (ok[0]) pos += `<div>有保養的人，<b>${Math.round(care.filter(v => v > me.score).length / care.length * 100)}%</b> 比你高</div>`;
+    if (!pos) pos = `<div>人數還在累積，你的位置已經標在圖上</div>`;
+  }
+  $('st-pos').innerHTML = pos;
+
+  // 主角：有保養 vs 沒保養的差距
+  const avg = a => a.reduce((x,y) => x+y, 0) / a.length;
+  if (ok[0] && ok[1]) {
+    const c = avg(care), n = avg(no), d = c - n;
+    $('st-gap').className = 'gap';
+    $('st-gap').innerHTML = `<div class="l">有植化素保養的人，KC 平均${d>=0?'高':'低'}</div><div class="v">${d>=0?'+':''}${d.toFixed(1)}<small>${d>=0?'+':''}${Math.round(d/n*100)}%</small></div>
+      <div class="l" style="margin-top:4px">有保養 ${c.toFixed(1)}　沒保養 ${n.toFixed(1)}</div>`;
+  } else {
+    $('st-gap').className = 'gap wait';
+    $('st-gap').innerHTML = `<div class="l">有植化素保養 vs 沒保養，KC 平均差多少</div><div class="v">收集中</div>`;
+  }
+
+  // 交叉比對：跟你同類的人（同年齡／同職業／同地區／同性別）
+  const X = v => `${(Math.max(0, Math.min(12, v))/12*100).toFixed(1)}%`;
+  const dims = [['age','同年齡'], ['occupation','同職業'], ['region','同地區'], ['gender','同性別']];
+  $('st-cross').innerHTML = dims.map(([dim, name]) => {
+    const val = me && me[dim === 'age' ? 'age_band' : dim];
+    const cell = val && s.cross && s.cross[dim] && s.cross[dim][val];
+    const c = cell && cell.care.n >= ST_MIN ? Number(cell.care.avg) : null;
+    const n = cell && cell.nocare.n >= ST_MIN ? Number(cell.nocare.avg) : null;
+    const title = val ? `${name}（${stLabel(dim, val)}）` : name;
+    const mk = (v, cls) => v == null ? '' : `<div class="mk ${cls}" data-l="${X(v)}" style="left:0%"></div>`;
+    const leg = !me ? '測完後顯示'
+      : [`<span>⚪ 你 <b>${Number(me.score).toFixed(1)}</b></span>`, c!=null ? `<span>🟡 有保養 <b>${c.toFixed(1)}</b></span>` : '', n!=null ? `<span>⚫ 沒保養 <b>${n.toFixed(1)}</b></span>` : '',
+         (c==null || n==null) ? '<span>其他收集中</span>' : ''].join('');
+    return `<div class="xrow"><div class="t">${title}${c!=null && n!=null ? `<small>差 ${(c-n>=0?'+':'')}${(c-n).toFixed(1)}</small>` : ''}</div>
+      <div class="rule"><div class="ln"></div>${mk(n,'no')}${mk(c,'care')}${me ? mk(Number(me.score),'me') : ''}</div>
+      <div class="rule-leg">${leg}</div></div>`;
+  }).join('');
+
+  // 為什麼要改變：生活習慣差距
+  const L = s.life || {};
+  const lifeRows = [['veggie','蔬果吃滿 5 份','吃滿 5 份','不到 5 份'], ['sleep','睡滿 7 小時','7 小時以上','不到 7 小時'], ['habits','不碰菸酒檳榔','都沒有','有其中一樣']];
+  $('st-life').innerHTML = lifeRows.map(([k, title, gl, bl]) => {
+    const r = L[k] || { good:{n:0}, bad:{n:0} };
+    const g = r.good.n >= ST_MIN ? Number(r.good.avg) : null, b = r.bad.n >= ST_MIN ? Number(r.bad.avg) : null;
+    const bar = (v, cls, lab) => `<div class="lbar ${cls}"><span class="n">${lab}</span><span class="b"><i data-w="${v!=null ? v/12*100 : 0}%"></i></span><span class="v">${v!=null ? v.toFixed(1) : '—'}</span></div>`;
+    return `<div class="lrow"><div class="t"><span>${title}</span>${g!=null && b!=null ? `<span class="d">${g-b>=0?'+':''}${(g-b).toFixed(1)}</span>` : '<small style="color:rgba(255,255,255,.5);font-weight:400">收集中</small>'}</div>
+      ${bar(g,'good',gl)}${bar(b,'bad',bl)}</div>`;
+  }).join('');
+
+  setTimeout(() => {
+    document.querySelectorAll('#st-life [data-w]').forEach(e => e.style.width = e.dataset.w);
+    document.querySelectorAll('#st-cross [data-l]').forEach(e => e.style.left = e.dataset.l);
+  }, 80);
 }
 
 // ══════════════ 我的 KC ══════════════
