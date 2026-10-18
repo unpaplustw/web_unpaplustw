@@ -10,13 +10,15 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+/* 2026-10-18 全站改深色：問卷、報告、我的都跟封面／統計同一套 */
 :root{
-  --bg:#f7f5f0;--card:#fff;--border:rgba(0,0,0,.08);
-  --gold:#b8960c;--gold2:#d4af37;--gold3:#96790a;--gold-bg:rgba(184,150,12,.10);
-  --txt:#1a1a2e;--txt2:#6b7280;--muted:#9a9a9a;
-  --red:#dc2626;--red-bg:#fdecec;--yellow:#d97706;--yellow-bg:#fdf3e3;--green:#16a34a;--green-bg:#e9f7ee;
-  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --bg:#0b1020;--card:rgba(255,255,255,.05);--border:rgba(255,255,255,.12);
+  --gold:#b8960c;--gold2:#d4af37;--gold3:#e0bf4a;--gold-bg:rgba(212,175,55,.14);
+  --txt:#ffffff;--txt2:rgba(255,255,255,.66);--muted:rgba(255,255,255,.45);
+  --red:#f87171;--red-bg:rgba(220,38,38,.18);--yellow:#fbbf24;--yellow-bg:rgba(217,119,6,.18);--green:#4ade80;--green-bg:rgba(22,163,74,.18);
+  --shadow:0 2px 16px rgba(0,0,0,.35);
 }
+body{background:radial-gradient(120% 50% at 50% 0%,#1d2740 0%,#0b1020 45%,#05070f 100%) fixed}
 html{font-size:18px}
 body{font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.5}
 .wrap{max-width:480px;margin:0 auto;padding:16px 16px 96px}
@@ -260,6 +262,33 @@ h2{font-size:1.25rem;font-weight:700}
 .nav button.on::before{content:'';position:absolute;top:0;left:30%;right:30%;height:2px;border-radius:2px;background:var(--gold2);box-shadow:0 0 10px var(--gold2)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--txt);color:#fff;padding:12px 20px;border-radius:12px;font-size:1rem;display:none;z-index:9;max-width:88%;text-align:center}
 .loading{text-align:center;color:var(--txt2);padding:40px 0}
+/* 深色覆寫：原本寫死淺色的地方 */
+.opt{background:rgba(255,255,255,.05)}
+.opt:active,.opt.sel{color:var(--gold2);box-shadow:0 0 14px rgba(212,175,55,.25)}
+.opt small{color:var(--txt2)!important}
+.steps div{border-bottom-color:rgba(255,255,255,.1)}
+.steps div.on{color:var(--gold2)}
+.wheel .it{color:rgba(255,255,255,.28)}
+.wheel .it.cur{color:var(--gold2)}
+.disp{color:var(--gold2)}
+.track{background:rgba(255,255,255,.08)}
+.track .mid{background:rgba(255,255,255,.3)}
+.lad .bar{background:rgba(255,255,255,.07)}
+.lad .bar i{background:#6b6a66}
+.toast{background:#1c2338;border:1px solid rgba(212,175,55,.4);color:#fff}
+#q-body input{background:rgba(255,255,255,.06)!important;color:#fff;border-color:rgba(255,255,255,.18)!important}
+#q-body input::placeholder{color:rgba(255,255,255,.3)}
+.band.severe{color:#ff8a8a}.band.sub{color:#fcd34d}.band.healthy{color:#6ee7a0}
+.note b{color:var(--gold2)}
+.wheel .band{display:block;padding:0;margin:0;border-radius:0;background:none}   /* 跟報告頁的三級標籤 .band 同名，這裡還原成兩條框線 */
+/* 回測摘要卡：沿用上次的資料，一行一項，點「修改」只改那一題 */
+.sum{background:var(--card);border:1px solid rgba(212,175,55,.35);border-radius:16px;padding:14px;margin-bottom:22px}
+.sum .top{font-size:.95rem;color:var(--txt2);margin-bottom:10px}
+.sum .top b{color:var(--gold2);font-size:1.05rem}
+.sum .r{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.07)}
+.sum .r .k{flex:0 0 4.6em;color:var(--txt2);font-size:.92rem}
+.sum .r .v{flex:1;font-weight:700}
+.sum .r button{flex:0 0 auto;border:1px solid rgba(212,175,55,.5);background:none;color:var(--gold2);border-radius:999px;padding:5px 12px;font-family:inherit;font-size:.85rem;cursor:pointer}
 </style>
 </head>
 <body>
@@ -610,10 +639,33 @@ function stepItems(s){
 function firstStep(){ for (let s=0;s<NSTEP;s++) if (stepItems(s).length) return s; return NSTEP-1; }
 function lastStep(){ for (let s=NSTEP-1;s>=0;s--) if (stepItems(s).length) return s; return NSTEP-1; }
 
+// 回測摘要卡：把帶入的答案壓成一行一項
+const SUM_KEYS = [['gender','性別'],['birth_year','年次'],['occupation','工作'],['region','地區'],['member_no','會員編號'],
+  ['veggie_servings','蔬果'],['veggie_colors','顏色'],['sleep_hours','睡眠'],['nocturia_times','夜尿'],['habits','習慣'],['chronic_meds','慢性病藥'],
+  ['is_taking','明力多'],['daily_units','每天'],['taking_months','吃多久']];
+function ansText(id){
+  const q = ITEMS.find(x => x.id===id), v = ANS[id];
+  if (id==='birth_year') return v ? `民國 ${v-1911} 年次` : '';
+  if (id==='member_no') return v || (LOOKUP && LOOKUP.subject && LOOKUP.subject.has_member_no ? '已填' : '<span style="color:var(--muted);font-weight:400">未填</span>');
+  if (!q || !q.opts) return v;
+  if (Array.isArray(v)) return v.map(x => (q.opts.find(o => o[0]===x)||[,x])[1]).join('、');
+  const o = q.opts.find(o => o[0]===v); return o ? o[1].replace(/<br>.*/,'') : v;
+}
+function summaryCard(){
+  const l = LOOKUP.last;
+  const rows = SUM_KEYS.filter(([id]) => PREFILLED.has(id) && ((id in ANS) || id==='member_no'))
+    .map(([id,k]) => `<div class="r"><span class="k">${k}</span><span class="v">${ansText(id)}</span><button onclick="editItem('${id}')">${id==='member_no' && !ANS.member_no && !(LOOKUP.subject && LOOKUP.subject.has_member_no) ? '填寫' : '修改'}</button></div>`).join('');
+  return `<div class="sum"><div class="top">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}<br>沿用上次的資料，有變的點「修改」</div>${rows}</div>`;
+}
+function editItem(id){
+  PREFILLED.delete(id);
+  if (id==='is_taking') { PREFILLED.delete('daily_units'); PREFILLED.delete('taking_months'); }
+  STEP = ITEMS.find(x => x.id===id).step; renderStep();
+}
 // 查到人之後，問卷上方顯示上次的紀錄
 function lookupNote(){
   if (!LOOKUP || !LOOKUP.found || STEP===0) return '';
-  if (STEP===2 && LIFE_PREFILLED) return `<div class="note">上次的生活習慣已經帶入，<b>有變的再點</b>，沒變直接按下一步。</div>`;
+  if (LIFE_PREFILLED && !LOOKUP.locked) return STEP===lastStep() ? summaryCard() : '';
   if (LOOKUP.locked) return `<div class="note">這支手機是<b>會員</b>的紀錄，基本資料已帶入，內容只有會員看得到。</div>`;
   const l = LOOKUP.last;
   return `<div class="note">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}。基本資料已帶入。</div>`;
@@ -756,19 +808,24 @@ async function nextStep(){
     if (data.found) {
       ['gender','birth_year','occupation'].forEach(k => PREFILLED.add(k));
       if (data.has_region || data.locked) PREFILLED.add('region');   // 舊紀錄沒填過地區就補問
-      if (data.locked || (data.subject && data.subject.has_member_no)) PREFILLED.add('member_no');
+      PREFILLED.add('member_no');   // 回測不再擋會員編號那一頁；沒填過的在摘要卡「填寫」
       if (data.subject) {
         if (data.subject.gender) ANS.gender = data.subject.gender;
         if (data.subject.birth_year) ANS.birth_year = data.subject.birth_year;
         if (data.subject.occupation) ANS.occupation = data.subject.occupation;
         if (data.subject.region) ANS.region = data.subject.region;
       }
-      // 回測：上次的生活習慣先點好，沒變就直接下一步
+      // 回測：上次的生活習慣＋明力多用量全部帶入、收進摘要卡，直接跳到量 KC；有變的點「修改」只改那一題
       const ll = data.last_life;
-      if (ll) {
-        ['veggie_servings','sleep_hours','nocturia_times','chronic_meds'].forEach(k => { if (ll[k]) ANS[k] = ll[k]; });
-        if (Array.isArray(ll.veggie_colors) && ll.veggie_colors.length) ANS.veggie_colors = ll.veggie_colors;
-        if (Array.isArray(ll.habits)) ANS.habits = ll.habits.length ? ll.habits : ['none'];
+      if (ll && !data.locked) {
+        ['veggie_servings','sleep_hours','nocturia_times','chronic_meds'].forEach(k => { if (ll[k]) { ANS[k] = ll[k]; PREFILLED.add(k); } });
+        if (Array.isArray(ll.veggie_colors) && ll.veggie_colors.length) { ANS.veggie_colors = ll.veggie_colors; PREFILLED.add('veggie_colors'); }
+        if (Array.isArray(ll.habits)) { ANS.habits = ll.habits.length ? ll.habits : ['none']; PREFILLED.add('habits'); }
+        if (showUsage() && typeof ll.is_taking === 'boolean') {
+          ANS.is_taking = ll.is_taking; PREFILLED.add('is_taking');
+          if (ll.is_taking && ll.daily_units) { ANS.daily_units = ll.daily_units; PREFILLED.add('daily_units'); }
+          if (ll.is_taking && ll.taking_months) { ANS.taking_months = ll.taking_months; PREFILLED.add('taking_months'); }
+        }
         LIFE_PREFILLED = true;
       }
     }
