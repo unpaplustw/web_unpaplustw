@@ -307,6 +307,41 @@ h2{font-size:1.25rem;font-weight:700}
 .sld .ticks button{flex:1;border:0;background:none;color:var(--txt2);font-family:inherit;font-size:.82rem;line-height:1.3;padding:6px 0;cursor:pointer}
 .sld .ticks button.on{color:var(--gold2);font-weight:900}
 .sld .ends{display:flex;justify-content:space-between;font-size:.82rem;color:var(--txt2);margin-top:2px}
+/* 生活習慣體檢：健檢表＋衛教＋三顆按鈕＋改變指數＋建議量 */
+.ck-sum{background:rgba(255,255,255,.05);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:1.1rem}
+.ck-cat{border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:12px;background:rgba(255,255,255,.03)}
+.ck-cat.st-bad{border-color:rgba(248,113,113,.55)}.ck-cat.st-warn{border-color:rgba(251,191,36,.45)}.ck-cat.st-ok{border-color:rgba(74,222,128,.4)}
+.ck-h{display:flex;justify-content:space-between;align-items:center;font-size:1.15rem;font-weight:900}
+.ck-badge{font-size:.95rem}
+.ck-edu{color:var(--txt2);font-size:.92rem;line-height:1.6;margin:6px 0 10px;padding-left:10px;border-left:3px solid rgba(212,175,55,.5)}
+.ck-t{width:100%;border-collapse:collapse;font-size:.88rem}
+.ck-t th{text-align:left;color:var(--txt2);font-weight:400;padding:4px 4px;border-bottom:1px solid var(--border)}
+.ck-t td{padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+.ck-t td.ref{color:var(--txt2)}
+.ck-fix{margin-top:10px;font-size:.92rem;line-height:1.6;color:#9ff0bd}
+.ck-fix b{color:#fff}.ck-fix ul{margin:4px 0 0 18px}
+.ck-fix.ok{color:#4ade80}
+.pl-q{margin-top:12px;font-size:.9rem;color:var(--txt2)}
+.pl-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.pl-btns button{border:1.5px solid var(--border);background:rgba(255,255,255,.04);color:var(--txt);border-radius:12px;padding:10px 2px;font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer}
+.pl-btns button[data-v="0"].on{border-color:#f87171;background:rgba(220,38,38,.2);color:#ffb3b3}
+.pl-btns button[data-v="1"].on{border-color:#fbbf24;background:rgba(217,119,6,.2);color:#fde68a}
+.pl-btns button[data-v="2"].on{border-color:#4ade80;background:rgba(22,163,74,.22);color:#bbf7d0}
+.pl-res{margin-top:16px}
+.pl-idx{border-radius:16px;padding:16px;text-align:center}
+.pl-idx.good{background:rgba(22,163,74,.18);border:1.5px solid rgba(74,222,128,.6)}
+.pl-idx.mid{background:rgba(212,175,55,.14);border:1.5px solid rgba(212,175,55,.55)}
+.pl-idx.low,.pl-idx.none{background:rgba(220,38,38,.16);border:1.5px solid rgba(248,113,113,.6)}
+.pl-idx-l{color:var(--txt2);font-size:.95rem;text-align:center}
+.pl-idx-v{font-size:3rem;font-weight:900;line-height:1.1}
+.pl-idx-m{font-size:1.05rem;line-height:1.6;margin-top:4px}
+.dose{background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(22,163,74,.12));border:1.5px solid rgba(212,175,55,.6);border-radius:16px;padding:16px;margin-bottom:12px}
+.dose .k{font-size:.85rem;letter-spacing:2px;color:var(--gold2);font-weight:900}
+.dose .v{font-size:1.7rem;font-weight:900;margin:4px 0}
+.dose .t{font-size:.95rem;line-height:1.6}
+.pv{margin:0 0 0 18px;line-height:1.9}
+.pv-kc{margin-top:10px;font-size:1.05rem}
+.pv-kc b{color:var(--gold2)}
 /* 我辦得到：承諾按鈕＋即時結論 */
 .bcard .can{margin-top:10px;border:1.5px solid rgba(212,175,55,.6);background:none;color:var(--gold2);border-radius:999px;padding:7px 16px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s}
 .bcard .can.on{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 0 14px rgba(212,175,55,.5)}
@@ -444,7 +479,7 @@ h2{font-size:1.25rem;font-weight:700}
       <div id="st-life"></div>
     </div>
 
-    <p class="st-note">「有植化素保養」＝每天吃識霸明力多並吃滿 1 個月。<br>每一組滿 3 人才公開數字，全部是實測。</p>
+    <p class="st-note">「有植化素保養」＝每天吃複方類胡蘿蔔素並吃滿 1 個月。<br>每一組滿 3 人才公開數字，全部是實測。</p>
     <button class="btn btn-gold" onclick="beginTest()">📝 換我測測看</button>
   </div>
 </section>
@@ -680,7 +715,7 @@ const ITEMS = [
   { id:'chronic_meds', step:3, label:'有在吃慢性病的藥嗎', type:'slider', good:'left',
     opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
   // 第 4 頁：綠佳利與檢測（「有沒有吃」併進粒數滑桿：選「沒吃」＝沒有）
-  { id:'units_all', step:4, label:'一天吃幾粒識霸明力多', hint:'含素食版', type:'slider', good:'right', when:showUsage,
+  { id:'units_all', step:4, label:'一天吃幾粒複方類胡蘿蔔素', hint:'FloraGLO® · Optisharp® · Mirtogenol®', type:'slider', good:'right', when:showUsage,
     opts:[['none','沒吃'],['0-3','極低'],['4-7','低'],['8-11','中'],['12-14','高'],['15+','極高']] },
   { id:'taking_months', step:4, label:'吃多久了', type:'slider', good:'right', when:()=>showUsage() && ANS.units_all && ANS.units_all!=='none',
     opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']] },
@@ -707,7 +742,7 @@ function sliderText(q, i){ const o = q.opts[i]; return q.unit ? `${o[1]} ${q.uni
 const SUM_KEYS = [['gender','性別'],['birth_year','年次'],['occupation','工作'],['region','地區'],['member_no','會員編號'],
   ['veggie_servings','蔬果'],['veggie_colors','顏色'],['food_src','常吃'],['sleep_hours','睡眠'],['sleep_q','睡眠品質'],['nocturia_times','夜尿'],
   ['mood_lv','情緒'],['stress_src','壓力'],['air_src','空污'],['sun_lv','日曬'],['smoke_lv','抽菸'],['drink_lv','喝酒'],['betel_lv','檳榔'],['chronic_meds','慢性病藥'],
-  ['units_all','明力多'],['taking_months','吃多久']];
+  ['units_all','類胡蘿蔔素'],['taking_months','吃多久']];
 // 生活習慣 v5 所有欄位（回測帶入、代填鎖定都用這份清單）
 const LIFE_KEYS = ['veggie_servings','veggie_colors','food_src','sleep_hours','sleep_q','nocturia_times','mood_lv','stress_src','air_src','sun_lv','smoke_lv','drink_lv','betel_lv','chronic_meds'];
 const MULTI_KEYS = ['veggie_colors','food_src','sleep_q','stress_src','air_src'];
@@ -977,112 +1012,6 @@ const BAND_CARDS = {
     ['⚠️','要注意','類胡蘿蔔素每天都會被消耗，壓力一大也會掉下來。'],
     ['✅','怎麼做','維持現在的習慣，壓力大時適度運動、好好休息；每 28 天測一次，確認有守住。'] ],
 };
-// 個人化建議：照他自己填的答案，一件一張卡（你填了什麼 → 為什麼拉低 KC → 怎麼改），最後挑一件「先從這件開始」
-// 出處：原廠 Khachik Check 說明（蔬果、壓力、抽菸、飲酒、睡眠不足、營養輔助食品）；展翅月刊 2019-04（彩虹蔬果）；服用用量表（明力多保養量 4 粒）
-function personalCardsHTML(a, band){
-  const L = a.life || {}, items = [];
-  const SERV = { '0-2':['2 份以下', 3], '3-4':['3–4 份', 1] };
-  if (SERV[L.veggie_servings]) items.push({ id:'veggie', p:2, ic:'🥦', k:'蔬果吃不夠',
-    t:`你一天吃 ${SERV[L.veggie_servings][0]}，離 5 份還差 ${SERV[L.veggie_servings][1]} 個拳頭以上。`,
-    why:'類胡蘿蔔素來自蔬果，吃不夠，KC 就上不去。', how:'每餐多一個拳頭的蔬菜，飯後加一份水果。' });
-  const CAR = [['green','綠色','地瓜葉、菠菜、花椰菜'], ['yellow','黃橘','胡蘿蔔、南瓜、木瓜'], ['red','紅色','番茄、西瓜、紅椒']];
-  const miss = Array.isArray(L.veggie_colors) ? CAR.filter(c => !L.veggie_colors.includes(c[0])) : [];
-  if (miss.length) items.push({ id:'colors', p:3, ic:'🌈', k:'顏色吃不齊',
-    t:`你常吃的蔬果裡，少了${miss.map(c => '「'+c[1]+'」').join('')}。`,
-    why:'類胡蘿蔔素主要藏在綠、黃橘、紅三種顏色裡。', how: miss.map(c => `${c[1]}：${c[2]}`).join('；') + '。' });
-  // ── v5 規則（2026-10-18）：滑桿看程度、複選看項數。出處：原廠 Khachik Check 說明、PubMed 氧化壓力回顧（菸、酒、空污、心理壓力、紫外線）、國衛院 PM2.5 實測、國健署減少 PM2.5 建議 ──
-  const pick = (arr, names) => (Array.isArray(arr) ? arr : []).filter(x => x !== 'none' && names[x]);
-  const join = (ks, names) => ks.map(k => '「' + names[k] + '」').join('');
-  if (L.sleep_hours === '<5' || L.sleep_hours === '5-6') items.push({ id:'sleep', p:6, ic:'🌙', k:'睡得太少',
-    t:`你一天只睡 ${L.sleep_hours === '<5' ? '5 小時以下' : '5–6 小時'}。`,
-    why:'睡眠不足，體內的類胡蘿蔔素被用得更快。', how:'先固定上床時間，目標睡滿 7 小時。' });
-  const SQ = { light:'淺眠', wake:'半夜易醒', dream:'多夢', screen:'睡前滑手機', tired:'起床還是累' };
-  const sq = pick(L.sleep_q, SQ);
-  if (sq.length >= 2) items.push({ id:'sleepq', p:7, ic:'😴', k:'睡眠品質差',
-    t:`你的睡眠有${join(sq, SQ)}，共 ${sq.length} 項。`,
-    why:'睡不好，身體修復的時間不夠，抗氧化力就撐不住。',
-    how:(sq.includes('screen') ? '睡前 1 小時放下手機、不追劇；' : '') + '固定時間上床，房間保持暗、安靜。' });
-  if ((L.mood_lv||0) >= 4) items.push({ id:'mood', p:5, ic:'😤', k:'情緒起伏大',
-    t:`你的情緒起伏打了 ${L.mood_lv} 分（滿分 5 分＝很容易生氣）。`,
-    why:'原廠說明：壓力對類胡蘿蔔素程度有很大的影響。', how:'火上來先離開現場、深呼吸；每天做一件讓自己開心的事。' });
-  const ST = { work:'工作', money:'錢', family:'家庭', health:'健康', people:'人際' };
-  const st = pick(L.stress_src, ST);
-  if (st.length >= 2) items.push({ id:'stress', p:4, ic:'🌀', k:'壓力來源多',
-    t:`你的壓力來自${join(st, ST)}，共 ${st.length} 個。`,
-    why:'研究發現：心理壓力越大，體內的抗氧化能力越低。', how:'原廠建議：適當運動、好好休息，做讓自己快樂的事；煩惱寫下來，找人聊聊。' });
-  const AIR = { commute:'馬路通勤', cook:'炒菜油煙', incense:'燒香', nightmarket:'夜市燒烤', smoke2:'二手菸' };
-  const AIR_HOW = { commute:'騎車、走路戴口罩', cook:'煮飯一定開抽油煙機，多用蒸、煮', incense:'燒香時開窗，人不要一直待在旁邊', nightmarket:'夜市、燒烤店少待一點', smoke2:'遠離二手菸' };
-  const air = pick(L.air_src, AIR);
-  if (air.length >= 2) items.push({ id:'air', p:8, ic:'😷', k:'常接觸 PM2.5',
-    t:`你常遇到${join(air, AIR)}，共 ${air.length} 項。`,
-    why:'空氣污染會一直消耗體內的抗氧化物。', how: air.map(k => AIR_HOW[k]).join('；') + '。' });
-  const FOOD = { fried:'炸物', bbq:'燒烤', processed:'加工肉品', instant:'泡麵零食', sugar:'含糖飲料' };
-  const food = pick(L.food_src, FOOD);
-  if (food.length >= 2) items.push({ id:'food', p:9, ic:'🍟', k:'常吃負擔大的食物',
-    t:`你常吃${join(food, FOOD)}，共 ${food.length} 樣。`,
-    why:'油炸、燒烤、加工食品會增加自由基。', how:'一週先少吃一次，換成蒸、煮、涼拌' + (food.includes('sugar') ? '；含糖飲料換成白開水或無糖茶' : '') + '。' });
-  const H = Array.isArray(L.habits) ? L.habits : [];
-  const LV = (lv, opts) => lv == null ? null : (opts[lv] || [,''])[1];
-  const SMK = [[0,'不抽'],[1,'偶爾'],[2,'每天幾根'],[3,'半包'],[4,'一包以上']], DRK = [[0,'不喝'],[1,'偶爾'],[2,'每週 1–2 次'],[3,'每週 3 次以上'],[4,'每天']], BTL = [[0,'不吃'],[1,'偶爾'],[2,'每週幾次'],[3,'每天'],[4,'每天很多']];
-  if ((L.smoke_lv ?? (H.includes('smoke') ? 1 : 0)) >= 1) items.push({ id:'smoke', p:1, ic:'🚭', k:'有抽菸',
-    t: L.smoke_lv != null ? `你抽菸「${LV(L.smoke_lv, SMK)}」。` : '你有抽菸的習慣。', why:'抽菸會產生大量自由基，大量消耗類胡蘿蔔素。', how:'能減就減，同時把蔬果和保養的量拉高。' });
-  if ((L.drink_lv ?? (H.includes('drink') ? 2 : 0)) >= 2) items.push({ id:'drink', p:10, ic:'🍺', k:'常喝酒',
-    t: L.drink_lv != null ? `你喝酒「${LV(L.drink_lv, DRK)}」。` : '你有喝酒的習慣。', why:'飲酒過量會消耗類胡蘿蔔素。', how:'減少喝酒的次數和量，喝酒那天蔬果吃更多。' });
-  if ((L.betel_lv ?? (H.includes('betel') ? 1 : 0)) >= 1) items.push({ id:'betel', p:11, ic:'⚠️', k:'吃檳榔',
-    t: L.betel_lv != null ? `你吃檳榔「${LV(L.betel_lv, BTL)}」。` : '你有吃檳榔的習慣。', why:'菸、酒、檳榔都在增加身體的負擔。', how:'能減就減，同時把蔬果和保養的量拉高。' });
-  if ((L.sun_lv||0) >= 4) items.push({ id:'sun', p:12, ic:'☀️', k:'日曬時間長',
-    t:`你的日曬打了 ${L.sun_lv} 分（滿分 5 分＝每天長時間在戶外）。`,
-    why:'長時間曬紫外線，會在皮膚產生自由基。', how:'出門戴帽子、撐傘、擦防曬，避開中午 10 點到 2 點的太陽。' });
-  if (L.usage_asked) {
-    if (!a.is_taking) items.push({ id:'care', p:13, ic:'💊', k:'還沒開始保養',
-      t:'你目前沒有吃識霸明力多。', why:'光靠三餐，很難補足類胡蘿蔔素。', how:'先從保養量每天 4 粒開始，28 天後再測，看差多少。' });
-    else if (a.daily_units === '0-3' || a.daily_units === '4-7') items.push({ id:'units', p:14, ic:'💊', k:'保養量偏低',
-      t:`你目前是「${UNIT_NAME[a.daily_units]}」。`, why:'吃得少，KC 上升就有限。', how:'往上加一級，28 天後回測，用數字確認有沒有差。' });
-  }
-  if (!items.length) return `<div class="bcards"><div class="bcard do"><div class="ic">🌟</div><div><div class="k">你的生活習慣</div>
-    <div class="t">你填的蔬果、顏色、睡眠、習慣都做得很好。${band==='healthy' ? '維持下去，每 28 天測一次確認有守住。' : '分數還沒上來，可以從保養量著手，28 天後再測。'}</div></div></div></div>`;
-  items.sort((x,y) => x.p - y.p);
-  // 我辦得到：已存過的承諾先點好（本人回頭看報告時）
-  COMMIT = { rec: a._record_id, set: new Set((a.commitments||[]).filter(id => items.some(x => x.id===id))), items };
-  const head = band==='healthy' ? `分數不錯，從你填的答案看，還有 <b>${items.length}</b> 件事可以更好` : `你的 KC 偏低，從你填的答案看，跟這 <b>${items.length}</b> 件事有關`;
-  return `<div class="bcards">${prevCommitHTML(a)}<div class="note" style="margin:0">${head}<br><span style="font-size:.92rem;color:var(--txt2)">做得到的，按「我辦得到」</span></div>` +
-    items.map(x => `<div class="bcard ${COMMIT.set.has(x.id)?'picked':''}" id="bc-${x.id}"><div class="ic">${x.ic}</div><div style="flex:1"><div class="k">${x.k}</div><div class="t">${x.t}</div>
-      <div class="t" style="color:#ffb3b3;font-size:.95rem;margin-top:4px">⚠️ ${x.why}</div>
-      <div class="t" style="color:#9ff0bd;font-size:.95rem;margin-top:2px">✅ ${x.how}</div>
-      ${COMMIT.rec ? `<button class="can ${COMMIT.set.has(x.id)?'on':''}" id="cb-${x.id}" onclick="toggleCommit('${x.id}')">${COMMIT.set.has(x.id)?'✓ 我辦得到':'我辦得到 ✋'}</button>` : ''}</div></div>`).join('') +
-    `<div class="bcard do"><div class="ic">🎯</div><div><div class="k">先從這一件開始</div><div class="t"><b>${items[0].k}</b>：${items[0].how}</div></div></div>` +
-    (COMMIT.rec ? `<div class="verdict ${COMMIT.set.size ? 'some' : 'none'}" id="verdict">${verdictHTML()}</div>` : '') + `</div>`;
-}
-// ── 我辦得到：承諾即時結論＋自動存檔 ──
-const COMMIT_NAME = { smoke:'減少抽菸', veggie:'蔬果吃滿 5 份', colors:'五色蔬果吃齊', sleep:'睡滿 7 小時', drink:'減少喝酒', betel:'減少檳榔', care:'開始吃明力多保養', units:'保養量加一級',
-  mood:'調適情緒', stress:'紓解壓力', sleepq:'改善睡眠品質', air:'減少吸 PM2.5', food:'少吃炸物燒烤加工品', sun:'做好防曬' };
-let COMMIT = { rec: null, set: new Set(), items: [] }, commitTimer = null;
-function verdictHTML(){
-  const n = COMMIT.set.size, all = COMMIT.items.length;
-  $('verdict') && ($('verdict').className = 'verdict ' + (n ? 'some' : 'none'));
-  if (!n) return `<b>一件都不改，這個分數不會增加，<br>身體也沒辦法恢復健康。</b>`;
-  const names = COMMIT.items.filter(x => COMMIT.set.has(x.id)).map(x => COMMIT_NAME[x.id]);
-  return `你答應了 <b>${n} 件</b>：${names.join('、')}。<br>28 天後用同一支手機再測，看分數有沒有跟著上來。` +
-    (n === all ? `<br><b>全部都答應，最快看得到變化！</b>` : '');
-}
-function toggleCommit(id){
-  COMMIT.set.has(id) ? COMMIT.set.delete(id) : COMMIT.set.add(id);
-  const on = COMMIT.set.has(id), btn = $('cb-'+id);
-  btn.classList.toggle('on', on); btn.textContent = on ? '✓ 我辦得到' : '我辦得到 ✋';
-  $('bc-'+id).classList.toggle('picked', on);
-  $('verdict').className = 'verdict ' + (COMMIT.set.size ? 'some' : 'none');
-  $('verdict').innerHTML = verdictHTML();
-  clearTimeout(commitTimer);
-  commitTimer = setTimeout(() => sb.rpc('kc_commit', { p_record_id: COMMIT.rec, p_items: [...COMMIT.set] }).then(({ error }) => { if (error) toast('承諾沒存到，再點一次'); }), 600);
-}
-// 回測：上次答應了什麼、這次分數有沒有跟上來
-function prevCommitHTML(a){
-  const p = a.prev; if (!p) return '';
-  const done = (p.commitments || []).map(id => COMMIT_NAME[id]).filter(Boolean);
-  const d = Number(a.score) - Number(p.score);
-  const trend = `這次機器 KC 從 <b>${Number(p.score).toFixed(1)}</b> 到 <b>${Number(a.score).toFixed(1)}</b>（${d>=0?'+':''}${d.toFixed(1)}）`;
-  return `<div class="prevc">📅 上次（${p.test_date}）${done.length ? `你答應了：<b>${done.join('、')}</b>。<br>${trend}。${d >= 0.3 ? '有做就有差！' : '分數還沒上來，這次的答應要確實做到。'}` : `${trend}。`}</div>`;
-}
 function bandCardsHTML(band){
   const cls = ['', 'warn', 'do'];
   return `<div class="bcards">${(BAND_CARDS[band]||[]).map(([ic,k,t],i)=>`<div class="bcard ${cls[i]}"><div class="ic">${ic}</div><div><div class="k">${k}</div><div class="t">${t}</div></div></div>`).join('')}</div>`;
@@ -1113,7 +1042,7 @@ function peersHTML(a){
   return `<div class="card"><div class="chap">二、同群比較</div><h2 style="margin-bottom:4px">你 vs 同群組平均</h2><p class="sub" style="margin-bottom:6px">比的是機器測出來的 KC</p>${rows}</div>`;
 }
 function ladderHTML(a){
-  const levels = [['none','沒吃明力多'], ...UNIT_OPTS.map(o=>[o[0], o[1]])];
+  const levels = [['none','沒有保養'], ...UNIT_OPTS.map(o=>[o[0], o[1]])];
   const me = a.is_taking && a.daily_units ? a.daily_units : 'none';
   const L = a.ladder || {};
   const rows = levels.map(([k,name]) => {
@@ -1126,7 +1055,7 @@ function ladderHTML(a){
   const next = levels.slice(idx+1).find(([k]) => L[k] && L[k].avg != null);
   const tip = next ? `吃到「${next[1]}」的人，平均 KC 是 <b>${Number(L[next[0]].avg).toFixed(1)}</b>。`
                    : '人數夠了，這裡就會顯示每一級的平均 KC。';
-  return `<div class="card"><div class="chap">三、保養建議</div><h2 style="margin-bottom:4px">識霸明力多吃多少，KC 多少</h2>
+  return `<div class="card"><div class="chap">四、保養建議</div><div id="dose-card">${doseHTML()}</div><h2 style="margin-bottom:4px">複方類胡蘿蔔素吃多少，KC 多少</h2>
     <p class="sub" style="margin-bottom:6px">吃滿 1 個月的人，最新一次的平均</p>${rows}<div class="note" style="margin-bottom:0">${tip}</div></div>`;
 }
 
@@ -1141,6 +1070,131 @@ function showHidden(r){
   $('r-extra').innerHTML = `<div class="note">🔒 這支手機已經綁定 LINE。<br>完整報告（健康分數、同群比較、保養建議）<b>只有本人</b>看得到，請他用 LINE 打開 KC 的「我的」查看。</div>`;
   $('r-actions').innerHTML = `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>`;
   go('result');
+}
+
+// ══════════ 生活習慣體檢（2026-10-18）：像健檢報告——每項「你的結果／參考標準／判讀」，每類一句衛教，
+//   每類最下面「堅持不改／嘗試看看／一定改變」→ 改變指數 → 決定建議量
+// 出處：蔬果 5 份＝國健署天天五蔬果；顏色＝展翅月刊彩虹飲食；壓力＝原廠 Khachik Check 說明＋PubMed 回顧；
+//   PM2.5＝國衛院實測、國健署建議；紫外線、菸酒＝PubMed 氧化壓力回顧。睡 7 小時、夜尿 0–1 次＝一般健康建議（wiki 無出處）
+const CK_ST = { ok:['✓','正常','#4ade80'], warn:['△','注意','#fbbf24'], bad:['✕','異常','#f87171'] };
+const CK_NAMES = {
+  food:{ fried:'炸物', bbq:'燒烤', processed:'加工肉品', instant:'泡麵零食', sugar:'含糖飲料' },
+  sleepq:{ light:'淺眠', wake:'易醒', dream:'多夢', screen:'睡前滑手機', tired:'睡不飽' },
+  stress:{ work:'工作', money:'錢', family:'家庭', health:'健康', people:'人際' },
+  air:{ commute:'馬路通勤', cook:'炒菜油煙', incense:'燒香', nightmarket:'夜市燒烤', smoke2:'二手菸' } };
+const ckCount = (arr, names) => (Array.isArray(arr) ? arr : []).filter(x => names[x]);
+function ckCategories(L){
+  const CAR = [['green','綠色','地瓜葉、菠菜'], ['yellow','黃橘','胡蘿蔔、南瓜'], ['red','紅色','番茄、紅椒']];
+  const SERV = { '0-2':'2 份以下', '3-4':'3–4 份', '5-6':'5–6 份', '7-8':'7–8 份', '9+':'9 份以上' };
+  const HRS = { '<5':'5 小時以下', '5-6':'5–6 小時', '7-8':'7–8 小時', '9+':'9 小時以上' };
+  const NOC = { '0':'不用起來', '1':'1 次', '2':'2 次', '3+':'3 次以上' };
+  const SMK = ['不抽','偶爾','每天幾根','半包','一包以上'], DRK = ['不喝','偶爾','每週 1–2 次','每週 3 次以上','每天'], BTL = ['不吃','偶爾','每週幾次','每天','每天很多'];
+  const row = (name, res, ref, st, how) => ({ name, res, ref, st, how });
+  const na = name => ({ name, res:'未填', ref:'', st:'na' });
+  const food = ckCount(L.food_src, CK_NAMES.food), sq = ckCount(L.sleep_q, CK_NAMES.sleepq), stv = ckCount(L.stress_src, CK_NAMES.stress), air = ckCount(L.air_src, CK_NAMES.air);
+  const miss = Array.isArray(L.veggie_colors) ? CAR.filter(c => !L.veggie_colors.includes(c[0])) : null;
+  const lvl = (v, ok, warn) => v <= ok ? 'ok' : v <= warn ? 'warn' : 'bad';
+  return [
+    { key:'diet', ic:'🥦', name:'飲食', edu:'類胡蘿蔔素身體自己做不出來，只能從食物來。蔬果吃得夠、顏色吃得齊，KC 才上得去。', rows:[
+      L.veggie_servings ? row('蔬果份數', SERV[L.veggie_servings], '每天 5 份以上', ({'0-2':'bad','3-4':'warn'})[L.veggie_servings] || 'ok', '每餐多一個拳頭的蔬菜，飯後加一份水果') : na('蔬果份數'),
+      miss ? row('蔬果顏色', miss.length ? `缺${miss.map(c=>c[1]).join('、')}` : '三色都有', '綠、黃橘、紅都要有', miss.length===0 ? 'ok' : miss.length===1 ? 'warn' : 'bad', '補上' + miss.map(c=>`${c[1]}（${c[2]}）`).join('、')) : na('蔬果顏色'),
+      Array.isArray(L.food_src) ? row('負擔大的食物', food.length ? food.map(k=>CK_NAMES.food[k]).join('、') : '都沒有', '0–1 樣', lvl(food.length,1,2), '炸物、燒烤一週先少吃一次，換成蒸、煮、涼拌' + (food.includes('sugar') ? '；含糖飲料換成白開水或無糖茶' : '')) : na('負擔大的食物') ] },
+    { key:'sleep', ic:'🌙', name:'睡眠', edu:'睡覺是身體修復的時間。睡不夠、睡不好，抗氧化力就被提前用掉。', rows:[
+      L.sleep_hours ? row('睡眠時數', HRS[L.sleep_hours], '7 小時以上', ({'<5':'bad','5-6':'warn'})[L.sleep_hours] || 'ok', '固定上床時間，目標睡滿 7 小時') : na('睡眠時數'),
+      Array.isArray(L.sleep_q) ? row('睡眠品質', sq.length ? sq.map(k=>CK_NAMES.sleepq[k]).join('、') : '都沒有', '0–1 項', lvl(sq.length,1,2), (sq.includes('screen') ? '睡前 1 小時放下手機、不追劇；' : '') + '房間保持暗、安靜') : na('睡眠品質'),
+      L.nocturia_times ? row('夜尿', NOC[L.nocturia_times], '0–1 次', ({'2':'warn','3+':'bad'})[L.nocturia_times] || 'ok', '睡前 2 小時少喝水') : na('夜尿') ] },
+    { key:'mind', ic:'🌀', name:'情緒壓力', edu:'壓力會讓體內的抗氧化能力下降，原廠說明也寫到：壓力對類胡蘿蔔素影響很大。', rows:[
+      L.mood_lv ? row('情緒起伏', `${L.mood_lv} 分`, '1–2 分', lvl(L.mood_lv,2,3), '火上來先離開現場、深呼吸') : na('情緒起伏'),
+      Array.isArray(L.stress_src) ? row('壓力來源', stv.length ? stv.map(k=>CK_NAMES.stress[k]).join('、') : '都沒有', '0–1 個', lvl(stv.length,1,2), '適度運動、好好休息，每天做一件讓自己開心的事；煩惱寫下來，找人聊聊') : na('壓力來源') ] },
+    { key:'env', ic:'😷', name:'環境', edu:'PM2.5 和紫外線會在體內產生自由基，一直消耗抗氧化物。', rows:[
+      Array.isArray(L.air_src) ? row('PM2.5 情境', air.length ? air.map(k=>CK_NAMES.air[k]).join('、') : '都沒有', '0–1 項', lvl(air.length,1,2),
+        air.map(k => ({ commute:'騎車走路戴口罩', cook:'煮飯開抽油煙機、多用蒸煮', incense:'燒香時開窗', nightmarket:'夜市燒烤少待一點', smoke2:'遠離二手菸' })[k]).join('；') || '保持') : na('PM2.5 情境'),
+      L.sun_lv ? row('日曬', `${L.sun_lv} 分`, '1–3 分', lvl(L.sun_lv,3,4), '出門戴帽子、撐傘、擦防曬，避開中午 10 點到 2 點') : na('日曬') ] },
+    { key:'habit', ic:'🚭', name:'菸酒檳榔', edu:'抽菸會產生大量自由基；喝酒過量也會消耗類胡蘿蔔素。', rows:[
+      L.smoke_lv != null ? row('抽菸', SMK[L.smoke_lv], '不抽', lvl(L.smoke_lv,0,1), '能減就減，同時把蔬果和保養的量拉高') : na('抽菸'),
+      L.drink_lv != null ? row('喝酒', DRK[L.drink_lv], '不喝或偶爾', lvl(L.drink_lv,1,2), '減少喝酒的次數和量') : na('喝酒'),
+      L.betel_lv != null ? row('檳榔', BTL[L.betel_lv], '不吃', lvl(L.betel_lv,0,1), '能減就減') : na('檳榔') ] },
+  ].map(c => { const st = c.rows.map(r => r.st); c.st = st.includes('bad') ? 'bad' : st.includes('warn') ? 'warn' : st.every(s => s==='na') ? 'na' : 'ok'; return c; });
+}
+let PLEDGE = { rec:null, v:{}, keys:[], kc:0, usage:null };
+function checkupHTML(a){
+  const cats = ckCategories(a.life || {});
+  const all = cats.flatMap(c => c.rows).filter(r => r.st !== 'na');
+  const n = s => all.filter(r => r.st===s).length;
+  const burden = n('bad') >= 4 ? ['偏高','#f87171'] : n('bad') + n('warn') >= 4 ? ['中等','#fbbf24'] : ['偏低','#4ade80'];
+  PLEDGE = { rec: a._record_id, v: Object.assign({}, a.pledge || {}), keys: cats.filter(c => c.st==='bad' || c.st==='warn').map(c => c.key), kc: Number(a.score), usage: a.life && a.life.usage_asked ? (a.is_taking ? a.daily_units : 'none') : null };
+  const head = `<div class="ck-sum"><div>自由基負擔：<b style="color:${burden[1]}">${burden[0]}</b></div>
+    <div class="sub" style="margin-top:4px">${all.length} 項中　<span style="color:#f87171">✕ 異常 ${n('bad')}</span>　<span style="color:#fbbf24">△ 注意 ${n('warn')}</span>　<span style="color:#4ade80">✓ 正常 ${n('ok')}</span></div></div>`;
+  const block = c => {
+    const fix = c.rows.filter(r => (r.st==='bad' || r.st==='warn') && r.how);
+    const btns = (c.st==='bad' || c.st==='warn') && PLEDGE.rec
+      ? `<div class="pl-q">這一類，你打算怎麼做？</div><div class="pl-btns">${[['0','堅持不改'],['1','嘗試看看'],['2','一定改變']].map(([v,t]) =>
+          `<button data-k="${c.key}" data-v="${v}" class="${String(PLEDGE.v[c.key])===v?'on':''}" onclick="setPledge('${c.key}',${v})">${t}</button>`).join('')}</div>` : '';
+    return `<div class="ck-cat st-${c.st}"><div class="ck-h"><span>${c.ic} ${c.name}</span>${c.st!=='na' ? `<span class="ck-badge" style="color:${CK_ST[c.st][2]}">${CK_ST[c.st][0]} ${CK_ST[c.st][1]}</span>` : '<span class="sub">未填</span>'}</div>
+      <div class="ck-edu">${c.edu}</div>
+      <table class="ck-t"><tr><th>項目</th><th>你的結果</th><th>參考標準</th><th>判讀</th></tr>
+        ${c.rows.map(r => `<tr><td>${r.name}</td><td>${r.res}</td><td class="ref">${r.ref}</td><td style="color:${r.st==='na'?'var(--muted)':CK_ST[r.st][2]};white-space:nowrap">${r.st==='na' ? '—' : CK_ST[r.st][0]+' '+CK_ST[r.st][1]}</td></tr>`).join('')}</table>
+      ${fix.length ? `<div class="ck-fix"><b>這一類可以怎麼做</b><ul>${fix.map(r => `<li>${r.how}</li>`).join('')}</ul></div>` : (c.st==='ok' ? `<div class="ck-fix ok">✓ 這一類做得很好，保持下去</div>` : '')}
+      ${btns}</div>`;
+  };
+  return `<div class="card"><div class="chap">三、生活習慣體檢</div><h2 style="margin-bottom:8px">你的生活習慣，在消耗多少抗氧化力</h2>${head}${cats.map(block).join('')}
+    ${PLEDGE.rec && PLEDGE.keys.length ? `<div class="pl-res" id="pl-res">${pledgeResHTML()}</div>` : ''}</div>`;
+}
+function pledgeIndex(){
+  if (!PLEDGE.keys.length) return null;
+  return Math.round(PLEDGE.keys.reduce((s,k) => s + (Number(PLEDGE.v[k]) || 0), 0) / (PLEDGE.keys.length * 2) * 100);
+}
+function pledgeResHTML(){
+  const picked = PLEDGE.keys.filter(k => PLEDGE.v[k] !== undefined).length;
+  if (!picked) return `<div class="pl-idx-l">每一類選一下，看看你的改變指數</div>`;
+  const idx = pledgeIndex();
+  const msg = idx >= 80 ? ['🌟', `照這樣做，28 天後你一定會變得更好。`, 'good']
+    : idx >= 40 ? ['💪', `方向對了。「嘗試看看」的那幾類，試著變成「一定改變」，效果會更明顯。`, 'mid']
+    : idx > 0 ? ['⚠️', `只改一點點，分數很難動。挑一類先「一定改變」。`, 'low']
+    : ['🔴', `一件都不改，這個分數不會增加，身體也沒辦法恢復健康。`, 'none'];
+  return `<div class="pl-idx ${msg[2]}"><div class="pl-idx-l">你的改變指數</div><div class="pl-idx-v"><span id="pl-num">${idx}</span>%</div><div class="pl-idx-m">${msg[0]} ${msg[1]}</div></div>`;
+}
+let pledgeTimer = null;
+function setPledge(k, v){
+  PLEDGE.v[k] = v;
+  document.querySelectorAll(`.pl-btns button[data-k="${k}"]`).forEach(b => b.classList.toggle('on', b.dataset.v===String(v)));
+  if ($('pl-res')) $('pl-res').innerHTML = pledgeResHTML();
+  if ($('dose-card')) $('dose-card').innerHTML = doseHTML();
+  clearTimeout(pledgeTimer);
+  pledgeTimer = setTimeout(() => sb.rpc('kc_pledge', { p_record_id: PLEDGE.rec, p_pledge: PLEDGE.v }).then(({ error }) => { if (error) toast('選擇沒存到，再點一次'); }), 600);
+}
+// 建議量：看機器 KC（8 以上＝正常量 4 粒；5–8＝兩倍 8 粒；5 以下＝三倍以上 12 粒、最多到補充量 15 粒）
+//   改變指數低於 40% → 往上加一級（生活不改，就只能靠保養補）。出處：服用用量表（保養量 4 粒、補充量 15 粒）
+const DOSE = [['正常保養量','4 粒','4-7','低保養'], ['兩倍保養量','8 粒','8-11','中保養'], ['三倍保養量以上','12 粒以上（最多到補充量 15 粒）','12-14','高保養']];
+function doseHTML(){
+  const kc = PLEDGE.kc; let t = kc >= 8 ? 0 : kc >= 5 ? 1 : 2;
+  const idx = pledgeIndex(), picked = PLEDGE.keys.some(k => PLEDGE.v[k] !== undefined);
+  let why = `依你的機器 KC ${kc.toFixed(1)}`;
+  if (idx !== null && picked && idx < 40) {
+    if (t < 2) { t += 1; why += `，加上改變指數只有 ${idx}%：生活習慣不打算改，就只能靠保養補上，所以往上加一級`; }
+    else why += `。改變指數只有 ${idx}%，這個分數單靠保養很辛苦，生活習慣至少挑一類「一定改變」`;
+  }
+  const d = DOSE[t];
+  const now = PLEDGE.usage === null ? '' : PLEDGE.usage === 'none' ? '你現在：沒有保養' : `你現在：${UNIT_NAME[PLEDGE.usage] || ''}`;
+  return `<div class="dose"><div class="k">💊 你的建議量</div><div class="v">每天 ${d[1]}</div><div class="t">${d[0]}　·　${why}。</div>
+    ${now ? `<div class="t" style="margin-top:6px">${now} → 建議：<b>${d[3]}</b></div>` : ''}<div class="t" style="margin-top:6px;color:var(--txt2)">28 天後回測，看 KC 有沒有跟著上來。</div></div>`;
+}
+// 回測對照：上次說要改的那幾類，這次有沒有真的改
+function prevPledgeHTML(a){
+  const p = a.prev; if (!p) return '';
+  const now = ckCategories(a.life || {}), before = ckCategories(p.life || {});
+  const rank = { ok:0, warn:1, bad:2, na:-1 };
+  const PL = ['堅持不改','嘗試看看','一定改變'];
+  const lines = now.filter(c => p.pledge && p.pledge[c.key] !== undefined).map(c => {
+    const b = before.find(x => x.key===c.key), was = b.rows.filter(r=>r.st==='bad').length*2 + b.rows.filter(r=>r.st==='warn').length,
+          is = c.rows.filter(r=>r.st==='bad').length*2 + c.rows.filter(r=>r.st==='warn').length;
+    const res = is < was ? (rank[c.st]===0 ? '✅ 做到了' : '👍 有進步') : '❌ 還沒改變';
+    return `<li>${c.ic} ${c.name}：上次選「<b>${PL[p.pledge[c.key]]}</b>」→ ${res}</li>`;
+  });
+  const d = Number(a.score) - Number(p.score);
+  return `<div class="card"><div class="chap">回測對照</div><h2 style="margin-bottom:6px">上次（${p.test_date}）說要改的，做到了嗎</h2>
+    ${lines.length ? `<ul class="pv">${lines.join('')}</ul>` : '<p class="sub">上次沒有選改變的打算。</p>'}
+    <div class="pv-kc">機器 KC 從 <b>${Number(p.score).toFixed(1)}</b> 到 <b>${Number(a.score).toFixed(1)}</b>（${d>=0?'+':''}${d.toFixed(1)}）${d >= 0.3 ? '　有做就有差！' : ''}</div></div>`;
 }
 
 async function showResult(r){
@@ -1194,7 +1248,8 @@ async function showResult(r){
   $('r-msg').textContent = r.message || '';
   const note = r.prev_score!=null ? `<div class="note">上次機器 KC 是 <b>${Number(r.prev_score).toFixed(1)}</b>，這次 <b>${score.toFixed(1)}</b>。28 天後再測一次看變化。</div>`
     : `<div class="note">已經記下來了。28 天後用同一支手機再測，就看得到變化。</div>`;
-  $('r-extra').innerHTML = (a ? personalCardsHTML(a, band) : bandCardsHTML(band)) + note + (a ? peersHTML(a) + ladderHTML(a) : '');
+  // 報告順序（2026-10-18 游育杰定）：一健康分數 → 二同群比較 → 回測對照（回測才有）→ 三生活習慣體檢 → 四保養建議
+  $('r-extra').innerHTML = a ? peersHTML(a) + prevPledgeHTML(a) + checkupHTML(a) + note + ladderHTML(a) : bandCardsHTML(band) + note;
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
@@ -1371,7 +1426,7 @@ async function loadMe(){
         <span class="big" style="font-size:4rem">${Number(last.health ?? last.score).toFixed(1)}</span>
         <span class="pill ${BAND_PILL[last.band]||last.light}" style="font-size:1rem">${BAND_NAME[last.band]||LIGHT_NAME[last.light]}</span>
       </div>
-      <p class="sub" style="text-align:center;margin-top:4px">健康分數${Number(last.health)!==Number(last.score) ? `（機器 KC ${Number(last.score).toFixed(1)}）` : ''}<br>${last.test_date} ·${last.is_taking?(UNIT_NAME[last.daily_units]||last.daily_units):'沒吃明力多'} · 測過 ${rs.length} 次</p>
+      <p class="sub" style="text-align:center;margin-top:4px">健康分數${Number(last.health)!==Number(last.score) ? `（機器 KC ${Number(last.score).toFixed(1)}）` : ''}<br>${last.test_date} ·${last.is_taking?(UNIT_NAME[last.daily_units]||last.daily_units):'沒有保養'} · 測過 ${rs.length} 次</p>
       <p class="sub" style="margin-top:14px">機器 KC 走勢</p>
       <div class="chartbox" style="height:220px;margin-top:4px"><canvas id="m-chart"></canvas></div>
       ${h.reference.avg!=null?`<p class="sub" style="text-align:center;margin-top:6px">虛線：${h.reference.label} ${h.reference.avg}</p>`:''}
