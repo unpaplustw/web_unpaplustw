@@ -1122,7 +1122,7 @@ function checkupHTML(a){
   const all = cats.flatMap(c => c.rows).filter(r => r.st !== 'na');
   const n = s => all.filter(r => r.st===s).length;
   const burden = n('bad') >= 4 ? ['偏高','#f87171'] : n('bad') + n('warn') >= 4 ? ['中等','#fbbf24'] : ['偏低','#4ade80'];
-  PLEDGE = { rec: a._record_id, v: Object.assign({}, a.pledge || {}), keys: cats.filter(c => c.st==='bad' || c.st==='warn').map(c => c.key), kc: Number(a.score), usage: a.life && a.life.usage_asked ? (a.is_taking ? a.daily_units : 'none') : null };
+  PLEDGE = { rec: a._record_id, v: Object.assign({}, a.pledge || {}), keys: cats.filter(c => c.st==='bad' || c.st==='warn').map(c => c.key), kc: Number(a.score), usage: a.life && a.life.usage_asked ? (a.is_taking ? a.daily_units : 'none') : null, months: (a.life || {}).taking_months };
   const head = `<div class="ck-sum"><div>自由基負擔：<b style="color:${burden[1]}">${burden[0]}</b></div>
     <div class="sub" style="margin-top:4px">${all.length} 項中　<span style="color:#f87171">✕ 異常 ${n('bad')}</span>　<span style="color:#fbbf24">△ 注意 ${n('warn')}</span>　<span style="color:#4ade80">✓ 正常 ${n('ok')}</span></div></div>`;
   const block = c => {
@@ -1163,21 +1163,41 @@ function setPledge(k, v){
   clearTimeout(pledgeTimer);
   pledgeTimer = setTimeout(() => sb.rpc('kc_pledge', { p_record_id: PLEDGE.rec, p_pledge: PLEDGE.v }).then(({ error }) => { if (error) toast('選擇沒存到，再點一次'); }), 600);
 }
-// 建議量：看機器 KC（8 以上＝正常量 4 粒；5–8＝兩倍 8 粒；5 以下＝三倍以上 12 粒、最多到補充量 15 粒）
-//   改變指數低於 40% → 往上加一級（生活不改，就只能靠保養補）。出處：服用用量表（保養量 4 粒、補充量 15 粒）
-const DOSE = [['正常保養量','4 粒','4-7','低保養'], ['兩倍保養量','8 粒','8-11','中保養'], ['三倍保養量以上','12 粒以上（最多到補充量 15 粒）','12-14','高保養']];
+// 建議量（2026-10-18 游育杰定）：先靠蔬果與生活習慣；改不了的部分，才用機能食品補——生活改得越多，要補的越少
+//   ① KC 定起點：8 以上＝4 粒、5–8＝8 粒、5 以下＝12 粒
+//   ② 改變指數往上加：80% 以上不加、40–79% 加一級、低於 40% 加兩級
+//   ③ 跟現在吃的量比：已吃滿 1 個月、KC 還不到 8，算出來的量不比現在多 → 比現在再多一級
+//   等級：4 粒 → 8 粒 → 12 粒 → 15 粒（補充量）。出處：服用用量表（保養量 4 粒、補充量 15 粒）
+const DOSE = [['正常保養量','4 粒','低保養'], ['兩倍保養量','8 粒','中保養'], ['三倍保養量','12 粒','高保養'], ['補充量','15 粒','極高保養']];
+const NOW_TIER = { '0-3':-1, '4-7':0, '8-11':1, '12-14':2, '15+':3 };
 function doseHTML(){
-  const kc = PLEDGE.kc; let t = kc >= 8 ? 0 : kc >= 5 ? 1 : 2;
+  const kc = PLEDGE.kc, base = kc >= 8 ? 0 : kc >= 5 ? 1 : 2;
   const idx = pledgeIndex(), picked = PLEDGE.keys.some(k => PLEDGE.v[k] !== undefined);
-  let why = `依你的機器 KC ${kc.toFixed(1)}`;
-  if (idx !== null && picked && idx < 40) {
-    if (t < 2) { t += 1; why += `，加上改變指數只有 ${idx}%：生活習慣不打算改，就只能靠保養補上，所以往上加一級`; }
-    else why += `。改變指數只有 ${idx}%，這個分數單靠保養很辛苦，生活習慣至少挑一類「一定改變」`;
+  const why = [];
+  let t = base, add = 0;
+  if (idx === null) why.push('生活習慣都在標準內，照你的 KC 保養就好');
+  else if (!picked) why.push('先在上面每一類選一下，生活改得越多，要補的就越少');
+  else {
+    add = idx >= 80 ? 0 : idx >= 40 ? 1 : 2;
+    why.push(add === 0 ? `你的改變指數 ${idx}%，生活習慣改得多，保養照基本量就好`
+      : add === 1 ? `你的改變指數 ${idx}%，生活只打算改一部分，改不了的部分用保養補上，往上加一級`
+      : `你的改變指數只有 ${idx}%，生活習慣大多不打算改，就只能靠保養補上，往上加兩級`);
+  }
+  t = Math.min(3, base + add);
+  const now = PLEDGE.usage;
+  const nowT = now && now !== 'none' ? NOW_TIER[now] : null;
+  const longEnough = PLEDGE.months && PLEDGE.months !== '<1';
+  if (nowT !== null && nowT !== undefined && longEnough && kc < 8 && t <= nowT) {
+    t = Math.min(3, nowT + 1);
+    if (add === 0 && picked) why[0] = `生活習慣也打算改，蔬果、作息和保養兩邊一起來，28 天後最快看到變化`;
+    why.unshift(`你現在吃${UNIT_NAME[now]}已經超過 1 個月，KC 還在 ${kc.toFixed(1)}，代表這個量還不夠`);
   }
   const d = DOSE[t];
-  const now = PLEDGE.usage === null ? '' : PLEDGE.usage === 'none' ? '你現在：沒有保養' : `你現在：${UNIT_NAME[PLEDGE.usage] || ''}`;
-  return `<div class="dose"><div class="k">💊 你的建議量</div><div class="v">每天 ${d[1]}</div><div class="t">${d[0]}　·　${why}。</div>
-    ${now ? `<div class="t" style="margin-top:6px">${now} → 建議：<b>${d[3]}</b></div>` : ''}<div class="t" style="margin-top:6px;color:var(--txt2)">28 天後回測，看 KC 有沒有跟著上來。</div></div>`;
+  const nowTxt = now === null ? '' : now === 'none' ? '你現在：沒有保養' : `你現在：${UNIT_NAME[now] || ''}`;
+  return `<div class="dose"><div class="k">💊 你的建議量</div><div class="v">每天 ${d[1]}<span style="font-size:1rem;font-weight:700;margin-left:8px">${d[0]}</span></div>
+    <div class="t">依你的機器 KC ${kc.toFixed(1)}。${why.join('；')}。</div>
+    ${nowTxt ? `<div class="t" style="margin-top:6px">${nowTxt} → 建議：<b>${d[2]}</b></div>` : ''}
+    <div class="t" style="margin-top:8px;color:var(--txt2)">🥦 蔬果和生活習慣是根本，保養是補上改不了的部分。28 天後回測，看 KC 有沒有跟著上來。</div></div>`;
 }
 // 回測對照：上次說要改的那幾類，這次有沒有真的改
 function prevPledgeHTML(a){
