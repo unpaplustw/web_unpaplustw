@@ -443,7 +443,7 @@ h2{font-size:1.25rem;font-weight:700}
 <section id="s-result" class="screen">
   <div class="rep-head" id="r-head"></div>
   <div class="card">
-    <div class="chap">一、健康分數</div>
+    <div class="chap" id="r-chap">一、健康分數</div>
     <div class="big" id="r-score">8.8</div>
     <div class="light green" id="r-light">綠</div>
     <p class="sub" style="text-align:center" id="r-sub"></p>
@@ -669,7 +669,7 @@ function lookupNote(){
   if (!LOOKUP || !LOOKUP.found || STEP===0) return '';
   if (LIFE_PREFILLED && !LOOKUP.locked) return STEP===lastStep() ? summaryCard() : '';
   if (LOOKUP.locked) return LOOKUP.bound
-    ? `<div class="note">🔒 這支手機已經綁定 LINE，紀錄<b>只有本人</b>看得到。<br>可以照樣幫他測，這次的結果會存進他的紀錄。</div>`
+    ? `<div class="note">🔒 這支手機已經綁定 LINE，資料<b>只有本人</b>能看、能改。<br>你只需要輸入這次的 KC，會直接存進他的紀錄。</div>`
     : `<div class="note">🔒 這支手機是<b>會員</b>的紀錄，內容只有會員看得到。<br>可以照樣幫他測，這次的結果會存進他的紀錄。</div>`;
   const l = LOOKUP.last;
   return `<div class="note">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}。基本資料已帶入。</div>`;
@@ -813,6 +813,8 @@ async function nextStep(){
       ['gender','birth_year','occupation'].forEach(k => PREFILLED.add(k));
       if (data.has_region || data.locked) PREFILLED.add('region');   // 舊紀錄沒填過地區就補問
       PREFILLED.add('member_no');   // 回測不再擋會員編號那一頁；沒填過的在摘要卡「填寫」
+      // 綁了 LINE、操作者不是本人：只能輸入 KC，其他題全部跳過（伺服器沿用本人上次的答案）
+      if (data.bound) ['veggie_servings','veggie_colors','sleep_hours','nocturia_times','habits','chronic_meds','is_taking','daily_units','taking_months'].forEach(k => PREFILLED.add(k));
       if (data.subject) {
         if (data.subject.gender) ANS.gender = data.subject.gender;
         if (data.subject.birth_year) ANS.birth_year = data.subject.birth_year;
@@ -855,6 +857,7 @@ async function submit(){
 }
 // ── 結果頁：分析中過場 → 健康分數＋三級 → 同群比較 → 明力多五級 ──
 const BAND_NAME = { severe:'嚴重', sub:'亞健康', healthy:'健康' };
+const BAND_PILL = { severe:'red', sub:'yellow', healthy:'green' };
 const REGION_NAME = { north:'北部', central:'中部', south:'南部', east:'東部', islands:'離島' };
 const MEDS_NAME = { '1':'1 種', '2':'2 種', '3+':'3 種以上' };
 const sleep = ms => new Promise(res => setTimeout(res, ms));
@@ -898,7 +901,22 @@ function ladderHTML(a){
     <p class="sub" style="margin-bottom:6px">吃滿 1 個月的人，最新一次的平均</p>${rows}<div class="note" style="margin-bottom:0">${tip}</div></div>`;
 }
 
+// 幫已綁定 LINE 的人測：只顯示剛輸入的 KC，報告只有本人看得到
+function showHidden(r){
+  $('r-head').innerHTML = `<div class="t"><small>KC SAVED</small>已存進本人的紀錄</div>`;
+  $('r-chap').textContent = '這次輸入';
+  $('r-light').style.display = 'none';
+  $('r-score').textContent = Number(r.score).toFixed(1);
+  $('r-sub').innerHTML = `<div style="margin-top:6px">這次輸入的機器 KC</div>`;
+  $('r-msg').textContent = '';
+  $('r-extra').innerHTML = `<div class="note">🔒 這支手機已經綁定 LINE。<br>完整報告（健康分數、同群比較、保養建議）<b>只有本人</b>看得到，請他用 LINE 打開 KC 的「我的」查看。</div>`;
+  $('r-actions').innerHTML = `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>`;
+  go('result');
+}
+
 async function showResult(r){
+  if (r.hidden) { showHidden(r); return; }
+  $('r-chap').textContent = '一、健康分數';
   go('analyzing');
   $('an-steps').innerHTML = ''; $('scan-pct').textContent = '0';
   // 選 LINE＝測自己：第一次送出就自動綁定，不用再按「這是我本人」
@@ -1071,6 +1089,14 @@ async function loadCompare(){
 }
 
 // ══════════════ 我的 KC ══════════════
+// 本人看最新一次的完整報告（包含夥伴幫他測、他自己沒看過報告的那次）
+let ME_HIST = [];
+function openLatestReport(){
+  if (!ME_HIST.length) return;
+  const last = ME_HIST[ME_HIST.length-1], prev = ME_HIST.length > 1 ? ME_HIST[ME_HIST.length-2].score : null;
+  showResult({ record_id: last.id, score: last.score, trend: last.trend, message: last.encouragement,
+    prev_score: prev, is_mine: true, can_bind: false, hidden: false });
+}
 async function loadMe(){
   if (!caller) { $('m-body').innerHTML = '<div class="card"><p>用 LINE 登入，才看得到自己的歷次紀錄。</p></div><button class="btn btn-gold" onclick="doLogin()">用 LINE 登入</button>'; return; }
   $('m-body').innerHTML = '<div class="loading">讀取中…</div>';
@@ -1078,9 +1104,10 @@ async function loadMe(){
   if (error || !h) { $('m-body').innerHTML = '<p class="sub">讀取失敗</p>'; return; }
   const rs = h.records || [];
   if (!rs.length) {
-    $('m-body').innerHTML = '<div class="card"><p>還沒有綁定的紀錄。測完之後按「這是我本人」，紀錄就會出現在這裡。</p></div><button class="btn btn-gold" onclick="beginTest()">📝 開始檢測</button>';
+    $('m-body').innerHTML = '<div class="card"><p>還沒有紀錄。從首頁選「用 LINE 進入」測一次，紀錄就會出現在這裡。</p></div><button class="btn btn-gold" onclick="beginTest()">📝 開始檢測</button>';
     return;
   }
+  ME_HIST = rs;
   const s = h.subject, last = rs[rs.length-1];
   $('m-name').textContent = s.name ? s.name + ' 的紀錄' : '我的紀錄';
   $('m-sub').textContent = [s.tier==='member'?'一般會員':'體驗會員',
@@ -1091,21 +1118,23 @@ async function loadMe(){
   $('m-body').innerHTML = `
     <div class="card">
       <div style="display:flex;align-items:baseline;gap:12px;justify-content:center">
-        <span class="big" style="font-size:4rem">${Number(last.score).toFixed(1)}</span>
-        <span class="pill ${last.light}" style="font-size:1rem">${LIGHT_NAME[last.light]}</span>
+        <span class="big" style="font-size:4rem">${Number(last.health ?? last.score).toFixed(1)}</span>
+        <span class="pill ${BAND_PILL[last.band]||last.light}" style="font-size:1rem">${BAND_NAME[last.band]||LIGHT_NAME[last.light]}</span>
       </div>
-      <p class="sub" style="text-align:center;margin-top:4px">${last.test_date} · ${last.is_taking?(UNIT_NAME[last.daily_units]||last.daily_units):'沒吃明力多'} · 測過 ${rs.length} 次</p>
-      <div class="chartbox" style="height:220px;margin-top:12px"><canvas id="m-chart"></canvas></div>
+      <p class="sub" style="text-align:center;margin-top:4px">健康分數${Number(last.health)!==Number(last.score) ? `（機器 KC ${Number(last.score).toFixed(1)}）` : ''}<br>${last.test_date} ·${last.is_taking?(UNIT_NAME[last.daily_units]||last.daily_units):'沒吃明力多'} · 測過 ${rs.length} 次</p>
+      <p class="sub" style="margin-top:14px">機器 KC 走勢</p>
+      <div class="chartbox" style="height:220px;margin-top:4px"><canvas id="m-chart"></canvas></div>
       ${h.reference.avg!=null?`<p class="sub" style="text-align:center;margin-top:6px">虛線：${h.reference.label} ${h.reference.avg}</p>`:''}
     </div>
     <div class="note">${last.encouragement||''}</div>
     <div class="card" style="display:flex;justify-content:space-between;align-items:center">
       <span>下次回測</span><b style="color:var(--gold3)">${next.toISOString().slice(5,10).replace('-','/')}${days>=28?'　<span class="pill due">該回測了</span>':`　<span class="sub">還有 ${28-days} 天</span>`}</b>
     </div>
+    <button class="btn btn-line" onclick="openLatestReport()">📄 看最新一次的完整報告</button>
     <button class="btn btn-gold" onclick="beginTest()">📝 我要回測</button>
     <div class="card"><h2 style="margin-bottom:6px">歷次紀錄</h2>
       ${rs.slice().reverse().map(r=>`<div class="hist"><div class="d">${r.test_date}</div>
-        <div class="row"><b>${Number(r.score).toFixed(1)}</b><span class="pill ${r.light}">${LIGHT_NAME[r.light]}</span><span class="sub">${r.trend==='up'?'↑ 進步':r.trend==='down'?'↓ 下降':r.trend==='flat'?'→ 持平':'第一次'}</span></div>
+        <div class="row"><b>${Number(r.health ?? r.score).toFixed(1)}</b><span class="pill ${BAND_PILL[r.band]||r.light}">${BAND_NAME[r.band]||LIGHT_NAME[r.light]}</span>${Number(r.health)!==Number(r.score) ? `<span class="sub">機器 ${Number(r.score).toFixed(1)}</span>` : ''}<span class="sub">${r.trend==='up'?'↑ 進步':r.trend==='down'?'↓ 下降':r.trend==='flat'?'→ 持平':'第一次'}</span></div>
         <div class="e">${r.encouragement||''}</div></div>`).join('')}
     </div>`;
   if (meChart) meChart.destroy();
@@ -1113,7 +1142,7 @@ async function loadMe(){
   if (h.reference.avg!=null) ds.push({ label:h.reference.label, data: rs.map(()=>h.reference.avg), borderColor:'#b4b2a9', borderDash:[6,4], pointRadius:0, borderWidth:2 });
   meChart = new Chart($('m-chart').getContext('2d'), { type:'line', data:{ labels: rs.map(r=>r.test_date.slice(5).replace('-','/')), datasets: ds },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
-      scales:{ y:{ min:0, max:12, ticks:{ stepSize:4, font:{size:14} }, grid:{ color:'rgba(0,0,0,.06)' } }, x:{ grid:{display:false}, ticks:{ font:{size:14} } } } } });
+      scales:{ y:{ min:0, max:12, ticks:{ stepSize:4, font:{size:14} }, grid:{ color:'rgba(255,255,255,.08)' } }, x:{ grid:{display:false}, ticks:{ font:{size:14} } } } } });
 }
 
 init();
