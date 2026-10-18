@@ -373,7 +373,7 @@ h2{font-size:1.25rem;font-weight:700}
       <div class="rv d2">
         <button class="btn btn-line" onclick="pickPhone()" style="padding:16px">📱 用手機號碼<small style="display:block;font-size:.9rem;font-weight:400;color:var(--txt2);margin-top:4px">幫別人測，或沒有 LINE</small></button>
         <button class="btn btn-gold" onclick="pickLine()" style="padding:16px">用 LINE 進入<small style="display:block;font-size:.9rem;font-weight:400;opacity:.9;margin-top:4px">LINEAI 會員，或想自己保存紀錄</small></button>
-        <button class="btn btn-ghost" onclick="go('compare')">看大家的測量統計 →</button>
+        <button class="btn btn-ghost" onclick="STAT_CTX = null; go('compare')">看大家的測量統計 →</button>
       </div>
     </div>
   </div>
@@ -463,7 +463,7 @@ h2{font-size:1.25rem;font-weight:700}
 
 <nav class="nav">
   <button class="on" data-s="home" onclick="go('home')"><span>🏠</span>首頁</button>
-  <button data-s="compare" onclick="go('compare')"><span>📊</span>統計</button>
+  <button data-s="compare" onclick="STAT_CTX = null; go('compare')"><span>📊</span>統計</button>
   <button data-s="me" id="nav-me" onclick="go('me')" style="display:none"><span>👤</span>我的</button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -950,7 +950,8 @@ async function showResult(r){
   const score = Number(r.score);
   const health = a ? Number(a.health) : score;
   // 記在這支手機上，統計頁才能標出「你」的位置
-  if (a) { try { localStorage.setItem('kc_me', JSON.stringify({ score: Number(a.score), gender: a.gender, age_band: a.age_band, occupation: a.occupation, region: a.region, date: a.test_date })); } catch(_) {} }
+  // 只給報告頁那顆「看你在全台的位置」用一次，不記在手機上（沒登入的統計頁＝全台總覽）
+  LAST_REPORT_ME = a ? { score: Number(a.score), gender: a.gender, age_band: a.age_band, occupation: a.occupation, region: a.region } : null;
   const band = a ? a.band : (score<5 ? 'severe' : score<8 ? 'sub' : 'healthy');
   $('r-light').style.display = 'none';
   $('r-head').innerHTML = `<div class="t"><small>KC HEALTH REPORT</small>個人抗氧化力檢測報告</div>
@@ -968,7 +969,7 @@ async function showResult(r){
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
-    <button class="btn btn-ghost" onclick="go('compare')">📍 看你在全台的位置</button>`;
+    <button class="btn btn-ghost" onclick="STAT_CTX = LAST_REPORT_ME; go('compare')">📍 看你在全台的位置</button>`;
   $('r-actions').innerHTML = acts;
   go('result');
   $('r-score').textContent = '0.0';
@@ -989,7 +990,21 @@ async function bindSelf(id){
 let currentDim = 'age';   // 保留給 go('compare') 呼叫，統計頁已不分維度
 const ST_MIN = 3;         // 每一組滿 3 人才公開數字
 const stLabel = (dim, v) => dim==='gender' ? (v==='male'?'男':'女') : dim==='occupation' ? (OCC[v]||v) : dim==='region' ? (REGION_NAME[v]||v) : v;
-function myKC(){ try { return JSON.parse(localStorage.getItem('kc_me') || 'null'); } catch(_) { return null; } }
+// 統計頁的「你」從哪裡來（2026-10-18 游育杰定）：
+//   ① 從報告頁按「看你在全台的位置」→ 剛測完的那個人（只這一次）
+//   ② 有用 LINE 登入、綁過手機 → 本人最新一次的紀錄（不管在哪支手機測的）
+//   ③ 沒登入 → 不標任何人，全台總覽
+let STAT_CTX = null, LAST_REPORT_ME = null;
+try { localStorage.removeItem('kc_me'); } catch(_) {}   // 清掉舊版記在手機上的資料
+async function statMe(){
+  if (STAT_CTX) return STAT_CTX;
+  if (!caller) return null;
+  const { data: h } = await sb.rpc('kc_my_history', { p_caller: caller });
+  const rs = (h && h.records) || [];
+  if (!rs.length || !h.subject) return null;
+  const s = h.subject, last = rs[rs.length-1];
+  return { score: Number(last.score), gender: s.gender, age_band: s.age_band, occupation: s.occupation, region: s.region };
+}
 function kde(xs, bw){ const out = []; for (let x=0; x<=12.001; x+=0.1) { let s=0; xs.forEach(v => { const z=(x-v)/bw; s += Math.exp(-.5*z*z); }); out.push([x, s/xs.length]); } return out; }
 
 function drawDist(svg, care, nocare, me){
@@ -1027,14 +1042,14 @@ function drawDist(svg, care, nocare, me){
 async function loadCompare(){
   const { data: s, error } = await sb.rpc('kc_stats');
   if (error || !s) { toast('讀取失敗'); return; }
-  const me = myKC();
+  const me = await statMe();
   countTo($('st-r'), s.total_records, 1000, v => Math.round(v));
   const care = s.care_scores || [], no = s.nocare_scores || [], all = care.concat(no);
   const ok = drawDist($('st-dist'), care, no, me);
 
   // 你的位置
   let pos = '';
-  if (!me) pos = `<div>測完之後，這裡會標出<b> 你 </b>的位置</div>`;
+  if (!me) pos = `<div>用 LINE 進入並測過，這裡會標出<b> 你 </b>的位置</div>`;
   else {
     if (all.length >= ST_MIN) pos += `<div>你贏過全台 <b>${Math.round(all.filter(v => v < me.score).length / all.length * 100)}%</b> 的人</div>`;
     if (ok[0]) pos += `<div>有保養的人，<b>${Math.round(care.filter(v => v > me.score).length / care.length * 100)}%</b> 比你高</div>`;
@@ -1064,7 +1079,7 @@ async function loadCompare(){
     const n = cell && cell.nocare.n >= ST_MIN ? Number(cell.nocare.avg) : null;
     const title = val ? `${name}（${stLabel(dim, val)}）` : name;
     const mk = (v, cls) => v == null ? '' : `<div class="mk ${cls}" data-l="${X(v)}" style="left:0%"></div>`;
-    const leg = !me ? '測完後顯示'
+    const leg = !me ? '用 LINE 進入後顯示'
       : [`<span>⚪ 你 <b>${Number(me.score).toFixed(1)}</b></span>`, c!=null ? `<span>🟡 有保養 <b>${c.toFixed(1)}</b></span>` : '', n!=null ? `<span>⚫ 沒保養 <b>${n.toFixed(1)}</b></span>` : '',
          (c==null || n==null) ? '<span>其他收集中</span>' : ''].join('');
     return `<div class="xrow"><div class="t">${title}${c!=null && n!=null ? `<small>差 ${(c-n>=0?'+':'')}${(c-n).toFixed(1)}</small>` : ''}</div>
