@@ -600,7 +600,9 @@ function showUsage(){
 }
 const ITEMS = [
   { id:'phone', step:0, label:'手機號碼', type:'phone',
-    hint:()=> MODE==='line' ? '你自己的手機，只要填這一次，之後用 LINE 進來就自動帶出' : '被測的人的手機。測過的人會自動帶出上次資料' },
+    hint:()=> MODE==='line' ? '你自己的手機，只要填這一次，之後用 LINE 進來就自動帶出'
+      : `<span style="display:block;margin-top:4px;padding:10px 12px;border-radius:12px;background:var(--red-bg);border:1px solid rgba(248,113,113,.5);color:#fff;font-size:1rem;line-height:1.6">⚠️ 請輸入<b style="color:#ff9b9b">受測者本人</b>的手機。<br>幫別人測時<b style="color:#ff9b9b">不要填自己的</b>，不然兩個人的紀錄會混在一起。</span>
+         <span style="display:block;margin-top:8px">測過的人，下次輸入同一支手機會自動帶出上次資料</span>` },
   { id:'gender', step:1, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
   { id:'birth_year', step:1, label:'幾年次的', type:'year' },
   { id:'occupation', step:1, label:'現在的工作', type:'choice', cols:2, hint:'以八成收入來源為準',
