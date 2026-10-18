@@ -295,6 +295,17 @@ h2{font-size:1.25rem;font-weight:700}
 .bcard .k{font-size:.8rem;letter-spacing:2px;color:var(--gold2);font-weight:900;margin-bottom:2px}
 .bcard .t{font-size:1.05rem;line-height:1.55}
 .bcard.warn{border-color:rgba(248,113,113,.45)}.bcard.do{border-color:rgba(74,222,128,.45)}
+/* 我辦得到：承諾按鈕＋即時結論 */
+.bcard .can{margin-top:10px;border:1.5px solid rgba(212,175,55,.6);background:none;color:var(--gold2);border-radius:999px;padding:7px 16px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s}
+.bcard .can.on{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 0 14px rgba(212,175,55,.5)}
+.bcard.picked{border-color:rgba(212,175,55,.7)}
+.verdict{border-radius:16px;padding:16px;font-size:1.08rem;line-height:1.65;transition:all .3s}
+.verdict.none{background:rgba(220,38,38,.18);border:1.5px solid rgba(248,113,113,.7);color:#fff}
+.verdict.none b{color:#ff9b9b;font-size:1.2rem}
+.verdict.some{background:rgba(22,163,74,.15);border:1.5px solid rgba(74,222,128,.55)}
+.verdict.some b{color:#9ff0bd}
+.prevc{background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.45);border-radius:16px;padding:14px;font-size:1rem;line-height:1.65}
+.prevc b{color:var(--gold2)}
 /* 回測摘要卡：沿用上次的資料，一行一項，點「修改」只改那一題 */
 .sum{background:var(--card);border:1px solid rgba(212,175,55,.35);border-radius:16px;padding:14px;margin-bottom:22px}
 .sum .top{font-size:.95rem;color:var(--txt2);margin-bottom:10px}
@@ -901,39 +912,72 @@ const BAND_CARDS = {
 function personalCardsHTML(a, band){
   const L = a.life || {}, items = [];
   const SERV = { '0-2':['2 份以下', 3], '3-4':['3–4 份', 1] };
-  if (SERV[L.veggie_servings]) items.push({ p:2, ic:'🥦', k:'蔬果吃不夠',
+  if (SERV[L.veggie_servings]) items.push({ id:'veggie', p:2, ic:'🥦', k:'蔬果吃不夠',
     t:`你一天吃 ${SERV[L.veggie_servings][0]}，離 5 份還差 ${SERV[L.veggie_servings][1]} 個拳頭以上。`,
     why:'類胡蘿蔔素來自蔬果，吃不夠，KC 就上不去。', how:'每餐多一個拳頭的蔬菜，飯後加一份水果。' });
   const CAR = [['green','綠色','地瓜葉、菠菜、花椰菜'], ['yellow','黃橘','胡蘿蔔、南瓜、木瓜'], ['red','紅色','番茄、西瓜、紅椒']];
   const miss = Array.isArray(L.veggie_colors) ? CAR.filter(c => !L.veggie_colors.includes(c[0])) : [];
-  if (miss.length) items.push({ p:3, ic:'🌈', k:'顏色吃不齊',
+  if (miss.length) items.push({ id:'colors', p:3, ic:'🌈', k:'顏色吃不齊',
     t:`你常吃的蔬果裡，少了${miss.map(c => '「'+c[1]+'」').join('')}。`,
     why:'類胡蘿蔔素主要藏在綠、黃橘、紅三種顏色裡。', how: miss.map(c => `${c[1]}：${c[2]}`).join('；') + '。' });
-  if (L.sleep_hours === '<5' || L.sleep_hours === '5-6') items.push({ p:4, ic:'🌙', k:'睡得太少',
+  if (L.sleep_hours === '<5' || L.sleep_hours === '5-6') items.push({ id:'sleep', p:4, ic:'🌙', k:'睡得太少',
     t:`你昨晚只睡了 ${L.sleep_hours === '<5' ? '5 小時以下' : '5–6 小時'}。`,
     why:'熬夜和壓力，會把體內的類胡蘿蔔素用掉。', how:'先固定上床時間，目標睡滿 7 小時。' });
   const H = Array.isArray(L.habits) ? L.habits : [];
-  if (H.includes('smoke')) items.push({ p:1, ic:'🚭', k:'有抽菸',
+  if (H.includes('smoke')) items.push({ id:'smoke', p:1, ic:'🚭', k:'有抽菸',
     t:'你有抽菸的習慣。', why:'抽菸會大量消耗類胡蘿蔔素。', how:'能減就減，同時把蔬果和保養的量拉高。' });
-  if (H.includes('drink')) items.push({ p:5, ic:'🍺', k:'常喝酒',
+  if (H.includes('drink')) items.push({ id:'drink', p:5, ic:'🍺', k:'常喝酒',
     t:'你有喝酒的習慣。', why:'飲酒過量會消耗類胡蘿蔔素。', how:'減少喝酒的次數和量，喝酒那天蔬果吃更多。' });
-  if (H.includes('betel')) items.push({ p:6, ic:'⚠️', k:'吃檳榔',
+  if (H.includes('betel')) items.push({ id:'betel', p:6, ic:'⚠️', k:'吃檳榔',
     t:'你有吃檳榔的習慣。', why:'菸、酒、檳榔都在增加身體的負擔。', how:'能減就減，同時把蔬果和保養的量拉高。' });
   if (L.usage_asked) {
-    if (!a.is_taking) items.push({ p:7, ic:'💊', k:'還沒開始保養',
+    if (!a.is_taking) items.push({ id:'care', p:7, ic:'💊', k:'還沒開始保養',
       t:'你目前沒有吃識霸明力多。', why:'光靠三餐，很難補足類胡蘿蔔素。', how:'先從保養量每天 4 粒開始，28 天後再測，看差多少。' });
-    else if (a.daily_units === '0-3' || a.daily_units === '4-7') items.push({ p:8, ic:'💊', k:'保養量偏低',
+    else if (a.daily_units === '0-3' || a.daily_units === '4-7') items.push({ id:'units', p:8, ic:'💊', k:'保養量偏低',
       t:`你目前是「${UNIT_NAME[a.daily_units]}」。`, why:'吃得少，KC 上升就有限。', how:'往上加一級，28 天後回測，用數字確認有沒有差。' });
   }
   if (!items.length) return `<div class="bcards"><div class="bcard do"><div class="ic">🌟</div><div><div class="k">你的生活習慣</div>
     <div class="t">你填的蔬果、顏色、睡眠、習慣都做得很好。${band==='healthy' ? '維持下去，每 28 天測一次確認有守住。' : '分數還沒上來，可以從保養量著手，28 天後再測。'}</div></div></div></div>`;
   items.sort((x,y) => x.p - y.p);
+  // 我辦得到：已存過的承諾先點好（本人回頭看報告時）
+  COMMIT = { rec: a._record_id, set: new Set((a.commitments||[]).filter(id => items.some(x => x.id===id))), items };
   const head = band==='healthy' ? `分數不錯，從你填的答案看，還有 <b>${items.length}</b> 件事可以更好` : `你的 KC 偏低，從你填的答案看，跟這 <b>${items.length}</b> 件事有關`;
-  return `<div class="bcards"><div class="note" style="margin:0">${head}</div>` +
-    items.map(x => `<div class="bcard"><div class="ic">${x.ic}</div><div><div class="k">${x.k}</div><div class="t">${x.t}</div>
+  return `<div class="bcards">${prevCommitHTML(a)}<div class="note" style="margin:0">${head}<br><span style="font-size:.92rem;color:var(--txt2)">做得到的，按「我辦得到」</span></div>` +
+    items.map(x => `<div class="bcard ${COMMIT.set.has(x.id)?'picked':''}" id="bc-${x.id}"><div class="ic">${x.ic}</div><div style="flex:1"><div class="k">${x.k}</div><div class="t">${x.t}</div>
       <div class="t" style="color:#ffb3b3;font-size:.95rem;margin-top:4px">⚠️ ${x.why}</div>
-      <div class="t" style="color:#9ff0bd;font-size:.95rem;margin-top:2px">✅ ${x.how}</div></div></div>`).join('') +
-    `<div class="bcard do"><div class="ic">🎯</div><div><div class="k">先從這一件開始</div><div class="t"><b>${items[0].k}</b>：${items[0].how}</div></div></div></div>`;
+      <div class="t" style="color:#9ff0bd;font-size:.95rem;margin-top:2px">✅ ${x.how}</div>
+      ${COMMIT.rec ? `<button class="can ${COMMIT.set.has(x.id)?'on':''}" id="cb-${x.id}" onclick="toggleCommit('${x.id}')">${COMMIT.set.has(x.id)?'✓ 我辦得到':'我辦得到 ✋'}</button>` : ''}</div></div>`).join('') +
+    `<div class="bcard do"><div class="ic">🎯</div><div><div class="k">先從這一件開始</div><div class="t"><b>${items[0].k}</b>：${items[0].how}</div></div></div>` +
+    (COMMIT.rec ? `<div class="verdict ${COMMIT.set.size ? 'some' : 'none'}" id="verdict">${verdictHTML()}</div>` : '') + `</div>`;
+}
+// ── 我辦得到：承諾即時結論＋自動存檔 ──
+const COMMIT_NAME = { smoke:'減少抽菸', veggie:'蔬果吃滿 5 份', colors:'五色蔬果吃齊', sleep:'睡滿 7 小時', drink:'減少喝酒', betel:'減少檳榔', care:'開始吃明力多保養', units:'保養量加一級' };
+let COMMIT = { rec: null, set: new Set(), items: [] }, commitTimer = null;
+function verdictHTML(){
+  const n = COMMIT.set.size, all = COMMIT.items.length;
+  $('verdict') && ($('verdict').className = 'verdict ' + (n ? 'some' : 'none'));
+  if (!n) return `<b>一件都不改，這個分數不會增加，<br>身體也沒辦法恢復健康。</b>`;
+  const names = COMMIT.items.filter(x => COMMIT.set.has(x.id)).map(x => COMMIT_NAME[x.id]);
+  return `你答應了 <b>${n} 件</b>：${names.join('、')}。<br>28 天後用同一支手機再測，看分數有沒有跟著上來。` +
+    (n === all ? `<br><b>全部都答應，最快看得到變化！</b>` : '');
+}
+function toggleCommit(id){
+  COMMIT.set.has(id) ? COMMIT.set.delete(id) : COMMIT.set.add(id);
+  const on = COMMIT.set.has(id), btn = $('cb-'+id);
+  btn.classList.toggle('on', on); btn.textContent = on ? '✓ 我辦得到' : '我辦得到 ✋';
+  $('bc-'+id).classList.toggle('picked', on);
+  $('verdict').className = 'verdict ' + (COMMIT.set.size ? 'some' : 'none');
+  $('verdict').innerHTML = verdictHTML();
+  clearTimeout(commitTimer);
+  commitTimer = setTimeout(() => sb.rpc('kc_commit', { p_record_id: COMMIT.rec, p_items: [...COMMIT.set] }).then(({ error }) => { if (error) toast('承諾沒存到，再點一次'); }), 600);
+}
+// 回測：上次答應了什麼、這次分數有沒有跟上來
+function prevCommitHTML(a){
+  const p = a.prev; if (!p) return '';
+  const done = (p.commitments || []).map(id => COMMIT_NAME[id]).filter(Boolean);
+  const d = Number(a.score) - Number(p.score);
+  const trend = `這次機器 KC 從 <b>${Number(p.score).toFixed(1)}</b> 到 <b>${Number(a.score).toFixed(1)}</b>（${d>=0?'+':''}${d.toFixed(1)}）`;
+  return `<div class="prevc">📅 上次（${p.test_date}）${done.length ? `你答應了：<b>${done.join('、')}</b>。<br>${trend}。${d >= 0.3 ? '有做就有差！' : '分數還沒上來，這次的答應要確實做到。'}` : `${trend}。`}</div>`;
 }
 function bandCardsHTML(band){
   const cls = ['', 'warn', 'do'];
@@ -1004,6 +1048,7 @@ async function showResult(r){
   const bindP = (MODE === 'line' && r.can_bind) ? bindSelf(r.subject_id) : Promise.resolve(r.is_mine);
   const an = await sb.rpc('kc_analysis', { p_record_id: r.record_id });
   const a = an && an.data;
+  if (a) a._record_id = r.record_id;   // 給「我辦得到」存承諾用
   // 過場每一項跳出的都是真實數字（人數照資料庫實際筆數，不灌水）
   const pn = d => { const p = a && (a.peers||[]).find(x => x.dim===d); return p ? `${p.n} 人` : '—'; };
   const steps = [
