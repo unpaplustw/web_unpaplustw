@@ -251,10 +251,13 @@ h2{font-size:1.25rem;font-weight:700}
 .hist .row b{font-size:1.4rem;font-weight:900}
 .hist .e{font-size:.95rem;color:var(--txt);margin-top:4px}
 
-.nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto}
-.nav button{flex:1;border:0;background:none;padding:12px 4px 14px;font-family:inherit;font-size:.85rem;color:var(--txt2);cursor:pointer}
-.nav button span{display:block;font-size:1.4rem;line-height:1.2}
-.nav button.on{color:var(--gold3);font-weight:700}
+/* 底部導覽：全寬深色玻璃，跟封面／統計同一套（2026-10-18） */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;background:rgba(5,7,15,.97);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid rgba(212,175,55,.28);padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;max-width:160px;border:0;background:none;padding:10px 4px 12px;font-family:inherit;font-size:.82rem;letter-spacing:1px;color:rgba(255,255,255,.55);cursor:pointer;position:relative}
+.nav button span{display:block;font-size:1.3rem;line-height:1.25;filter:grayscale(1) brightness(1.6);opacity:.75}
+.nav button.on{color:var(--gold2);font-weight:700}
+.nav button.on span{filter:none;opacity:1}
+.nav button.on::before{content:'';position:absolute;top:0;left:30%;right:30%;height:2px;border-radius:2px;background:var(--gold2);box-shadow:0 0 10px var(--gold2)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--txt);color:#fff;padding:12px 20px;border-radius:12px;font-size:1rem;display:none;z-index:9;max-width:88%;text-align:center}
 .loading{text-align:center;color:var(--txt2);padding:40px 0}
 </style>
