@@ -263,6 +263,9 @@ h2{font-size:1.25rem;font-weight:700}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--txt);color:#fff;padding:12px 20px;border-radius:12px;font-size:1rem;display:none;z-index:9;max-width:88%;text-align:center}
 .loading{text-align:center;color:var(--txt2);padding:40px 0}
 /* 深色覆寫：原本寫死淺色的地方 */
+/* 白底按鈕：深色主題把 --txt2／--gold3 調亮了，白底上會看不見 → 這裡固定用深色字（2026-10-18 封面「用手機號碼」小字消失） */
+.btn-line{color:#8a6d08}
+.btn-line small{color:#55565f!important}
 .opt{background:rgba(255,255,255,.05)}
 .opt:active,.opt.sel{color:var(--gold2);box-shadow:0 0 14px rgba(212,175,55,.25)}
 .opt small{color:var(--txt2)!important}
