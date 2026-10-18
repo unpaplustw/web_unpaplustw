@@ -281,6 +281,20 @@ h2{font-size:1.25rem;font-weight:700}
 .band.severe{color:#ff8a8a}.band.sub{color:#fcd34d}.band.healthy{color:#6ee7a0}
 .note b{color:var(--gold2)}
 .wheel .band{display:block;padding:0;margin:0;border-radius:0;background:none}   /* 跟報告頁的三級標籤 .band 同名，這裡還原成兩條框線 */
+/* 報告：1–12 彩色刻度（照原廠配色）＋指針、三張短卡（2026-10-18） */
+.scale12{position:relative;margin:18px 2px 34px}
+.scale12 .seg{display:grid;grid-template-columns:repeat(12,1fr);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.25)}
+.scale12 .seg div{height:30px;display:flex;align-items:flex-start;justify-content:center;font-size:.72rem;font-weight:900;color:rgba(0,0,0,.55);padding-top:2px}
+.scale12 .ptr{position:absolute;top:34px;left:0;transform:translateX(-50%);transition:left 1.2s cubic-bezier(.2,.8,.2,1);text-align:center}
+.scale12 .ptr i{display:block;width:0;height:0;margin:0 auto;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:9px solid #fff}
+.scale12 .ptr b{display:block;background:#fff;color:#0b1020;border-radius:999px;padding:2px 10px;font-size:.95rem;font-weight:900;font-variant-numeric:tabular-nums}
+.face{font-size:2.2rem;line-height:1;vertical-align:-6px;margin-right:6px}
+.bcards{display:grid;gap:10px;margin-bottom:14px}
+.bcard{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px}
+.bcard .ic{flex:0 0 38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;background:rgba(255,255,255,.07)}
+.bcard .k{font-size:.8rem;letter-spacing:2px;color:var(--gold2);font-weight:900;margin-bottom:2px}
+.bcard .t{font-size:1.05rem;line-height:1.55}
+.bcard.warn{border-color:rgba(248,113,113,.45)}.bcard.do{border-color:rgba(74,222,128,.45)}
 /* 回測摘要卡：沿用上次的資料，一行一項，點「修改」只改那一題 */
 .sum{background:var(--card);border:1px solid rgba(212,175,55,.35);border-radius:16px;padding:14px;margin-bottom:22px}
 .sum .top{font-size:.95rem;color:var(--txt2);margin-bottom:10px}
@@ -859,6 +873,72 @@ async function submit(){
 // ── 結果頁：分析中過場 → 健康分數＋三級 → 同群比較 → 明力多五級 ──
 const BAND_NAME = { severe:'嚴重', sub:'亞健康', healthy:'健康' };
 const BAND_PILL = { severe:'red', sub:'yellow', healthy:'green' };
+const BAND_FACE = { severe:'😟', sub:'😐', healthy:'😊' };
+// 1–12 刻度配色照原廠 Khachik Check 畫面
+const SCALE_COLORS = ['#a3201a','#e23b2e','#ee7531','#f29a38','#f5c84a','#fcf59a','#e2e57a','#c3e56f','#69b14a','#4a8a46','#2d6a24','#ffffff'];
+function scaleHTML(){
+  return `<div class="scale12"><div class="seg">${SCALE_COLORS.map((c,i)=>`<div style="background:${c};${i===11?'':''}">${i+1}</div>`).join('')}</div>
+    <div class="ptr" id="r-ptr"><i></i><b id="r-ptr-v">0.0</b></div></div>`;
+}
+// 三張短卡：原廠一大段文字拆成「你的狀況／會怎樣／怎麼做」，一張一句
+// 出處：原廠 Khachik Check 各級說明（4.3／5.9／7.7／8.3 畫面）、展翅月刊 2019-04、實戰話術庫〈為什麼要加量吃〉
+const BAND_CARDS = {
+  severe: [
+    ['🔍','你的狀況','黃綠色蔬果吃得太少，或是壓力、抽菸、喝酒正在大量消耗你的類胡蘿蔔素。'],
+    ['⚠️','會怎樣','抗氧化力不夠，自由基一直累積，身體容易進入慢性發炎。'],
+    ['✅','怎麼做','每天蔬果吃滿 5 份、五種顏色都要有；三餐補不足的，用高品質營養輔助食品補上，28 天後再測。'] ],
+  sub: [
+    ['🔍','你的狀況','飲食有在顧，但還不夠充足。類胡蘿蔔素每天都在體內被用掉。'],
+    ['⚠️','會怎樣','熬夜、壓力、外食都在消耗，平常吃的量往往只是打平，很難往上。'],
+    ['✅','怎麼做','多吃胡蘿蔔、南瓜、番茄、深綠色蔬菜；光靠飲食補不足時用營養輔助食品，並避開抽菸、過量飲酒、睡眠不足。'] ],
+  healthy: [
+    ['🔍','你的狀況','均衡飲食和生活習慣做得很好，抗氧化力在高水準。'],
+    ['⚠️','要注意','類胡蘿蔔素每天都會被消耗，壓力一大也會掉下來。'],
+    ['✅','怎麼做','維持現在的習慣，壓力大時適度運動、好好休息；每 28 天測一次，確認有守住。'] ],
+};
+// 個人化建議：照他自己填的答案，一件一張卡（你填了什麼 → 為什麼拉低 KC → 怎麼改），最後挑一件「先從這件開始」
+// 出處：原廠 Khachik Check 說明（蔬果、壓力、抽菸、飲酒、睡眠不足、營養輔助食品）；展翅月刊 2019-04（彩虹蔬果）；服用用量表（明力多保養量 4 粒）
+function personalCardsHTML(a, band){
+  const L = a.life || {}, items = [];
+  const SERV = { '0-2':['2 份以下', 3], '3-4':['3–4 份', 1] };
+  if (SERV[L.veggie_servings]) items.push({ p:2, ic:'🥦', k:'蔬果吃不夠',
+    t:`你一天吃 ${SERV[L.veggie_servings][0]}，離 5 份還差 ${SERV[L.veggie_servings][1]} 個拳頭以上。`,
+    why:'類胡蘿蔔素來自蔬果，吃不夠，KC 就上不去。', how:'每餐多一個拳頭的蔬菜，飯後加一份水果。' });
+  const CAR = [['green','綠色','地瓜葉、菠菜、花椰菜'], ['yellow','黃橘','胡蘿蔔、南瓜、木瓜'], ['red','紅色','番茄、西瓜、紅椒']];
+  const miss = Array.isArray(L.veggie_colors) ? CAR.filter(c => !L.veggie_colors.includes(c[0])) : [];
+  if (miss.length) items.push({ p:3, ic:'🌈', k:'顏色吃不齊',
+    t:`你常吃的蔬果裡，少了${miss.map(c => '「'+c[1]+'」').join('')}。`,
+    why:'類胡蘿蔔素主要藏在綠、黃橘、紅三種顏色裡。', how: miss.map(c => `${c[1]}：${c[2]}`).join('；') + '。' });
+  if (L.sleep_hours === '<5' || L.sleep_hours === '5-6') items.push({ p:4, ic:'🌙', k:'睡得太少',
+    t:`你昨晚只睡了 ${L.sleep_hours === '<5' ? '5 小時以下' : '5–6 小時'}。`,
+    why:'熬夜和壓力，會把體內的類胡蘿蔔素用掉。', how:'先固定上床時間，目標睡滿 7 小時。' });
+  const H = Array.isArray(L.habits) ? L.habits : [];
+  if (H.includes('smoke')) items.push({ p:1, ic:'🚭', k:'有抽菸',
+    t:'你有抽菸的習慣。', why:'抽菸會大量消耗類胡蘿蔔素。', how:'能減就減，同時把蔬果和保養的量拉高。' });
+  if (H.includes('drink')) items.push({ p:5, ic:'🍺', k:'常喝酒',
+    t:'你有喝酒的習慣。', why:'飲酒過量會消耗類胡蘿蔔素。', how:'減少喝酒的次數和量，喝酒那天蔬果吃更多。' });
+  if (H.includes('betel')) items.push({ p:6, ic:'⚠️', k:'吃檳榔',
+    t:'你有吃檳榔的習慣。', why:'菸、酒、檳榔都在增加身體的負擔。', how:'能減就減，同時把蔬果和保養的量拉高。' });
+  if (L.usage_asked) {
+    if (!a.is_taking) items.push({ p:7, ic:'💊', k:'還沒開始保養',
+      t:'你目前沒有吃識霸明力多。', why:'光靠三餐，很難補足類胡蘿蔔素。', how:'先從保養量每天 4 粒開始，28 天後再測，看差多少。' });
+    else if (a.daily_units === '0-3' || a.daily_units === '4-7') items.push({ p:8, ic:'💊', k:'保養量偏低',
+      t:`你目前是「${UNIT_NAME[a.daily_units]}」。`, why:'吃得少，KC 上升就有限。', how:'往上加一級，28 天後回測，用數字確認有沒有差。' });
+  }
+  if (!items.length) return `<div class="bcards"><div class="bcard do"><div class="ic">🌟</div><div><div class="k">你的生活習慣</div>
+    <div class="t">你填的蔬果、顏色、睡眠、習慣都做得很好。${band==='healthy' ? '維持下去，每 28 天測一次確認有守住。' : '分數還沒上來，可以從保養量著手，28 天後再測。'}</div></div></div></div>`;
+  items.sort((x,y) => x.p - y.p);
+  const head = band==='healthy' ? `分數不錯，從你填的答案看，還有 <b>${items.length}</b> 件事可以更好` : `你的 KC 偏低，從你填的答案看，跟這 <b>${items.length}</b> 件事有關`;
+  return `<div class="bcards"><div class="note" style="margin:0">${head}</div>` +
+    items.map(x => `<div class="bcard"><div class="ic">${x.ic}</div><div><div class="k">${x.k}</div><div class="t">${x.t}</div>
+      <div class="t" style="color:#ffb3b3;font-size:.95rem;margin-top:4px">⚠️ ${x.why}</div>
+      <div class="t" style="color:#9ff0bd;font-size:.95rem;margin-top:2px">✅ ${x.how}</div></div></div>`).join('') +
+    `<div class="bcard do"><div class="ic">🎯</div><div><div class="k">先從這一件開始</div><div class="t"><b>${items[0].k}</b>：${items[0].how}</div></div></div></div>`;
+}
+function bandCardsHTML(band){
+  const cls = ['', 'warn', 'do'];
+  return `<div class="bcards">${(BAND_CARDS[band]||[]).map(([ic,k,t],i)=>`<div class="bcard ${cls[i]}"><div class="ic">${ic}</div><div><div class="k">${k}</div><div class="t">${t}</div></div></div>`).join('')}</div>`;
+}
 const REGION_NAME = { north:'北部', central:'中部', south:'南部', east:'東部', islands:'離島' };
 const MEDS_NAME = { '1':'1 種', '2':'2 種', '3+':'3 種以上' };
 const sleep = ms => new Promise(res => setTimeout(res, ms));
@@ -959,13 +1039,13 @@ async function showResult(r){
       <span>檢測日期</span><b>${a ? a.test_date : new Date().toISOString().slice(0,10)}</b>
       <span>受測者</span><b>手機末三碼 ${a ? a.phone_tail : (ANS.phone||'').slice(-3)}</b></div>`;
   const trend = r.trend==='first'?'第一次檢測':r.trend==='up'?'比上次進步':r.trend==='down'?'比上次低一點':'和上次差不多';
-  $('r-sub').innerHTML = `<span class="band ${band}">${BAND_NAME[band]}</span>
+  $('r-sub').innerHTML = scaleHTML() + `<span class="band ${band}"><span class="face">${BAND_FACE[band]}</span>${BAND_NAME[band]}</span>
     <div style="margin-top:10px">機器 KC <b>${score.toFixed(1)}</b>${a && a.deduct ? ` → 健康分數 <b>${health.toFixed(1)}</b>（慢性病藥 ${MEDS_NAME[a.chronic_meds]} −${a.deduct}）` : ''}</div>
     <div style="margin-top:2px">${trend}</div>`;
   $('r-msg').textContent = r.message || '';
   const note = r.prev_score!=null ? `<div class="note">上次機器 KC 是 <b>${Number(r.prev_score).toFixed(1)}</b>，這次 <b>${score.toFixed(1)}</b>。28 天後再測一次看變化。</div>`
     : `<div class="note">已經記下來了。28 天後用同一支手機再測，就看得到變化。</div>`;
-  $('r-extra').innerHTML = note + (a ? peersHTML(a) + ladderHTML(a) : '');
+  $('r-extra').innerHTML = (a ? personalCardsHTML(a, band) : bandCardsHTML(band)) + note + (a ? peersHTML(a) + ladderHTML(a) : '');
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
@@ -974,6 +1054,9 @@ async function showResult(r){
   go('result');
   $('r-score').textContent = '0.0';
   countUp($('r-score'), health, 1000);
+  // 刻度指針：從 1 滑到健康分數（第 n 格＝n 到 n+1）
+  const ptr = $('r-ptr');
+  if (ptr) { countUp($('r-ptr-v'), health, 1200); requestAnimationFrame(() => setTimeout(() => ptr.style.left = `${Math.max(2, Math.min(98, (health-1)/12*100 + 100/24))}%`, 60)); }
   requestAnimationFrame(() => setTimeout(() =>
     document.querySelectorAll('#r-extra [data-w]').forEach(e => e.style.width = e.dataset.w), 150));
 }
