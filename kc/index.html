@@ -1164,14 +1164,17 @@ function setPledge(k, v){
   pledgeTimer = setTimeout(() => sb.rpc('kc_pledge', { p_record_id: PLEDGE.rec, p_pledge: PLEDGE.v }).then(({ error }) => { if (error) toast('選擇沒存到，再點一次'); }), 600);
 }
 // 建議量（2026-10-18 游育杰定）：先靠蔬果與生活習慣；改不了的部分，才用機能食品補——生活改得越多，要補的越少
-//   ① KC 定起點：8 以上＝4 粒、5–8＝8 粒、5 以下＝12 粒
+//   ① KC 定起點：8 以上＝4 粒、5–8＝8 粒、3–5＝12 粒、3 以下＝15 粒
 //   ② 改變指數往上加：80% 以上不加、40–79% 加一級、低於 40% 加兩級
 //   ③ 跟現在吃的量比：已吃滿 1 個月、KC 還不到 8，算出來的量不比現在多 → 比現在再多一級
-//   等級：4 粒 → 8 粒 → 12 粒 → 15 粒（補充量）。出處：服用用量表（保養量 4 粒、補充量 15 粒）
-const DOSE = [['正常保養量','4 粒','低保養'], ['兩倍保養量','8 粒','中保養'], ['三倍保養量','12 粒','高保養'], ['補充量','15 粒','極高保養']];
+//   等級：4 → 8 → 12 → 15（補充量）→ 20 → 30 粒。出處：服用用量表（保養量 4、補充量 15）；20–30 粒＝游育杰實測
+// 2026-10-18 游育杰：依實測，真的很嚴重的一天 20–30 粒都有可能 → 補充量以上再加兩級（加強量 20、密集補充 30）
+const DOSE = [['正常保養量','4 粒','低保養'], ['兩倍保養量','8 粒','中保養'], ['三倍保養量','12 粒','高保養'], ['補充量','15 粒','極高保養'],
+  ['加強量','20 粒，分早、中、晚吃','極高保養以上'], ['密集補充','30 粒，分早、中、晚吃','極高保養以上']];
+const DOSE_MAX = DOSE.length - 1;
 const NOW_TIER = { '0-3':-1, '4-7':0, '8-11':1, '12-14':2, '15+':3 };
 function doseHTML(){
-  const kc = PLEDGE.kc, base = kc >= 8 ? 0 : kc >= 5 ? 1 : 2;
+  const kc = PLEDGE.kc, base = kc >= 8 ? 0 : kc >= 5 ? 1 : kc >= 3 ? 2 : 3;   // 3 分以下起點直接補充量
   const idx = pledgeIndex(), picked = PLEDGE.keys.some(k => PLEDGE.v[k] !== undefined);
   const why = [];
   let t = base, add = 0;
@@ -1183,12 +1186,12 @@ function doseHTML(){
       : add === 1 ? `你的改變指數 ${idx}%，生活只打算改一部分，改不了的部分用保養補上，往上加一級`
       : `你的改變指數只有 ${idx}%，生活習慣大多不打算改，就只能靠保養補上，往上加兩級`);
   }
-  t = Math.min(3, base + add);
+  t = Math.min(DOSE_MAX, base + add);
   const now = PLEDGE.usage;
   const nowT = now && now !== 'none' ? NOW_TIER[now] : null;
   const longEnough = PLEDGE.months && PLEDGE.months !== '<1';
   if (nowT !== null && nowT !== undefined && longEnough && kc < 8 && t <= nowT) {
-    t = Math.min(3, nowT + 1);
+    t = Math.min(DOSE_MAX, nowT + 1);
     if (add === 0 && picked) why[0] = `生活習慣也打算改，蔬果、作息和保養兩邊一起來，28 天後最快看到變化`;
     why.unshift(`你現在吃${UNIT_NAME[now]}已經超過 1 個月，KC 還在 ${kc.toFixed(1)}，代表這個量還不夠`);
   }
