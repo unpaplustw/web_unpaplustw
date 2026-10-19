@@ -639,17 +639,24 @@ function drawQR(){
 async function init(){
   playGauge();
   drawQR();
-  const pv = previewTier();
-  if (pv) { caller = 'U_demo_kc'; }
+  // 2026-10-19 認人改成 LINE 驗證過才算：拿 LIFF ID token → kc_login 向 LINE 驗證 → 換 12 小時通行碼
+  //   之後 caller 存的是通行碼（不是 LINE userId），所有 RPC 由伺服器換回本人，偽造不了
+  const q = new URLSearchParams(location.search);
+  if (q.get('sess')) { caller = q.get('sess'); }   // 測試用：直接帶伺服器發的通行碼
   else {
     try {
       await liff.init({ liffId: LIFF_ID });
-      if (liff.isLoggedIn()) { const p = await liff.getProfile(); caller = p.userId; }
+      if (liff.isLoggedIn()) {
+        const idt = liff.getIDToken();
+        const { data } = await sb.rpc('kc_login', { p_id_token: idt });
+        if (data && data.ok) caller = data.token;
+        else { console.warn('kc_login 失敗', data); toast('LINE 驗證沒通過，請重新開啟頁面，或先用手機號碼'); }
+      }
     } catch(e) { console.warn('LIFF 未啟用，未登入狀態', e); }
   }
   if (caller) {
     try { const { data } = await sb.rpc('kc_my_profile', { p_caller: caller }); profile = data || {}; } catch(_) { profile = {}; }
-    TIER = (pv === 'trial') ? 'trial' : (pv === 'member' ? 'member' : (profile.tier || 'trial'));
+    TIER = profile.tier || 'trial';
     $('nav-me').style.display = '';
     // 從 LINE 登入頁回來 → 直接接著填
     let resume = null;
