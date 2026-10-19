@@ -1005,6 +1005,7 @@ async function submit(){
     })() });
   btn.disabled = false; btn.textContent = '送出';
   if (error || !data) { console.error(error); toast('送出失敗，再試一次'); return; }
+  if (data.replaced) toast('今天已經測過，這次已覆蓋今天那一筆');   // 同一支手機一天只算一筆
   showResult(data);
 }
 // ── 結果頁：分析中過場 → 健康分數＋三級 → 同群比較 → 明力多五級 ──
