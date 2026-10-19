@@ -8,6 +8,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 /* 2026-10-18 全站改深色：問卷、報告、我的都跟封面／統計同一套 */
@@ -262,6 +263,12 @@ h2{font-size:1.25rem;font-weight:700}
 .nav button.on::before{content:'';position:absolute;top:0;left:30%;right:30%;height:2px;border-radius:2px;background:var(--gold2);box-shadow:0 0 10px var(--gold2)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--txt);color:#fff;padding:12px 20px;border-radius:12px;font-size:1rem;display:none;z-index:9;max-width:88%;text-align:center}
 .loading{text-align:center;color:var(--txt2);padding:40px 0}
+/* 封面最後一頁 QR code */
+.qr-box{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:10px;padding:12px;border:1px solid rgba(212,175,55,.45);border-radius:16px;background:rgba(255,255,255,.04)}
+#kc-qr{background:#fff;padding:6px;border-radius:10px;line-height:0}
+#kc-qr svg{width:112px;height:112px;display:block}
+.qr-t{text-align:left;font-size:.95rem;line-height:1.6;color:rgba(255,255,255,.8)}
+.qr-t b{color:var(--gold2)}
 /* 深色覆寫：原本寫死淺色的地方 */
 /* 白底按鈕：深色主題把 --txt2／--gold3 調亮了，白底上會看不見 → 這裡固定用深色字（2026-10-18 封面「用手機號碼」小字消失） */
 .btn-line{color:#8a6d08}
@@ -450,6 +457,11 @@ h2{font-size:1.25rem;font-weight:700}
         <button class="btn btn-gold" onclick="pickLine()" style="padding:16px">用 LINE 進入<small style="display:block;font-size:.9rem;font-weight:400;opacity:.9;margin-top:4px">安全保存紀錄</small></button>
         <button class="btn btn-ghost" onclick="STAT_CTX = null; go('compare')">看大家的測量統計 →</button>
       </div>
+      <!-- 讓朋友當場掃：用他自己的手機填，資料最不會混（2026-10-19） -->
+      <div class="qr-box rv d3">
+        <div id="kc-qr"></div>
+        <div class="qr-t">📲 <b>讓朋友掃這個</b><br>用他自己的手機填</div>
+      </div>
     </div>
   </div>
 </section>
@@ -619,8 +631,14 @@ function lightOf(score){ return score<5?'red':score<8?'yellow':'green'; }
 function roc(y){ return y ? (y-1911) : null; }
 
 // ══════════════ 啟動 ══════════════
+// 封面 QR code：固定指向正式網址（在 LINE 裡打開也一樣，朋友掃了用自己的手機填）
+function drawQR(){
+  const host = $('kc-qr'); if (!host || typeof qrcode !== 'function') return;
+  try { const q = qrcode(0, 'M'); q.addData('https://unpaplus.com.tw/kc/'); q.make(); host.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch(_) {}
+}
 async function init(){
   playGauge();
+  drawQR();
   const pv = previewTier();
   if (pv) { caller = 'U_demo_kc'; }
   else {
