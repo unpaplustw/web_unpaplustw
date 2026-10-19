@@ -703,7 +703,8 @@ const ITEMS = [
           ['home','家管','家人供應'],['retired','退休','退休金、積蓄'],['student','學生','還在讀書'],['other','其他','兼差、打零工']] },
   { id:'region', step:1, label:'住在哪一區', type:'choice', cols:1,
     opts:[['north','北部','基隆、台北、新北、桃園、新竹、宜蘭'],['central','中部','苗栗、台中、彰化、南投、雲林'],['south','南部','嘉義、台南、高雄、屏東'],['east','東部','花蓮、台東'],['islands','離島','澎湖、金門、馬祖']] },
-  { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, hint:'是綠佳利會員才填，只要編號、不用分店號。填了資料只有會員看得到' },
+  { id:'member_no', step:1, label:'會員編號', type:'text', optional:true, when:()=> MODE==='line',
+    hint:'是綠佳利會員才填（7 位數，不用分店號）。會跟你的 LINE、手機綁在一起，別人冒用不了' },
   // ── 生活習慣 v5（2026-10-18 游育杰定）：程度、頻率用滑桿；來源用複選（點越多＝分數越高）──
   // 第 2 頁：飲食作息
   { id:'veggie_servings', step:2, label:'平常一天吃幾份蔬果', hint:'1 份＝自己一個拳頭大', type:'slider', good:'right',
@@ -777,7 +778,7 @@ function ansText(id){
 }
 function summaryCard(){
   const l = LOOKUP.last;
-  const rows = SUM_KEYS.filter(([id]) => PREFILLED.has(id) && ((id in ANS) || id==='member_no'))
+  const rows = SUM_KEYS.filter(([id]) => PREFILLED.has(id) && ((id in ANS) || (id==='member_no' && MODE==='line')))
     .map(([id,k]) => `<div class="r"><span class="k">${k}</span><span class="v">${ansText(id)}</span><button onclick="editItem('${id}')">${id==='member_no' && !ANS.member_no && !(LOOKUP.subject && LOOKUP.subject.has_member_no) ? '填寫' : '修改'}</button></div>`).join('');
   return `<div class="sum"><div class="top">測過 <b>${LOOKUP.count}</b> 次${l?`，上次 ${l.test_date} 是 <b>${Number(l.score).toFixed(1)}</b>（${LIGHT_NAME[l.light]}）`:''}<br>沿用上次的資料，有變的點「修改」</div>${rows}</div>`;
 }
@@ -873,7 +874,7 @@ function buildControl(q){
     paint();
   } else if (q.type==='phone' || q.type==='text') {
     const isPhone = q.type==='phone';
-    host.innerHTML = `<input id="in-${q.id}" ${isPhone?'type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="09xxxxxxxx"':'type="tel" inputmode="numeric" placeholder="例：2675630"'}
+    host.innerHTML = `<input id="in-${q.id}" ${isPhone?'type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="09xxxxxxxx"':'type="tel" inputmode="numeric" maxlength="7" placeholder="例：1234567"'}
       style="width:100%;font-size:1.6rem;font-weight:700;padding:16px;border:2px solid var(--border);border-radius:14px;font-family:inherit;text-align:center;letter-spacing:2px" value="${ANS[q.id]||''}">`;
     const inp = $('in-'+q.id);
     inp.oninput = () => {
@@ -943,6 +944,9 @@ async function nextStep(){
     miss.forEach(q => $('qb-'+q.id).classList.add('bad'));
     $('qb-'+miss[0].id).scrollIntoView({ behavior:'smooth', block:'center' });
     return;
+  }
+  if (ANS.member_no && !/^\d{7}$/.test(ANS.member_no) && stepItems(STEP).some(q => q.id==='member_no')) {
+    toast('會員編號是 7 位數字'); $('qb-member_no').classList.add('bad'); return;
   }
   if (STEP===0) {
     if (!/^09\d{8}$/.test(ANS.phone||'')) { toast('手機要 09 開頭、共 10 碼'); $('qb-phone').classList.add('bad'); return; }
@@ -1248,7 +1252,14 @@ async function showResult(r){
   go('analyzing');
   $('an-steps').innerHTML = ''; $('scan-pct').textContent = '0';
   // 選 LINE＝測自己：第一次送出就自動綁定，不用再按「這是我本人」
-  const bindP = (MODE === 'line' && r.can_bind) ? bindSelf(r.subject_id) : Promise.resolve(r.is_mine);
+  const bindP = ((MODE === 'line' && r.can_bind) ? bindSelf(r.subject_id) : Promise.resolve(r.is_mine)).then(async mine => {
+    // 會員編號：綁好本人 LINE 之後才設定（LINE ID＋會員編號＋手機三者綁在一起，防冒用）
+    if (MODE === 'line' && mine && ANS.member_no) {
+      const { data: m } = await sb.rpc('kc_set_member_no', { p_caller: caller, p_member_no: ANS.member_no });
+      if (m && !m.ok) toast(m.reason === 'taken' ? '這個會員編號已經被其他帳號綁定，如有疑問請聯絡你的推薦人' : '會員編號沒存到，請確認是 7 位數字');
+    }
+    return mine;
+  });
   const an = await sb.rpc('kc_analysis', { p_record_id: r.record_id });
   const a = an && an.data;
   if (a) a._record_id = r.record_id;   // 給「我辦得到」存承諾用
