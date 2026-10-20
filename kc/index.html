@@ -857,7 +857,7 @@ function buildControl(q){
       wrap.classList.remove('unset'); $('slv-'+q.id).className = 'cur'; $('slv-'+q.id).textContent = sliderText(q, i);
       wrap.querySelectorAll('.ticks button').forEach((b,j) => b.classList.toggle('on', j===i));
       $('qb-'+q.id).classList.remove('bad');
-      if (q.id==='units_all' && (prev==='none') !== (ANS[q.id]==='none')) renderStep();   // 「沒吃」↔ 有吃：顯示／隱藏「吃多久」
+      if (q.id==='units_all' && (prev == null || (prev==='none') !== (ANS[q.id]==='none'))) renderStep();   // 「沒吃」↔ 有吃：顯示／隱藏「吃多久」
     };
     rng.addEventListener('input', () => setI(rng.value));
     rng.addEventListener('change', () => setI(rng.value));
@@ -958,8 +958,10 @@ function prevStep(){ for (let s=STEP-1;s>=0;s--) if (stepItems(s).length) { STEP
 async function nextStep(){
   const miss = stepItems(STEP).filter(q => !isOptional(q) && !(q.id in ANS));
   if (miss.length) {
-    miss.forEach(q => $('qb-'+q.id).classList.add('bad'));
-    $('qb-'+miss[0].id).scrollIntoView({ behavior:'smooth', block:'center' });
+    if (miss.some(q => !$('qb-'+q.id))) renderStep();   // 條件題剛打開還沒畫出來 → 先重畫
+    miss.forEach(q => { const e = $('qb-'+q.id); if (e) e.classList.add('bad'); });
+    const first = $('qb-'+miss[0].id); if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+    toast('還有題目沒填，紅色那題');
     return;
   }
   if (ANS.member_no && !/^\d{7}$/.test(ANS.member_no) && stepItems(STEP).some(q => q.id==='member_no')) {
