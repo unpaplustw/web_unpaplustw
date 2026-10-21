@@ -749,7 +749,7 @@ const ITEMS = [
   { id:'chronic_meds', step:3, label:'有在吃慢性病的藥嗎', type:'slider', good:'left',
     opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
   // 第 4 頁：綠佳利與檢測（「有沒有吃」併進粒數滑桿：選「沒吃」＝沒有）
-  { id:'units_all', step:4, label:'一天吃幾粒複方類胡蘿蔔素', hint:'FloraGLO® · Optisharp® · Mirtogenol®', type:'slider', good:'right', when:showUsage,
+  { id:'units_all', step:4, label:'一天吃幾粒複方類胡蘿蔔素', hint:'<span style="display:block">FloraGLO® · Optisharp® · Mirtogenol®</span><span style="display:block;margin-top:6px;color:#fde68a;font-weight:700">單位：粒（一天加起來總共吃幾粒）</span><span style="display:block;margin-top:4px;font-size:.88rem">📋 本資料為內部統計使用，請依現況填寫</span>', type:'slider', good:'right', when:showUsage,
     sfx:'粒', opts:[['none','沒吃'],['0-3','3 以下','極低保養'],['4-7','4–7','低保養'],['8-11','8–11','中保養'],['12-14','12–14','高保養'],['15+','15 以上','極高保養']] },
   { id:'taking_months', step:4, label:'吃多久了', type:'slider', good:'right', when:()=>showUsage() && ANS.units_all && ANS.units_all!=='none',
     opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']] },
