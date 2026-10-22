@@ -222,6 +222,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   </div>
 
   <div class="section" id="start">
+    <div class="reveal">
+      <div class="section-tag">實戰班至今</div>
+      <div class="section-title">一期一期，累積起來</div>
+      <p class="section-text">26 期到 28 期的累積成果。點圖上的每一期，看那一期加了多少。</p>
+    </div>
+    <div class="chart-card reveal" id="chart">
+      <div class="chart-tabs" role="tablist">
+        <button class="on" data-k="close" role="tab">累積締結</button>
+        <button data-k="people" role="tab">累積參加人次</button>
+      </div>
+      <div class="chart-big"><span id="chart-num">0</span><small id="chart-unit">件</small></div>
+      <div class="chart-cap" id="chart-cap">&nbsp;</div>
+      <svg id="chart-svg" viewBox="0 0 320 180" role="img" aria-label="實戰班 26 到 28 期累積成果折線圖"></svg>
+      <div class="chart-note">締結＝各期課程期間回報的件數；人次＝各期學員數相加（同一人參加多期算多次）。</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
     <div class="target-card reveal">
       <div class="target-num"><span class="count" data-to="4">4</span><span style="font-size:24px">週</span></div>
       <div class="target-label">每天一個行動</div>
@@ -411,26 +431,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <span class="award-pill">🍋 檸檬勇士</span>
         <span class="award-pill">🏆 最強小隊</span>
       </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <div class="section">
-    <div class="reveal">
-      <div class="section-tag">實戰班至今</div>
-      <div class="section-title">一期一期，累積起來</div>
-      <p class="section-text">26 期到 28 期的累積成果。點圖上的每一期，看那一期加了多少。</p>
-    </div>
-    <div class="chart-card reveal" id="chart">
-      <div class="chart-tabs" role="tablist">
-        <button class="on" data-k="close" role="tab">累積締結</button>
-        <button data-k="people" role="tab">累積參加人次</button>
-      </div>
-      <div class="chart-big"><span id="chart-num">0</span><small id="chart-unit">件</small></div>
-      <div class="chart-cap" id="chart-cap">&nbsp;</div>
-      <svg id="chart-svg" viewBox="0 0 320 180" role="img" aria-label="實戰班 26 到 28 期累積成果折線圖"></svg>
-      <div class="chart-note">締結＝各期課程期間回報的件數；人次＝各期學員數相加（同一人參加多期算多次）。</div>
     </div>
   </div>
 
