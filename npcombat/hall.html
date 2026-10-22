@@ -10,31 +10,40 @@
 <style>
 /* 🏛️ 名人堂——跨期累積排行榜
    資料來自 hall-data.js（由 wiki/_scripts/名人堂重生.py 產生），**0 次資料庫查詢**。
-   設計見 wiki/專案庫/實戰班/名人堂.md */
+   設計見 wiki/專案庫/實戰班/名人堂.md
+   2026-10-22 改版：空榜不顯示、分類改分頁（不橫滑）、前三名頒獎台、名次依序浮上 */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
   --bg:#f7f5f0;--card:#ffffff;--border:rgba(0,0,0,0.07);
   --gold:#b8960c;--gold2:#d4af37;--gold3:#96790a;
+  --silver:#9aa3b2;--bronze:#b87333;
   --txt:#1a1a2e;--txt2:#6b7280;--txt3:#9ca3af;
   --shadow:0 2px 12px rgba(0,0,0,0.06);
   --hit:#fff8e1;
+  --ease:cubic-bezier(.2,.8,.2,1);
 }
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt);
   min-height:100vh;overflow-x:hidden;padding-bottom:40px}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% -10%,rgba(212,175,55,.14),transparent 55%)}
 .wrap{max-width:560px;margin:0 auto;padding:0 16px}
 
 /* ── 標頭 ── */
 .hd{text-align:center;padding:34px 0 18px}
-.hd-icon{font-size:40px;line-height:1}
-.hd-t{font-size:26px;font-weight:900;letter-spacing:2px;margin-top:6px;
-  background:linear-gradient(135deg,var(--gold3),var(--gold2));
-  -webkit-background-clip:text;background-clip:text;color:transparent}
-.hd-s{font-size:13px;color:var(--txt2);margin-top:8px;line-height:1.8}
+.hd-icon{font-size:44px;line-height:1;display:inline-block;animation:drop .9s var(--ease) both}
+@keyframes drop{from{opacity:0;transform:translateY(-18px) scale(.8)}to{opacity:1;transform:none}}
+.hd-t{font-size:28px;font-weight:900;letter-spacing:3px;margin-top:6px;
+  background:linear-gradient(110deg,var(--gold3) 0%,var(--gold) 40%,#f3d77a 50%,var(--gold) 60%,var(--gold3) 100%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:shine 3s .6s var(--ease) both}
+@keyframes shine{from{background-position:100% 0}to{background-position:0 0}}
+.hd-s{font-size:13px;color:var(--txt2);margin-top:8px;line-height:1.8;animation:rise .8s .2s var(--ease) both}
 .hd-s b{color:var(--gold3)}
-.hd-meta{font-size:11.5px;color:var(--txt3);margin-top:6px}
+.hd-meta{font-size:11.5px;color:var(--txt3);margin-top:6px;animation:rise .8s .35s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
 /* ── 搜尋 ── */
-.search{position:relative;margin-bottom:14px}
+.search{position:relative;margin-bottom:14px;animation:rise .8s .45s var(--ease) both}
 .search input{width:100%;padding:13px 15px 13px 42px;border:1.5px solid var(--border);
   border-radius:12px;background:var(--card);font-family:inherit;font-size:15px;
   color:var(--txt);box-shadow:var(--shadow)}
@@ -46,50 +55,77 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 .found b{color:var(--gold3)}
 .found .miss{color:var(--txt2);font-weight:400}
 
-/* ── 榜的 chip：分類一行，每行各自橫滑 ──
-   16 個 chip 排成一行滑到後面會忘了前面有什麼，所以先分類（Randoph 2026-08-29）*/
-.grp{margin-bottom:10px}
-.grp-t{font-size:11.5px;font-weight:900;color:var(--txt3);letter-spacing:2px;
-  margin-bottom:6px;padding-left:2px}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 16px 4px;margin:0 -16px;
-  scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);
+/* ── 分類分頁＋該類的榜（不橫滑：一類最多 5 顆，換行排完）── */
+.gtabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(184,150,12,.09);margin-bottom:10px;
+  animation:rise .8s .55s var(--ease) both}
+.gtab{flex:1;border:0;background:none;font:inherit;font-size:13.5px;font-weight:900;color:var(--gold3);
+  padding:9px 0;border-radius:11px;cursor:pointer;transition:background .3s,color .3s,box-shadow .3s}
+.gtab.on{background:var(--card);color:var(--txt);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;min-height:40px}
+.chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);
   background:var(--card);font-size:13.5px;font-weight:700;color:var(--txt2);
-  cursor:pointer;white-space:nowrap;transition:.18s}
+  cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,box-shadow .2s;font-family:inherit;
+  animation:pop .4s var(--ease) both}
 .chip.on{background:linear-gradient(135deg,var(--gold3),var(--gold2));
   border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(184,150,12,.3)}
 .chip .n{font-size:11px;opacity:.65;margin-left:4px;font-weight:400}
-.chip.zero{opacity:.5}
+@keyframes pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
 
-
-/* ── 榜單 ── */
+/* ── 榜單標頭 ── */
 .board-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
 .board-t{font-size:19px;font-weight:900}
 .board-d{font-size:12.5px;color:var(--txt2)}
-.board-cov{font-size:11.5px;color:var(--txt3);margin-bottom:12px;
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.legend{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;
-  background:#fffbeb;border:1px solid var(--gold2);color:var(--gold3);font-weight:700}
+.board-cov{font-size:11.5px;color:var(--txt3);margin-bottom:6px}
 
+/* ── 頒獎台：2 1 3 ── */
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:8px;margin:14px 0 18px;min-height:250px}
+.pd{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.pd-av{position:relative;margin-bottom:6px;animation:pop .55s var(--ease) both}
+.pd-av .av-w{width:58px;height:58px;font-size:20px;border-width:3px}
+.pd.p1 .pd-av .av-w{width:74px;height:74px;font-size:26px;border-color:var(--gold2);
+  box-shadow:0 0 0 4px rgba(212,175,55,.22),0 6px 20px rgba(184,150,12,.35)}
+.pd.p2 .pd-av .av-w{border-color:var(--silver)}
+.pd.p3 .pd-av .av-w{border-color:var(--bronze)}
+.pd-crown{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:22px;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translate(-50%,-4px)}}
+.pd-medal{position:absolute;right:-6px;bottom:-4px;font-size:20px}
+.pd-nm{font-size:14px;font-weight:900;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+.pd-vl{font-size:18px;font-weight:900;color:var(--gold3);margin:1px 0 6px}
+.pd.p1 .pd-vl{font-size:22px}
+.pd-base{width:100%;border-radius:12px 12px 4px 4px;display:flex;align-items:flex-start;justify-content:center;
+  padding-top:10px;font-size:26px;font-weight:900;color:rgba(255,255,255,.95);
+  transform-origin:bottom;animation:grow .7s var(--ease) both}
+.pd.p1 .pd-base{height:96px;background:linear-gradient(180deg,#e2c25a,var(--gold3))}
+.pd.p2 .pd-base{height:70px;background:linear-gradient(180deg,#c9cfd9,#8d96a6)}
+.pd.p3 .pd-base{height:54px;background:linear-gradient(180deg,#d9a273,#9c5f2d)}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.pd.p2 .pd-base{animation-delay:.15s}.pd.p2 .pd-av{animation-delay:.55s}
+.pd.p1 .pd-base{animation-delay:.3s} .pd.p1 .pd-av{animation-delay:.75s}
+.pd.p3 .pd-base{animation-delay:0s}  .pd.p3 .pd-av{animation-delay:.4s}
+.pd-nm,.pd-vl{animation:rise .5s var(--ease) both}
+.pd.p3 .pd-nm,.pd.p3 .pd-vl{animation-delay:.45s}
+.pd.p2 .pd-nm,.pd.p2 .pd-vl{animation-delay:.6s}
+.pd.p1 .pd-nm,.pd.p1 .pd-vl{animation-delay:.8s}
+.pd.hit .pd-av .av-w{box-shadow:0 0 0 5px rgba(212,175,55,.45),0 0 26px rgba(212,175,55,.8);animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 8px rgba(212,175,55,.25),0 0 34px rgba(212,175,55,.95)}}
+.pd.empty-slot{visibility:hidden}
+
+/* ── 第 4 名以後 ── */
 .row{display:flex;align-items:center;gap:11px;padding:11px 13px;background:var(--card);
   border:1px solid var(--border);border-radius:11px;margin-bottom:7px;
-  box-shadow:var(--shadow);transition:.18s}
+  box-shadow:var(--shadow);animation:rowIn .45s var(--ease) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .row.hit{background:var(--hit);border-color:var(--gold2);
   box-shadow:0 4px 16px rgba(184,150,12,.25)}
 .rk{flex:0 0 30px;text-align:center;font-size:14px;font-weight:900;color:var(--txt3)}
-.row.t1 .rk,.row.t2 .rk,.row.t3 .rk{font-size:19px}
-.row.t1{border-color:var(--gold2);background:linear-gradient(135deg,#fffdf5,#fff8e6)}
 .av-w{flex:0 0 34px;width:34px;height:34px;border-radius:50%;position:relative;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   background:linear-gradient(135deg,#e3e8f0,#d5dae6);color:var(--txt2);
   font-size:14px;font-weight:900;border:1.5px solid var(--border)}
 .av{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.row.t1 .av-w{border-color:var(--gold2)}
 .nm{flex:1;font-size:15px;font-weight:700;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .vl{flex:0 0 auto;font-size:16px;font-weight:900;color:var(--gold3)}
-.vl small{font-size:11px;font-weight:400;color:var(--txt3);margin-left:2px}
 
 .foot{margin-top:14px;padding:12px 14px;border-radius:11px;background:#f2f4f7;
   font-size:12px;color:var(--txt2);line-height:1.85}
@@ -101,6 +137,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 
 .back{display:block;text-align:center;margin-top:26px;font-size:13px;
   color:var(--txt2);text-decoration:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -120,13 +160,15 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
   </div>
   <div class="found" id="found"></div>
 
-  <div id="chips"></div>
+  <div class="gtabs" id="gtabs"></div>
+  <div class="chips" id="chips"></div>
 
   <div class="board-hd">
     <div class="board-t" id="bT">—</div>
     <div class="board-d" id="bD"></div>
   </div>
   <div class="board-cov" id="bC"></div>
+  <div class="podium" id="podium"></div>
   <div id="list"></div>
   <div class="foot" id="foot"></div>
 
@@ -136,7 +178,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)
 <script src="hall-data.js"></script>
 <script>
 // 🔴 這一頁不連資料庫。資料全在 hall-data.js，每期結業由腳本重產一次。
-let cur = 'close', hitCode = '';
+let cur = 'close', grp = '', hitCode = '';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 空榜不顯示（有人上榜後自動出現）
+const live = () => HALL.defs.filter(d => (HALL.boards[d[0]] || []).length);
+const groupOf = k => (HALL.defs.find(d => d[0] === k) || [])[4];
 
 function init() {
   if (typeof HALL === 'undefined') {
@@ -149,21 +196,34 @@ function init() {
   document.getElementById('meta').textContent =
     `收錄 ${bs}　·　${HALL.total} 人在榜　·　${HALL.updated} 更新`;
 
-  document.getElementById('chips').innerHTML = (HALL.groups || ['']).map(g => {
-    const items = HALL.defs.filter(d => d[4] === g);
-    if (!items.length) return '';
-    return `<div class="grp"><div class="grp-t">${g}</div><div class="chips">` +
-      items.map(([k, icon, nm]) => {
-        const n = (HALL.boards[k] || []).length;
-        return `<button class="chip${n ? '' : ' zero'}" data-k="${k}">${icon} ` +
-               `${nm.replace('榜','')}<span class="n">${n}</span></button>`;
-      }).join('') + '</div></div>';
-  }).join('');
-  document.querySelectorAll('.chip').forEach(c =>
-    c.onclick = () => { cur = c.dataset.k; render(); });
+  if (!live().some(d => d[0] === cur)) cur = (live()[0] || [])[0];
+  grp = groupOf(cur);
+  const groups = (HALL.groups || []).filter(g => live().some(d => d[4] === g));
+  document.getElementById('gtabs').innerHTML = groups.map(g =>
+    `<button class="gtab" data-g="${g}">${g}</button>`).join('');
+  document.querySelectorAll('.gtab').forEach(b => b.onclick = () => {
+    if (grp === b.dataset.g) return;
+    grp = b.dataset.g;
+    cur = live().find(d => d[4] === grp)[0];
+    render();
+  });
 
   document.getElementById('q').addEventListener('input', e => search(e.target.value));
   render();
+}
+
+function renderChips() {
+  document.querySelectorAll('.gtab').forEach(b => b.classList.toggle('on', b.dataset.g === grp));
+  const box = document.getElementById('chips');
+  const want = live().filter(d => d[4] === grp).map(d => d[0]).join();
+  if (box.dataset.g !== want) {   // 換分類才重建（重播浮出動畫），同類切榜只換亮的那顆
+    box.dataset.g = want;
+    box.innerHTML = live().filter(d => d[4] === grp).map(([k, icon, nm], i) =>
+      `<button class="chip" data-k="${k}" style="animation-delay:${i * 0.05}s">${icon} ` +
+      `${nm.replace('榜', '')}<span class="n">${HALL.boards[k].length}</span></button>`).join('');
+    box.querySelectorAll('.chip').forEach(c => c.onclick = () => { cur = c.dataset.k; render(); });
+  }
+  box.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.k === cur));
 }
 
 // 搜尋：純前端字串比對，不連任何服務
@@ -172,7 +232,6 @@ function search(q) {
   const box = document.getElementById('found');
   if (!q) { hitCode = ''; box.style.display = 'none'; render(); return; }
 
-  // 先在所有榜裡找這個人（姓名或編號）
   let who = null;
   for (const [k] of HALL.defs) {
     for (const [nm, code] of (HALL.boards[k] || [])) {
@@ -190,22 +249,11 @@ function search(q) {
   }
   hitCode = who.code;
 
-  // 他上了哪幾張榜、各排第幾
   const at = [];
-  // 名次算法要跟榜單一致：同分同名次
-  const rankOf = (board, code) => {
-    let r = 0, prev = null;
-    for (let i = 0; i < board.length; i++) {
-      if (board[i][2] !== prev) { r = i + 1; prev = board[i][2]; }
-      if (board[i][1] === code) return { rank: r, val: board[i][2] };
-    }
-    return null;
-  };
   HALL.defs.forEach(([k, icon, nm]) => {
     const hit = rankOf(HALL.boards[k] || [], who.code);
     if (hit) at.push({ k, icon, nm, rank: hit.rank, val: hit.val });
   });
-
   at.sort((a, b) => a.rank - b.rank);
 
   box.innerHTML = `<b>${esc(who.nm)}</b>　上了 <b>${at.length}</b> 張榜<br>` +
@@ -214,70 +262,112 @@ function search(q) {
     (at.length > 6 ? `　…等 ${at.length} 張` : '');
   box.style.display = 'block';
 
-  // 跳到他名次最好的那張榜
-  if (at.length) { cur = at[0].k; }
+  // 跳到他名次最好的那張榜（分類分頁一起切過去）
+  if (at.length) { cur = at[0].k; grp = groupOf(cur); }
   render(true);
 }
 
-// 頭像來自 members_master.picture_url（LINE）。載不到就退回名字第一個字，
-// 不讓破圖出現在榜上。lazy 載入：一次只渲染一張榜，最多 100 張。
+// 名次算法要跟榜單一致：同分同名次
+function rankOf(board, code) {
+  let r = 0, prev = null;
+  for (let i = 0; i < board.length; i++) {
+    if (board[i][2] !== prev) { r = i + 1; prev = board[i][2]; }
+    if (board[i][1] === code) return { rank: r, val: board[i][2] };
+  }
+  return null;
+}
+
+// 頭像來自 members_master.picture_url（LINE）。載不到就退回名字第一個字。
+// ⚠️ onerror 只能寫 this.remove()——塞含引號的 HTML 進屬性會把標籤打斷。
 function avatar(code, nm) {
   const u = (HALL.av || {})[code];
   const first = esc((nm || '?').slice(0, 1));
-  // 首字墊在底層，頭像疊上去；載不到就把 img 移除，露出底下的字。
-  // ⚠️ onerror 只能寫 this.remove()——塞含引號的 HTML 進屬性會把標籤打斷。
   return `<div class="av-w">${first}` +
     (u ? `<img class="av" loading="lazy" alt="" src="${esc((HALL.avp || '') + u)}"` +
          ` onerror="this.remove()">` : '') + '</div>';
 }
 
-
 function esc(s) { return String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
+function countUp(el, to, delay) {
+  if (reduce || typeof to !== 'number') { el.textContent = to; return; }
+  el.textContent = '0';
+  setTimeout(() => {
+    const t0 = performance.now(), dur = 800;
+    const step = now => {
+      const p = Math.min((now - t0) / dur, 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, delay);
+}
+
 function render(scroll) {
-  document.querySelectorAll('.chip').forEach(c =>
-    c.classList.toggle('on', c.dataset.k === cur));
+  renderChips();
   const def = HALL.defs.find(d => d[0] === cur);
   const rows = HALL.boards[cur] || [];
 
   document.getElementById('bT').textContent = `${def[1]} ${def[2]}`;
   document.getElementById('bD').textContent = def[3];
-
   const cov = (HALL.cover[cur] || []).map(b => (HALL.batches[b] || {}).n).filter(Boolean);
-  document.getElementById('bC').textContent =
-    cov.length ? `收錄：${cov.join('、')}` : '';
+  document.getElementById('bC').textContent = cov.length ? `收錄：${cov.join('、')}` : '';
+
+  // 同分同名次（競賽排名）：並列之後直接跳號
+  let rank = 0, prev = null;
+  const ranked = rows.map(([nm, code, v], i) => {
+    if (v !== prev) { rank = i + 1; prev = v; }
+    return { nm, code, v, rank };
+  });
+  const medal = r => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : r;
+
+  // 頒獎台：前三個位置（獎牌照名次，並列都給）
+  const P = document.getElementById('podium');
+  if (!ranked.length) {
+    P.innerHTML = '';
+    P.style.display = 'none';
+  } else {
+    P.style.display = '';
+    const slot = (idx, cls) => {
+      const r = ranked[idx];
+      if (!r) return `<div class="pd ${cls} empty-slot"></div>`;
+      return `<div class="pd ${cls}${r.code === hitCode ? ' hit' : ''}" data-c="${r.code}">
+        <div class="pd-av">${cls === 'p1' ? '<div class="pd-crown">👑</div>' : ''}${avatar(r.code, r.nm)}<div class="pd-medal">${medal(r.rank)}</div></div>
+        <div class="pd-nm">${esc(r.nm)}</div>
+        <div class="pd-vl" data-v="${r.v}">${r.v}</div>
+        <div class="pd-base">${r.rank}</div></div>`;
+    };
+    P.innerHTML = slot(1, 'p2') + slot(0, 'p1') + slot(2, 'p3');
+    const delays = { p3: 450, p2: 600, p1: 800 };
+    P.querySelectorAll('.pd-vl').forEach(el => {
+      const v = +el.dataset.v;
+      countUp(el, isNaN(v) ? el.dataset.v : v, delays[el.parentElement.classList[1]] || 0);
+    });
+  }
 
   const L = document.getElementById('list');
-  if (!rows.length) {
+  if (!ranked.length) {
     L.innerHTML = '<div class="empty"><div class="empty-i">🌱</div>' +
       '<div class="empty-t">這張榜還沒有人</div>' +
       `<div class="empty-d">${HALL.notes[cur] || '還沒有人上榜'}</div></div>`;
   } else {
-    // 同分同名次（競賽排名）：並列之後直接跳號——9 人並列第 1，下一個就是第 10。
-    let rank = 0, prev = null;
-    L.innerHTML = rows.map(([nm, code, v], i) => {
-      if (v !== prev) { rank = i + 1; prev = v; }
-      const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-      // 獎牌照名次（並列都給），但金色卡片只給前 3 個位置——
-      // 33 人並列第一時整片金色會失去層次
-      const cls = [i < 3 ? 't' + (i + 1) : '', code === hitCode ? 'hit' : ''].join(' ');
-      return `<div class="row ${cls}" data-c="${code}">
-        <div class="rk">${medal}</div>
-        ${avatar(code, nm)}
-        <div class="nm">${esc(nm)}</div>
-        <div class="vl">${v}</div></div>`;
-    }).join('');
+    L.innerHTML = ranked.slice(3).map((r, i) =>
+      `<div class="row${r.code === hitCode ? ' hit' : ''}" data-c="${r.code}" style="animation-delay:${Math.min(0.9 + i * 0.04, 1.6)}s">
+        <div class="rk">${medal(r.rank)}</div>
+        ${avatar(r.code, r.nm)}
+        <div class="nm">${esc(r.nm)}</div>
+        <div class="vl">${r.v}</div></div>`).join('');
   }
 
-  // 榜底只講一件事：進榜門檻。資料口徑的技術限制寫在 wiki，不放在學員看的頁面。
+  // 榜底只講一件事：進榜門檻
   const th = HALL.threshold[cur] || 0;
   const foot = document.getElementById('foot');
   foot.style.display = th ? 'block' : 'none';
   if (th) foot.innerHTML = `進榜門檻：<b>${th}</b>`;
 
   if (scroll && hitCode) {
-    const el = document.querySelector(`.row[data-c="${hitCode}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const el = document.querySelector(`[data-c="${hitCode}"]`);
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }), 300);
   }
 }
 
