@@ -461,6 +461,7 @@ h2{font-size:1.25rem;font-weight:700}
         <button class="btn btn-line" onclick="pickPhone()" style="padding:16px">📱 用手機號碼<small style="display:block;font-size:.9rem;font-weight:400;color:var(--txt2);margin-top:4px">幫別人測，或沒有 LINE</small></button>
         <button class="btn btn-gold" onclick="pickLine()" style="padding:16px">用 LINE 進入<small style="display:block;font-size:.9rem;font-weight:400;opacity:.9;margin-top:4px">安全保存紀錄</small></button>
         <button class="btn btn-ghost" onclick="STAT_CTX = null; go('compare')">看大家的測量統計 →</button>
+        <button onclick="pickQuick()" style="display:block;margin:14px auto 0;background:none;border:0;color:var(--txt2);font:inherit;font-size:.95rem;text-decoration:underline;text-underline-offset:4px">⚡ 現場快速看分數（不存資料）</button>
       </div>
       <!-- 讓朋友當場掃：用他自己的手機填，資料最不會混（2026-10-19） -->
       <div class="qr-box rv d3">
@@ -679,6 +680,10 @@ let MODE = 'phone';
 // 「開始」一律回封面的兩個按鈕
 function beginTest(){ go('home'); setTimeout(() => $('entry').scrollIntoView({ behavior:'smooth' }), 50); }
 function pickPhone(){ MODE = 'phone'; startSurvey(); }
+// ⚡ 快速看分數（2026-10-22 游育杰定）：展覽工作人員現場解說用——只問藥、粒數、KC，不問手機、不存任何資料
+let QUICK = false;
+const QUICK_IDS = ['chronic_meds', 'units_all', 'score'];
+function pickQuick(){ MODE = 'phone'; startSurvey(true); }
 function pickLine(){
   if (!caller) {
     try { localStorage.setItem('kc_resume', 'line'); } catch(_) {}
@@ -749,7 +754,7 @@ const ITEMS = [
   { id:'chronic_meds', step:3, label:'有在吃慢性病的藥嗎', type:'slider', good:'left',
     opts:[['0','沒有'],['1','1 種'],['2','2 種'],['3+','3 種以上']] },
   // 第 4 頁：綠佳利與檢測（「有沒有吃」併進粒數滑桿：選「沒吃」＝沒有）
-  { id:'units_all', step:4, label:'一天吃幾粒複方類胡蘿蔔素', hint:'<span style="display:block">FloraGLO® · Optisharp® · Mirtogenol®</span><span style="display:block;margin-top:6px;color:#fde68a;font-weight:700">單位：粒（一天加起來總共吃幾粒）</span><span style="display:block;margin-top:4px;font-size:.88rem">📋 本資料為內部統計使用，請依現況填寫</span>', type:'slider', good:'right', when:showUsage,
+  { id:'units_all', step:4, label:'一天吃幾粒複方類胡蘿蔔素', hint:()=>'<span style="display:block">FloraGLO® · Optisharp® · Mirtogenol®</span><span style="display:block;margin-top:6px;color:#fde68a;font-weight:700">單位：粒（一天加起來總共吃幾粒）</span>' + (QUICK ? '' : '<span style="display:block;margin-top:4px;font-size:.88rem">📋 本資料為內部統計使用，請依現況填寫</span>'), type:'slider', good:'right', when:showUsage,
     sfx:'粒', opts:[['none','沒吃'],['0-3','3 以下','極低保養'],['4-7','4–7','低保養'],['8-11','8–11','中保養'],['12-14','12–14','高保養'],['15+','15 以上','極高保養']] },
   { id:'taking_months', step:4, label:'吃多久了', type:'slider', good:'right', when:()=>showUsage() && ANS.units_all && ANS.units_all!=='none',
     opts:[['<1','未滿 1 個月'],['1-3','1–3 個月'],['3-6','3–6 個月'],['6+','半年以上']] },
@@ -758,7 +763,8 @@ const ITEMS = [
 const STEP_NAMES = ['手機', '基本資料', '飲食作息', '情緒環境', '綠佳利與檢測'];
 const NSTEP = STEP_NAMES.length;
 
-function startSurvey(){
+function startSurvey(quick){
+  QUICK = !!quick;
   for (const k in ANS) delete ANS[k];
   LOOKUP = null; LIFE_PREFILLED = false;
   PREFILLED = new Set();
@@ -766,6 +772,7 @@ function startSurvey(){
 }
 function isOptional(q){ return typeof q.optional === 'function' ? q.optional() : !!q.optional; }
 function stepItems(s){
+  if (QUICK) return s===0 ? QUICK_IDS.map(id => ITEMS.find(q => q.id===id)) : [];
   return ITEMS.filter(q => q.step===s && !PREFILLED.has(q.id) && (!q.when || q.when()));
 }
 function firstStep(){ for (let s=0;s<NSTEP;s++) if (stepItems(s).length) return s; return NSTEP-1; }
@@ -813,10 +820,10 @@ function lookupNote(){
 function renderStep(){
   const items = stepItems(STEP);
   const shown = [...Array(NSTEP).keys()].filter(s=>stepItems(s).length);
-  $('steps').innerHTML = shown.map(s=>`<div class="${s===STEP?'on':''}">${STEP_NAMES[s]}</div>`).join('');
+  $('steps').innerHTML = QUICK ? `<div class="on">⚡ 快速看分數・不存資料</div>` : shown.map(s=>`<div class="${s===STEP?'on':''}">${STEP_NAMES[s]}</div>`).join('');
   // 第一步沒有上一步：整顆拿掉（不是隱形佔位），下一步才會置中佔滿
   $('q-back').style.display = STEP===firstStep() ? 'none' : '';
-  $('q-next').textContent = STEP===lastStep() ? '送出' : '下一步';
+  $('q-next').textContent = QUICK ? '看分數' : STEP===lastStep() ? '送出' : '下一步';
   $('q-body').innerHTML = lookupNote() + items.map(q => `
     <div class="qblock" id="qb-${q.id}">
       <div class="qlabel">${q.label}${isOptional(q)?'（可不填）':''}</div>
@@ -964,6 +971,7 @@ async function nextStep(){
     toast('還有題目沒填，紅色那題');
     return;
   }
+  if (QUICK) { showQuick(); return; }
   if (ANS.member_no && !/^\d{7}$/.test(ANS.member_no) && stepItems(STEP).some(q => q.id==='member_no')) {
     toast('會員編號是 7 位數字'); $('qb-member_no').classList.add('bad'); return;
   }
@@ -1312,6 +1320,7 @@ async function showResult(r){
   LAST_REPORT_ME = a ? { score: Number(a.score), gender: a.gender, age_band: a.age_band, occupation: a.occupation, region: a.region } : null;
   const band = a ? a.band : (score<5 ? 'severe' : score<8 ? 'sub' : 'healthy');
   $('r-light').style.display = 'none';
+  $('r-chap').textContent = '一、健康分數';
   $('r-head').innerHTML = `<div class="t"><small>KC HEALTH REPORT</small>個人抗氧化力檢測報告</div>
     <div class="meta"><span>報告編號</span><b>${a ? a.report_no : '—'}</b>
       <span>檢測日期</span><b>${a ? a.test_date : new Date().toISOString().slice(0,10)}</b>
@@ -1338,6 +1347,52 @@ async function showResult(r){
   if (ptr) { countUp($('r-ptr-v'), health, 1200); requestAnimationFrame(() => setTimeout(() => ptr.style.left = `${Math.max(2, Math.min(98, (health-1)/12*100 + 100/24))}%`, 60)); }
   requestAnimationFrame(() => setTimeout(() =>
     document.querySelectorAll('#r-extra [data-w]').forEach(e => e.style.width = e.dataset.w), 150));
+}
+// ⚡ 快速看分數的結果：只在畫面上算，不寫資料庫（kc_stats 只讀）
+async function showQuick(){
+  const btn = $('q-next'); btn.disabled = true; btn.textContent = '計算中…';
+  const { data: s } = await sb.rpc('kc_stats');
+  btn.disabled = false;
+  const score = Number(ANS.score);
+  const deduct = ({ '1':1, '2':2, '3+':3 })[ANS.chronic_meds] || 0;
+  const health = Math.max(1, +(score - deduct).toFixed(1));
+  const band = health < 5 ? 'severe' : health < 8 ? 'sub' : 'healthy';
+  const taking = ANS.units_all !== 'none';
+  const care = (s && s.care_scores) || [], no = (s && s.nocare_scores) || [], all = care.concat(no);
+  const avg = a => a.reduce((x,y) => x+y, 0) / a.length;
+
+  $('r-light').style.display = 'none';
+  $('r-chap').textContent = '健康分數';
+  $('r-head').innerHTML = `<div class="t"><small>KC QUICK CHECK</small>現場快速看分數</div>`;
+  $('r-sub').innerHTML = scaleHTML() + `<span class="band ${band}"><span class="face">${BAND_FACE[band]}</span>${BAND_NAME[band]}</span>
+    <div style="margin-top:10px">機器 KC <b>${score.toFixed(1)}</b>${deduct ? ` → 健康分數 <b>${health.toFixed(1)}</b>（慢性病藥 ${MEDS_NAME[ANS.chronic_meds]} −${deduct}）` : ''}</div>`;
+  $('r-msg').textContent = '';
+
+  // 你的位置：全部測過的人（每人最新一次）裡贏過多少
+  let pos = all.length >= ST_MIN ? `<div>你贏過全部測過的人裡 <b>${Math.round(all.filter(v => v < score).length / all.length * 100)}%</b></div>`
+    : `<div>人數還在累積，你的位置已經標在圖上</div>`;
+  // 有吃 vs 沒吃
+  let gap;
+  if (care.length >= ST_MIN && no.length >= ST_MIN) {
+    const c = avg(care), n = avg(no), d = c - n;
+    gap = `<div class="gap"><div class="l">有植化素保養的人，KC 平均${d>=0?'高':'低'}</div><div class="v">${d>=0?'+':''}${d.toFixed(1)}<small>${d>=0?'+':''}${Math.round(d/n*100)}%</small></div>
+      <div class="l" style="margin-top:4px">有保養 ${c.toFixed(1)}　沒保養 ${n.toFixed(1)}</div>
+      <div class="l" style="margin-top:8px;font-weight:700">你在「${taking ? '有保養' : '沒保養'}」這一邊${taking ? '' : `，跟有保養的人平均差 ${Math.max(0, c - score).toFixed(1)}`}</div></div>`;
+  } else gap = `<div class="gap wait"><div class="l">有植化素保養 vs 沒保養，KC 平均差多少</div><div class="v">收集中</div></div>`;
+
+  $('r-extra').innerHTML = `<div class="card"><div class="chap">你站在哪裡</div>
+      <svg class="dist" id="q-dist" viewBox="0 0 340 190"></svg>
+      <div class="dist-leg"><span><i style="background:var(--gold2)"></i>有植化素保養</span><span><i style="background:#8f8d86"></i>沒保養</span><span><i style="background:#fff"></i>你</span></div>
+      <div class="pos">${pos}</div></div>` + gap + bandCardsHTML(band);
+  drawDist($('q-dist'), care, no, { score });
+  $('r-actions').innerHTML = `<div class="note">這次<b>沒有存檔</b>。想保存紀錄、看完整的生活習慣體檢和建議量 👇</div>
+    <button class="btn btn-gold" onclick="pickLine()">用 LINE 進入，保存紀錄</button>
+    <button class="btn btn-line" onclick="pickQuick()">⚡ 再測一位</button>`;
+  go('result');
+  $('r-score').textContent = '0.0';
+  countUp($('r-score'), health, 1000);
+  const ptr = $('r-ptr');
+  if (ptr) { countUp($('r-ptr-v'), health, 1200); requestAnimationFrame(() => setTimeout(() => ptr.style.left = `${Math.max(2, Math.min(98, (health-1)/12*100 + 100/24))}%`, 60)); }
 }
 async function bindSelf(id){
   const { data, error } = await sb.rpc('kc_bind_self', { p_caller: caller, p_subject_id: id });
