@@ -560,6 +560,7 @@
     <div class="divider"><span>學員報名</span></div>
     <div class="form-wrap">
       <div class="error-msg" id="error-msg"></div>
+      <p class="hint prefill-note" style="display:none;margin:0 0 12px">✅ 已帶入你上次的資料，有變動請直接修改。</p>
 
       <div class="field">
         <label>會員編號 <span class="req">*</span></label>
@@ -729,6 +730,7 @@
     <div class="divider"><span>教練登記</span></div>
     <div class="form-wrap">
       <div class="error-msg" id="error-msg-coach"></div>
+      <p class="hint prefill-note" style="display:none;margin:0 0 12px">✅ 已帶入你上次的資料，有變動請直接修改。<b>教練須知與締結目標每期重新確認。</b></p>
 
       <div class="field">
         <label>會員編號 <span class="req">*</span></label>
@@ -957,7 +959,8 @@ let lineProfile = null;
 //    主檔從 29 期起允許「沒有 LINE 的人」（教練補組織關係時建的中間人）。
 //    舊寫法「用 LINE 找、找不到就新建」會讓這些人自己來報名時變成兩列 → 參加紀錄、締結分散。
 //    member_code 已設唯一，真的撞到時 DB 會拒絕，不會悄悄重複。
-async function claimMember(code, name) {
+// extra：跟著人走、下期要自動帶入的資料（手機、教練的榮譽資格與直屬 CFC）——2026-10-22 教練大多連續擔任
+async function claimMember(code, name, extra = {}) {
   const pic = lineProfile?.pictureUrl || null;
   const { data: mine } = await sb.from('members_master')
     .select('id, member_code').eq('line_user_id', lineUserId).maybeSingle();
@@ -968,7 +971,7 @@ async function claimMember(code, name) {
   if (mine && byCode && mine.id !== byCode.id)
     throw new Error(`你的 LINE 已經登記為會員編號 ${mine.member_code}，請確認編號是否正確，或聯繫總教練`);
   const target = mine || byCode;
-  const row = { line_user_id: lineUserId, member_code: code, name, picture_url: pic };
+  const row = { line_user_id: lineUserId, member_code: code, name, picture_url: pic, ...extra };
   const q = target
     ? sb.from('members_master').update(row).eq('id', target.id)
     : sb.from('members_master').insert(row);
@@ -1001,6 +1004,40 @@ async function saveRelation(code, name, field, vCode, vName, source) {
 }
 
 const toHalf = s => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+
+// 🔴 2026-10-22 下期自動帶入：教練大多連續擔任，固定的資料不要每期重填（Randoph）
+//    主檔有的先填好、可以改；16 項須知與締結目標刻意不帶——那是每期的承諾，不是資料
+async function relName(selfCode, field, code) {
+  if (!code) return '';
+  const { data: m } = await sb.from('members_master').select('name').eq('member_code', code).maybeSingle();
+  if (m && m.name) return m.name;
+  const { data: logs } = await sb.from('member_relation_log').select('value_name')
+    .eq('member_code', selfCode).eq('field', field).eq('value_code', code)
+    .order('created_at', { ascending: false }).limit(1);
+  return (logs && logs[0] && logs[0].value_name) || '';
+}
+async function prefillFromMaster(m) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v && !el.value) el.value = v; };
+  const pick = (nm, v) => {
+    const el = v && [...document.querySelectorAll(`input[name="${nm}"]`)].find(i => i.value === v);
+    if (el) el.checked = true;
+  };
+  set('f-member-code', m.member_code); set('c-member-code', m.member_code);
+  set('f-name', m.name);               set('c-name', m.name);
+  set('f-phone', m.phone);             set('c-phone', m.phone);
+  pick('c-rank', m.coach_rank);        pick('c-cfc', m.coach_cfc);
+  if (m.sponsor_code) {
+    const n = await relName(m.member_code, 'sponsor', m.sponsor_code);
+    set('f-sponsor-code', m.sponsor_code); set('f-sponsor-name', n);
+    set('c-sponsor-code', m.sponsor_code); set('c-sponsor-name', n);
+  }
+  if (m.placement_code) {
+    set('c-place-code', m.placement_code);
+    set('c-place-name', await relName(m.member_code, 'placement', m.placement_code));
+  }
+  if (m.phone || m.coach_rank || m.sponsor_code || m.placement_code)
+    document.querySelectorAll('.prefill-note').forEach(e => e.style.display = '');
+}
 
 const ALL_SCREENS = [
   'screen-exists', 'screen-approved', 'screen-rejected',
@@ -1231,7 +1268,7 @@ async function handleStudentSubmit() {
   document.getElementById('btn-loading').style.display = 'block';
 
   try {
-    const member = await claimMember(memberCodeClean, name);
+    const member = await claimMember(memberCodeClean, name, { phone });
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 給教練重審），避免撞 UNIQUE(member_id,batch_id)
     const { error: studentErr } = await sb.from('batch_students').upsert({
@@ -1348,7 +1385,7 @@ async function handleCoachSubmit() {
   document.getElementById('btn-coach-loading').style.display = 'block';
 
   try {
-    const member = await claimMember(memberCodeClean, name);
+    const member = await claimMember(memberCodeClean, name, { phone, coach_rank: rank, coach_cfc: cfc });
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 重審）
     const { error: coachErr } = await sb.from('batch_coaches').upsert({
@@ -1389,7 +1426,7 @@ async function init() {
     lineUserId  = lineProfile.userId;
 
     const { data: member } = await sb
-      .from('members_master').select('id, member_code, name')
+      .from('members_master').select('id, member_code, name, phone, coach_rank, coach_cfc, sponsor_code, placement_code')
       .eq('line_user_id', lineUserId).maybeSingle();
 
     if (member) {
@@ -1413,14 +1450,9 @@ async function init() {
 
     await loadCoaches();
     renderTrackPick();
-    // 以前報過名的人：帶入會員編號與姓名，馬上查資格（29 期起班別依資格列出）
+    // 以前報過名的人：主檔有的資料自動帶入（可改），並查學習組紀錄給提示
     if (member && member.member_code) {
-      document.getElementById('f-member-code').value = member.member_code;
-      document.getElementById('c-member-code').value = member.member_code;
-      if (member.name) {
-        document.getElementById('f-name').value = member.name;
-        document.getElementById('c-name').value = member.name;
-      }
+      await prefillFromMaster(member);
       onMemberCodeInput();
     }
     showScreen(null);
