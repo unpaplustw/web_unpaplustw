@@ -1066,18 +1066,32 @@ function basicVal(src) {
   if (src.startsWith('radio:')) return (document.querySelector(`input[name="${src.slice(6)}"]:checked`) || {}).value || '';
   return document.getElementById(src).value.trim();
 }
+// 2026-10-22 Randoph 改：資料不齊的人也要「有的先呈現，只問缺的」——
+//    卡片列已知的、收起那幾格；缺的欄位照常展開讓他補。按「修改」全部展開。
+function basicFieldOf(src) {
+  const id = Array.isArray(src) ? src[0] : src;
+  const el = id.startsWith('radio:') ? document.querySelector(`input[name="${id.slice(6)}"]`) : document.getElementById(id);
+  return el ? el.closest('.field') : null;
+}
+function basicFilled(src) {
+  return Array.isArray(src) ? src.every(id => document.getElementById(id).value.trim()) : !!basicVal(src);
+}
 function renderBasicCard(p) {
-  const rows = BASIC_ROWS[p].map(([label, src]) => [label, basicVal(src)]);
-  const complete = rows.every(([, v]) => v) &&
-    BASIC_ROWS[p].every(([, src]) => !Array.isArray(src) || src.every(id => document.getElementById(id).value.trim()));
   const card = document.getElementById(p + '-summary');
-  if (!complete) { card.style.display = 'none'; return; }
+  const have = BASIC_ROWS[p].filter(([, src]) => basicFilled(src));
+  if (!have.length) { card.style.display = 'none'; return; }
+  const missing = BASIC_ROWS[p].length - have.length;
   card.innerHTML = `<div class="bc-hd"><b>✅ 你的基本資料</b>
       <button type="button" class="bc-edit" onclick="editBasic('${p}')">修改</button></div>
-    ${rows.map(([l, v]) => `<div class="bc-row"><span>${l}</span><span>${v.replace(/</g, '&lt;')}</span></div>`).join('')}
-    <div class="bc-tip">沿用上次登記的資料。有變動請按「修改」，沒問題就往下填這一期的內容。${p === 'c' ? '<br><b>教練須知與締結目標每期重新確認。</b>' : ''}</div>`;
+    ${have.map(([l, src]) => `<div class="bc-row"><span>${l}</span><span>${basicVal(src).replace(/</g, '&lt;')}</span></div>`).join('')}
+    <div class="bc-tip">${missing
+      ? `沿用你上次登記的資料。<b>下面還缺 ${missing} 項，補上就好</b>；這次補完，下一期就不用再填。`
+      : '沿用上次登記的資料。有變動請按「修改」，沒問題就往下填這一期的內容。'}${p === 'c' ? '<br><b>教練須知與締結目標每期重新確認。</b>' : ''}</div>`;
   card.style.display = '';
-  document.querySelectorAll('.basic-' + p).forEach(e => e.style.display = 'none');
+  BASIC_ROWS[p].forEach(([, src]) => {
+    const f = basicFieldOf(src);
+    if (f) f.style.display = basicFilled(src) ? 'none' : '';
+  });
 }
 // 送出出錯、而且錯在基本資料 → 自動展開，否則被收起來的欄位看不到要改哪裡
 function openBasicIfNeeded(p, errors) {
