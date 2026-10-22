@@ -151,6 +151,35 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .js .night-awards.in .award-pill{animation:pop .5s var(--ease) forwards}
 @keyframes pop{60%{opacity:1;transform:scale(1.08)}to{opacity:1;transform:none}}
 
+/* ── 累積成果圖 ── */
+.chart-card{background:var(--card);border:1px solid rgba(184,150,12,.18);border-radius:18px;padding:16px 14px 14px;box-shadow:var(--shadow)}
+.chart-tabs{display:flex;gap:6px;background:rgba(184,150,12,.08);border-radius:22px;padding:4px;margin-bottom:14px}
+.chart-tabs button{flex:1;border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--gold3);padding:8px 0;border-radius:18px;cursor:pointer;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent}
+.chart-tabs button.on{background:var(--gold3);color:#fff}
+.chart-big{text-align:center;font-size:46px;font-weight:900;color:var(--gold);line-height:1}
+.chart-big small{font-size:16px;margin-left:4px;color:var(--gold3)}
+.chart-cap{text-align:center;font-size:13px;color:var(--txt2);margin:6px 0 4px;min-height:20px}
+.chart-cap b{color:var(--gold3)}
+#chart-svg{display:block;width:100%;height:auto;overflow:visible}
+#chart-svg .ln{fill:none;stroke:var(--gold);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#chart-svg .ar{opacity:0;transition:opacity 1s .6s}
+#chart-svg.drawn .ar{opacity:1}
+#chart-svg .gh{fill:none;stroke:rgba(184,150,12,.45);stroke-width:2;stroke-dasharray:4 5;opacity:0;transition:opacity .6s 1.3s}
+#chart-svg.drawn .gh{opacity:1}
+#chart-svg .ghx{opacity:0;transition:opacity .6s 1.3s}
+#chart-svg.drawn .ghx{opacity:1}
+#chart-svg .pt{fill:#fff;stroke:var(--gold);stroke-width:3;transform-box:fill-box;transform-origin:center;transform:scale(0);transition:transform .45s var(--ease),fill .25s}
+#chart-svg.drawn .pt{transform:scale(1)}
+#chart-svg .pt.sel{fill:var(--gold)}
+#chart-svg .vl{font-size:12px;font-weight:900;fill:var(--gold3);text-anchor:middle;opacity:0;transition:opacity .4s}
+#chart-svg.drawn .vl{opacity:1}
+#chart-svg .xl{font-size:12px;fill:var(--txt2);text-anchor:middle}
+#chart-svg .xl.sel{fill:var(--gold3);font-weight:900}
+#chart-svg .hit{fill:transparent;cursor:pointer}
+#chart-svg .gl{font-size:12px;font-weight:900;fill:rgba(150,121,10,.6);text-anchor:middle}
+#chart-svg .gp{fill:none;stroke:rgba(184,150,12,.5);stroke-width:2;stroke-dasharray:3 3}
+.chart-note{font-size:11px;color:var(--txt2);line-height:1.6;margin-top:8px}
+
 .cta-section{text-align:center;padding:36px 0 20px}
 .cta-text{font-size:18px;font-weight:900;margin-bottom:16px;line-height:1.4}
 .cta-fee{display:block;width:fit-content;background:var(--gold3);color:#fff;font-size:20px;font-weight:900;
@@ -186,9 +215,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="hero">
     <div class="hero-fx" aria-hidden="true"><div class="hero-glow a"></div><div class="hero-glow b"></div><div class="hero-num">29</div></div>
     <div class="hero-badge rise">🏆 29期實戰班</div>
-    <h1 class="rise">用行動說話<br>四週實戰計畫</h1>
-    <p class="hero-sub rise">邊做邊學、邊學邊玩、邊玩邊賺。<br>四個組別，照你現在的位置選一條路。</p>
-    <div class="hero-motto rise">「一個人玩不是玩，一群人玩才是玩。」</div>
+    <h1 class="rise">先做到<br>再複製</h1>
+    <p class="hero-sub rise">教練陪你跑四週，把目標變成成果；<br>再把成果變成一套能教給夥伴的方法。</p>
+    <div class="hero-motto rise">「一個人做是收入，一群人做是倍增。」</div>
     <a class="scroll-hint" href="#start">往下滑<i></i></a>
   </div>
 
@@ -368,28 +397,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 
   <div class="section">
     <div class="reveal">
-      <div class="section-tag">行動積分制</div>
-      <div class="section-title">每個行動都有分數</div>
-      <p class="section-text">拍照回報至群組及社群才算數，用行動說話！</p>
-    </div>
-    <table class="score-table reveal-rows">
-      <tr><th colspan="2" style="color:var(--gold);letter-spacing:2px;font-size:15px;font-weight:900">加分挑戰項目</th></tr>
-      <tr><td>📋 狂列名單<span class="sub">📷 名單簿</span></td><td>+1 分/次</td></tr>
-      <tr><td>🤝 認識新友<span class="sub">📷 合照</span></td><td>+1 分/次</td></tr>
-      <tr><td>💬 邀約見面<span class="sub">📷 合照</span></td><td>+2 分/次</td></tr>
-      <tr><td>🗣️ 邀請溝通本<span class="sub">📷 合照＋溝通本畫面</span></td><td>+5 分/次</td></tr>
-      <tr><td>🏛️ 邀請說明會<span class="sub">📷 合照＋會場畫面</span></td><td>+5 分/次</td></tr>
-      <tr><td>🕊️ 被放鴿子<span class="sub">📷 趣味照</span></td><td>+1 分/次</td></tr>
-      <tr><td>💪 締結未果<span class="sub">📷 趣味照</span></td><td>+1 分/次</td></tr>
-      <tr><td colspan="2" style="text-align:center;padding:14px 8px 6px;font-size:17px;font-weight:900;color:#e07b00;letter-spacing:1px">✅ 締結成功　依公告給分</td></tr>
-    </table>
-    <div class="score-note reveal" style="text-align:center;font-size:14px;font-weight:700;color:#c0392b;font-style:normal;margin-top:10px">🥚 彩蛋限定加分，依據社群公告為主</div>
-  </div>
-
-  <div class="divider"></div>
-
-  <div class="section">
-    <div class="reveal">
       <div class="section-tag">每週盛會</div>
       <div class="section-title">實戰班之夜</div>
     </div>
@@ -404,6 +411,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <span class="award-pill">🍋 檸檬勇士</span>
         <span class="award-pill">🏆 最強小隊</span>
       </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="reveal">
+      <div class="section-tag">實戰班至今</div>
+      <div class="section-title">一期一期，累積起來</div>
+      <p class="section-text">26 期到 28 期的累積成果。點圖上的每一期，看那一期加了多少。</p>
+    </div>
+    <div class="chart-card reveal" id="chart">
+      <div class="chart-tabs" role="tablist">
+        <button class="on" data-k="close" role="tab">累積締結</button>
+        <button data-k="people" role="tab">累積參加人次</button>
+      </div>
+      <div class="chart-big"><span id="chart-num">0</span><small id="chart-unit">件</small></div>
+      <div class="chart-cap" id="chart-cap">&nbsp;</div>
+      <svg id="chart-svg" viewBox="0 0 320 180" role="img" aria-label="實戰班 26 到 28 期累積成果折線圖"></svg>
+      <div class="chart-note">締結＝各期課程期間回報的件數；人次＝各期學員數相加（同一人參加多期算多次）。</div>
     </div>
   </div>
 
@@ -447,7 +474,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     requestAnimationFrame(step);
   };
   document.querySelectorAll('.count').forEach(el => { el.textContent = '0'; });
-  document.querySelectorAll('.score-table tr').forEach((tr, i) => { tr.style.transitionDelay = (i * 0.07) + 's'; });
   document.querySelectorAll('.night-awards .award-pill').forEach((p, i) => { p.style.animationDelay = (0.2 + i * 0.1) + 's'; });
 
   const targets = document.querySelectorAll('.reveal, .reveal-rows, .reveal-pop');
@@ -517,6 +543,95 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
   addEventListener('resize', onScroll);
   onScroll();
+
+  // 累積成果圖：資料來源 wiki 各期原始數據（締結取課程期內筆數、人次取學員數）
+  const CH = {
+    close:  { per: [92, 14, 27], unit: '件' },
+    people: { per: [44, 39, 54], unit: '人次' },
+  };
+  const NAMES = ['26期', '27期', '28期'];
+  const XS = [36, 128, 220, 296], BASE = 150, TOP = 30;
+  const svg = document.getElementById('chart-svg');
+  const numEl = document.getElementById('chart-num'), unitEl = document.getElementById('chart-unit'), capEl = document.getElementById('chart-cap');
+  let key = 'close', sel = 2, shown = false, numAnim = 0;
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, txt) => {
+    const e = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (txt != null) e.textContent = txt;
+    svg.appendChild(e);
+    return e;
+  };
+  const cumOf = per => per.reduce((a, v, i) => (a.push((a[i - 1] || 0) + v), a), []);
+  const showNum = to => {
+    cancelAnimationFrame(numAnim);
+    const from = +numEl.textContent || 0;
+    if (reduce) { numEl.textContent = to; return; }
+    const t0 = performance.now();
+    const step = now => {
+      const p = Math.min((now - t0) / 700, 1);
+      numEl.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) numAnim = requestAnimationFrame(step);
+    };
+    numAnim = requestAnimationFrame(step);
+  };
+  const pick = i => {
+    sel = i;
+    const d = CH[key], cum = cumOf(d.per);
+    svg.querySelectorAll('.pt').forEach((c, j) => c.classList.toggle('sel', j === i));
+    svg.querySelectorAll('.xl').forEach((t, j) => t.classList.toggle('sel', j === i));
+    unitEl.textContent = d.unit;
+    showNum(cum[i]);
+    capEl.innerHTML = `${NAMES[i]}：這一期 <b>+${d.per[i]} ${d.unit}</b>，累積 <b>${cum[i]} ${d.unit}</b>`;
+  };
+  const draw = () => {
+    const d = CH[key], cum = cumOf(d.per);
+    const max = cum[2] * 1.2;
+    const Y = v => BASE - (v / max) * (BASE - TOP);
+    const P = cum.map((v, i) => [XS[i], Y(v)]);
+    svg.innerHTML = '';
+    svg.classList.remove('drawn');
+    const defs = el('defs', {});
+    const g = document.createElementNS(NS, 'linearGradient');
+    g.setAttribute('id', 'chartFill'); g.setAttribute('x1', 0); g.setAttribute('y1', 0); g.setAttribute('x2', 0); g.setAttribute('y2', 1);
+    g.innerHTML = '<stop offset="0" stop-color="#d4af37" stop-opacity=".35"/><stop offset="1" stop-color="#d4af37" stop-opacity="0"/>';
+    defs.appendChild(g);
+    el('line', { x1: 20, x2: 310, y1: BASE, y2: BASE, stroke: 'rgba(0,0,0,.08)' });
+    const lineD = 'M' + P.map(p => p.join(',')).join(' L');
+    el('path', { class: 'ar', d: `${lineD} L${XS[2]},${BASE} L${XS[0]},${BASE} Z`, fill: 'url(#chartFill)' });
+    // 29 期：還沒發生，只畫虛線和問號，不放數字
+    const gy = P[2][1] - 18;
+    el('path', { class: 'gh', d: `M${P[2][0]},${P[2][1]} L${XS[3]},${gy}` });
+    el('circle', { class: 'gh gp', cx: XS[3], cy: gy, r: 7 });
+    el('text', { class: 'ghx gl', x: XS[3], y: gy - 14 }, '？');
+    const ln = el('path', { class: 'ln', d: lineD });
+    P.forEach((p, i) => {
+      el('text', { class: 'vl', x: p[0], y: p[1] - 14, style: `transition-delay:${0.5 + i * 0.35}s` }, cum[i]);
+      const c = el('circle', { class: 'pt', cx: p[0], cy: p[1], r: 6, style: `transition-delay:${0.35 + i * 0.35}s` });
+      el('text', { class: 'xl', x: p[0], y: BASE + 20 }, NAMES[i]);
+      const h = el('circle', { class: 'hit', cx: p[0], cy: p[1], r: 22 });
+      h.addEventListener('click', () => pick(i));
+    });
+    el('text', { class: 'xl ghx', x: XS[3], y: BASE + 20 }, '29期');
+    const len = ln.getTotalLength();
+    ln.style.strokeDasharray = len;
+    ln.style.strokeDashoffset = reduce ? 0 : len;
+    ln.getBoundingClientRect();
+    ln.style.transition = reduce ? 'none' : 'stroke-dashoffset 1.3s cubic-bezier(.2,.8,.2,1)';
+    requestAnimationFrame(() => { ln.style.strokeDashoffset = 0; svg.classList.add('drawn'); });
+    pick(sel);
+  };
+  document.querySelectorAll('.chart-tabs button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.k === key) return;
+    document.querySelectorAll('.chart-tabs button').forEach(x => x.classList.toggle('on', x === b));
+    key = b.dataset.k; sel = 2; numEl.textContent = '0';
+    draw();
+  }));
+  const chart = document.getElementById('chart');
+  const start = () => { if (!shown) { shown = true; draw(); } };
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { start(); o.disconnect(); } }, { threshold: 0.35 }).observe(chart);
+  } else start();
 })();
 </script>
 </body>
