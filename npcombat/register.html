@@ -400,6 +400,9 @@
   .field .track-body b { font-size:15.5px; color:#1a3068; }
   .field .track-body em { font-style:normal; font-size:12px; font-weight:700; color:#b8960c; }
   .field .track-body small { font-size:12.5px; color:#5a6478; line-height:1.6; }
+  /* 2026-10-22 進階宣誓的勾選框在 .field 裡，會吃到 `.field input { -webkit-appearance:none }` 變成看不見 → 還原 */
+  .field .pl input[type="checkbox"] { -webkit-appearance:checkbox; appearance:auto;
+    width:18px; height:18px; min-width:18px; margin:2px 0 0; padding:0; border:0; }
   .field #f-intro { width:100%; padding:12px; border:1px solid #d5d9e0; border-radius:10px;
     font-family:inherit; font-size:15px; line-height:1.6; resize:vertical; }
   /* 自我定位六步驟（2026-08-29）：只給一個大框大家會亂填，拆成六題照著寫 */
@@ -589,27 +592,57 @@
         </div>
       </div>
 
+      <!-- 🔴 2026-10-22 29 期：推薦人寫進組織關係（members_master.sponsor_code）；安置人不問學員，由引路人教練補 -->
+      <div class="field">
+        <label>推薦人 <span class="req">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="text" id="f-sponsor-code" placeholder="推薦人會員編號 7 碼" maxlength="7" inputmode="numeric">
+          <input type="text" id="f-sponsor-name" placeholder="推薦人姓名" maxlength="20">
+        </div>
+        <p class="hint">公司系統上<b>直接推薦你</b>的那一位（不一定是帶你來的教練）。</p>
+      </div>
+
+      <!-- 🔴 2026-10-22 29 期：班別依「上過學習組沒」只列能報的（所有人都要先上過學習組） -->
       <div class="field">
         <label>參加的組別 <span class="req">*</span></label>
-        <div class="track-pick">
-          <label class="track-opt"><input type="radio" name="track" value="learn" checked>
-            <span class="track-body"><b>初階學習組</b><em>目標 直推 1</em>
-              <small>第一次參加。前兩週上完 17 單元，後兩週全力行動。</small></span></label>
-          <label class="track-opt"><input type="radio" name="track" value="action">
-            <span class="track-body"><b>進階行動組</b><em>目標 直推 2</em>
-              <small>不用上課，開班第一天就開始行動。<b>須已完成初階學習組。</b></small></span></label>
-          <label class="track-opt"><input type="radio" name="track" value="elite">
-            <span class="track-body"><b>高階精英組</b><em>目標 直推 8</em>
-              <small>不用上課，開班就開跑。<b>5 席精英名額・額滿即止。</b></small></span></label>
+        <p class="hint" id="trackHint">先填上面的會員編號，系統會列出你可以報的組別。</p>
+        <div class="track-pick" id="trackPick"></div>
+
+        <div id="advExtra" style="display:none;margin-top:12px">
+          <p class="hint" style="margin:0 0 8px"><b>進階行動組資格</b>（符合任一）</p>
+          <div class="track-pick">
+            <label class="track-opt"><input type="radio" name="adv-route" value="direct10">
+              <span class="track-body"><b>① 已累積直推 10 位</b>
+                <small>直推一律算 001（自己分店、別人的加開單位不算）</small></span></label>
+            <label class="track-opt"><input type="radio" name="adv-route" value="bring2">
+              <span class="track-body"><b>② 這一期帶 2 位夥伴參加學習組</b>
+                <small>11/3 報名截止時結算，不足 2 位會安排到初階行動組</small></span></label>
+          </div>
+          <div id="advCountBox" style="display:none;margin-top:8px">
+            <input type="number" id="f-direct-count" min="10" max="999" inputmode="numeric" placeholder="你目前累積直推 001 幾位？">
+          </div>
+          <p class="hint" style="margin:14px 0 8px"><b>三項基本功宣誓</b>（三項都要勾）</p>
+          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 我會講溝通本</label>
+          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 我有在使用月計劃表</label>
+          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 我跟自己的領袖每週有固定的作戰會議</label>
+          <p class="hint">報名截止後由教練認定。<b>未通過認定者安排至初階行動組，不會取消你的報名。</b></p>
         </div>
-        <p class="hint">🔴 <b>行動組與精英組須已完成初階學習組。</b>
-          未通過面試或資格不符，將由教練團安排為<b>行動組</b>，不會取消你的報名。</p>
+
+        <div id="lifeExtra" style="display:none;margin-top:12px">
+          <p class="hint" style="margin:0 0 8px"><b>終身行動組資格</b>：你目前已達成</p>
+          <div class="track-pick">
+            <label class="track-opt"><input type="radio" name="life-rank" value="summit">
+              <span class="track-body"><b>高峰</b></span></label>
+            <label class="track-opt"><input type="radio" name="life-rank" value="lifetime">
+              <span class="track-body"><b>終身成就</b></span></label>
+          </div>
+        </div>
       </div>
 
       <div class="field" id="intro-field" style="display:none">
         <label>自我定位（U11 六步驟）<span class="req">*</span></label>
         <p class="hint" style="margin:0 0 10px">🎙️ 就是課程 U11 教的<b>三分鐘版本</b>，一步一步填。<br>
-          行動組與精英組必填——你已經上過課、也跟上線演練過，這是接下來每天要用出去的東西。</p>
+          三個行動組必填——你已經上過學習組、也跟上線演練過，這是接下來每天要用出去的東西。</p>
         <div class="intro6">
           <div class="i6"><label for="i6-1"><b>1</b> 加入綠佳利之前，生活遇到什麼挑戰？</label>
             <span class="i6-tip">收入／時間／健康／家庭</span>
@@ -631,11 +664,11 @@
       </div>
 
       <div class="field">
-        <label>你的上線 <span class="req">*</span></label>
+        <label>引路人：帶你來的教練 <span class="req">*</span></label>
         <select id="f-coach">
           <option value="">— 請選擇 —</option>
         </select>
-        <p class="hint">推薦你來的那位。<b>分組教練是開班前由教練團分配，不是這裡選的。</b><br>若找不到你的上線，請聯繫對方確認是否已完成登記並通過審核。</p>
+        <p class="hint">帶你來報名、你組織線上<b>同意擔任這期教練</b>的那一位。<b>分組教練是開班前由教練團分配，不是這裡選的。</b><br>若找不到，請聯繫對方確認是否已完成教練登記並通過審核。</p>
         <div class="hint" id="noCoachTip" style="display:none;margin-top:10px;padding:11px 13px;
              background:#fff4e5;border:1.5px solid #f0a500;border-radius:10px;color:#8a5200;
              font-size:13px;line-height:1.8">
@@ -687,12 +720,29 @@
       <div class="field">
         <label>姓名 <span class="req">*</span></label>
         <input type="text" id="c-name" placeholder="請輸入真實姓名" maxlength="20">
-        <p class="hint">審核通過後，學員報名時的「上線（教練）」下拉選單將顯示此名稱。</p>
+        <p class="hint">審核通過後，學員報名時的「引路人」下拉選單將顯示此名稱。</p>
       </div>
 
       <div class="field">
         <label>手機號碼 <span class="req">*</span></label>
         <input type="tel" id="c-phone" placeholder="請輸入手機號碼" maxlength="20" inputmode="tel">
+      </div>
+
+      <!-- 🔴 2026-10-22 29 期：教練也要建組織關係（推薦人＋安置人，教練看得到公司後台，自己填） -->
+      <div class="field">
+        <label>推薦人 <span class="req">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="text" id="c-sponsor-code" placeholder="推薦人會員編號 7 碼" maxlength="7" inputmode="numeric">
+          <input type="text" id="c-sponsor-name" placeholder="推薦人姓名" maxlength="20">
+        </div>
+      </div>
+      <div class="field">
+        <label>安置人（放在誰下面）<span class="req">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="text" id="c-place-code" placeholder="安置人會員編號 7 碼" maxlength="7" inputmode="numeric">
+          <input type="text" id="c-place-name" placeholder="安置人姓名" maxlength="20">
+        </div>
+        <p class="hint">推薦人＝直接推薦你的人；安置人＝公司系統上你被放在誰下面。兩者常常不是同一位。</p>
       </div>
 
       <div class="field">
@@ -830,8 +880,19 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // daily／coach-review／排行榜全部當場指向新一期。registration_open 只有本檔會讀。
 let BATCH_ID = null;
 let BATCH = null;
+// 🔴 2026-10-22 預覽模式：網址帶 ?preview=<batch_id> 時，報名還沒開放也能打開測試。
+//    只影響「讀哪一期」，送出照樣寫進那一期——測完記得把測試資料清掉。
+const PREVIEW_ID = (() => {
+  const v = new URLSearchParams(location.search).get('preview')
+         || new URLSearchParams((new URLSearchParams(location.search).get('liff.state') || '').replace(/^\?/, '')).get('preview');
+  return /^\d+$/.test(v || '') ? +v : null;
+})();
 async function resolveBatch() {
-  const cols = 'id, name, event_name, start_date';
+  const cols = 'id, name, event_name, start_date, registration_deadline';
+  if (PREVIEW_ID) {
+    const { data: pv } = await sb.from('batches').select(cols).eq('id', PREVIEW_ID).maybeSingle();
+    if (pv) return pv;
+  }
   const { data: pre } = await sb.from('batches')
     .select(cols).eq('registration_open', true).maybeSingle();
   if (pre) return pre;
@@ -840,18 +901,22 @@ async function resolveBatch() {
   return data || null;
 }
 
-// 報名頁抬頭：班名/活動/開班典禮/截止（截止＝開班前 3 天 21:00）
+// 報名頁抬頭：班名/活動/開班典禮/截止
+// 🔴 2026-10-22 截止改讀 batches.registration_deadline（29 期是開班前 5 天，每期不同）；
+//    空的才沿用舊規則「開班前 3 天 21:00」
 function renderHero(b) {
   const WD = ['日','一','二','三','四','五','六'];
   const fmt = (d, hhmm) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}（${WD[d.getDay()]}）${hhmm}`;
   const start = new Date(b.start_date + 'T00:00:00');
-  const dl = new Date(start); dl.setDate(dl.getDate() - 3);
-  document.getElementById('heroBatch').textContent = b.name;
+  let dl = new Date(start); dl.setDate(dl.getDate() - 3);
+  if (b.registration_deadline) dl = new Date(b.registration_deadline);
+  document.getElementById('heroBatch').textContent = b.name + (PREVIEW_ID ? '（預覽模式・尚未開放）' : '');
   document.getElementById('okBatch').textContent = b.name;
   document.getElementById('heroBadge').textContent =
     b.event_name ? `${start.getFullYear()} · 共赴${b.event_name}` : `${start.getFullYear()} · ${b.name}`;
   document.getElementById('infoStart').textContent = fmt(start, '21:00');
-  document.getElementById('infoDeadline').textContent = fmt(dl, '21:00');
+  const hm = d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('infoDeadline').textContent = fmt(dl, b.registration_deadline ? hm(dl) : '21:00');
   document.title = `${b.name}｜報名登記`;
 }
 
@@ -861,6 +926,55 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 let lineUserId  = null;
 let lineProfile = null;
+
+// 🔴 2026-10-22 先用會員編號找人，再補 LINE（學員、教練共用）
+//    主檔從 29 期起允許「沒有 LINE 的人」（教練補組織關係時建的中間人）。
+//    舊寫法「用 LINE 找、找不到就新建」會讓這些人自己來報名時變成兩列 → 參加紀錄、締結分散。
+//    member_code 已設唯一，真的撞到時 DB 會拒絕，不會悄悄重複。
+async function claimMember(code, name) {
+  const pic = lineProfile?.pictureUrl || null;
+  const { data: mine } = await sb.from('members_master')
+    .select('id, member_code').eq('line_user_id', lineUserId).maybeSingle();
+  const { data: byCode } = await sb.from('members_master')
+    .select('id, line_user_id').eq('member_code', code).maybeSingle();
+  if (byCode && byCode.line_user_id && byCode.line_user_id !== lineUserId)
+    throw new Error('這個會員編號已經被另一個 LINE 帳號登記過，請確認編號是否正確，或聯繫總教練');
+  if (mine && byCode && mine.id !== byCode.id)
+    throw new Error(`你的 LINE 已經登記為會員編號 ${mine.member_code}，請確認編號是否正確，或聯繫總教練`);
+  const target = mine || byCode;
+  const row = { line_user_id: lineUserId, member_code: code, name, picture_url: pic };
+  const q = target
+    ? sb.from('members_master').update(row).eq('id', target.id)
+    : sb.from('members_master').insert(row);
+  const { data, error } = await q.select('id').single();
+  if (error) throw error;
+  return data;
+}
+
+// 🔴 2026-10-22 組織關係（推薦人／安置人）：一人只有一個推薦人、一個安置人。
+//    主檔現值是空的 → 寫入；跟現值相同 → 只記一筆紀錄；跟現值不同 → **不覆蓋**，記 conflict 給教練確認。
+//    每一次都寫 member_relation_log，事後查得到誰在什麼時候填了什麼。
+async function saveRelation(code, name, field, vCode, vName, source) {
+  if (!vCode) return;
+  const col = field === 'sponsor' ? 'sponsor_code' : 'placement_code';
+  const { data: cur } = await sb.from('members_master')
+    .select('id, ' + col).eq('member_code', code).maybeSingle();
+  let status = 'applied';
+  if (cur && cur[col] && cur[col] !== vCode) status = 'conflict';
+  else if (cur && !cur[col]) {
+    const { error } = await sb.from('members_master').update({
+      [col]: vCode, rel_source: source, rel_updated_by: code, rel_updated_at: new Date().toISOString()
+    }).eq('id', cur.id);
+    if (error) throw error;
+  }
+  const { error: logErr } = await sb.from('member_relation_log').insert({
+    member_code: code, member_name: name, field, value_code: vCode, value_name: vName || null,
+    source, entered_by: code, status
+  });
+  if (logErr) throw logErr;
+}
+
+const toHalf = s => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
 
 const ALL_SCREENS = [
   'screen-exists', 'screen-approved', 'screen-rejected',
@@ -938,13 +1052,67 @@ document.addEventListener('input', e => {
   if (w) w.textContent = done < 6 ? `（還有 ${6 - done} 步沒填）` : '✅ 六步都寫了';
 });
 
+// ── 29 期四個組別（2026-10-22 定，見 wiki 29期.md）──────────────────
+const TRACK_CARD = {   // ⚠️ 不能叫 TRACKS：consts.js 已有同名常數（後台用的班別名稱）
+  learn:    { name: '學習組',     goal: '目標 直推 1', desc: '前兩週上完 17 單元，後兩週全力行動。' },
+  basic:    { name: '初階行動組', goal: '目標 直推 2', desc: '不用重新上課，開班第一天就開始行動。' },
+  advanced: { name: '進階行動組', goal: '目標 2+4',    desc: '直推 2 位＋第二代合計 4 位。須直推 10 或這期帶 2 位，並具備三項基本功。' },
+  lifetime: { name: '終身行動組', goal: '目標 CFC',    desc: '已達成高峰或終身成就，由有成績的 CFC 親自帶領。' },
+};
+let learnedOK = false;   // 上過學習組沒（鐵規則）
+
+// 🔴 鐵規則：所有人都要先上過學習組。
+//    「上過」＝27 期全部（batch 2）＋28 期起（batch ≥ 4）的學習組，而且要「完成」——中途退班不算。
+//    26 期（batch 1）是行動班，沒有學習環節；那 59 筆在參加紀錄裡誤標成 learn，所以這裡用期別判斷、不只看 track。
+async function checkLearned(code) {
+  const { data: m } = await sb.from('members_master').select('id').eq('member_code', code).maybeSingle();
+  if (!m) return false;
+  const { data: rows } = await sb.from('member_batches')
+    .select('batch_id, track, role, outcome').eq('member_id', m.id);
+  return (rows || []).some(r => r.role === 'student' && r.outcome === 'completed' &&
+    (r.batch_id === 2 || (r.batch_id >= 4 && r.track === 'learn')));
+}
+
+function renderTrackPick() {
+  const keys = learnedOK ? ['basic', 'advanced', 'lifetime'] : ['learn'];
+  const box = document.getElementById('trackPick');
+  box.innerHTML = keys.map((k, i) => `
+    <label class="track-opt"><input type="radio" name="track" value="${k}"${i === 0 ? ' checked' : ''}>
+      <span class="track-body"><b>${TRACK_CARD[k].name}</b><em>${TRACK_CARD[k].goal}</em>
+        <small>${TRACK_CARD[k].desc}</small></span></label>`).join('');
+  document.getElementById('trackHint').innerHTML = learnedOK
+    ? '✅ 你已經上過學習組，可以報三個行動組。'
+    : '🔴 <b>所有人都要先上過學習組</b>——系統查不到你完成學習組的紀錄，這一期請先報學習組。<br>如果你確定上過，請聯繫總教練。';
+  onTrackChange();
+}
+
+let lastChecked = '';
+async function onMemberCodeInput() {
+  const raw = document.getElementById('f-member-code').value.trim()
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  if (!/^[0-9]{7}$/.test(raw)) { if (lastChecked) { lastChecked = ''; learnedOK = false; renderTrackPick(); } return; }
+  if (raw === lastChecked) return;
+  lastChecked = raw;
+  document.getElementById('trackHint').textContent = '查詢中…';
+  try { learnedOK = await checkLearned(raw); } catch (e) { learnedOK = false; }
+  if (raw === lastChecked) renderTrackPick();
+}
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'f-member-code') onMemberCodeInput();
+});
+
 function onTrackChange() {
   const t = (document.querySelector('input[name="track"]:checked') || {}).value || 'learn';
   const box = document.getElementById('intro-field');
   if (box) box.style.display = (t === 'learn') ? 'none' : '';
+  document.getElementById('advExtra').style.display  = t === 'advanced' ? '' : 'none';
+  document.getElementById('lifeExtra').style.display = t === 'lifetime' ? '' : 'none';
 }
 document.addEventListener('change', e => {
-  if (e.target && e.target.name === 'track') onTrackChange();
+  if (!e.target) return;
+  if (e.target.name === 'track') onTrackChange();
+  if (e.target.name === 'adv-route')
+    document.getElementById('advCountBox').style.display = e.target.value === 'direct10' ? '' : 'none';
 });
 
 async function handleStudentSubmit() {
@@ -954,6 +1122,12 @@ async function handleStudentSubmit() {
   const registered  = document.querySelector('input[name="registered"]:checked')?.value;
   const coachId     = document.getElementById('f-coach').value;
   const track       = (document.querySelector('input[name="track"]:checked') || {}).value || 'learn';
+  const sponsorCode = toHalf(document.getElementById('f-sponsor-code').value.trim());
+  const sponsorName = document.getElementById('f-sponsor-name').value.replace(/[⁦-⁩​-‏‪-‮﻿]/g,'').trim();
+  const advRoute    = (document.querySelector('input[name="adv-route"]:checked') || {}).value || null;
+  const directCount = parseInt(document.getElementById('f-direct-count').value, 10);
+  const pledged     = [...document.querySelectorAll('.adv-pledge')].every(c => c.checked);
+  const lifeRank    = (document.querySelector('input[name="life-rank"]:checked') || {}).value || null;
   const i6 = INTRO_Q.map((q, n) => {
     const el = document.getElementById('i6-' + (n + 1));
     return { q, a: el ? el.value.trim() : '' };
@@ -983,7 +1157,19 @@ async function handleStudentSubmit() {
       if (thin.length) errors.push('自我定位第 ' + thin.join('、') + ' 步太簡短，請寫完整一點');
     }
   }
-  if (!coachId)     errors.push('請選擇上線（教練）');
+  // 29 期：推薦人（組織關係）
+  if (!/^[0-9]{7}$/.test(sponsorCode)) errors.push('推薦人會員編號必須是 7 位數字');
+  else if (sponsorCode === memberCodeClean) errors.push('推薦人不能是你自己');
+  if (!sponsorName) errors.push('請填寫推薦人姓名');
+  // 29 期：鐵規則＋各組資格（報名頁本來只列能報的，這裡再擋一次）
+  if (track !== 'learn' && !learnedOK) errors.push('所有人都要先上過學習組，這一期請先報學習組');
+  if (track === 'advanced') {
+    if (!advRoute) errors.push('請選擇進階行動組的資格（直推 10 位，或這期帶 2 位）');
+    if (advRoute === 'direct10' && !(directCount >= 10)) errors.push('選「已累積直推 10 位」，請填你目前的直推人數（10 以上）');
+    if (!pledged) errors.push('進階行動組的三項基本功宣誓都要勾');
+  }
+  if (track === 'lifetime' && !lifeRank) errors.push('請選擇你已達成的是高峰還是終身成就');
+  if (!coachId)     errors.push('請選擇引路人（帶你來的教練）');
   const transferClean = transfer.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{5}$/.test(transferClean)) errors.push('匯款帳號後 5 碼必須是 5 位數字');
 
@@ -1000,16 +1186,7 @@ async function handleStudentSubmit() {
   document.getElementById('btn-loading').style.display = 'block';
 
   try {
-    const { data: member, error: memberErr } = await sb
-      .from('members_master')
-      .upsert({
-        line_user_id: lineUserId,
-        member_code:  memberCodeClean,
-        name,
-        picture_url:  lineProfile?.pictureUrl || null
-      }, { onConflict: 'line_user_id' })
-      .select('id').single();
-    if (memberErr) throw memberErr;
+    const member = await claimMember(memberCodeClean, name);
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 給教練重審），避免撞 UNIQUE(member_id,batch_id)
     const { error: studentErr } = await sb.from('batch_students').upsert({
@@ -1018,14 +1195,23 @@ async function handleStudentSubmit() {
       sponsor_id:    coachId,
       phone,
       registered:    registered === 'yes',
-      track,
+      track,                          // 最終班別：報名時先等於報名班別，截止後認定／調整才可能改
+      applied_track: track,           // 29 期：學員自己選的班別，永遠不改
+      self_direct_count: track === 'advanced' && advRoute === 'direct10' ? directCount : null,
+      self_rank:     track === 'lifetime' ? lifeRank : null,
+      pledge_at:     track === 'advanced' && pledged ? new Date().toISOString() : null,
+      advance_route: track === 'advanced' ? advRoute : null,
       group_name:    null,           // 分組（第X組）開班前由教練團分配，報名時還沒有
-      introduction:  intro || null,  // 學習組免填；行動／精英組必填
+      introduction:  intro || null,  // 學習組免填；三個行動組必填
       name_list:     [],
       transfer_code: transferClean,
       status:        'pending'
     }, { onConflict: 'member_id,batch_id' });
     if (studentErr) throw studentErr;
+
+    // 組織關係：報名已經成功了，這一步失敗不擋報名（缺的由引路人教練補），但留在 console 方便查
+    try { await saveRelation(memberCodeClean, name, 'sponsor', sponsorCode, sponsorName, 'register'); }
+    catch (relErr) { console.warn('推薦人寫入失敗：', relErr.message); }
 
     showScreen('screen-success');
   } catch(e) {
@@ -1082,6 +1268,9 @@ async function handleCoachSubmit() {
   const phone      = document.getElementById('c-phone').value.trim();
   const rank       = document.querySelector('input[name="c-rank"]:checked')?.value;
   const cfc        = document.querySelector('input[name="c-cfc"]:checked')?.value;
+  const clean      = id => document.getElementById(id).value.replace(/[⁦-⁩​-‏‪-‮﻿]/g,'').trim();
+  const cSponsorCode = toHalf(clean('c-sponsor-code')), cSponsorName = clean('c-sponsor-name');
+  const cPlaceCode   = toHalf(clean('c-place-code')),   cPlaceName   = clean('c-place-name');
   const errEl      = document.getElementById('error-msg-coach');
   errEl.style.display = 'none';
 
@@ -1093,6 +1282,13 @@ async function handleCoachSubmit() {
   if (!phone) errors.push('請填寫手機號碼');
   if (!rank)  errors.push('請選擇最佳榮譽資格');
   if (!cfc)   errors.push('請選擇直屬 CFC');
+  // 29 期：組織關係
+  if (!/^[0-9]{7}$/.test(cSponsorCode)) errors.push('推薦人會員編號必須是 7 位數字');
+  else if (cSponsorCode === memberCodeClean) errors.push('推薦人不能是你自己');
+  if (!cSponsorName) errors.push('請填寫推薦人姓名');
+  if (!/^[0-9]{7}$/.test(cPlaceCode)) errors.push('安置人會員編號必須是 7 位數字');
+  else if (cPlaceCode === memberCodeClean) errors.push('安置人不能是你自己');
+  if (!cPlaceName) errors.push('請填寫安置人姓名');
 
   if (errors.length) {
     errEl.innerHTML = errors.join('<br>');
@@ -1106,16 +1302,7 @@ async function handleCoachSubmit() {
   document.getElementById('btn-coach-loading').style.display = 'block';
 
   try {
-    const { data: member, error: memberErr } = await sb
-      .from('members_master')
-      .upsert({
-        line_user_id: lineUserId,
-        member_code:  memberCodeClean,
-        name,
-        picture_url:  lineProfile?.pictureUrl || null
-      }, { onConflict: 'line_user_id' })
-      .select('id').single();
-    if (memberErr) throw memberErr;
+    const member = await claimMember(memberCodeClean, name);
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 重審）
     const { error: coachErr } = await sb.from('batch_coaches').upsert({
@@ -1123,6 +1310,12 @@ async function handleCoachSubmit() {
       goal_close: goalClose
     }, { onConflict: 'batch_id,member_id' });
     if (coachErr) throw coachErr;
+
+    // 組織關係：登記已經成功，這一步失敗不擋（之後可補），留在 console 方便查
+    try {
+      await saveRelation(memberCodeClean, name, 'sponsor',   cSponsorCode, cSponsorName, 'register');
+      await saveRelation(memberCodeClean, name, 'placement', cPlaceCode,   cPlaceName,   'register');
+    } catch (relErr) { console.warn('組織關係寫入失敗：', relErr.message); }
 
     showScreen('screen-coach-success');
   } catch(e) {
@@ -1150,8 +1343,8 @@ async function init() {
     lineUserId  = lineProfile.userId;
 
     const { data: member } = await sb
-      .from('members_master').select('id')
-      .eq('line_user_id', lineUserId).single();
+      .from('members_master').select('id, member_code, name')
+      .eq('line_user_id', lineUserId).maybeSingle();
 
     if (member) {
       const { data: student } = await sb.from('batch_students').select('status')
@@ -1173,6 +1366,17 @@ async function init() {
     }
 
     await loadCoaches();
+    renderTrackPick();
+    // 以前報過名的人：帶入會員編號與姓名，馬上查資格（29 期起班別依資格列出）
+    if (member && member.member_code) {
+      document.getElementById('f-member-code').value = member.member_code;
+      document.getElementById('c-member-code').value = member.member_code;
+      if (member.name) {
+        document.getElementById('f-name').value = member.name;
+        document.getElementById('c-name').value = member.name;
+      }
+      onMemberCodeInput();
+    }
     showScreen(null);
   } catch(e) {
     document.getElementById('loading-screen').style.display = 'none';
