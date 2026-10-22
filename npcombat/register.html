@@ -510,6 +510,13 @@
   <p>資料已送出，總教練將盡快審核。<br>審核通過後學員即可選擇你為上線。</p>
 </div>
 
+<!-- 沒有開放報名的期別（2026-10-22：原本只跳 alert，按掉後表單還在，往下滑照樣能填） -->
+<div class="screen" id="screen-closed">
+  <div class="screen-icon">🗓️</div>
+  <h2>目前沒有開放報名</h2>
+  <p>下一期的報名還沒開始。<br>開放時會在群組公告，屆時再從連結進來即可。</p>
+</div>
+
 <!-- 非 LINE 環境 -->
 <div class="screen" id="screen-no-liff">
   <div class="screen-icon">📱</div>
@@ -605,7 +612,7 @@
       <!-- 🔴 2026-10-22 29 期：班別依「上過學習組沒」只列能報的（所有人都要先上過學習組） -->
       <div class="field">
         <label>參加的組別 <span class="req">*</span></label>
-        <p class="hint" id="trackHint">先填上面的會員編號，系統會列出你可以報的組別。</p>
+        <p class="hint" id="trackHint">🔴 所有人都要先上過學習組。還沒上過的請選學習組。</p>
         <div class="track-pick" id="trackPick"></div>
 
         <div id="advExtra" style="display:none;margin-top:12px">
@@ -882,9 +889,17 @@ let BATCH_ID = null;
 let BATCH = null;
 // 🔴 2026-10-22 預覽模式：網址帶 ?preview=<batch_id> 時，報名還沒開放也能打開測試。
 //    只影響「讀哪一期」，送出照樣寫進那一期——測完記得把測試資料清掉。
+//    🔴 LINE 登入導回來時網址會換掉、preview 參數會丟（2026-10-22 Randoph 實測跳「尚未開放」）
+//       → 第一次看到就記在 sessionStorage，同一個分頁導回來還找得到。
 const PREVIEW_ID = (() => {
-  const v = new URLSearchParams(location.search).get('preview')
-         || new URLSearchParams((new URLSearchParams(location.search).get('liff.state') || '').replace(/^\?/, '')).get('preview');
+  const qs = new URLSearchParams(location.search);
+  const inState = new URLSearchParams((qs.get('liff.state') || '').replace(/^\?/, '')).get('preview');
+  const inRedirect = (() => { try { return new URL(qs.get('liffRedirectUri') || '').searchParams.get('preview'); } catch (e) { return null; } })();
+  let v = qs.get('preview') || inState || inRedirect;
+  try {
+    if (/^\d+$/.test(v || '')) sessionStorage.setItem('regPreview', v);
+    else v = sessionStorage.getItem('regPreview');
+  } catch (e) {}
   return /^\d+$/.test(v || '') ? +v : null;
 })();
 async function resolveBatch() {
@@ -980,7 +995,7 @@ const ALL_SCREENS = [
   'screen-exists', 'screen-approved', 'screen-rejected',
   'screen-success',
   'screen-coach-pending', 'screen-coach-approved', 'screen-coach-rejected',
-  'screen-coach-success', 'screen-no-liff'
+  'screen-coach-success', 'screen-no-liff', 'screen-closed'
 ];
 
 function showScreen(id) {
@@ -1073,29 +1088,40 @@ async function checkLearned(code) {
     (r.batch_id === 2 || (r.batch_id >= 4 && r.track === 'learn')));
 }
 
+// 🔴 2026-10-22 Randoph：班別「先讓他們用選的，不然他們連報名都不行」
+//    四個班別一律列出、學員自由選；學習組紀錄只當提醒、不擋人。
+//    資格不符的由截止後的「認定與調整」改最終班別（applied_track 保留學員原本選的）。
+let learnChecked = false;   // 有沒有查過（填了 7 碼才查）
 function renderTrackPick() {
-  const keys = learnedOK ? ['basic', 'advanced', 'lifetime'] : ['learn'];
   const box = document.getElementById('trackPick');
-  box.innerHTML = keys.map((k, i) => `
-    <label class="track-opt"><input type="radio" name="track" value="${k}"${i === 0 ? ' checked' : ''}>
-      <span class="track-body"><b>${TRACK_CARD[k].name}</b><em>${TRACK_CARD[k].goal}</em>
-        <small>${TRACK_CARD[k].desc}</small></span></label>`).join('');
-  document.getElementById('trackHint').innerHTML = learnedOK
-    ? '✅ 你已經上過學習組，可以報三個行動組。'
-    : '🔴 <b>所有人都要先上過學習組</b>——系統查不到你完成學習組的紀錄，這一期請先報學習組。<br>如果你確定上過，請聯繫總教練。';
+  if (!box.children.length) {
+    box.innerHTML = Object.keys(TRACK_CARD).map((k, i) => `
+      <label class="track-opt"><input type="radio" name="track" value="${k}"${i === 0 ? ' checked' : ''}>
+        <span class="track-body"><b>${TRACK_CARD[k].name}</b><em>${TRACK_CARD[k].goal}</em>
+          <small>${TRACK_CARD[k].desc}</small></span></label>`).join('');
+  }
+  updateTrackHint();
   onTrackChange();
+}
+function updateTrackHint() {
+  const t = (document.querySelector('input[name="track"]:checked') || {}).value || 'learn';
+  const el = document.getElementById('trackHint');
+  if (t === 'learn') { el.innerHTML = '🔴 所有人都要先上過學習組。還沒上過的請選學習組。'; return; }
+  if (!learnChecked) { el.innerHTML = '🔴 所有人都要先上過學習組。行動組報名後由教練團確認資格。'; return; }
+  el.innerHTML = learnedOK
+    ? '✅ 系統查到你上過學習組。'
+    : '⚠️ 系統查不到你完成學習組的紀錄。<b>可以先報名</b>，報名後由教練團確認；確實沒上過的，會安排到學習組。';
 }
 
 let lastChecked = '';
 async function onMemberCodeInput() {
   const raw = document.getElementById('f-member-code').value.trim()
     .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
-  if (!/^[0-9]{7}$/.test(raw)) { if (lastChecked) { lastChecked = ''; learnedOK = false; renderTrackPick(); } return; }
+  if (!/^[0-9]{7}$/.test(raw)) { if (lastChecked) { lastChecked = ''; learnedOK = false; learnChecked = false; updateTrackHint(); } return; }
   if (raw === lastChecked) return;
   lastChecked = raw;
-  document.getElementById('trackHint').textContent = '查詢中…';
   try { learnedOK = await checkLearned(raw); } catch (e) { learnedOK = false; }
-  if (raw === lastChecked) renderTrackPick();
+  if (raw === lastChecked) { learnChecked = true; updateTrackHint(); }
 }
 document.addEventListener('input', e => {
   if (e.target && e.target.id === 'f-member-code') onMemberCodeInput();
@@ -1110,7 +1136,7 @@ function onTrackChange() {
 }
 document.addEventListener('change', e => {
   if (!e.target) return;
-  if (e.target.name === 'track') onTrackChange();
+  if (e.target.name === 'track') { onTrackChange(); updateTrackHint(); }
   if (e.target.name === 'adv-route')
     document.getElementById('advCountBox').style.display = e.target.value === 'direct10' ? '' : 'none';
 });
@@ -1161,8 +1187,7 @@ async function handleStudentSubmit() {
   if (!/^[0-9]{7}$/.test(sponsorCode)) errors.push('推薦人會員編號必須是 7 位數字');
   else if (sponsorCode === memberCodeClean) errors.push('推薦人不能是你自己');
   if (!sponsorName) errors.push('請填寫推薦人姓名');
-  // 29 期：鐵規則＋各組資格（報名頁本來只列能報的，這裡再擋一次）
-  if (track !== 'learn' && !learnedOK) errors.push('所有人都要先上過學習組，這一期請先報學習組');
+  // 29 期：各組附加欄位（鐵規則不在報名擋，截止後由教練團確認、調整最終班別——2026-10-22 Randoph）
   if (track === 'advanced') {
     if (!advRoute) errors.push('請選擇進階行動組的資格（直推 10 位，或這期帶 2 位）');
     if (advRoute === 'direct10' && !(directCount >= 10)) errors.push('選「已累積直推 10 位」，請填你目前的直推人數（10 以上）');
@@ -1332,7 +1357,7 @@ async function init() {
   try {
     // 當期批次（換屆只改 DB）
     BATCH = await resolveBatch();
-    if (!BATCH) { alert('目前沒有開放報名的班期。'); return; }
+    if (!BATCH) { showScreen('screen-closed'); return; }
     BATCH_ID = BATCH.id;
     renderHero(BATCH);
 
