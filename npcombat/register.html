@@ -768,14 +768,7 @@
           <input type="text" id="c-sponsor-name" placeholder="推薦人姓名" maxlength="20">
         </div>
       </div>
-      <div class="field basic-c">
-        <label>安置人（放在誰下面）<span class="req">*</span></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <input type="text" id="c-place-code" placeholder="安置人會員編號 7 碼" maxlength="7" inputmode="numeric">
-          <input type="text" id="c-place-name" placeholder="安置人姓名" maxlength="20">
-        </div>
-        <p class="hint">推薦人＝直接推薦你的人；安置人＝公司系統上你被放在誰下面。兩者常常不是同一位。</p>
-      </div>
+      <!-- 2026-10-22 安置人不問教練（Randoph：「教練怎麼會知道自己被安置在哪」）→ 同學員，後台補 -->
 
       <div class="field basic-c">
         <label>最佳榮譽資格 <span class="req">*</span></label>
@@ -1043,10 +1036,6 @@ async function prefillFromMaster(m) {
     set('f-sponsor-code', m.sponsor_code); set('f-sponsor-name', n);
     set('c-sponsor-code', m.sponsor_code); set('c-sponsor-name', n);
   }
-  if (m.placement_code) {
-    set('c-place-code', m.placement_code);
-    set('c-place-name', await relName(m.member_code, 'placement', m.placement_code));
-  }
   renderBasicCard('f');
   renderBasicCard('c');
 }
@@ -1058,7 +1047,7 @@ const BASIC_ROWS = {
   f: [['會員編號', 'f-member-code'], ['姓名', 'f-name'], ['手機', 'f-phone'],
       ['推薦人', ['f-sponsor-code', 'f-sponsor-name']]],
   c: [['會員編號', 'c-member-code'], ['姓名', 'c-name'], ['手機', 'c-phone'],
-      ['推薦人', ['c-sponsor-code', 'c-sponsor-name']], ['安置人', ['c-place-code', 'c-place-name']],
+      ['推薦人', ['c-sponsor-code', 'c-sponsor-name']],
       ['最佳榮譽資格', 'radio:c-rank'], ['直屬 CFC', 'radio:c-cfc']],
 };
 function basicVal(src) {
@@ -1420,7 +1409,6 @@ async function handleCoachSubmit() {
   const cfc        = document.querySelector('input[name="c-cfc"]:checked')?.value;
   const clean      = id => document.getElementById(id).value.replace(/[⁦-⁩​-‏‪-‮﻿]/g,'').trim();
   const cSponsorCode = toHalf(clean('c-sponsor-code')), cSponsorName = clean('c-sponsor-name');
-  const cPlaceCode   = toHalf(clean('c-place-code')),   cPlaceName   = clean('c-place-name');
   const errEl      = document.getElementById('error-msg-coach');
   errEl.style.display = 'none';
 
@@ -1436,9 +1424,6 @@ async function handleCoachSubmit() {
   if (!/^[0-9]{7}$/.test(cSponsorCode)) errors.push('推薦人會員編號必須是 7 位數字');
   else if (cSponsorCode === memberCodeClean) errors.push('推薦人不能是你自己');
   if (!cSponsorName) errors.push('請填寫推薦人姓名');
-  if (!/^[0-9]{7}$/.test(cPlaceCode)) errors.push('安置人會員編號必須是 7 位數字');
-  else if (cPlaceCode === memberCodeClean) errors.push('安置人不能是你自己');
-  if (!cPlaceName) errors.push('請填寫安置人姓名');
 
   if (errors.length) {
     openBasicIfNeeded('c', errors);
@@ -1463,10 +1448,8 @@ async function handleCoachSubmit() {
     if (coachErr) throw coachErr;
 
     // 組織關係：登記已經成功，這一步失敗不擋（之後可補），留在 console 方便查
-    try {
-      await saveRelation(memberCodeClean, name, 'sponsor',   cSponsorCode, cSponsorName, 'register');
-      await saveRelation(memberCodeClean, name, 'placement', cPlaceCode,   cPlaceName,   'register');
-    } catch (relErr) { console.warn('組織關係寫入失敗：', relErr.message); }
+    try { await saveRelation(memberCodeClean, name, 'sponsor', cSponsorCode, cSponsorName, 'register'); }
+    catch (relErr) { console.warn('組織關係寫入失敗：', relErr.message); }
 
     showScreen('screen-coach-success');
   } catch(e) {
