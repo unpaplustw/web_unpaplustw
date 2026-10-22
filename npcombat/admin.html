@@ -371,6 +371,10 @@
   .tk-learn{background:#1e3a5f;color:#7cb3ff}
   .tk-action{background:#5c3a12;color:#ffb74d}
   .tk-elite{background:#3d2a5c;color:#c79bff}
+  /* 29 期四組（2026-10-23） */
+  .tk-basic{background:#5c3a12;color:#ffb74d}
+  .tk-advanced{background:#14462f;color:#6ee7a8}
+  .tk-lifetime{background:#3d2a5c;color:#e7c66b}
 </style>
 </head>
 <body>
@@ -546,7 +550,7 @@ async function init() {
 
 async function load() {
   const { data: s } = await sb.from('batch_students')
-    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, track, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, dropped_at, created_at, members_master(name, member_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
+    .select('id, member_id, coach_id, sponsor_id, phone, registered, group_name, track, introduction, name_list, transfer_code, status, payment_confirmed, payment_date, dropped_at, created_at, applied_track, self_direct_count, self_rank, pledge_at, advance_route, meeting_slot, members_master(name, member_code, sponsor_code), sponsor:batch_coaches!sponsor_id(members_master(name))')
     .eq('batch_id', bid);
   students = s || [];
   const { data: c } = await sb.from('batch_coaches')
@@ -604,7 +608,7 @@ const WDAY = ['日','一','二','三','四','五','六'];
 // 27 期 8/20 上完最後一堂，8/21 起是行動週，那時再叫「上課日」就錯了
 const refDayLabel = () => ((SCHEDULE || {})[lastWeekday()] || []).length ? '上一個上課日' : '上一個平日';
 function localDateStr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-// 榮譽資格／直屬 CFC／班別／組別／精英席次 → consts.js（唯一正本，register.html 也讀同一份）
+// 榮譽資格／直屬 CFC／班別／組別 → consts.js（唯一正本，register.html 也讀同一份）
 const ACTION_LABELS = { name_list:'狂列名單', meet:'認識新友', invite:'邀約見面', present:'邀請溝通本', seminar:'邀請說明會', ghosted:'被放鴿子', rejected:'締結未果' };
 // 28 期三種組：組別（第 N 組）是編制，track 是目標——兩件事，分開存（2026-08-29）
 // 報名時間：batch_students／batch_coaches 的 created_at 一直都有存，
@@ -616,13 +620,27 @@ const regTime = ts => {
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 };
 
-const trackName = t => TRACKS[t] || '—';
+const trackName = t => trackLabel(t) || '—';
 // 組別小標籤：配對時不用上下對照（2026-09-10 Randoph）
 //   學員的 track＝他報名哪一組；教練的 track＝他帶的那一組是什麼班別。
 //   兩邊都標出來，一眼看得出「這個行動組的人要配給行動班的教練」。
 const trackTag = t => t ? `<span class="tk tk-${t}">${TRACK_TAG[t]}</span>` : '';
-// 只有行動組／精英組要交自我定位；學習組（直推 1）不用
-const needsIntro = s => s.track === 'action' || s.track === 'elite';
+// 學習組以外都要交自我定位（29 期：初階／進階／終身；28 期：行動／精英）；學習組（直推 1）不用
+const needsIntro = s => !!s.track && s.track !== 'learn';
+// 29 期報名時多填的資料（2026-10-23）：截止後教練團認定班別要看這些。
+//   track＝最終班別（後台可改）／applied_track＝學員自己選的（永遠不改），不同才標出來。
+const regInfo29 = s => {
+  const bits = [];
+  if (s.applied_track && s.applied_track !== s.track) bits.push(`報名時選 <b>${trackName(s.applied_track)}</b>`);
+  if (s.advance_route === 'direct10') bits.push(`進階資格：累積直推 10 人（自填 <b>${s.self_direct_count ?? '—'}</b> 人）`);
+  if (s.advance_route === 'bring2') bits.push('進階資格：這期帶 2 位參加學習組（11/3 截止結算）');
+  if (s.advance_route) bits.push(s.pledge_at ? '三項基本功已宣誓' : '<span style="color:var(--yellow)">⚠️ 三項基本功未宣誓</span>');
+  if (s.meeting_slot) bits.push(`作戰會議：<b>${s.meeting_slot}</b>`);
+  if (s.self_rank) bits.push(`自填已達成：<b>${s.self_rank === 'summit' ? '高峰' : '終身成就'}</b>`);
+  const spc = s.members_master && s.members_master.sponsor_code;
+  if (spc) bits.push(`推薦人 ${spc}`);
+  return bits.length ? `<div class="card-meta">${bits.join(' ｜ ')}</div>` : '';
+};
 
 // ── Helpers ──
 const nm = r => r.members_master?.name || '（未知）';
@@ -1324,7 +1342,7 @@ const ANA = [
       const hasAct = coaches.some(c => c.track && c.track !== 'learn');
       const hasLearn = coaches.some(c => !c.track || c.track === 'learn');
       const f = s => s ? s.slice(5).replace('-', '/') : '—';
-      return `日期 × 學員 · ${[hasAct ? `行動／精英組 ${f(actionStartDate())} 起` : '',
+      return `日期 × 學員 · ${[hasAct ? `行動組 ${f(actionStartDate())} 起` : '',
                                 hasLearn ? `學習組 ${f(learnActFrom())} 起` : ''].filter(Boolean).join('、')}`;
     },
     render: el => renderHwSection(el, 'action') },
@@ -1570,7 +1588,7 @@ function renderHwSection(target, scope) {
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
     `<div class="dash-empty">${scope === 'action'
-      ? '行動還沒開始（行動／精英組從 action_open_date 起；學習組從 study_end 後第一個週一起）'
+      ? '行動還沒開始（行動組從 action_open_date 起；學習組從 study_end 後第一個週一起）'
       : '尚無可顯示的日期'}</div>`);
 }
 
@@ -1638,11 +1656,7 @@ function phaseBefore() {
     selfPair.length ? `<b>${selfPair.length} 位被配給自己的上線</b>：${few(selfPair)}`
       : '沒有人被配給自己的上線', ['check','pairArea']);
 
-  // ⑦ 精英組席次（新增 2026-09-12）：限 5 席，28 期撞過一次
-  const eliteN = stu.filter(s => s.track === 'elite').length;
-  add(eliteN > ELITE_SEATS ? 'warn' : 'ok', '精英組席次',
-    eliteN > ELITE_SEATS ? `<b>${eliteN} 人超過 ${ELITE_SEATS} 席</b>，要退回進階行動組`
-      : `${eliteN} / ${ELITE_SEATS} 席`, ['check','pairArea']);
+  // ⑦ 精英組席次：29 期沒有精英組，2026-10-23 拿掉
 
   // ⑧ 上線
   const noSp = stu.filter(s => !s.sponsor_id);
@@ -2096,8 +2110,9 @@ function renderReview() {
       <div class="card">
         <div class="card-left">
           <div class="card-name">${nm(s)}${mc(s)}</div>
-          <div class="card-meta">電話：${s.phone||'—'} ｜ 報名組別：<b>${trackName(s.track)}</b> ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}${s.created_at?` ｜ 報名 ${regTime(s.created_at)}`:''}</div>
-          ${needsIntro(s) ? (s.introduction ? `<div class="card-meta">自我定位：${s.introduction}</div>` : '<div class="card-meta" style="color:var(--yellow)">⚠️ 行動／精英組必須交自我定位，這位還沒交</div>') : ''}
+          <div class="card-meta">電話：${s.phone||'—'} ｜ 班別：<b>${trackName(s.track)}</b> ｜ 匯款末5碼：${s.transfer_code||'—'}${sp(s)?' ｜ 引路人：'+sp(s):''}${s.created_at?` ｜ 報名 ${regTime(s.created_at)}`:''}</div>
+          ${regInfo29(s)}
+          ${needsIntro(s) ? (s.introduction ? `<div class="card-meta">自我定位：${s.introduction}</div>` : '<div class="card-meta" style="color:var(--yellow)">⚠️ 行動組必須交自我定位，這位還沒交</div>') : ''}
         </div>
         <div class="acts">${bdg(s.status)}
           ${isReadonly ? '' : `<button class="btn btn-ok" onclick="approveStudent('${s.id}')">批准</button>
@@ -2460,11 +2475,12 @@ function renderPairing() {
         <div class="coach-stu${gone(s) ? ' gone' : ''}">
           <div style="flex:1;min-width:0">
             <div><span class="coach-stu-name">${nm(s)}${mc(s)}</span>
-              <span class="coach-stu-meta"> ｜ 上線 ${sp(s)||'—'}${gone(s)?` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>`:''}</span></div>
+              <span class="coach-stu-meta"> ｜ 引路人 ${sp(s)||'—'}${gone(s)?` ｜ <b style="color:#f87171">退班 ${s.dropped_at}</b>`:''}</span></div>
             <div class="coach-stu-meta" style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              <span style="white-space:nowrap">報名組別</span>${isReadonly ? trackName(s.track) : stuTrkSel(s)}
+              <span style="white-space:nowrap">班別</span>${isReadonly ? trackName(s.track) : stuTrkSel(s)}
               ${isReadonly ? '' : `<span id="reassign-${s.id}">${reassignBtn(s)}</span>`}
             </div>
+            ${regInfo29(s)}
             <div id="edit-${s.id}"></div>
           </div>
           ${isReadonly ? '' : `<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
@@ -2582,7 +2598,8 @@ async function setCoachTrack(cid, track) {
   toast('班別已更新'); await load();
 }
 
-// 報名組別（學習／行動／精英）——精英面試沒過改行動組，就靠這裡（2026-08-29）
+// 班別（最終）——29 期截止後教練團認定、資格不符調整，就靠這裡；applied_track（學員自己選的）不動
+//   （2026-08-29 原為精英面試沒過改行動組；2026-10-23 改 29 期四組）
 async function setStudentTrack(sid, track) {
   const { error } = await sb.from('batch_students').update({ track: track || null }).eq('id', sid);
   if (error) return alert('組別更新失敗：' + error.message);

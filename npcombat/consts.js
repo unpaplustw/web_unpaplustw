@@ -30,18 +30,20 @@ const CFC_OPTIONS = [
   '洪美娟',          // 2026-10-22 Randoph 新增（新 CFC）
 ];
 
-// 📚 班別（28 期起三組）。🔴 班別掛在「組」上（batch_coaches.track），不是掛在學員身上
-const TRACKS = { learn: '初階學習組', action: '進階行動組', elite: '高階精英組' };
+// 📚 班別（29 期起四組，2026-10-22 定）。🔴 班別掛在「組」上（batch_coaches.track），不是掛在學員身上
+//    只有 learn 要上課交作業；其他三組開班就直接行動、要交自我定位。
+//    下拉選單只列這四個；28 期的 action／elite 只留在 TRACKS_OLD 給舊紀錄顯示。
+const TRACKS = { learn: '學習組', basic: '初階行動組', advanced: '進階行動組', lifetime: '終身行動組' };
+const TRACKS_OLD = { action: '行動組（28 期）', elite: '精英組（28 期）' };
+const trackLabel = t => TRACKS[t] || TRACKS_OLD[t] || '';
 
 // 班別的短標籤：名冊／配對頁的小徽章
-const TRACK_TAG = { learn: '📚 學習', action: '🏃 行動', elite: '⚡ 精英' };
+const TRACK_TAG = { learn: '📚 學習', basic: '🏃 初階', advanced: '🚀 進階', lifetime: '👑 終身',
+                    action: '🏃 行動', elite: '⚡ 精英' };
 
-// 班別的單字短碼：教練指南的社群改名格式「28初/組別/學/姓名」
-// （Randoph 2026-09-12 定：初、進、高）
-const TRACK_ABBR = { learn: '初', action: '進', elite: '高' };
-
-// 🏆 高階精英組席次上限，額滿即止（Randoph 定）
-const ELITE_SEATS = 5;
+// 班別的單字短碼：教練指南的社群改名格式「29學/組別/學/姓名」
+// （Randoph 2026-10-23 定：學、初、進、終；28 期是 初／進／高）
+const TRACK_ABBR = { learn: '學', basic: '初', advanced: '進', lifetime: '終', action: '進', elite: '高' };
 
 // 組別名稱。🔴 期中不要改 —— 改了會讓既有教練的 group_name 對不上而顯示「未分組」，
 //    要改得等該期跑完「實戰班結案匯出.py」之後。
