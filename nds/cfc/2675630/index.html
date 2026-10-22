@@ -292,6 +292,13 @@ a{text-decoration:none}
 </div>
 </div>
 
+<div id="mtv" class="hidden" style="position:fixed;inset:0;background:var(--bg);z-index:98;overflow:auto;padding:16px">
+ <div style="max-width:760px;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div id="mtvHead"></div>
+    <span><button class="btn sm" onclick="endMeeting()">結束會議</button> <button class="btn sm ghost" onclick="closeMeeting()">✕ 離開</button></span></div>
+  <div id="mtvBody"></div>
+ </div>
+</div>
 <div id="mcard" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99;overflow:auto;padding:16px">
  <div style="max-width:820px;margin:0 auto;background:var(--card,#161b22);border:1px solid #30363d;border-radius:12px;padding:18px">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
@@ -483,6 +490,7 @@ async function loadMeeting(id){
     const sug = H.suggested!=null?'<span style="color:#a371f7">你的建議 <b>'+H.suggested+'</b> 組</span> ・ ':'';
     hd.innerHTML='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
       +'<div style="font-size:17px;font-weight:700">'+stLamp(H)+' '+who+' <span class="mut" style="font-size:13px;font-weight:400">'+esc(H.tier||'')+' ・ '+scope+'</span></div>'
+      +(H.is_leader?'<button class="btn sm" onclick="openMeeting(\''+esc(H.member_id)+'\')">🗓 開會：一條一條過</button>':'')
       +'<div>目標設定 <input id="mtgAgreed" class="inp" type="number" min="0" style="width:74px;padding:6px 8px" value="'+(H.agreed!=null?H.agreed:'')+'" placeholder="'+(H.pool_pairs||0)+'"> 組 '
       +'<button class="btn sm" onclick="setTarget()">存</button> <span class="mut" style="font-size:12px">'+sug+hint+'；參考：目前池子配得出 '+(H.pool_pairs||0)+' 組'+(H.agreed_at?' ・ 定於 '+String(H.agreed_at).slice(0,10):'')+'</span></div>'
       +'</div>'
@@ -1116,7 +1124,7 @@ function openCard(id,depth){
     headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
     body:JSON.stringify({p:{...CRED,member_id:id,depth:depth||4}})}).then(r=>r.json()).then(renderCard);
 }
-function closeCard(){document.getElementById('mcard').classList.add('hidden');}
+function closeCard(){document.getElementById('mcard').classList.add('hidden'); if(MTV) refreshMTV();}
 function pm(n){ if(n==null||n==='') return '—'; return {0:'❌已解約',1:'自動扣款',2:'匯款',3:'預購一次付',4:'信用卡'}[n]||('代碼'+n);}
 // ===== 會員卡：九個區塊（2026-09-28 Randoph 定案）=====
 // 依「這是什麼事實」分塊，不依來源；每塊標題寫「📥 進來的管道・最後更新」。
@@ -1133,6 +1141,198 @@ function mcEmpty(id,msg){ const el=document.getElementById(id); if(!el)return;
   el.open=false; el.querySelector('.mcb').innerHTML='<span class="mut">'+msg+'</span>';
   el.querySelector('.mcu').textContent='　— '+msg; }
 const mcUpd=u=>u&&u.at?fdate(u.at)+(u.by?'・'+u.by:''):'';
+
+// ===== 人卡＋作戰會議（2026-10-23 四層跟進鏈 ②③）=====
+// 人卡以「人」（主編號）為單位，只在主卡 -001 出現；會議模式＝一位將的待辦一條一條過。
+const PC_OWNERS=[{id:'2675630-001',n:'游育杰'}].concat(LEADERS);
+const PC_CONTACT=[['有互動','ok'],['已讀不回','warn'],['失聯','bad']];
+const PC_STATUS=['暫停','消費者','推廣者','經營者'];
+const PC_STUCK={'吃太省':'約見面，對一下每天實際吃多少','家人反對':'請他帶家人來聽一次說明','沒錢':'先談小方案或少量開始','觀念不對':'約營養師課','忙・難約':'傳訊息約 15 分鐘電話','身體狀況':'先關心身體，暫不談產品'};
+const PC_FM=[['F','家庭'],['O','職業'],['R','休閒'],['M','金錢'],['H','健康'],['D','夢想']];
+const PC_FIELD={contact:'聯絡',status:'狀態',owner:'負責人',stuck:'卡在哪',summary:'一句話',formhd:'認識他',todo:'待辦'};
+const PC_CH=['作戰會議','見面','電話','LINE','其他'];
+let PC_NEWW='', PC=null, PC_ED=null, PC_NOTE='', PC_CHAN='見面', PC_MTG=null, PC_ACT={}, MTV=null;
+async function personApi(extra){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/nds_person',{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON},
+    body:JSON.stringify({p:{...CRED,...(extra||{})}})});
+  return r.json();
+}
+const ownerName=id=>{const o=PC_OWNERS.find(x=>x.id===id);return o?o.n:(id||'—');};
+const ownerSel=(id,sel)=>'<select class="inp" id="'+id+'" style="padding:6px 8px">'+PC_OWNERS.map(o=>'<option value="'+o.id+'"'+(o.id===sel?' selected':'')+'>'+esc(o.n)+'</option>').join('')+'</select>';
+const dayISO=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+async function loadPersonCard(mainNo,keep){  // keep＝保留還沒存的修改（加待辦、處理待辦後重讀用）
+  const box=document.getElementById('pcBox'); if(!box) return;
+  box.innerHTML='<span class="mut">人卡載入中…</span>';
+  const d=await personApi({action:'card',main_no:mainNo});
+  if(!d||d.success!==true){box.innerHTML='<span class="mut">'+esc((d&&d.message)||'讀取失敗')+'</span>';return;}
+  const prevEd=PC_ED, prevNote=PC_NOTE, prevChan=PC_CHAN; PC=d; const s=d.state||{};
+  PC_ED={contact:s.contact||null,status:s.status||null,owner_member_id:s.owner_member_id||d.leader_id||'2675630-001',
+    stuck:(s.stuck||[]).slice(),summary:s.summary||'',formhd:Object.assign({},s.formhd||{})};
+  PC_NOTE=''; PC_NEWW=''; PC_ACT={}; PC_CHAN=PC_MTG?'作戰會議':'見面';
+  if(keep&&prevEd){ PC_ED=prevEd; PC_NOTE=prevNote; PC_CHAN=prevChan; }
+  renderPC();
+}
+function pcChanged(){
+  if(!PC) return 0; const s=PC.state||{}, e=PC_ED; let n=0;
+  if((e.contact||null)!==(s.contact||null))n++; if((e.status||null)!==(s.status||null))n++;
+  if((e.owner_member_id||null)!==(s.owner_member_id||PC.leader_id||'2675630-001'))n++;
+  if(e.stuck.slice().sort().join('|')!==(s.stuck||[]).slice().sort().join('|'))n++;
+  if((e.summary||'')!==(s.summary||''))n++;
+  if(JSON.stringify(e.formhd)!==JSON.stringify(s.formhd||{}))n++;
+  if(PC_NOTE.trim())n++; return n;
+}
+function pcChip(label,on,col,onclick){
+  const c=col?'var(--'+col+')':'var(--acc)';
+  return '<span onclick="'+onclick+'" style="cursor:pointer;display:inline-block;border-radius:14px;padding:6px 12px;margin:3px 5px 0 0;font-size:14px;'
+    +(on?'background:'+c+';color:#0b0f14;font-weight:700;border:1px solid '+c:'border:1px solid var(--line);color:var(--mut)')+'">'+esc(label)+'</span>';
+}
+// 待辦一列：人卡（ctx=pc）和會議（ctx=mt）共用
+function todoRow(t,ctx){
+  const open=t.status==='未處理'||t.status==='進行中', today=new Date().toISOString().slice(0,10);
+  const over=t.due_date&&t.due_date<today;
+  const due=t.due_date?('<b style="color:'+(over?'var(--bad)':'var(--tx)')+'">'+(over?'逾期 ':'')+fdate(t.due_date)+'</b>'):'<span class="mut">沒定日期</span>';
+  const act=PC_ACT[ctx+t.id];
+  let h='<div style="border:1px solid '+(over&&open?'var(--bad)':'var(--line)')+';border-radius:10px;padding:9px 11px;margin-top:8px;'+(open?'':'opacity:.55')+'">'
+    +(ctx==='mt'?'<div><a href="javascript:openCard(\''+esc(t.main_no)+'-001\')" style="color:var(--acc);font-weight:700">'+esc(t.person_name||t.main_no)+'</a> <span class="mut" style="font-size:12px">'+esc(t.main_no)+'</span></div>':'')
+    +'<div style="font-size:15px;font-weight:600">'+esc(t.what)+'</div>'
+    +'<div class="mut" style="font-size:12px;margin-top:2px">誰做 <b style="color:var(--tx)">'+esc(t.owner_name||ownerName(t.owner_member_id))+'</b> ・ '+due
+    +' ・ '+esc(t.created_by||'')+' '+fdate(t.created_at)+' 提'+(t.status==='進行中'?' ・ <span style="color:var(--warn)">進行中</span>':'')+'</div>'
+    +(t.last_note&&t.last_note.note?'<div style="font-size:13px;margin-top:3px">💬 '+esc(t.last_note.note)+' <span class="mut">（'+esc(t.last_note.by||'')+' '+fdate(t.last_note.at)+'）</span></div>':'')
+    +(!open?'<div style="font-size:13px;margin-top:3px"><b>'+esc(t.status)+'</b>：'+esc(t.result||'')+'</div>':'')
+    +(t.done_here?'<div style="font-size:13px;margin-top:3px;color:var(--ok)">✔ 本次：'+esc(t.done_here)+'</div>':'');
+  if(open&&!act&&!(ctx==='mt'&&t.done_here)){
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+      +['✅ 完成','🔁 還在進行','✏️ 改下一步','✖ 不追了'].map((lb,i)=>'<button class="btn sm ghost" onclick="todoOpen(\''+ctx+'\','+t.id+','+i+')">'+lb+'</button>').join('')+'</div>';
+  }
+  if(act){
+    const k=ctx+t.id, A=['完成','延續','改下一步','不追了'][act.i];
+    h+='<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:8px">'
+      +(A==='改下一步'?'<input class="inp" id="tw_'+k+'" value="'+esc(t.what)+'" style="width:100%;margin-bottom:6px">'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">'+ownerSel('to_'+k,t.owner_member_id)+'<input class="inp" type="date" id="td_'+k+'" value="'+(t.due_date||'')+'" style="padding:6px 8px"></div>':'')
+      +'<input class="inp" id="tn_'+k+'" placeholder="'+(A==='完成'?'結果一句話（必填）':A==='不追了'?'原因一句話（必填）':'進度一句話（可空）')+'" style="width:100%">'
+      +'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn sm" onclick="todoSubmit(\''+ctx+'\','+t.id+')">送出：'+A+'</button><button class="btn sm ghost" onclick="todoOpen(\''+ctx+'\','+t.id+',-1)">取消</button><span class="mut" id="tm_'+k+'" style="font-size:13px"></span></div></div>';
+  }
+  return h+'</div>';
+}
+function todoOpen(ctx,id,i){ const k=ctx+id; if(i<0) delete PC_ACT[k]; else PC_ACT[k]={i}; ctx==='mt'?renderMTV():renderPC(); }
+async function todoSubmit(ctx,id){
+  const k=ctx+id, A=['完成','延續','改下一步','不追了'][PC_ACT[k].i], g=x=>{const e=document.getElementById(x+'_'+k);return e?e.value.trim():undefined;};
+  const p={action:'todo_act',id,act:A,note:g('tn'),channel:ctx==='mt'||PC_MTG?'作戰會議':PC_CHAN,meeting_id:ctx==='mt'?MTV.meeting_id:PC_MTG};
+  if(A==='改下一步'){p.what=g('tw');p.owner_member_id=g('to');p.due_date=g('td')||'';}
+  const d=await personApi(p);
+  if(!d||!d.success){const m=document.getElementById('tm_'+k); if(m) m.textContent='✗ '+((d&&d.message)||'失敗'); return;}
+  delete PC_ACT[k];
+  if(ctx==='mt') refreshMTV(); else loadPersonCard(PC.main_no,true);
+}
+function pcSet(f,v){ if(f==='stuck'){const i=PC_ED.stuck.indexOf(v); if(i>=0)PC_ED.stuck.splice(i,1); else {PC_ED.stuck.push(v); PC_NEWW=PC_STUCK[v]||PC_NEWW;}}
+  else PC_ED[f]=(PC_ED[f]===v?null:v); renderPC(); }
+function renderPC(){
+  const box=document.getElementById('pcBox'); if(!box||!PC) return;
+  const d=PC, e=PC_ED, S=d.self||{}, todos=d.todos||[], openT=todos.filter(t=>t.status==='未處理'||t.status==='進行中'), closedT=todos.filter(t=>!(t.status==='未處理'||t.status==='進行中'));
+  const last=(d.log||[])[0];
+  const logLine=l=>'<div style="font-size:13px;margin-bottom:6px"><span class="mut">'+fdate(l.at)+' '+esc(l.by_name||'')+'・'+esc(l.channel||'')+'</span>　'
+    +(l.field?'<b>'+esc(PC_FIELD[l.field]||l.field)+'</b> '+(l.field==='formhd'?'已更新':(l.field==='todo'?esc(l.old_val||'')+' → <b>'+esc(l.new_val||'')+'</b>':esc(l.old_val||'—')+' → <b>'+esc(l.new_val||'—')+'</b>')):'')
+    +(l.body?' 💬 '+esc(l.body):'')+'</div>';
+  const fm=e.formhd||{}, known=PC_FM.filter(f=>(fm[f[0]]||'').trim()).length;
+  const plan=(S.plan||[]).map(x=>esc(x.product)+' '+x.daily+'/天').join('、');
+  const it=S.intake14||{};
+  const selfLine=[(S.focus||[]).map(f=>esc(f.name)+(f.score?' '+f.score+'分':'')).join('、'),plan?'吃法 '+plan:'',it.days?('近14天回報 '+it.days+' 天'+(it.rate!=null?'・實吃 '+it.rate+'%':'')):'',
+    Object.keys(S.prospects||{}).length?'名單 '+Object.entries(S.prospects).map(([k,v])=>k+v).join('・'):'',S.kc?'KC '+S.kc.score+'（'+fdate(S.kc.date)+'）':''].filter(Boolean).join('　｜　');
+  const n=pcChanged();
+  box.innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><b style="font-size:17px">🪪 人卡</b>'
+      +'<span class="mut" style="font-size:12px">'+(d.leader_name?'歸戶 '+esc(d.leader_name)+' ・ ':'')+'負責 <b style="color:var(--acc)">'+esc(ownerName(e.owner_member_id))+'</b>'+(PC_MTG?' ・ <b style="color:var(--warn)">會議中</b>':'')+'</span></div>'
+    +'<div style="margin-top:8px;padding:9px 11px;border-radius:10px;background:rgba(163,113,247,.08);border:1px solid #3a2f5a;font-size:13px">'
+      +(last?'🕘 上次：<b>'+fdate(last.at)+' '+esc(last.by_name||'')+'</b>（'+esc(last.channel||'')+'）':'🕘 還沒有任何紀錄')
+      +'　待辦 <b style="color:'+(openT.length?'var(--warn)':'var(--ok)')+'">'+openT.length+'</b> 件</div>'
+    // 卡在哪 → 下一步
+    +'<div style="margin-top:12px"><b>卡在哪</b> <span class="mut" style="font-size:12px">可複選；點了會帶出建議的下一步</span><div>'
+      +Object.keys(PC_STUCK).map(k=>pcChip(k,e.stuck.includes(k),'warn','pcSet(\'stuck\',\''+k+'\')')).join('')+'</div></div>'
+    +'<div style="margin-top:12px"><b>待辦</b>'+openT.map(t=>todoRow(t,'pc')).join('')
+      +'<div style="margin-top:8px;border:1px dashed var(--line);border-radius:10px;padding:9px 11px">'
+      +'<input class="inp" id="pcNewWhat" placeholder="＋ 新增待辦：要做什麼" style="width:100%" value="'+esc(PC_NEWW)+'" oninput="PC_NEWW=this.value">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">'+ownerSel('pcNewOwner',e.owner_member_id)
+      +'<input class="inp" type="date" id="pcNewDue" style="padding:6px 8px">'
+      +[['今天',0],['這週',3],['下週',7]].map(([l,dd])=>'<button class="btn sm ghost" onclick="document.getElementById(\'pcNewDue\').value=\''+dayISO(dd)+'\'">'+l+'</button>').join('')
+      +'<button class="btn sm" onclick="pcAddTodo()">加入</button><span class="mut" id="pcNewMsg" style="font-size:13px"></span></div></div>'
+      +(closedT.length?'<details style="margin-top:8px"><summary class="mut" style="cursor:pointer;font-size:13px">最近結案 '+closedT.length+' 件</summary>'+closedT.map(t=>todoRow(t,'pc')).join('')+'</details>':'')+'</div>'
+    // 狀態
+    +'<div style="margin-top:14px;display:grid;gap:10px">'
+      +'<div><b>聯絡</b> '+PC_CONTACT.map(([l,c])=>pcChip(l,e.contact===l,c,'pcSet(\'contact\',\''+l+'\')')).join('')+'</div>'
+      +'<div><b>狀態</b> '+PC_STATUS.map(l=>pcChip(l,e.status===l,'acc','pcSet(\'status\',\''+l+'\')')).join('')+'</div>'
+      +'<div><b>負責人</b> '+ownerSel('pcOwner',e.owner_member_id).replace('<select','<select onchange="PC_ED.owner_member_id=this.value;renderPC()"')+'</div>'
+      +'<div><b>一句話</b> <span class="mut" style="font-size:12px">策略・背景，存最新</span><textarea class="inp" id="pcSum" rows="2" style="width:100%;margin-top:4px" oninput="PC_ED.summary=this.value;pcFoot()">'+esc(e.summary)+'</textarea></div>'
+      +'<details><summary style="cursor:pointer"><b>認識他（FORMHD）</b> <span class="mut" style="font-size:12px">已知 '+known+'/6，空格＝下次可聊的話題</span></summary>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
+        +PC_FM.map(([k,l])=>'<label style="font-size:12px" class="mut">'+k+' '+l+'<input class="inp" style="width:100%;margin-top:2px" value="'+esc(fm[k]||'')+'" oninput="PC_ED.formhd[\''+k+'\']=this.value;pcFoot()"></label>').join('')+'</div></details>'
+      +'<div style="font-size:13px"><b>會員自填</b> <span class="mut">（定期檢視・每日回報・KC，唯讀）</span><div class="mut" style="margin-top:3px">'+(selfLine||'還沒有自填資料')+'</div></div>'
+    +'</div>'
+    // 留言＋存
+    +'<div style="margin-top:12px"><b>這次聊到的</b> <span class="mut" style="font-size:12px">敘述，會留在歷程，每月轉 md</span>'
+      +'<textarea class="inp" id="pcNote" rows="2" style="width:100%;margin-top:4px" oninput="PC_NOTE=this.value;pcFoot()">'+esc(PC_NOTE)+'</textarea>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px"><span class="mut" style="font-size:13px">管道</span>'
+      +'<select class="inp" style="padding:6px 8px" onchange="PC_CHAN=this.value">'+PC_CH.map(c=>'<option'+(c===PC_CHAN?' selected':'')+'>'+c+'</option>').join('')+'</select>'
+      +'<button class="btn" id="pcSave" onclick="pcSave()" style="margin-left:auto"></button></div><div class="mut" id="pcMsg" style="font-size:13px;margin-top:4px"></div></div>'
+    +'<details style="margin-top:10px"><summary class="mut" style="cursor:pointer;font-size:13px">歷程 '+(d.log||[]).length+' 筆</summary><div style="margin-top:6px;border-left:2px solid var(--line);padding-left:10px">'+(d.log||[]).map(logLine).join('')+'</div></details>';
+  pcFoot();
+}
+function pcFoot(){ const b=document.getElementById('pcSave'); if(!b) return; const n=pcChanged();
+  b.textContent=n?('存 '+n+' 項變更'):'沒有變更'; b.disabled=!n; b.style.opacity=n?1:.5; }
+async function pcSave(){
+  const m=document.getElementById('pcMsg'); m.textContent='存檔中…';
+  const d=await personApi({action:'save',main_no:PC.main_no,channel:PC_MTG?'作戰會議':PC_CHAN,meeting_id:PC_MTG,
+    state:{contact:PC_ED.contact||'',status:PC_ED.status||'',owner_member_id:PC_ED.owner_member_id||'',stuck:PC_ED.stuck,summary:PC_ED.summary||'',formhd:PC_ED.formhd},note:PC_NOTE});
+  if(!d||!d.success){m.textContent='✗ '+((d&&d.message)||'失敗');return;}
+  loadPersonCard(PC.main_no);
+}
+async function pcAddTodo(){
+  const w=document.getElementById('pcNewWhat').value.trim(), m=document.getElementById('pcNewMsg');
+  if(!w){m.textContent='寫要做什麼';return;}
+  const d=await personApi({action:'todo_add',main_no:PC.main_no,what:w,owner_member_id:document.getElementById('pcNewOwner').value,
+    due_date:document.getElementById('pcNewDue').value||'',meeting_id:PC_MTG});
+  if(!d||!d.success){m.textContent='✗ '+((d&&d.message)||'失敗');return;}
+  loadPersonCard(PC.main_no,true);
+}
+// ===== 作戰會議模式 =====
+async function openMeeting(leaderId){
+  document.getElementById('mtv').classList.remove('hidden');
+  document.getElementById('mtvBody').innerHTML='<span class="mut">開會中，整理清單…</span>';
+  const d=await personApi({action:'meeting_start',leader_member_id:leaderId});
+  if(!d||!d.success){document.getElementById('mtvBody').innerHTML='<span class="mut">'+esc((d&&d.message)||'失敗')+'</span>';return;}
+  MTV=d; PC_MTG=d.meeting_id; PC_ACT={}; renderMTV();
+}
+async function refreshMTV(){ if(!MTV) return; const d=await personApi({action:'meeting_list',meeting_id:MTV.meeting_id}); if(d&&d.success){MTV=d; renderMTV();} }
+function renderMTV(){
+  const it=MTV.items||[], left=it.filter(t=>!t.done_here).length, done=it.length-left;
+  document.getElementById('mtvHead').innerHTML='<div style="font-size:19px;font-weight:700">🗓 '+esc(MTV.leader_name||'')+' 作戰會議</div>'
+    +'<div class="mut">'+esc(MTV.today||'')+'　待確認 <b style="color:var(--warn)">'+left+'</b> 件 ・ 本次已過 <b style="color:var(--ok)">'+done+'</b> 件</div>';
+  const G=[[1,'⏰ 逾期'],[2,'📅 這週到期'],[3,'🗓 之後'],[4,'🕘 沒定日期']];
+  document.getElementById('mtvBody').innerHTML=
+    (it.length?G.map(([b,l])=>{const xs=it.filter(t=>t.bucket===b); return xs.length?'<div style="margin-top:12px"><b>'+l+'</b> <span class="mut">'+xs.length+'</span>'+xs.map(t=>todoRow(t,'mt')).join('')+'</div>':'';}).join('')
+      :'<div class="mut" style="margin-top:10px">這位將底下目前沒有待辦。點下面新增，或打開人卡加。</div>')
+    +'<div style="margin-top:16px;border:1px dashed var(--line);border-radius:10px;padding:10px 12px"><b>＋ 新增一件</b>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input class="inp" id="mtNo" placeholder="會員編號 7 碼" style="width:140px">'
+      +'<input class="inp" id="mtWhat" placeholder="要做什麼" style="flex:1;min-width:180px"></div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">'+ownerSel('mtOwner',MTV.leader_id)+'<input class="inp" type="date" id="mtDue" style="padding:6px 8px">'
+      +'<button class="btn sm" onclick="mtAdd()">加入</button><span class="mut" id="mtMsg" style="font-size:13px"></span></div></div>';
+}
+async function mtAdd(){
+  const no=document.getElementById('mtNo').value.trim().split('-')[0], w=document.getElementById('mtWhat').value.trim(), m=document.getElementById('mtMsg');
+  if(!/^\d{7}$/.test(no)){m.textContent='編號要 7 碼';return;} if(!w){m.textContent='寫要做什麼';return;}
+  const d=await personApi({action:'todo_add',main_no:no,what:w,owner_member_id:document.getElementById('mtOwner').value,due_date:document.getElementById('mtDue').value||'',meeting_id:MTV.meeting_id});
+  if(!d||!d.success){m.textContent='✗ '+((d&&d.message)||'失敗');return;}
+  refreshMTV();
+}
+async function endMeeting(){
+  if(!MTV) return; const d=await personApi({action:'meeting_end',meeting_id:MTV.meeting_id});
+  if(!d||!d.success){alert((d&&d.message)||'失敗');return;}
+  const s=d.summary||{};
+  document.getElementById('mtvBody').innerHTML='<div style="margin-top:14px;font-size:16px">✅ 會議結束　過 <b>'+(s.past||0)+'</b> 件：完成 <b>'+(s.done||0)+'</b>、延續 <b>'+(s.continue||0)+'</b>、不追了 <b>'+(s.dropped||0)+'</b>；新增 <b>'+(s.added||0)+'</b> 件</div>'
+    +'<div class="mut" style="margin-top:6px">摘要已存，下次匯出時寫進 wiki 作戰會議／。</div>';
+  MTV=null; PC_MTG=null;
+}
+function closeMeeting(){ document.getElementById('mtv').classList.add('hidden'); MTV=null; PC_MTG=null; }
 
 function renderCard(d){
   if(!d.success){document.getElementById('mcHead').innerHTML='<b>'+esc(d.message||'讀取失敗')+'</b>';return;}
@@ -1180,7 +1380,8 @@ function renderCard(d){
   // ④～⑦ 是「人」的資料（一個人不會分割），只在本人主卡（-001）出現；分店卡只留一行指回主卡（Randoph 2026-09-28）
   const mainId=b.member_id.split('-')[0]+'-001', isMain=b.member_id===mainId;
   document.getElementById('mcBody').innerHTML =
-     mcBlk('mcB1','①','身分與位置','公司 CSV／組織圖',false)
+     (isMain?'<div id="pcBox" class="card" style="margin-bottom:12px;padding:12px 14px;border-color:var(--acc)"></div>':'')
+    +mcBlk('mcB1','①','身分與位置','公司 CSV／組織圖',false)
     +mcBlk('mcB2','②','考核與水位','公司採集（每週）',true)
     +mcBlk('mcB3','③','跟進','戰術板（你）／將的 LINE 名單',true)
     +(isMain
@@ -1188,7 +1389,7 @@ function renderCard(d){
        +mcBlk('mcB5','⑤','服用','care.html 服用計畫／dose.html 每天回報',false)
        +mcBlk('mcB6','⑥','名單','care.html',false)
        +mcBlk('mcB7','⑦','他主動說的','dose.html 留言／care.html 建議',false)
-      : '<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>④～⑦ 進程・服用・名單・他主動說的</b>　<span class="mut" style="font-size:13px">是「人」的資料，分店沒有——看本人 </span>'
+      : '<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>人卡、④～⑦ 進程・服用・名單・他主動說的</b>　<span class="mut" style="font-size:13px">是「人」的資料，分店沒有——看本人 </span>'
        +'<a href="javascript:openCard(\''+esc(mainId)+'\')" style="color:var(--acc);font-weight:600">'+esc(b.name)+'-001 的會員卡</a></div>')
     +'<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>⑧ 跟 OA 的對話</b>　<span class="mut" style="font-size:12px">📥 LINE AI　— 管道未開（會員綁定 LINE 後再接）</span></div>'
     +mcBlk('mcB9','⑨','他的組織','公司採集',false);
@@ -1222,7 +1423,7 @@ function renderCard(d){
      </div>
      <div id="treeBox" class="scroll" style="max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:#0d1116">${treeSVG(b,d.nodes)}</div>
      <div class="mut" style="margin-top:5px;font-size:13px">🟢已買　🟡待領（方案還有效）　⚪停滯　🔴倒數中　｜已解約：底下沒人的整支不畫；只剩一條線的壓縮（虛線標「已解約 N 層」）；左右都還有人的留小灰點　｜點方塊開那個人的卡</div>`);
-  loadBcMap(b.member_id); loadGates(b.member_id); if(isMain) loadPerson(b.member_id);
+  loadBcMap(b.member_id); loadGates(b.member_id); if(isMain){ loadPerson(b.member_id); loadPersonCard(b.member_id.split('-')[0]); }
 }
 async function loadGates(id){
   const el=document.getElementById('mcGates'); if(!el)return;
