@@ -403,6 +403,16 @@
   /* 2026-10-22 進階宣誓的勾選框在 .field 裡，會吃到 `.field input { -webkit-appearance:none }` 變成看不見 → 還原 */
   .field .pl input[type="checkbox"] { -webkit-appearance:checkbox; appearance:auto;
     width:18px; height:18px; min-width:18px; margin:2px 0 0; padding:0; border:0; }
+  /* 2026-10-22 基本資料卡：以前登記過、資料齊全時先呈現，有問題再按「修改」 */
+  .basic-card { border:1.5px solid #c9d3e6; border-radius:14px; background:#f7f9fd; padding:14px 16px; margin-bottom:18px; }
+  .basic-card .bc-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .basic-card .bc-hd b { font-size:15px; color:#1a3068; }
+  .basic-card .bc-edit { border:1.5px solid #1a3068; background:#fff; color:#1a3068; font-weight:700;
+    font-size:13px; border-radius:18px; padding:5px 14px; cursor:pointer; font-family:inherit; }
+  .basic-card .bc-row { display:flex; gap:10px; font-size:14px; line-height:1.9; }
+  .basic-card .bc-row span:first-child { color:#6b7488; min-width:92px; flex:0 0 auto; }
+  .basic-card .bc-row span:last-child { color:#1f2a3d; font-weight:600; word-break:break-all; }
+  .basic-card .bc-tip { font-size:12.5px; color:#5a6478; margin-top:6px; }
   .field #f-intro { width:100%; padding:12px; border:1px solid #d5d9e0; border-radius:10px;
     font-family:inherit; font-size:15px; line-height:1.6; resize:vertical; }
   /* 自我定位六步驟（2026-08-29）：只給一個大框大家會亂填，拆成六題照著寫 */
@@ -560,19 +570,20 @@
     <div class="divider"><span>學員報名</span></div>
     <div class="form-wrap">
       <div class="error-msg" id="error-msg"></div>
-      <p class="hint prefill-note" style="display:none;margin:0 0 12px">✅ 已帶入你上次的資料，有變動請直接修改。</p>
+      <!-- 2026-10-22 基本資料卡：以前登記過、資料齊全 → 先呈現，有問題再按「修改」（Randoph） -->
+      <div class="basic-card" id="f-summary" style="display:none"></div>
 
-      <div class="field">
+      <div class="field basic-f">
         <label>會員編號 <span class="req">*</span></label>
         <input type="text" id="f-member-code" placeholder="輸入7位數，不含英文和空白" maxlength="7" inputmode="numeric">
       </div>
 
-      <div class="field">
+      <div class="field basic-f">
         <label>姓名 <span class="req">*</span></label>
         <input type="text" id="f-name" placeholder="請輸入真實姓名" maxlength="20">
       </div>
 
-      <div class="field">
+      <div class="field basic-f">
         <label>手機號碼 <span class="req">*</span></label>
         <input type="tel" id="f-phone" placeholder="請輸入手機號碼" maxlength="20" inputmode="tel">
       </div>
@@ -601,7 +612,7 @@
       </div>
 
       <!-- 🔴 2026-10-22 29 期：推薦人寫進組織關係（members_master.sponsor_code）；安置人不問學員，由引路人教練補 -->
-      <div class="field">
+      <div class="field basic-f">
         <label>推薦人 <span class="req">*</span></label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <input type="text" id="f-sponsor-code" placeholder="推薦人會員編號 7 碼" maxlength="7" inputmode="numeric">
@@ -730,33 +741,34 @@
     <div class="divider"><span>教練登記</span></div>
     <div class="form-wrap">
       <div class="error-msg" id="error-msg-coach"></div>
-      <p class="hint prefill-note" style="display:none;margin:0 0 12px">✅ 已帶入你上次的資料，有變動請直接修改。<b>教練須知與締結目標每期重新確認。</b></p>
+      <!-- 2026-10-22 基本資料卡（同學員）；教練須知與締結目標不在卡裡，每期重新確認 -->
+      <div class="basic-card" id="c-summary" style="display:none"></div>
 
-      <div class="field">
+      <div class="field basic-c">
         <label>會員編號 <span class="req">*</span></label>
         <input type="text" id="c-member-code" placeholder="輸入7位數，不含英文和空白" maxlength="7" inputmode="numeric">
       </div>
 
-      <div class="field">
+      <div class="field basic-c">
         <label>姓名 <span class="req">*</span></label>
         <input type="text" id="c-name" placeholder="請輸入真實姓名" maxlength="20">
         <p class="hint">審核通過後，學員報名時的「引路人」下拉選單將顯示此名稱。</p>
       </div>
 
-      <div class="field">
+      <div class="field basic-c">
         <label>手機號碼 <span class="req">*</span></label>
         <input type="tel" id="c-phone" placeholder="請輸入手機號碼" maxlength="20" inputmode="tel">
       </div>
 
       <!-- 🔴 2026-10-22 29 期：教練也要建組織關係（推薦人＋安置人，教練看得到公司後台，自己填） -->
-      <div class="field">
+      <div class="field basic-c">
         <label>推薦人 <span class="req">*</span></label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <input type="text" id="c-sponsor-code" placeholder="推薦人會員編號 7 碼" maxlength="7" inputmode="numeric">
           <input type="text" id="c-sponsor-name" placeholder="推薦人姓名" maxlength="20">
         </div>
       </div>
-      <div class="field">
+      <div class="field basic-c">
         <label>安置人（放在誰下面）<span class="req">*</span></label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <input type="text" id="c-place-code" placeholder="安置人會員編號 7 碼" maxlength="7" inputmode="numeric">
@@ -765,14 +777,14 @@
         <p class="hint">推薦人＝直接推薦你的人；安置人＝公司系統上你被放在誰下面。兩者常常不是同一位。</p>
       </div>
 
-      <div class="field">
+      <div class="field basic-c">
         <label>最佳榮譽資格 <span class="req">*</span></label>
         <div id="opt-rank" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <!-- 選項由 consts.js 產生（唯一正本，admin.html 讀同一份） -->
         </div>
       </div>
 
-      <div class="field">
+      <div class="field basic-c">
         <label>直屬 CFC <span class="req">*</span></label>
         <div id="opt-cfc" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <!-- 選項由 consts.js 產生 -->
@@ -1035,8 +1047,48 @@ async function prefillFromMaster(m) {
     set('c-place-code', m.placement_code);
     set('c-place-name', await relName(m.member_code, 'placement', m.placement_code));
   }
-  if (m.phone || m.coach_rank || m.sponsor_code || m.placement_code)
-    document.querySelectorAll('.prefill-note').forEach(e => e.style.display = '');
+  renderBasicCard('f');
+  renderBasicCard('c');
+}
+
+// 🔴 2026-10-22 基本資料卡（Randoph：「基本資料呈現，有問題再按修改，不然就直接送出」）
+//    欄位全部有值才顯示卡片、把欄位收起來；缺任何一項就照原本完整表單。
+//    欄位只是藏起來、值還在，送出時照常讀取與檢查。
+const BASIC_ROWS = {
+  f: [['會員編號', 'f-member-code'], ['姓名', 'f-name'], ['手機', 'f-phone'],
+      ['推薦人', ['f-sponsor-code', 'f-sponsor-name']]],
+  c: [['會員編號', 'c-member-code'], ['姓名', 'c-name'], ['手機', 'c-phone'],
+      ['推薦人', ['c-sponsor-code', 'c-sponsor-name']], ['安置人', ['c-place-code', 'c-place-name']],
+      ['最佳榮譽資格', 'radio:c-rank'], ['直屬 CFC', 'radio:c-cfc']],
+};
+function basicVal(src) {
+  if (Array.isArray(src)) return src.map(id => document.getElementById(id).value.trim()).filter(Boolean).join(' ');
+  if (src.startsWith('radio:')) return (document.querySelector(`input[name="${src.slice(6)}"]:checked`) || {}).value || '';
+  return document.getElementById(src).value.trim();
+}
+function renderBasicCard(p) {
+  const rows = BASIC_ROWS[p].map(([label, src]) => [label, basicVal(src)]);
+  const complete = rows.every(([, v]) => v) &&
+    BASIC_ROWS[p].every(([, src]) => !Array.isArray(src) || src.every(id => document.getElementById(id).value.trim()));
+  const card = document.getElementById(p + '-summary');
+  if (!complete) { card.style.display = 'none'; return; }
+  card.innerHTML = `<div class="bc-hd"><b>✅ 你的基本資料</b>
+      <button type="button" class="bc-edit" onclick="editBasic('${p}')">修改</button></div>
+    ${rows.map(([l, v]) => `<div class="bc-row"><span>${l}</span><span>${v.replace(/</g, '&lt;')}</span></div>`).join('')}
+    <div class="bc-tip">沿用上次登記的資料。有變動請按「修改」，沒問題就往下填這一期的內容。${p === 'c' ? '<br><b>教練須知與締結目標每期重新確認。</b>' : ''}</div>`;
+  card.style.display = '';
+  document.querySelectorAll('.basic-' + p).forEach(e => e.style.display = 'none');
+}
+// 送出出錯、而且錯在基本資料 → 自動展開，否則被收起來的欄位看不到要改哪裡
+function openBasicIfNeeded(p, errors) {
+  if (document.getElementById(p + '-summary').style.display === 'none') return;
+  if (errors.some(e => /會員編號|姓名|手機|推薦人|安置人|榮譽資格|CFC/.test(e))) editBasic(p);
+}
+function editBasic(p) {
+  document.getElementById(p + '-summary').style.display = 'none';
+  document.querySelectorAll('.basic-' + p).forEach(e => e.style.display = '');
+  const first = document.querySelector('.basic-' + p + ' input');
+  if (first) first.focus();
 }
 
 const ALL_SCREENS = [
@@ -1256,6 +1308,7 @@ async function handleStudentSubmit() {
   if (!/^[0-9]{5}$/.test(transferClean)) errors.push('匯款帳號後 5 碼必須是 5 位數字');
 
   if (errors.length) {
+    openBasicIfNeeded('f', errors);
     errEl.innerHTML = errors.join('<br>');
     errEl.style.display = 'block';
     errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1374,6 +1427,7 @@ async function handleCoachSubmit() {
   if (!cPlaceName) errors.push('請填寫安置人姓名');
 
   if (errors.length) {
+    openBasicIfNeeded('c', errors);
     errEl.innerHTML = errors.join('<br>');
     errEl.style.display = 'block';
     return;
