@@ -376,6 +376,50 @@ h2{font-size:1.25rem;font-weight:700}
 .sum .r .k{flex:0 0 4.6em;color:var(--txt2);font-size:.92rem}
 .sum .r .v{flex:1;font-weight:700}
 .sum .r button{flex:0 0 auto;border:1px solid rgba(212,175,55,.5);background:none;color:var(--gold2);border-radius:999px;padding:5px 12px;font-family:inherit;font-size:.85rem;cursor:pointer}
+/* ⚡ 快速看分數 v2（2026-10-22）：三階段整頁換色＋補充／消耗水位＋器官帳單卡 */
+#s-result.qk-severe{background:radial-gradient(120% 60% at 50% 0%,rgba(220,38,38,.35),transparent 70%)}
+#s-result.qk-sub{background:radial-gradient(120% 60% at 50% 0%,rgba(217,119,6,.30),transparent 70%)}
+#s-result.qk-healthy{background:radial-gradient(120% 60% at 50% 0%,rgba(22,163,74,.30),transparent 70%)}
+.qk-flash{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0}
+.qk-flash.go{animation:qkf 1.6s ease-out}
+@keyframes qkf{0%{opacity:0}15%{opacity:.85}100%{opacity:0}}
+.qk-hl{font-size:1.75rem;font-weight:900;line-height:1.35;margin-top:6px}
+.qk-severe .qk-hl{color:#ff8a8a;animation:qkp 1.4s ease-in-out infinite}
+.qk-sub .qk-hl{color:#fcd34d}.qk-healthy .qk-hl{color:#86efac}
+@keyframes qkp{50%{text-shadow:0 0 18px rgba(255,80,80,.9)}}
+.qk-dist{margin-top:12px;font-size:1.15rem;text-align:center}
+.qk-dist b{font-size:1.6rem}
+.qk-severe .qk-dist b{color:#ff8a8a}.qk-sub .qk-dist b{color:#fcd34d}.qk-healthy .qk-dist b{color:#86efac}
+.qk-chain{margin-top:12px;font-size:.95rem;color:var(--txt2);text-align:center;line-height:1.7}
+.qk-chain b{color:#ff9b9b}
+.tank{display:flex;gap:16px;align-items:center}
+.tank svg{flex:0 0 92px;height:170px}
+.tank .t1{font-size:1.25rem;font-weight:900;margin-bottom:6px}
+.tank .t2{font-size:.95rem;color:var(--txt2);line-height:1.6}
+.omap{display:grid;grid-template-columns:1fr 104px 1fr;gap:8px 6px;align-items:center;margin-top:8px}
+.omap .fig{grid-column:2;grid-row:1 / span 7;align-self:stretch;display:flex;align-items:center}
+.omap .fig svg{width:100%;height:100%;fill:rgba(255,255,255,.08);stroke:rgba(212,175,55,.6);stroke-width:1.2}
+.omap button{border:1.5px solid rgba(212,175,55,.6);background:rgba(212,175,55,.08);color:#fff;border-radius:14px;padding:8px 4px;font-family:inherit;font-size:1.05rem;font-weight:900;line-height:1.2;cursor:pointer;position:relative}
+.omap button small{display:block;font-size:.78rem;font-weight:400;color:var(--txt2);margin-top:2px}
+.omap button.seen{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.04)}
+.omap button.seen::after{content:'✓';position:absolute;top:-7px;right:-4px;background:var(--gold2);color:#111;border-radius:50%;width:18px;height:18px;font-size:.75rem;line-height:18px}
+.omodal{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px}
+.omodal.on{display:flex}
+.ocard{width:100%;max-width:380px;border-radius:22px;padding:24px 20px 18px;background:#14151b;text-align:center;animation:ocin .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes ocin{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.ocard.severe{border:2px solid #f87171;box-shadow:0 0 40px rgba(248,113,113,.45)}
+.ocard.sub{border:2px solid #fbbf24;box-shadow:0 0 40px rgba(251,191,36,.35)}
+.ocard.healthy{border:2px solid #4ade80;box-shadow:0 0 40px rgba(74,222,128,.35)}
+.ocard .og{font-size:1rem;color:var(--txt2)}
+.ocard .od{font-size:1.6rem;font-weight:900;margin:4px 0 14px}
+.ocard .onum{font-size:clamp(1.7rem,9vw,2.4rem);white-space:nowrap;font-weight:900;line-height:1.1;color:var(--gold2)}
+.ocard .om{font-size:1rem;margin-top:8px;line-height:1.6}
+.ocard .os{font-size:.78rem;color:var(--muted);margin-top:10px}
+.ocard .ot{margin-top:16px;padding:12px;border-radius:14px;font-weight:900;font-size:1.05rem;line-height:1.5}
+.ocard.severe .ot{background:rgba(220,38,38,.18);color:#ffb4b4}
+.ocard.sub .ot{background:rgba(217,119,6,.18);color:#fde68a}
+.ocard.healthy .ot{background:rgba(22,163,74,.18);color:#bbf7d0}
+.ocard.healthy .onum{opacity:.6}
 </style>
 </head>
 <body>
@@ -560,6 +604,8 @@ h2{font-size:1.25rem;font-weight:700}
   <button data-s="me" id="nav-me" onclick="go('me')" style="display:none"><span>👤</span>我的</button>
 </nav>
 <div class="toast" id="toast"></div>
+<div class="qk-flash" id="qk-flash"></div>
+<div class="omodal" id="omodal" onclick="if(event.target===this)closeOrgan()"><div class="ocard" id="ocard"></div></div>
 
 <script>
 // ══════════════ 設定 ══════════════
@@ -1114,6 +1160,7 @@ function ladderHTML(a){
 
 // 幫已綁定 LINE 的人測：只顯示剛輸入的 KC，報告只有本人看得到
 function showHidden(r){
+  $('s-result').classList.remove('qk-severe', 'qk-sub', 'qk-healthy');
   $('r-head').innerHTML = `<div class="t"><small>KC SAVED</small>已存進本人的紀錄</div>`;
   $('r-chap').textContent = '這次輸入';
   $('r-light').style.display = 'none';
@@ -1320,6 +1367,7 @@ async function showResult(r){
   LAST_REPORT_ME = a ? { score: Number(a.score), gender: a.gender, age_band: a.age_band, occupation: a.occupation, region: a.region } : null;
   const band = a ? a.band : (score<5 ? 'severe' : score<8 ? 'sub' : 'healthy');
   $('r-light').style.display = 'none';
+  $('s-result').classList.remove('qk-severe', 'qk-sub', 'qk-healthy');
   $('r-chap').textContent = '一、健康分數';
   $('r-head').innerHTML = `<div class="t"><small>KC HEALTH REPORT</small>個人抗氧化力檢測報告</div>
     <div class="meta"><span>報告編號</span><b>${a ? a.report_no : '—'}</b>
@@ -1348,6 +1396,59 @@ async function showResult(r){
   requestAnimationFrame(() => setTimeout(() =>
     document.querySelectorAll('#r-extra [data-w]').forEach(e => e.style.width = e.dataset.w), 150));
 }
+// ── 補充／消耗水位（工作人員從這裡講「身體每天都在補充、也每天都在消耗」）──
+function tankHTML(health, band){
+  const col = { severe:'#ef4444', sub:'#f59e0b', healthy:'#22c55e' }[band];
+  const T = { severe:['消耗 ＞ 補充','身體正在透支'], sub:['補充 ≈ 消耗','只夠打平，存不下來'], healthy:['補充 ＞ 消耗','還有存量'] }[band];
+  const top = 10, bot = 200, Y = v => bot - v/12*(bot-top);
+  return `<div class="card"><div class="chap">身體的抗氧化存量</div><div class="tank">
+    <svg viewBox="0 0 92 210"><rect x="10" y="${top}" width="72" height="${bot-top}" rx="12" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.3)"/>
+      <rect id="tank-w" data-k="${(Math.min(12, health)/12).toFixed(3)}" x="12" y="${top+2}" width="68" height="${bot-top-4}" rx="10" fill="${col}" opacity=".85"
+        style="transform:scaleY(0);transform-box:fill-box;transform-origin:bottom;transition:transform 1.4s cubic-bezier(.2,.8,.2,1)"/>
+      <line x1="2" y1="${Y(8)}" x2="90" y2="${Y(8)}" stroke="#fff" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="46" y="${Y(8)-6}" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke" font-size="12" font-weight="900" text-anchor="middle">健康線 8</text></svg>
+    <div><div class="t1" style="color:${col}">${T[0]}</div><div class="t1" style="font-size:1.05rem">${T[1]}</div>
+      <div class="t2">熬夜、壓力、外食、空污，每天都在用掉抗氧化力；<br>蔬果和營養，是把它補回來。</div></div></div></div>`;
+}
+// ── 器官帳單卡（2026-10-22 游育杰定：問「你最在意哪裡」→ 點了才彈卡，專注一張）──
+// 數字全部照抄 wiki 醫療費用百科（行號見 CHANGELOG 2026-10-22），不估算。洗腎 57 萬是健保支出（病人免付）
+const ORGANS = [
+  // [id, 器官, 病名, 大數字, 說明, 來源]  左欄 7 個、右欄 7 個，由上而下約略對應身體位置
+  ['stroke','腦','中風失能','每月 7 萬以上','中風後需要人照顧，本籍看護長期居家的行情；健保不付看護','看護市場行情（優照護）'],
+  ['eye','眼睛','黃斑部病變','一針 3.5～4.5 萬','眼內注射；健保每眼最多給付 14 針，之後全部自費','健保署給付規定、眼科診所公告價'],
+  ['heart','心臟','心肌梗塞','一支 55,901 元','塗藥支架的自費差額，常常一次要放 1～4 支','奇美醫院自費價目（2023）'],
+  ['liver','肝','肝癌','70～80 萬','釔-90 放射栓塞，一次的自費費用','台灣肝病防治學術基金會（2023）'],
+  ['kidney','腎','洗腎','一年 57 萬','健保每年替每位洗腎病人付的錢；每週 3 次、一輩子','衛生福利部'],
+  ['uterus','子宮','子宮肌瘤','26～29 萬','海芙刀（自費）','台北秀傳醫院'],
+  ['joint','關節','膝關節退化','40～50 萬','機器手臂人工膝關節置換，全自費','骨科醫師衛教'],
+  ['dementia','記憶','失智症','一年逾百萬','新型失智症藥物的年藥費，健保尚未給付','健保署長受訪（中央社 2025-07）'],
+  ['lung','肺','肺癌','50～100 萬','質子治療完整療程的自費價','林口長庚質子治療中心'],
+  ['breast','乳房','乳癌','15～30 萬','切除後用自體組織重建乳房（自費）','台灣整形外科醫學會'],
+  ['stomach','胃','胃癌','9～12 萬','早期胃癌內視鏡黏膜下剝離術（自費）','馬偕醫院'],
+  ['colon','大腸','大腸癌','40～50 萬','達文西直腸癌手術，手術加耗材','長庚醫院、健保署'],
+  ['bone','骨骼','骨鬆骨折','一片 5～7 萬','骨折固定用的鈦合金骨板（自費）','保險理賠案例整理（2023）'],
+  ['skin','皮膚','乾癬','一年 40～60 萬','生物製劑，不符健保條件時自費','醫師與病友團體'],
+];
+const ORGAN_TONE = { severe:'慢性發炎的帳單，長這樣', sub:'帳單還沒寄來，但已經在路上', healthy:'✓ 這張帳單，目前離你很遠' };
+let QK_BAND = 'sub', QK_SEEN = new Set();
+const BODY_PATH = 'M60 46 C38 46 28 58 26 78 L20 128 C19 136 30 138 32 130 L38 92 L40 140 L36 208 C35 218 50 218 51 208 L58 150 L62 150 L69 208 C70 218 85 218 84 208 L80 140 L82 92 L88 130 C90 138 101 136 100 128 L94 78 C92 58 82 46 60 46 Z';
+function organMapHTML(){
+  const btn = (o, col, row) => `<button id="org-${o[0]}" style="grid-column:${col};grid-row:${row}" onclick="openOrgan('${o[0]}')">${o[1]}<small>${o[2]}</small></button>`;
+  return `<div class="card"><div class="chap">你最在意哪裡？</div><p class="sub" style="margin:2px 0 4px">點一下，看看那裡出問題要付出什麼代價</p>
+    <div class="omap"><div class="fig"><svg viewBox="0 0 120 220" preserveAspectRatio="xMidYMid meet"><circle cx="60" cy="26" r="18"/><path d="${BODY_PATH}"/></svg></div>
+    ${ORGANS.slice(0,7).map((o,i) => btn(o, 1, i+1)).join('')}${ORGANS.slice(7).map((o,i) => btn(o, 3, i+1)).join('')}</div></div>`;
+}
+function openOrgan(id){
+  const o = ORGANS.find(x => x[0]===id); if (!o) return;
+  QK_SEEN.add(id); const b = $('org-'+id); if (b) b.classList.add('seen');
+  $('ocard').className = 'ocard ' + QK_BAND;
+  $('ocard').innerHTML = `<div class="og">${o[1]}</div><div class="od">${o[2]}</div>
+    <div class="onum">${o[3]}</div><div class="om">${o[4]}</div><div class="os">資料來源：${o[5]}</div>
+    <div class="ot">${ORGAN_TONE[QK_BAND]}</div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="closeOrgan()">看別的地方 →</button>`;
+  $('omodal').classList.add('on');
+}
+function closeOrgan(){ $('omodal').classList.remove('on'); }
 // ⚡ 快速看分數的結果：只在畫面上算，不寫資料庫（kc_stats 只讀）
 async function showQuick(){
   const btn = $('q-next'); btn.disabled = true; btn.textContent = '計算中…';
@@ -1361,15 +1462,26 @@ async function showQuick(){
   const care = (s && s.care_scores) || [], no = (s && s.nocare_scores) || [], all = care.concat(no);
   const avg = a => a.reduce((x,y) => x+y, 0) / a.length;
 
+  // 三階段：整頁換色＋一句大標＋離健康線多遠（2026-10-22 游育杰：會場沒耐心，要直接、要恐嚇）
+  const beat = all.length >= ST_MIN ? Math.min(99, Math.round(all.filter(v => v < score).length / all.length * 100)) : null;
+  const toLine = +(8 - health).toFixed(1);
+  QK_BAND = band; QK_SEEN = new Set();
+  const HL = { severe:'你的抗氧化力，<br>快見底了', sub:'你每天都在打平，<br>沒有在存',
+    healthy: beat != null ? `你贏過全場 ${beat}% 的人` : '你的抗氧化力<br>在高水準' };
+  $('s-result').classList.remove('qk-severe', 'qk-sub', 'qk-healthy');
+  $('s-result').classList.add('qk-' + band);
   $('r-light').style.display = 'none';
   $('r-chap').textContent = '健康分數';
-  $('r-head').innerHTML = `<div class="t"><small>KC QUICK CHECK</small>現場快速看分數</div>`;
+  $('r-head').innerHTML = `<div class="t"><small>KC QUICK CHECK</small><div class="qk-hl">${HL[band]}</div></div>`;
   $('r-sub').innerHTML = scaleHTML() + `<span class="band ${band}"><span class="face">${BAND_FACE[band]}</span>${BAND_NAME[band]}</span>
     <div style="margin-top:10px">機器 KC <b>${score.toFixed(1)}</b>${deduct ? ` → 健康分數 <b>${health.toFixed(1)}</b>（慢性病藥 ${MEDS_NAME[ANS.chronic_meds]} −${deduct}）` : ''}</div>`;
-  $('r-msg').textContent = '';
+  $('r-msg').innerHTML = (band === 'healthy'
+      ? `<div class="qk-dist">高出健康線 <b>${(-toLine).toFixed(1)}</b> 分</div>`
+      : `<div class="qk-dist">離健康線 8 分，還差 <b>${toLine.toFixed(1)}</b> 分</div>`)
+    + (band === 'severe' ? `<div class="qk-chain">抗氧化力不夠 → 自由基累積 → <b>全身慢性發炎</b> → <b>慢性病、細胞癌化</b><br><small style="color:var(--muted)">資料來源：展翅月刊 2019 年 4 月號</small></div>` : '');
 
   // 你的位置：全部測過的人（每人最新一次）裡贏過多少
-  let pos = all.length >= ST_MIN ? `<div>你贏過全部測過的人裡 <b>${Math.round(all.filter(v => v < score).length / all.length * 100)}%</b></div>`
+  let pos = beat != null ? `<div>你贏過全部測過的人裡 <b>${beat}%</b></div>`
     : `<div>人數還在累積，你的位置已經標在圖上</div>`;
   // 有吃 vs 沒吃
   let gap;
@@ -1380,15 +1492,20 @@ async function showQuick(){
       <div class="l" style="margin-top:8px;font-weight:700">你在「${taking ? '有保養' : '沒保養'}」這一邊${taking ? '' : `，跟有保養的人平均差 ${Math.max(0, c - score).toFixed(1)}`}</div></div>`;
   } else gap = `<div class="gap wait"><div class="l">有植化素保養 vs 沒保養，KC 平均差多少</div><div class="v">收集中</div></div>`;
 
-  $('r-extra').innerHTML = `<div class="card"><div class="chap">你站在哪裡</div>
+  // 順序：補充／消耗 → 你最在意哪裡（器官帳單卡）→ 你站在哪裡 → 有保養 vs 沒保養（費用和保養隔開，不暗示療效）
+  $('r-extra').innerHTML = tankHTML(health, band) + organMapHTML() + `<div class="card"><div class="chap">你站在哪裡</div>
       <svg class="dist" id="q-dist" viewBox="0 0 340 190"></svg>
       <div class="dist-leg"><span><i style="background:var(--gold2)"></i>有植化素保養</span><span><i style="background:#8f8d86"></i>沒保養</span><span><i style="background:#fff"></i>你</span></div>
-      <div class="pos">${pos}</div></div>` + gap + bandCardsHTML(band);
+      <div class="pos">${pos}</div></div>` + gap;
   drawDist($('q-dist'), care, no, { score });
   $('r-actions').innerHTML = `<div class="note">這次<b>沒有存檔</b>。想保存紀錄、看完整的生活習慣體檢和建議量 👇</div>
     <button class="btn btn-gold" onclick="pickLine()">用 LINE 進入，保存紀錄</button>
     <button class="btn btn-line" onclick="pickQuick()">⚡ 再測一位</button>`;
   go('result');
+  const fl = $('qk-flash');
+  fl.style.background = { severe:'#dc2626', sub:'#d97706', healthy:'#16a34a' }[band];
+  fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+  requestAnimationFrame(() => setTimeout(() => { const w = $('tank-w'); if (w) w.style.transform = `scaleY(${w.dataset.k})`; }, 200));
   $('r-score').textContent = '0.0';
   countUp($('r-score'), health, 1000);
   const ptr = $('r-ptr');
