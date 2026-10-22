@@ -619,8 +619,8 @@
           <p class="hint" style="margin:0 0 8px"><b>進階行動組資格</b>（符合任一）</p>
           <div class="track-pick">
             <label class="track-opt"><input type="radio" name="adv-route" value="direct10">
-              <span class="track-body"><b>① 已累積直推 10 位</b>
-                <small>直推一律算 001（自己分店、別人的加開單位不算）</small></span></label>
+              <span class="track-body"><b>① 累積直推 10 人（001）</b>
+                <small>自己分店、別人的加開單位不算</small></span></label>
             <label class="track-opt"><input type="radio" name="adv-route" value="bring2">
               <span class="track-body"><b>② 這一期帶 2 位夥伴參加學習組</b>
                 <small>11/3 報名截止時結算，不足 2 位會安排到初階行動組</small></span></label>
@@ -629,9 +629,20 @@
             <input type="number" id="f-direct-count" min="10" max="999" inputmode="numeric" placeholder="你目前累積直推 001 幾位？">
           </div>
           <p class="hint" style="margin:14px 0 8px"><b>三項基本功宣誓</b>（三項都要勾）</p>
-          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 我會講溝通本</label>
-          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 我有在使用月計劃表</label>
-          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 我跟自己的領袖每週有固定的作戰會議</label>
+          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> CFC 認證溝通本</label>
+          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge"> 會使用月計劃表</label>
+          <label class="pl" style="display:flex;gap:8px;margin:6px 0"><input type="checkbox" class="adv-pledge" id="pledge-meeting"> 每週固定作戰會議</label>
+          <!-- 2026-10-22 Randoph：作戰會議必須寫出哪一天哪個時段 -->
+          <div id="meetingBox" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:2px 0 6px">
+            <select id="f-meet-day">
+              <option value="">星期幾</option>
+              <option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option>
+              <option>星期五</option><option>星期六</option><option>星期日</option>
+            </select>
+            <input type="time" id="f-meet-from" aria-label="開始時間">
+            <input type="time" id="f-meet-to" aria-label="結束時間">
+          </div>
+          <p class="hint" style="margin-top:0">作戰會議填：<b>星期幾、從幾點到幾點</b>（例：星期二 20:00–21:00）</p>
           <p class="hint">報名截止後由教練認定。<b>未通過認定者安排至初階行動組，不會取消你的報名。</b></p>
         </div>
 
@@ -1071,7 +1082,7 @@ document.addEventListener('input', e => {
 const TRACK_CARD = {   // ⚠️ 不能叫 TRACKS：consts.js 已有同名常數（後台用的班別名稱）
   learn:    { name: '學習組',     goal: '目標 直推 1', desc: '前兩週上完 17 單元，後兩週全力行動。' },
   basic:    { name: '初階行動組', goal: '目標 直推 2', desc: '不用重新上課，開班第一天就開始行動。' },
-  advanced: { name: '進階行動組', goal: '目標 2+4',    desc: '直推 2 位＋第二代合計 4 位。須直推 10 或這期帶 2 位，並具備三項基本功。' },
+  advanced: { name: '進階行動組', goal: '目標 2+4',    desc: '組織延伸 4 位。資格：累積直推 10 人（001）或這期帶 2 位參加學習組，並具備三項基本功。' },
   lifetime: { name: '終身行動組', goal: '目標 CFC',    desc: '已達成高峰或終身成就，由有成績的 CFC 親自帶領。' },
 };
 let learnedOK = false;   // 上過學習組沒（鐵規則）
@@ -1099,6 +1110,10 @@ function renderTrackPick() {
       <label class="track-opt"><input type="radio" name="track" value="${k}"${i === 0 ? ' checked' : ''}>
         <span class="track-body"><b>${TRACK_CARD[k].name}</b><em>${TRACK_CARD[k].goal}</em>
           <small>${TRACK_CARD[k].desc}</small></span></label>`).join('');
+    // 附加欄位緊接在對應卡片下面（2026-10-22 Randoph：原本固定接在整串最後，進階的框跑到終身組下面「超怪」）
+    const under = (k, id) => box.querySelector(`input[value="${k}"]`).closest('label').after(document.getElementById(id));
+    under('advanced', 'advExtra');
+    under('lifetime', 'lifeExtra');
   }
   updateTrackHint();
   onTrackChange();
@@ -1154,6 +1169,9 @@ async function handleStudentSubmit() {
   const directCount = parseInt(document.getElementById('f-direct-count').value, 10);
   const pledged     = [...document.querySelectorAll('.adv-pledge')].every(c => c.checked);
   const lifeRank    = (document.querySelector('input[name="life-rank"]:checked') || {}).value || null;
+  const meetDay     = document.getElementById('f-meet-day').value;
+  const meetFrom    = document.getElementById('f-meet-from').value;
+  const meetTo      = document.getElementById('f-meet-to').value;
   const i6 = INTRO_Q.map((q, n) => {
     const el = document.getElementById('i6-' + (n + 1));
     return { q, a: el ? el.value.trim() : '' };
@@ -1192,6 +1210,8 @@ async function handleStudentSubmit() {
     if (!advRoute) errors.push('請選擇進階行動組的資格（直推 10 位，或這期帶 2 位）');
     if (advRoute === 'direct10' && !(directCount >= 10)) errors.push('選「已累積直推 10 位」，請填你目前的直推人數（10 以上）');
     if (!pledged) errors.push('進階行動組的三項基本功宣誓都要勾');
+    if (!meetDay || !meetFrom || !meetTo) errors.push('每週固定作戰會議：請填星期幾、從幾點到幾點');
+    else if (meetTo <= meetFrom) errors.push('作戰會議的結束時間要晚於開始時間');
   }
   if (track === 'lifetime' && !lifeRank) errors.push('請選擇你已達成的是高峰還是終身成就');
   if (!coachId)     errors.push('請選擇引路人（帶你來的教練）');
@@ -1226,6 +1246,7 @@ async function handleStudentSubmit() {
       self_rank:     track === 'lifetime' ? lifeRank : null,
       pledge_at:     track === 'advanced' && pledged ? new Date().toISOString() : null,
       advance_route: track === 'advanced' ? advRoute : null,
+      meeting_slot:  track === 'advanced' ? `${meetDay} ${meetFrom}–${meetTo}` : null,
       group_name:    null,           // 分組（第X組）開班前由教練團分配，報名時還沒有
       introduction:  intro || null,  // 學習組免填；三個行動組必填
       name_list:     [],
