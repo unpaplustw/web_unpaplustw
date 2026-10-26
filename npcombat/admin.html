@@ -2558,7 +2558,22 @@ function updBtn() { const b=document.getElementById('btnPair'); if(!b)return; b.
 // ════════════════════════════════════════════
 // DB
 // ════════════════════════════════════════════
-async function approveCoach(id)  { const{error}=await sb.from('batch_coaches').update({status:'approved'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('教練已批准'); await load(); }
+// 批准教練＝順便建「教練的學員身分」（batch_students，coach_id 必須是 null，否則教練會在學員清單看到自己）。
+//   教練也要回報自己的行動，沒這筆「儲存我的回報」是灰的——27 期六天存不了、29 期 8 位又漏（2026-10-26 改成自動）。
+async function approveCoach(id) {
+  const { error } = await sb.from('batch_coaches').update({ status: 'approved' }).eq('id', id);
+  if (error) return alert('失敗：' + error.message);
+  const c = coaches.find(x => x.id === id);
+  if (c) {
+    const { data: has } = await sb.from('batch_students').select('id').eq('batch_id', bid).eq('member_id', c.member_id).maybeSingle();
+    if (!has) {
+      const { error: e2 } = await sb.from('batch_students').insert({ batch_id: bid, member_id: c.member_id, status: 'approved',
+        coach_id: null, sponsor_id: null, group_name: '啟動班', payment_confirmed: false });
+      if (e2) alert('教練已批准，但學員身分沒建成（他會存不了自己的回報）：' + e2.message);
+    }
+  }
+  toast('教練已批准'); await load();
+}
 async function rejectCoach(id)   { if(!confirm('確認拒絕此教練？'))return; const{error}=await sb.from('batch_coaches').update({status:'rejected'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('教練已拒絕'); await load(); }
 async function approveStudent(id){ const{error}=await sb.from('batch_students').update({status:'approved'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('學員已批准'); await load(); }
 async function rejectStudent(id) { if(!confirm('確認拒絕此學員？'))return; const{error}=await sb.from('batch_students').update({status:'rejected'}).eq('id',id); if(error)return alert('失敗：'+error.message); toast('學員已拒絕'); await load(); }
