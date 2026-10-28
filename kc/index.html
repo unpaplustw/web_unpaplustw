@@ -699,18 +699,24 @@ async function init(){
   // 2026-10-19 認人改成 LINE 驗證過才算：拿 LIFF ID token → kc_login 向 LINE 驗證 → 換 12 小時通行碼
   //   之後 caller 存的是通行碼（不是 LINE userId），所有 RPC 由伺服器換回本人，偽造不了
   const q = new URLSearchParams(location.search);
+  const wantLine = q.get('resume') === 'line';   // 從 liff.line.me 連結進來＝要接著用 LINE 填
   if (q.get('sess')) { caller = q.get('sess'); }   // 測試用：直接帶伺服器發的通行碼
   else {
+    if (wantLine) toast('LINE 驗證中…');
     try {
-      await liff.init({ liffId: LIFF_ID });
+      await withTimeout(liff.init({ liffId: LIFF_ID }), 10000);
       if (liff.isLoggedIn()) {
         const idt = liff.getIDToken();
-        const { data } = await sb.rpc('kc_login', { p_id_token: idt });
+        const { data } = await withTimeout(sb.rpc('kc_login', { p_id_token: idt }), 10000);
         if (data && data.ok) caller = data.token;
         else { console.warn('kc_login 失敗', data); toast('LINE 驗證沒通過，請重新開啟頁面，或先用手機號碼'); }
-      }
-    } catch(e) { console.warn('LIFF 未啟用，未登入狀態', e); }
+      } else if (wantLine) toast('還沒登入 LINE，請再按一次「用 LINE 進入」');   // 不自動 login()，避免來回跳的迴圈
+    } catch(e) {
+      console.warn('LIFF 未啟用或逾時，未登入狀態', e);
+      if (wantLine) toast('LINE 連線太慢，請先用「📱 用手機號碼」');
+    }
   }
+  if (wantLine) { try { history.replaceState(null, '', location.pathname); } catch(_) {} }
   if (caller) {
     try { const { data } = await sb.rpc('kc_my_profile', { p_caller: caller }); profile = data || {}; } catch(_) { profile = {}; }
     TIER = profile.tier || 'trial';
@@ -718,7 +724,7 @@ async function init(){
     // 從 LINE 登入頁回來 → 直接接著填
     let resume = null;
     try { resume = localStorage.getItem('kc_resume'); localStorage.removeItem('kc_resume'); } catch(_) {}
-    if (resume === 'line') startLine();
+    if (resume === 'line' || wantLine) startLine();
   }
 }
 function doLogin(){
@@ -735,13 +741,21 @@ function pickPhone(){ MODE = 'phone'; startSurvey(); }
 let QUICK = false;
 const QUICK_IDS = ['chronic_meds', 'units_all', 'score'];
 function pickQuick(){ MODE = 'phone'; startSurvey(true); }
+// 2026-10-28 修：在手機瀏覽器／LINE 聊天室直接開一般網址時，liff.login() 授權完常跳不回來（游育杰幫 80 多歲會員測時卡住，
+//   伺服器完全沒收到 kc_login）。改成不在原頁授權：直接用 LIFF 正式連結在 LINE 裡打開本頁，LINE 裡本來就是登入狀態，不必再授權
 function pickLine(){
   if (!caller) {
     try { localStorage.setItem('kc_resume', 'line'); } catch(_) {}
-    doLogin(); return;
+    let inClient = false;
+    try { inClient = liff.isInClient(); } catch(_) {}
+    if (inClient) { doLogin(); return; }
+    toast('正在打開 LINE…');
+    location.href = `https://liff.line.me/${LIFF_ID}?resume=line`;
+    return;
   }
   startLine();
 }
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 function startLine(){
   MODE = 'line'; startSurvey();
   // 綁過的直接用自己的手機查，跳過手機題
