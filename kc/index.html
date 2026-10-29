@@ -777,7 +777,8 @@ const ITEMS = [
   { id:'phone', step:0, label:'手機號碼', type:'phone',
     hint:()=> MODE==='line' ? '你自己的手機，只要填這一次，之後用 LINE 進來就自動帶出'
       : `<span style="display:block;margin-top:4px;padding:10px 12px;border-radius:12px;background:var(--red-bg);border:1px solid rgba(248,113,113,.5);color:#fff;font-size:1rem;line-height:1.6">⚠️ 請輸入<b style="color:#ff9b9b">受測者本人</b>的手機。<br>幫別人測時<b style="color:#ff9b9b">不要填自己的</b>，不然兩個人的紀錄會混在一起。</span>
-         <span style="display:block;margin-top:8px">測過的人，下次輸入同一支手機會自動帶出上次資料</span>` },
+         <span style="display:block;margin-top:8px">測過的人，下次輸入同一支手機會自動帶出上次資料</span>
+         <span style="display:block;margin-top:6px">📱 手機號碼最多保留最近 10 次紀錄；用 LINE 登錄可以一直記錄不會少</span>` },
   { id:'gender', step:1, label:'性別', type:'choice', cols:2, opts:[['male','男'],['female','女']] },
   { id:'birth_year', step:1, label:'幾年次的', type:'year' },
   { id:'occupation', step:1, label:'現在的工作', type:'choice', cols:2, hint:'以八成收入來源為準',
@@ -1405,6 +1406,11 @@ async function showResult(r){
   $('r-extra').innerHTML = a ? peersHTML(a) + prevPledgeHTML(a) + checkupHTML(a) + note + ladderHTML(a) : bandCardsHTML(band) + note;
   let acts = '';
   if (mine) acts += `<button class="btn btn-gold" onclick="go('me')">📈 看我的歷次變化</button>`;
+  // 2026-10-29 游育杰：沒綁 LINE 最多留最近 10 次，鼓勵用 LINE 登錄（一直記錄不會少）
+  else if (r.bound === false) acts += `<div class="note">📱 用手機號碼，最多只保留<b>最近 10 次</b>紀錄（這支手機目前 ${r.count || 1} 次），第 11 次起會擠掉最舊的。<br>
+      用 LINE 登錄，<b>一直記錄不會少</b>，而且只有本人看得到。</div>`
+    + (caller ? `<p class="sub" style="margin:-6px 0 14px">請他用<b>自己的 LINE</b> 打開 KC，輸入這支手機測一次，紀錄就會全部接上。</p>`
+              : `<button class="btn btn-gold" onclick="pickLine()">用 LINE 登錄，永久保存紀錄</button>`);
   acts += `<button class="btn btn-line" onclick="pickPhone()">📝 再測一位</button>
     <button class="btn btn-ghost" onclick="STAT_CTX = LAST_REPORT_ME; go('compare')">📍 看你在全台的位置</button>`;
   $('r-actions').innerHTML = acts;
