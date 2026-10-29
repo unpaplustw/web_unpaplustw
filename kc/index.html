@@ -699,12 +699,17 @@ async function init(){
   // 2026-10-19 認人改成 LINE 驗證過才算：拿 LIFF ID token → kc_login 向 LINE 驗證 → 換 12 小時通行碼
   //   之後 caller 存的是通行碼（不是 LINE userId），所有 RPC 由伺服器換回本人，偽造不了
   const q = new URLSearchParams(location.search);
-  const wantLine = q.get('resume') === 'line';   // 從 liff.line.me 連結進來＝要接著用 LINE 填
+  // 從 liff.line.me 連結進來＝要接著用 LINE 填。2026-10-29 修：LINE 會把 resume=line 包在 liff.state 裡，
+  //   liff.init 之後才解開改寫網址 → 初始化前後各讀一次（之前只讀「前」，登入完都回封面，游育杰要再滑到最下面）
+  const readWant = () => { const s = new URLSearchParams(location.search);
+    return s.get('resume') === 'line' || decodeURIComponent(s.get('liff.state') || '').includes('resume=line'); };
+  let wantLine = readWant();
   if (q.get('sess')) { caller = q.get('sess'); }   // 測試用：直接帶伺服器發的通行碼
   else {
     if (wantLine) toast('LINE 驗證中…');
     try {
       await withTimeout(liff.init({ liffId: LIFF_ID }), 10000);
+      wantLine = wantLine || readWant();
       if (liff.isLoggedIn()) {
         const idt = liff.getIDToken();
         const { data } = await withTimeout(sb.rpc('kc_login', { p_id_token: idt }), 10000);
