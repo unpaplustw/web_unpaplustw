@@ -69,6 +69,10 @@
   .tp-u.is-today{border-color:var(--gold)}
   .tp-u .tp-block{margin:0;padding:0 12px 12px}
   .tp-u .tp-uname{display:none}   /* 標題列已經有單元名，展開後不再重複 */
+  .tp-copy{display:block;width:100%;margin-top:12px;padding:12px;border:none;border-radius:12px;
+           background:var(--gold);color:#fff;font-family:inherit;font-size:15.5px;font-weight:800;cursor:pointer;
+           -webkit-tap-highlight-color:transparent}
+  .tp-copy:active{opacity:.85}
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -556,8 +560,40 @@ function unitBlock(u) {
   return `<div class="tp-block">`
     + `<div class="tp-uname"><span>第 ${u.no} 單元</span>${esc(u.n)}</div>`
     + (u.v ? `<div class="tp-video"><iframe src="${vimeoSrc(u.v)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy" title="第${u.no}單元 ${esc(u.n)}"></iframe></div>` : '')
-    + (hw ? `<div class="tp-hw-t">✍️ 作業</div><ol class="tp-hw">${hw}</ol>` : '')
+    + (hw ? `<div class="tp-hw-t">✍️ 作業</div><ol class="tp-hw">${hw}</ol>`
+          + `<button class="tp-copy" onclick="copyHW(${u.no})">📋 一鍵複製作業，貼到小組群直接寫</button>` : '')
     + `</div>`;
+}
+
+// 📋 學員一鍵複製作業（2026-11-06 Randoph）：貼到自己的 LINE 小組直接作答。
+//   標題帶上課日期＋單元＋姓名（教練一眼知道是誰、哪一天）；每題下面留「→」接著寫，
+//   錄音／錄影／照片題就在那一題下面傳檔案。
+function hwCopyText(u) {
+  let ds = '';
+  Object.entries(SCHEDULE || {}).forEach(([d, nos]) => { if (nos.includes(u.no)) ds = d; });
+  const date = ds ? (([, m, d]) => `${+m}/${+d} `)(ds.split('-')) : '';
+  const nm = (document.getElementById('userName') || {}).textContent || '';
+  const who = /載入中|無法使用/.test(nm) ? '' : `｜${nm.trim()}`;
+  const qs = (u.hw || []).map((q, i) => `${i + 1}. ${q.replace(/^\s*\d+[\.、．]\s*/, '')}\n→ `).join('\n\n');
+  return `📖 ${date}第${u.no}單元 ${u.n} 作業${who}\n\n${qs}`;
+}
+function copyHW(no) {
+  const u = UNITS.find(x => x.no === no);
+  if (!u) return;
+  const text = hwCopyText(u);
+  const done = () => toast('✅ 已複製，到小組群貼上作答');
+  // LINE 內建瀏覽器有時不支援 navigator.clipboard → 退回舊方法
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+    ok ? done() : toast('⚠️ 複製失敗，請長按題目自行複製');
+  };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
 }
 function renderTodayCard() {
   const el = document.getElementById('todayCard');
