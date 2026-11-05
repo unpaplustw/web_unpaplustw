@@ -46,6 +46,29 @@
   .tp-title{font-size:16px;font-weight:800;color:var(--gold);margin-bottom:10px}
   .tp-unit{font-size:16px;line-height:2;color:var(--text)}
   .tp-note{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13.5px;font-weight:700;color:var(--gold)}
+  /* 2026-11-06 影片＋作業直接放這裡（Randoph：學員在作業那邊直接看影片，不用跳來跳去） */
+  .tp-block{text-align:left;margin-top:14px}
+  .tp-block + .tp-block{border-top:1px dashed var(--border);padding-top:14px}
+  .tp-uname{font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px}
+  .tp-uname span{color:var(--gold);margin-right:6px}
+  .tp-video{position:relative;width:100%;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#1e1b16}
+  .tp-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .tp-hw-t{font-size:14px;font-weight:800;color:var(--gold);margin:12px 0 6px}
+  .tp-hw{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .tp-hw li{display:flex;gap:8px;font-size:15px;line-height:1.7;color:var(--text)}
+  .tp-hw li b{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gold-lt);color:var(--gold);font-size:12px;
+              display:flex;align-items:center;justify-content:center;margin-top:3px}
+  .tp-tag{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:var(--gold);border-radius:6px;padding:0 6px;margin-left:4px;white-space:nowrap}
+  .tp-none{font-size:15px;color:var(--muted);line-height:1.8}
+  .tp-all{margin-top:14px;text-align:left;border-top:1px solid var(--border);padding-top:10px}
+  .tp-all > summary{font-size:14.5px;font-weight:700;color:var(--gold);cursor:pointer;padding:6px 0;list-style:none}
+  .tp-all > summary::-webkit-details-marker,.tp-u > summary::-webkit-details-marker{display:none}
+  .tp-u{border:1.5px solid var(--border);border-radius:12px;margin-top:8px;background:var(--bg)}
+  .tp-u > summary{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;font-size:15px;cursor:pointer;list-style:none}
+  .tp-u > summary small{color:var(--muted);flex-shrink:0}
+  .tp-u.is-today{border-color:var(--gold)}
+  .tp-u .tp-block{margin:0;padding:0 12px 12px}
+  .tp-u .tp-uname{display:none}   /* 標題列已經有單元名，展開後不再重複 */
   .act{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);transition:border-color .2s;display:flex;align-items:center;gap:12px}
   .act.has-value{border-color:var(--gold)}
   .act-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -517,19 +540,51 @@ async function resolveBatchId() {
 
 // 🔴 2026-09-13 Randoph 定：回到 27 期的單頁框架——不要頁籤。
 //   順序：①（學習組）今天的課程 ／（行動・精英）鼓勵的話 → ② 行動紀錄。
-//   作業題目不放這頁，學員看教練貼到小組群的作業文案（教練專區一鍵複製，同樣讀 units.js）。
-//   沒排課的日子（週末、9/25 中秋、學習期結束後）卡片不出現——與 27 期原設計相同。
+//   🔴 2026-11-06 改（Randoph）：學習組「今天的課程」直接播影片＋列作業題目，學員不用在官網、群組之間跳來跳去。
+//      推翻 9/13「作業題目不放這頁」；作業還是交到小組群，教練專區的一鍵複製文案不變（同樣讀 units.js）。
+//      今天的單元整塊展開；下面「全部 17 單元」收合，點開才載入影片（不一次讀 17 支）。
+//      影片走 Vimeo 嵌入（舊站未設網域白名單，8/3 實測可嵌；流量走 Vimeo 不計 Cloudflare）。
+const vimeoSrc = v => `https://player.vimeo.com/video/${v}?title=0&byline=0&portrait=0&dnt=1&playsinline=1`;
+const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+function unitBlock(u) {
+  const hw = (u.hw || []).map((q, i) => {
+    const text = q.replace(/^\s*\d+[\.、．]\s*/, '');
+    const tag = (text.match(/【[^】]+】\s*$/) || [''])[0];
+    const body = esc(text.replace(/【[^】]+】\s*$/, ''));
+    return `<li><b>${i + 1}</b><div>${body}${tag ? `<span class="tp-tag">${esc(tag.replace(/[【】]/g, ''))}</span>` : ''}</div></li>`;
+  }).join('');
+  return `<div class="tp-block">`
+    + `<div class="tp-uname"><span>第 ${u.no} 單元</span>${esc(u.n)}</div>`
+    + (u.v ? `<div class="tp-video"><iframe src="${vimeoSrc(u.v)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy" title="第${u.no}單元 ${esc(u.n)}"></iframe></div>` : '')
+    + (hw ? `<div class="tp-hw-t">✍️ 作業</div><ol class="tp-hw">${hw}</ol>` : '')
+    + `</div>`;
+}
 function renderTodayCard() {
   const el = document.getElementById('todayCard');
-  if (!el || myTrack !== 'learn') return;          // 行動／精英組的鼓勵卡：金句清單待定
+  if (!el || myTrack !== 'learn') return;          // 行動組的鼓勵卡：金句清單待定
   const d = today(), us = unitsOfDay(d);
-  if (!us.length) return;
   const [, m, dd] = d.split('-');
   const wd = '日一二三四五六'[new Date(d + 'T12:00:00').getDay()];
+  // 每個單元排在哪一天（補看清單標日期用）
+  const dayOf = {};
+  Object.entries(SCHEDULE || {}).forEach(([ds, nos]) => nos.forEach(no => { dayOf[no] = ds; }));
+  const md = ds => { const [, mm, d2] = ds.split('-'); return `${+mm}/${+d2}`; };
+  const todayNos = us.map(u => u.no);
+  const all = UNITS.map(u => `<details class="tp-u${todayNos.includes(u.no) ? ' is-today' : ''}" data-no="${u.no}">`
+    + `<summary><span>第 ${u.no} 單元　${esc(u.n)}</span><small>${dayOf[u.no] ? md(dayOf[u.no]) : ''}</small></summary></details>`).join('');
   el.innerHTML = `<div class="today-plan">`
     + `<div class="tp-title">📖 ${+m}/${+dd}（${wd}）今天的課程</div>`
-    + us.map(u => `<div class="tp-unit">第 ${u.no} 單元　${u.n}</div>`).join('')
-    + `<div class="tp-note">⏰ 22:00 前交作業到小組群</div></div>`;
+    + (us.length ? us.map(unitBlock).join('') + `<div class="tp-note">⏰ 22:00 前把作業交到小組群</div>`
+                 : `<div class="tp-none">今天沒有排新課，可以補看前面的單元 👇</div>`)
+    + `<details class="tp-all"${us.length ? '' : ' open'}><summary>📚 全部 17 單元（補看、複習）▾</summary>${all}</details>`
+    + `</div>`;
+  // 點開才放進影片和作業（第一次打開時）
+  el.querySelectorAll('.tp-u').forEach(det => det.addEventListener('toggle', () => {
+    if (det.open && !det.querySelector('.tp-block')) {
+      const u = UNITS.find(x => x.no === +det.dataset.no);
+      if (u) det.insertAdjacentHTML('beforeend', unitBlock(u));
+    }
+  }));
 }
 
 const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 開放`; };
