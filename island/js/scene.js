@@ -660,9 +660,9 @@ function buildCity(mats) {
   lineBlock(RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.2);
   for (let z = FRONT[1] + 4; z < gateZ - 2; z += 3) for (const s of [-1, 1]) { lampPost(k, s * 1.7, G1, z); placed.push({ x: s * 1.7, z, r: 0.3 }); }
 
-  // ── 瀑布：正門下方一道大面積瀑布 ──
+  // ── 瀑布：Randoph 2026-11-06 取消（要加回來，在下面的清單填 [方位, 寬度]）──
   const waterfalls = [];
-  for (const [deg, w] of [[0, 12]]) {
+  for (const [deg, w] of []) {
     const e = edgeAt(p1, deg) * 0.985, [x, z] = polar(deg, e);
     const mesh = buildWaterfall(x, z, deg * D2R, 0.78, CLOUD_Y + 0.5, w);
     city.add(mesh); waterfalls.push({ mesh, x, z, deg });
