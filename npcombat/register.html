@@ -403,6 +403,11 @@
   /* 2026-10-22 進階宣誓的勾選框在 .field 裡，會吃到 `.field input { -webkit-appearance:none }` 變成看不見 → 還原 */
   .field .pl input[type="checkbox"] { -webkit-appearance:checkbox; appearance:auto;
     width:18px; height:18px; min-width:18px; margin:2px 0 0; padding:0; border:0; }
+  /* 2026-11-06 共同經營：同一個會員編號第二位起登記成「編號＋B／C」（字母，避免跟分店、加開 002/003 混淆） */
+  .field .coop { display:flex; gap:8px; align-items:flex-start; margin-top:10px; padding:11px 13px; border-radius:10px;
+    background:#fff4e5; border:1.5px solid #f0a500; color:#8a5200; font-size:13.5px; line-height:1.7; font-weight:500; }
+  .field .coop input[type="checkbox"] { -webkit-appearance:checkbox; appearance:auto;
+    width:18px; height:18px; min-width:18px; margin:3px 0 0; padding:0; border:0; }
   /* 2026-10-22 基本資料卡：以前登記過、資料齊全時先呈現，有問題再按「修改」 */
   .basic-card { border:1.5px solid #c9d3e6; border-radius:14px; background:#f7f9fd; padding:14px 16px; margin-bottom:18px; }
   .basic-card .bc-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
@@ -576,6 +581,8 @@
       <div class="field basic-f">
         <label>會員編號 <span class="req">*</span></label>
         <input type="text" id="f-member-code" placeholder="輸入7位數，不含英文和空白" maxlength="7" inputmode="numeric">
+        <label class="coop" id="f-coop-box" style="display:none"><input type="checkbox" id="f-coop">
+          我們是夫妻／家人<b>共同經營同一個位置</b>，這個編號已經有另一位登記了</label>
       </div>
 
       <div class="field basic-f">
@@ -748,6 +755,8 @@
       <div class="field basic-c">
         <label>會員編號 <span class="req">*</span></label>
         <input type="text" id="c-member-code" placeholder="輸入7位數，不含英文和空白" maxlength="7" inputmode="numeric">
+        <label class="coop" id="c-coop-box" style="display:none"><input type="checkbox" id="c-coop">
+          我們是夫妻／家人<b>共同經營同一個位置</b>，這個編號已經有另一位登記了</label>
       </div>
 
       <div class="field basic-c">
@@ -966,25 +975,48 @@ let lineProfile = null;
 //    舊寫法「用 LINE 找、找不到就新建」會讓這些人自己來報名時變成兩列 → 參加紀錄、締結分散。
 //    member_code 已設唯一，真的撞到時 DB 會拒絕，不會悄悄重複。
 // extra：跟著人走、下期要自動帶入的資料（手機、教練的榮譽資格與直屬 CFC）——2026-10-22 教練大多連續擔任
-async function claimMember(code, name, extra = {}) {
+// 🔴 2026-11-06 共同經營（夫妻／家人共用一個位置）：系統一人一筆主檔、一個 LINE。
+//    同一編號第二位起登記成「編號＋B」「編號＋C」…（原本那位不改，推薦關係與歷史都掛在原編號上）。
+//    字母不用「-2」：會跟分店、新人加開 002／003 混淆（Randoph）。coop＝使用者勾了「共同經營」。
+const COOP_LETTERS = ['B', 'C', 'D', 'E'];
+async function claimMember(code, name, extra = {}, coop = false) {
   const pic = lineProfile?.pictureUrl || null;
   const { data: mine } = await sb.from('members_master')
     .select('id, member_code').eq('line_user_id', lineUserId).maybeSingle();
   const { data: byCode } = await sb.from('members_master')
     .select('id, line_user_id').eq('member_code', code).maybeSingle();
-  if (byCode && byCode.line_user_id && byCode.line_user_id !== lineUserId)
-    throw new Error('這個會員編號已經被另一個 LINE 帳號登記過，請確認編號是否正確，或聯繫總教練');
-  if (mine && byCode && mine.id !== byCode.id)
+  let useCode = code, target = mine || byCode;
+  const takenByOther = byCode && byCode.line_user_id && byCode.line_user_id !== lineUserId;
+  const mineIsCoop = mine && new RegExp(`^${code}[A-Z]$`).test(mine.member_code || '');
+  if (mineIsCoop) {
+    useCode = mine.member_code; target = mine;            // 以前登記過的共同經營者，直接用他的「編號＋字母」
+  } else if (takenByOther) {
+    if (!coop) {
+      const e = new Error('這個會員編號已經有另一個 LINE 登記了。<br>如果你們是夫妻或家人<b>共同經營同一個位置</b>，請勾選編號下方的「共同經營」再送出一次；不是的話，請確認編號有沒有打錯。');
+      e.code = 'CODE_TAKEN';
+      throw e;
+    }
+    if (mine) throw new Error(`你的 LINE 已經登記為會員編號 ${mine.member_code}，請確認編號是否正確，或聯繫總教練`);
+    useCode = null;                                        // 找第一個空著的字母
+    for (const L of COOP_LETTERS) {
+      const { data: r } = await sb.from('members_master').select('id, line_user_id').eq('member_code', code + L).maybeSingle();
+      if (!r) { useCode = code + L; target = null; break; }
+      if (!r.line_user_id || r.line_user_id === lineUserId) { useCode = code + L; target = r; break; }
+    }
+    if (!useCode) throw new Error('這個編號的共同經營名額已滿，請聯繫總教練');
+  } else if (mine && byCode && mine.id !== byCode.id) {
     throw new Error(`你的 LINE 已經登記為會員編號 ${mine.member_code}，請確認編號是否正確，或聯繫總教練`);
-  const target = mine || byCode;
-  const row = { line_user_id: lineUserId, member_code: code, name, picture_url: pic, ...extra };
+  }
+  const row = { line_user_id: lineUserId, member_code: useCode, name, picture_url: pic, ...extra };
   const q = target
     ? sb.from('members_master').update(row).eq('id', target.id)
     : sb.from('members_master').insert(row);
-  const { data, error } = await q.select('id').single();
+  const { data, error } = await q.select('id, member_code').single();
   if (error) throw error;
   return data;
 }
+// 被擋下時把「共同經營」勾選框亮出來
+function showCoop(p) { const b = document.getElementById(p + '-coop-box'); if (b) b.style.display = ''; }
 
 // 🔴 2026-10-22 組織關係（推薦人／安置人）：一人只有一個推薦人、一個安置人。
 //    主檔現值是空的 → 寫入；跟現值相同 → 只記一筆紀錄；跟現值不同 → **不覆蓋**，記 conflict 給教練確認。
@@ -1028,7 +1060,10 @@ async function prefillFromMaster(m) {
     const el = v && [...document.querySelectorAll(`input[name="${nm}"]`)].find(i => i.value === v);
     if (el) el.checked = true;
   };
-  set('f-member-code', m.member_code); set('c-member-code', m.member_code);
+  const coopM = /^(\d{7})[A-Z]$/.exec(m.member_code || '');   // 共同經營者：輸入框放 7 位原編號、勾選框打勾
+  const baseCode = coopM ? coopM[1] : m.member_code;
+  set('f-member-code', baseCode); set('c-member-code', baseCode);
+  if (coopM) for (const p of ['f', 'c']) { showCoop(p); document.getElementById(p + '-coop').checked = true; }
   set('f-name', m.name);               set('c-name', m.name);
   set('f-phone', m.phone);             set('c-phone', m.phone);
   pick('c-rank', m.coach_rank);        pick('c-cfc', m.coach_cfc);
@@ -1327,7 +1362,7 @@ async function handleStudentSubmit() {
   document.getElementById('btn-loading').style.display = 'block';
 
   try {
-    const member = await claimMember(memberCodeClean, name, { phone });
+    const member = await claimMember(memberCodeClean, name, { phone }, document.getElementById('f-coop').checked);
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 給教練重審），避免撞 UNIQUE(member_id,batch_id)
     const { error: studentErr } = await sb.from('batch_students').upsert({
@@ -1352,12 +1387,13 @@ async function handleStudentSubmit() {
     if (studentErr) throw studentErr;
 
     // 組織關係：報名已經成功了，這一步失敗不擋報名（缺的由引路人教練補），但留在 console 方便查
-    try { await saveRelation(memberCodeClean, name, 'sponsor', sponsorCode, sponsorName, 'register'); }
+    try { await saveRelation(member.member_code, name, 'sponsor', sponsorCode, sponsorName, 'register'); }
     catch (relErr) { console.warn('推薦人寫入失敗：', relErr.message); }
 
     showScreen('screen-success');
   } catch(e) {
-    errEl.textContent = '送出失敗，請稍後再試。（' + e.message + '）';
+    if (e.code === 'CODE_TAKEN') { showCoop('f'); errEl.innerHTML = e.message; }
+    else errEl.textContent = '送出失敗，請稍後再試。（' + e.message + '）';
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
@@ -1441,7 +1477,8 @@ async function handleCoachSubmit() {
   document.getElementById('btn-coach-loading').style.display = 'block';
 
   try {
-    const member = await claimMember(memberCodeClean, name, { phone, coach_rank: rank, coach_cfc: cfc });
+    const member = await claimMember(memberCodeClean, name, { phone, coach_rank: rank, coach_cfc: cfc },
+                                     document.getElementById('c-coop').checked);
 
     // upsert：被退件者重報時覆蓋原記錄（狀態回 pending 重審）
     const { error: coachErr } = await sb.from('batch_coaches').upsert({
@@ -1451,12 +1488,13 @@ async function handleCoachSubmit() {
     if (coachErr) throw coachErr;
 
     // 組織關係：登記已經成功，這一步失敗不擋（之後可補），留在 console 方便查
-    try { await saveRelation(memberCodeClean, name, 'sponsor', cSponsorCode, cSponsorName, 'register'); }
+    try { await saveRelation(member.member_code, name, 'sponsor', cSponsorCode, cSponsorName, 'register'); }
     catch (relErr) { console.warn('組織關係寫入失敗：', relErr.message); }
 
     showScreen('screen-coach-success');
   } catch(e) {
-    errEl.textContent = '登記失敗，請稍後再試。（' + e.message + '）';
+    if (e.code === 'CODE_TAKEN') { showCoop('c'); errEl.innerHTML = e.message; }
+    else errEl.textContent = '登記失敗，請稍後再試。（' + e.message + '）';
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
