@@ -107,7 +107,7 @@
     line-height: 1.55; color: var(--text-dark); position: relative; padding: 0 8px; }
   .quote blockquote::before { content: "「"; color: var(--gold-main); }
   .quote blockquote::after  { content: "」"; color: var(--gold-main); }
-  @media (max-width: 768px) { .quote blockquote { font-size: 21px; } }
+  @media (max-width: 768px) { .quote blockquote { font-size: 20px; line-height: 1.6; } .quote { margin-bottom: 16px; padding: 0 4px; } }
 
   /* 人物標籤：放姓名旁邊，可點連回同類型的人 */
   .ptags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -156,14 +156,27 @@
 
   .profile { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     padding: 32px 28px; box-shadow: var(--shadow); max-width: 760px; margin: 0 auto; }
-  @media (max-width: 768px) { .profile { padding: 24px 20px; } }
+  @media (max-width: 768px) { .profile { padding: 22px 16px; }
+    details.fold > summary { padding: 13px 14px; } details.fold > div { padding: 0 14px 16px; } }
   /* 上對齊：加了標籤之後右欄變高，置中會讓頭像掉到名字下面 */
-  .phead { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-  .phead .ava { width: 68px; height: 68px; font-size: 26px; margin: 0; flex-shrink: 0; }
-  .phead h2 { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; }
-  .phead .occ { font-size: 13.5px; color: var(--text-muted); margin-top: 3px; }
+  /* 頭部上下排：照片＋姓名一行，徽章／來源／關係／標籤各佔整條寬（手機不再被右欄擠成半邊） */
+  .phead { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+  .prow { display: flex; align-items: center; gap: 16px; }
+  .phead .ava { width: 76px; height: 76px; font-size: 28px; margin: 0; flex-shrink: 0; }
+  .phead h2 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; line-height: 1.3; }
+  .phead .occ { font-size: 14px; color: var(--text-muted); margin: 2px 0 0; min-height: 0; }
+  .pbadges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 16px; }
+  .bmore { font-size: 12.5px; color: var(--gold-deep); text-decoration: none; margin-left: 4px; font-weight: 700; }
+  .pmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 12px; }
+  .pmeta .rel { font-size: 13px; color: var(--text-muted); margin: 0; }
+  .phead .ptags { margin-top: 14px; }
+  .ptag { font-size: 13px; padding: 5px 13px; }
   .sec { font-size: 12px; color: var(--gold-main); letter-spacing: .22em; margin: 28px 0 14px; font-weight: 700; }
   .story { font-size: 16px; line-height: 2.05; white-space: pre-wrap; color: var(--text-dark); }
+  /* 分段故事：段落之間留白，行距收一點；pre-wrap 會把模板縮排當成空行，分段時關掉 */
+  .story:has(> .beat) { white-space: normal; }
+  .beat { font-size: 16.5px; line-height: 1.95; margin-bottom: 18px; }
+  .beat:first-child::first-letter { font-size: 1.25em; font-weight: 700; color: var(--gold-deep); }
 
   .hook { border-bottom: 2px dashed; cursor: pointer; font-weight: 700; }
   .hook.health   { color: #15803d; border-color: #15803d; }
@@ -202,8 +215,6 @@
   .more { display: block; margin: 22px auto 0; font-size: 14px; font-weight: 700; padding: 11px 26px; border-radius: 999px;
     border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep); cursor: pointer; font-family: inherit; }
   .rel { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
-  .beat { margin-bottom: 16px; }
-  .beat:last-child { margin-bottom: 0; }
   .exits { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; max-width: 760px; margin: 22px auto 0; }
   .exits button { font-size: 14.5px; font-weight: 700; padding: 12px 22px; border-radius: 999px; cursor: pointer; font-family: inherit;
     border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep); }
@@ -286,6 +297,12 @@ function tagLabel(id) { const r = ROLES.find(x => x[0] === id); if (r) return r[
 function tagKind(id) { return ROLES.some(x => x[0] === id) ? "role" : (PAINS.some(x => x[0] === id) ? "pain" : ""); }
 function tierClass(b) { b = b || ""; if (b.includes("CFC")) return "t-cfc"; if (b.includes("高峰")) return "t-peak"; if (b.includes("星鑽")) return "t-star"; if (b.includes("美金")) return "t-money"; return "t-base"; }
 function badgeHtml(b) { return b ? `<span class="badge ${tierClass(b)}">${esc(BADGE_ALIAS[b] || b)}</span>` : ""; }
+/* 頭部只放兩個：位階最高一個＋收入最高一個；其餘在成就歷程（2026-11-06 蕭妤安 8 個徽章擠滿半屏） */
+function topBadges(bs) {
+  bs = bs || [];
+  const pos = bs.filter(b => !b.includes("美金")), money = bs.filter(b => b.includes("美金"));
+  return [pos[0], money[0]].filter(Boolean);
+}
 function ava(p, img) { return `<div class="ava">${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : esc(p.n[0])}</div>`; }
 
 /* 有故事的人才在瀏覽時出現；只有榮耀線的人只能用搜尋找到（Randoph 2026-11-06） */
@@ -340,7 +357,7 @@ function renderGrid() {
       ${ava(p, p.t ? "t/" + p.t : "")}
       <h3>${esc(p.n)}</h3>
       <p class="occ">${esc(p.o || "")}</p>
-      ${p.q ? `<p class="q">${esc(p.q)}</p>` : (p.b || []).slice(0, 2).map(badgeHtml).join(" ")}
+      ${p.q ? `<p class="q">${esc(p.q)}</p>` : topBadges(p.b).map(badgeHtml).join(" ")}
     </button>`).join("");
   document.getElementById("moreBtn").style.display = rows.length > shown ? "block" : "none";
   document.getElementById("count").textContent = `共 ${rows.length} 位夥伴`;
@@ -426,15 +443,13 @@ async function showDetail(k) {
   const co = d.co && d.co.name ? ` <span class="src co">👥 與 ${esc(d.co.name)} ${esc(d.co.relation)}共同</span>` : "";
   let html = `
     <div class="phead">
-      ${ava(d, d.ph)}
-      <div>
-        <h2>${esc(d.n)}</h2>
-        <p class="occ">${esc(d.o || "")}</p>
-        ${kind || co ? `<p style="margin-top:7px;">${kind}${co}</p>` : ""}
-        ${d.rel ? `<p class="rel">${esc(d.rel)}</p>` : ""}
-        ${(d.tags || []).length ? `<div class="ptags">${d.tags.map(t => `<button class="ptag" onclick="jumpTag('${esc(t)}')">${esc(tagLabel(t))}</button>`).join("")}</div>` : ""}
+      <div class="prow">
+        ${ava(d, d.ph)}
+        <div><h2>${esc(d.n)}</h2>${d.o ? `<p class="occ">${esc(d.o)}</p>` : ""}</div>
       </div>
-      <div style="margin-left:auto;text-align:right;max-width:46%;">${(p.b || []).map(badgeHtml).join(" ")}</div>
+      ${topBadges(p.b).length ? `<div class="pbadges">${topBadges(p.b).map(badgeHtml).join("")}${(p.b || []).length > topBadges(p.b).length ? `<a class="bmore" href="javascript:void(0)" onclick="document.getElementById('tl').scrollIntoView({behavior:'smooth'})">全部 ${(p.b || []).length} 項榮耀 ↓</a>` : ""}</div>` : ""}
+      ${kind || co || d.rel ? `<p class="pmeta">${kind}${co}${d.rel ? `<span class="rel">${esc(d.rel)}</span>` : ""}</p>` : ""}
+      ${(d.tags || []).length ? `<div class="ptags">${d.tags.map(t => `<button class="ptag" onclick="jumpTag('${esc(t)}')">${esc(tagLabel(t))}</button>`).join("")}</div>` : ""}
     </div>`;
   const hl = d.hl || [];
   if (hl.length || d.tup) {
@@ -453,7 +468,7 @@ async function showDetail(k) {
   }
   /* 月刊六拍（母體「## 月刊故事」，第三人稱，逐句回月刊原文核對過）。沒有自述時預設展開 */
   if ((d.mag6 || []).length) {
-    const coT = d.co && d.co.name ? `（與 ${esc(d.co.name)} ${esc(d.co.relation)}同篇報導）` : "";
+    const coT = "";  /* 夫妻同篇已在頭部小標籤標示，標題不重複（手機會折成兩行） */
     html += `<details class="fold"${isSelf ? "" : " open"}><summary>${isSelf ? "展翅月刊報導" : "完整故事（展翅月刊整理）"}${coT}</summary><div>
       ${isSelf ? `<p class="conote">這是較早的月刊報導，放在這裡當佐證。上面那篇才是他自己現在講的版本。</p>` : ""}
       <div class="story">${d.mag6.map(b => `<p class="beat">${esc(b)}</p>`).join("")}</div></div></details>`;
@@ -469,7 +484,7 @@ async function showDetail(k) {
   /* 榮耀線：一筆授勳一列；拚搏事蹟掛在該筆底下 */
   const ms = d.ms || [];
   if (ms.length) {
-    html += `<p class="sec">成就歷程</p><div class="tl">` + ms.map((m, i) => `
+    html += `<p class="sec">成就歷程</p><div class="tl" id="tl">` + ms.map((m, i) => `
       <div class="tli"><div class="tlrail"><div class="dot"></div>${i < ms.length - 1 ? '<div class="rail"></div>' : ""}</div>
         <div class="tlbody"><h4>${esc(BADGE_ALIAS[m.b] || m.b)}</h4>${m.c ? `<p>${esc(m.c)}</p>` : ""}<p>${esc([m.when, m.src].filter(Boolean).join(" · "))}</p></div></div>`).join("") + `</div>`;
   }
