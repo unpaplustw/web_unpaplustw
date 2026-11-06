@@ -2184,7 +2184,9 @@ function renderRoster() {
   h += `<div class="sec-title"><span>🎓 分組（教練 → 組員）</span>`
      + `<span class="sec-count">${ac.length} 組 / ${stu.length} 位學員</span></div>`;
 
-  h += ac.map(c => {
+  // 🔴 2026-11-06 依班別分段（Randoph：「學員名單用組別分」）——學／初／進／終各一段，段內先教練組、再該班尚未分組的學員。
+  //    教練的班別：batch_coaches.track 有填就用；沒填看他組員多數在哪班；都沒有 → 列最後「還沒有組員的教練」
+  const coachCard = c => {
     const my = (byCoach[c.id] || []).sort(byTime);
     return treeCard(
       `${c.group_name || '未分組'}　${nm(c)}${mc(c)}`,
@@ -2192,11 +2194,34 @@ function renderRoster() {
       trackTag(c.track),                       // 🔴 吃字串不是物件——傳物件會印出 undefined
       my.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''),
       `${my.length} 名`, !my.length);
-  }).join('');
-
-  const noCoach = stu.filter(s => !s.coach_id).sort(byTime);
-  if (noCoach.length) h += treeCard('⚠️ 尚未分組', '到 🩺檢查 的「分組與資料調整」配對', '',
-    noCoach.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''), `${noCoach.length} 名`, true);
+  };
+  const coachTrack = c => {
+    if (c.track) return c.track;
+    const cnt = {};
+    (byCoach[c.id] || []).forEach(s => { cnt[s.track] = (cnt[s.track] || 0) + 1; });
+    return Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || '';
+  };
+  const order = [...Object.keys(TRACKS), ...Object.keys(TRACKS_OLD)];
+  const keys = [...new Set([...order, ...stu.map(s => s.track || '')])]
+    .filter(k => k && (stu.some(s => s.track === k) || ac.some(c => coachTrack(c) === k)));
+  if (stu.some(s => !s.track)) keys.push('');
+  keys.forEach(k => {
+    const tStu = stu.filter(s => (s.track || '') === k);
+    const tCoach = ac.filter(c => coachTrack(c) === k);
+    const noCoach = tStu.filter(s => !s.coach_id).sort(byTime);
+    h += `<div class="sec-title" style="margin-top:22px"><span>${k ? (TRACK_TAG[k] || '').split(' ')[0] + ' ' + trackLabel(k) : '❔ 沒有班別'}</span>`
+       + `<span class="sec-count">${tCoach.length ? tCoach.length + ' 組 / ' : ''}${tStu.length} 位學員${
+           noCoach.length ? `（未分組 ${noCoach.length}）` : ''}</span></div>`;
+    h += tCoach.map(coachCard).join('');
+    if (noCoach.length) h += treeCard(`⚠️ ${k ? trackLabel(k) : ''}尚未分組`, '到 🩺檢查 的「分組與資料調整」配對', '',
+      noCoach.map(s => stuRow(s, `上線 ${sp(s)||'—'}`)).join(''), `${noCoach.length} 名`, true);
+  });
+  const idle = ac.filter(c => !coachTrack(c));
+  if (idle.length) {
+    h += `<div class="sec-title" style="margin-top:22px"><span>🧑‍🏫 還沒有組員的教練</span>`
+       + `<span class="sec-count">${idle.length} 位</span></div>`;
+    h += idle.map(coachCard).join('');
+  }
 
   el.innerHTML = h;
 }
