@@ -490,16 +490,37 @@ function buildSalonHouse(k, x, z, big) {
   return (big ? 2.9 : 2.4) * (big ? 1.25 : 1);
 }
 const COMPANY_KIT = {
-  hq(k, x, z) { // 公司官網：玻璃總部大樓
-    const { P, L } = B(k, x, G1, z, -0.3);
-    P(G.box, '#cfe6ee', 0, 3.4, 0, 0, 1.9, 6.8, 1.9);
-    for (let i = 1; i <= 6; i++) P(G.box, PAL.white, 0, i * 1.1, 0, 0, 2.0, 0.1, 2.0);
-    P(G.box, PAL.goldSoft, 0, 6.9, 0, 0, 2.1, 0.2, 2.1);
-    P(G.cyl16, '#4f9a68', 0, 5.6, 0.97, 0, 0.9, 0.05, 0.9, Math.PI / 2);
-    P(G.cyl8, PAL.gold, 0, 7.6, 0, 0, 0.06, 1.2, 0.06);
-    L(0, 8.2, 0, 1.6);
-    return 8.6;
+  hq(k, x, z) { // 公司總部：新光摩天大樓（下面新光三越裙樓＋玫瑰色主塔＋階梯式尖頂）
+    const sc = 0.78, { P, L } = B(k, x, G1, z, -0.3, sc);
+    const rose = '#e3c3b4', roseDark = '#c99f92', crown = '#a86f6e', glass = '#6f9fd8', granite = '#5a4136';
+    // 新光三越裙樓：三段往上內縮
+    P(G.box, granite, 0, 0.35, 0.3, 0, 5.6, 0.7, 4.4);                 // 一樓深褐石材
+    P(G.box, PAL.goldBright, 0, 0.55, 2.52, 0, 2.2, 0.22, 0.04);        // 新光三越招牌
+    P(G.box, '#2e3540', 0, 0.3, 2.52, 0, 1.4, 0.45, 0.03);              // 入口
+    [[5.4, 4.2, 0.7, 2.0], [4.8, 3.8, 2.7, 1.1], [4.1, 3.3, 3.8, 0.8]].forEach(([w, d, y0, h], t) => {
+      P(G.box, t % 2 ? roseDark : rose, 0, y0 + h / 2, 0.3, 0, w, h, d);
+      for (let j = 1; j < h / 0.3; j++) P(G.box, roseDark, 0, y0 + j * 0.3, 0.3, 0, w + 0.02, 0.03, d + 0.02); // 橫向條紋
+    });
+    for (let i = 0; i < 6; i++) P(G.box, glass, -1.3 + i * 0.5, 1.0 + i * 0.5, 2.42, 0, 0.9, 0.16, 0.03); // 斜向藍色窗帶
+    P(G.cyl16, PAL.gold, 0.9, 2.6, 2.43, 0, 0.5, 0.05, 0.5, Math.PI / 2); // 金色標誌
+    // 主塔：細長方柱＋正面橫向藍玻璃窗帶
+    const tw = 2.5, td = 2.0, ty0 = 4.6, th = 11.0;
+    P(G.box, rose, 0, ty0 + th / 2, -0.3, 0, tw, th, td);
+    for (let j = 0; j < th / 0.34; j++) {
+      const y = ty0 + 0.2 + j * 0.34;
+      P(G.box, glass, 0, y, -0.3 + td / 2 + 0.01, 0, tw * 0.62, 0.13, 0.03);
+      P(G.box, roseDark, 0, y, -0.3 - td / 2 - 0.01, 0, tw * 0.9, 0.1, 0.03);
+      for (const s of [-1, 1]) P(G.box, roseDark, s * (tw / 2 + 0.01), y, -0.3, 0, 0.03, 0.1, td * 0.9);
+    }
+    // 階梯式尖頂
+    let y = ty0 + th;
+    [[2.3, 1.85, 0.55], [2.0, 1.6, 0.5], [1.6, 1.3, 0.45], [1.15, 0.95, 0.4]].forEach(([w, d, h]) => { P(G.box, crown, 0, y + h / 2, -0.3, 0, w, h, d); y += h; });
+    P(new THREE.ConeGeometry(0.5, 1, 4), crown, 0, y + 0.35, -0.3, Math.PI / 4, 1.2, 0.7, 1.0);
+    P(G.cyl6, '#9aa4ad', 0, y + 1.2, -0.3, 0, 0.05, 1.2, 0.05);
+    L(0, y + 1.8, -0.3, 1.2);
+    return (y + 1.9) * sc;
   },
+
   screen(k, x, z) { // 官方社群：大螢幕看板（FB 藍、YouTube 紅）
     const { P, L } = B(k, x, G1, z, -0.5);
     for (const s of [-1, 1]) P(G.box, '#5a5348', s * 1.1, 1.3, 0, 0, 0.14, 2.6, 0.14);
@@ -950,7 +971,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     entries.push(entry);
   }
   for (const b of comp.buildings) {
-    const entry = { kind: 'company', id: b.def.id, object: compAnchor(new THREE.Vector3(b.x, G1, b.z)), offset: new THREE.Vector3(0, b.h + 0.3, 0), focusY: 2, focusR: 7,
+    const entry = { kind: 'company', id: b.def.id, object: compAnchor(new THREE.Vector3(b.x, G1, b.z)), offset: new THREE.Vector3(0, b.h + 0.3, 0), focusY: b.h * 0.45, focusR: Math.max(7, b.h * 0.95), // 鏡頭依建築高度拉遠
       label: makeLabel(b.def, 'company', 'label-tile', b.def.name) };
     entries.push(entry);
     addHit(entry.object, new THREE.CylinderGeometry(1.4, 1.4, b.h + 1, 10).translate(0, (b.h + 1) / 2 - 0.5, 0), entry);
