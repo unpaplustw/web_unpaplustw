@@ -408,7 +408,7 @@ function buildMountains(k, r, p1) {
 }
 // ── 彩虹：鏡頭放低時才出現（半圓環，顏色由外紅到內紫）──
 function buildRainbow() {
-  const geo = new THREE.RingGeometry(58, 70, 96, 1, 0, Math.PI);
+  const geo = new THREE.RingGeometry(50, 80, 96, 1, 0, Math.PI);
   const m = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide,
     uniforms: { uOpacity: { value: 0 } },
@@ -416,11 +416,11 @@ function buildRainbow() {
     fragmentShader: `uniform float uOpacity; varying vec3 vP;
       vec3 hsv(float h){ vec3 k = clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0); return k; }
       void main(){
-        float t = (length(vP.xy) - 58.0) / 12.0;            // 0 內圈 → 1 外圈
-        vec3 col = hsv(0.78 * (1.0 - t));                    // 外紅 → 內紫
-        float edge = smoothstep(0.0, 0.12, t) * smoothstep(1.0, 0.88, t);
-        float ends = smoothstep(0.0, 18.0, vP.y);            // 兩端漸隱
-        gl_FragColor = vec4(mix(col, vec3(1.0), 0.25), uOpacity * edge * ends);
+        float t = (length(vP.xy) - 50.0) / 30.0;            // 0 內圈 → 1 外圈
+        vec3 col = hsv(0.78 * (1.0 - smoothstep(0.2, 0.8, t))); // 外紅 → 內紫，中段才有顏色
+        float edge = smoothstep(0.0, 0.4, t) * smoothstep(1.0, 0.6, t); // 邊緣很寬地淡出＝光暈
+        float ends = smoothstep(0.0, 28.0, vP.y);            // 兩端漸隱
+        gl_FragColor = vec4(mix(col, vec3(1.0), 0.45), uOpacity * edge * ends);
       }`,
   });
   const mesh = new THREE.Mesh(geo, m); mesh.renderOrder = -4; mesh.frustumCulled = false;
@@ -479,9 +479,9 @@ function buildSatellite(mats) {
   k.add(G.cone6, '#f4eee2', mat(0, 0.45, 0, 0, 0.3, 0.3, 0.3, Math.PI));
   const g = k.mesh(mats); g.scale.setScalar(1.3); return g;
 }
-function buildCloud(mats, seed, flat) {
+function buildCloud(mats, seed, flat, puffs) {
   const r = rng(seed); const parts = [];
-  const n = 4 + Math.floor(r() * 4);
+  const n = puffs || 4 + Math.floor(r() * 4);
   for (let i = 0; i < n; i++) parts.push(prep(G.puff, '#ffffff', mat((i - n / 2) * 1.5 + r(), r() * (flat ? 0.2 : 0.7), (r() - 0.5) * 1.8, r() * 3, 2.4 + r() * 1.8, (flat ? 1.0 : 1.5) + r() * 0.6, 2.2 + r())));
   return new THREE.Mesh(mergeGeometries(parts), mats.cloud);
 }
@@ -851,7 +851,16 @@ export function createIsland({ stage, onPick, onBackground }) {
     c.scale.set(low ? 2.6 + (i % 3) * 0.6 : 1.8, low ? 0.9 : 1.1, low ? 2.6 + (i % 3) * 0.6 : 1.8);
     scene.add(c); clouds.push(c);
   }
-  function placeClouds() { for (const c of clouds) { const u = c.userData; c.position.x = Math.cos(u.a) * u.R; c.position.z = Math.sin(u.a) * u.R * 0.85; } }
+  // 島周圍一圈厚雲：貼著島底下繞，把島托住
+  for (let i = 0; i < 26; i++) {
+    const c = buildCloud(mats, 1400 + i * 7, false, 9 + (i % 4));
+    const R = R1 * (0.95 + (i % 3) * 0.16);
+    c.userData = { a: i / 26 * Math.PI * 2, R, zf: 1, sp: 0.004 * (i % 2 ? 1 : -1) };
+    c.position.y = -4.5 - (i % 4) * 1.4;
+    c.scale.set(2.3 + (i % 3) * 0.5, 1.5 + (i % 2) * 0.4, 2.3 + (i % 3) * 0.5);
+    scene.add(c); clouds.push(c);
+  }
+  function placeClouds() { for (const c of clouds) { const u = c.userData; c.position.x = Math.cos(u.a) * u.R; c.position.z = Math.sin(u.a) * u.R * (u.zf || 0.85); } }
   // 瀑布底下的水霧
   const mist = built.waterfalls.map((w) => {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: '#ffffff', transparent: true, opacity: 0.6, depthWrite: false }));
@@ -945,7 +954,7 @@ export function createIsland({ stage, onPick, onBackground }) {
       rainbow.position.set(controls.target.x - Math.sin(az) * 170, CLOUD_Y - 4, controls.target.z - Math.cos(az) * 170);
       rainbow.rotation.y = az;
       const k2 = THREE.MathUtils.smoothstep(phi, 1.12, 1.36);
-      rainbow.material.uniforms.uOpacity.value = 0.6 * k2; rainbow.visible = k2 > 0.01;
+      rainbow.material.uniforms.uOpacity.value = 0.24 * k2; rainbow.visible = k2 > 0.01;
     }
     camera.updateMatrixWorld();
     renderer.render(scene, camera);
