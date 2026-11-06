@@ -21,27 +21,45 @@ export const TILES = [
 
   { id: 'plot-e', status: 'reserved', angle: 72 },
   { id: 'radar',   name: '雷達站',       status: 'empty', spot: 'plot', angle: -72, landmark: 'radar',
-    line: '宣傳品下載、官方連結、自媒體。', link: '/radar/' },
+    line: 'A Plus 夥伴的自媒體（整理中）。', link: '/radar/' },
   { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'plot', angle: 45, landmark: 'clinic',
     line: 'KC 抗氧化力檢測、全能查查。',
     links: [{ label: 'KC 抗氧化力檢測', href: '/kc/' }, { label: '全能查查', href: '/checker/' }] },
 ];
 
-// 地區沙龍：蓋在城牆上的沙龍塔。angle＝在城牆上的方位（度，0＝正前方城門、往右為正；後方 ±40° 是山，不放）
-// salon：塔上的名牌；source：island/data/service.txt 裡的標題，地址與營業時間由此對應。
+// 地區沙龍：在右邊「綠佳利島」上，照台灣實際位置擺。lon／lat＝經緯度（島面依此換算）
+// salon：名牌；source：island/data/service.txt 裡的標題，地址與營業時間由此對應。
 export const PORTS = [
-  { id: 'taipei',    name: '台北總公司', salon: '台北總公司', angle: 135,  source: '台北總公司／台北服務中心' },
-  { id: 'yilan',     name: '宜蘭',       salon: '宜蘭沙龍',   angle: 100,  source: '宜蘭服務中心' },
-  { id: 'zhongli',   name: '中壢',       salon: '中壢沙龍',   angle: -135, source: '中壢服務中心' },
-  { id: 'taichung',  name: '台中',       salon: '台中沙龍',   angle: -105, source: '台中服務中心' },
-  { id: 'tainan',    name: '台南',       salon: '台南沙龍',   angle: -75,  source: '台南服務中心' },
-  { id: 'kaohsiung', name: '高雄',       salon: '高雄沙龍',   angle: -45,  source: '高雄服務中心' },
+  { id: 'taipei',    name: '台北總公司', salon: '台北總公司', lon: 121.52, lat: 25.04, source: '台北總公司／台北服務中心' },
+  { id: 'yilan',     name: '宜蘭',       salon: '宜蘭沙龍',   lon: 121.75, lat: 24.75, source: '宜蘭服務中心' },
+  { id: 'zhongli',   name: '中壢',       salon: '中壢沙龍',   lon: 121.22, lat: 24.96, source: '中壢服務中心' },
+  { id: 'taichung',  name: '台中',       salon: '台中沙龍',   lon: 120.67, lat: 24.15, source: '台中服務中心' },
+  { id: 'tainan',    name: '台南',       salon: '台南沙龍',   lon: 120.20, lat: 22.99, source: '台南服務中心' },
+  { id: 'kaohsiung', name: '高雄',       salon: '高雄沙龍',   lon: 120.30, lat: 22.63, source: '高雄服務中心' },
 ];
 
-export const SATELLITES = [
-  { id: 'app', name: '環貫綠佳利 APP', link: 'http://cms.naturally-plus.com.tw/share/index.html', phase: 0.6 },
-  { id: 'nds', name: 'NDS 會員登錄',   link: 'https://nds.naturally-plus.com/login', phase: 3.74 },
-];
+// 綠佳利島（公司）：A Plus 天空之城右邊的另一座島，放所有「公司官方」的東西。
+// 島面＝台灣輪廓；建築用 lon／lat 擺位置。links＝卡片裡的按鈕。
+export const COMPANY = {
+  id: 'company', name: '綠佳利島', line: '環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。', link: '/company/',
+  buildings: [
+    { id: 'hq',     name: '公司官網',     kind: 'hq',      lon: 121.38, lat: 25.12, line: '環貫綠佳利股份有限公司官方網站。',
+      links: [{ label: '前往官網', href: 'https://www.naturally-plus.com/tw/zh' }] },
+    { id: 'social', name: '官方社群',     kind: 'screen',  lon: 121.50, lat: 23.95, line: '公司 Facebook、YouTube。',
+      links: [{ label: 'Facebook', href: 'https://www.facebook.com/NaturallyPlusTW' }, { label: 'YouTube', href: 'https://youtube.com/c/NaturallyPlusTWNo1' }] },
+    { id: 'app',    name: '綠佳利 APP',   kind: 'signal',  lon: 121.02, lat: 23.55, line: '環貫綠佳利 APP 下載。',
+      links: [{ label: '下載 APP', href: 'http://cms.naturally-plus.com.tw/share/index.html' }] },
+    { id: 'nds',    name: 'NDS 會員登錄', kind: 'gate',    lon: 120.95, lat: 24.62, line: 'NDS 會員系統登入。',
+      links: [{ label: 'NDS 登入', href: 'https://nds.naturally-plus.com/login' }] },
+    { id: 'docs',   name: '宣傳品資料館', kind: 'library', lon: 120.42, lat: 23.45, line: '各地區 DM、小冊子下載。',
+      links: [{ label: '前往下載', href: '/company/#downloads' }] },
+  ],
+};
+// ⏳ IG：公司台灣官網頁尾沒有 IG，等 Randoph 提供網址再加進 social
+
+// 衛星：2026-11-06 拿掉（APP、NDS 搬到綠佳利島）
+export const SATELLITES = [];
+
 
 export const TOUR = ['這是 A Plus 天空之城', '點建築看內容', '最高的城堡是 APLUS城'];
 

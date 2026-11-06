@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>綠佳利島｜A Plus 天空之城</title>
+<meta name="description" content="環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。">
+<meta name="theme-color" content="#f7f5f0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap">
+<style>
+  :root { --bg: #f7f5f0; --gold: #b8960c; --gold-soft: #f3ecd2; --ink: #2d2a24; --sub: #6b6558; --line: #e6e0d2; --card: #fff; --shadow: 0 4px 18px rgba(70, 58, 30, .08); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans TC", -apple-system, "PingFang TC", sans-serif; font-size: 17px; line-height: 1.6; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
+  .back { display: inline-block; color: var(--sub); text-decoration: none; font-size: 15px; margin-bottom: 12px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .lead { margin: 0 0 24px; color: var(--sub); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 12px; font-size: 20px; color: var(--gold); }
+  .links { display: grid; gap: 10px; }
+  .links a { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); text-decoration: none; background: var(--bg); }
+  .links a::after { content: "↗"; color: var(--gold); }
+  .links a:hover { border-color: var(--gold); }
+  details { border-top: 1px solid var(--line); }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; padding: 12px 2px; font-weight: 700; list-style: none; display: flex; align-items: baseline; gap: 10px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "＋"; color: var(--gold); }
+  details[open] summary::after { content: "－"; }
+  summary span { margin-left: auto; color: var(--sub); font-weight: 400; font-size: 15px; }
+  details .links { padding-bottom: 14px; }
+  .empty { margin: 0; color: var(--sub); }
+  .salon { padding: 12px 0; border-top: 1px solid var(--line); }
+  .salon:first-child { border-top: 0; padding-top: 0; }
+  .salon h3 { margin: 0 0 4px; font-size: 17px; }
+  .salon p { margin: 0; color: var(--sub); font-size: 15px; }
+  .salon .k { color: var(--gold); font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/">‹ 回天空之城</a>
+  <h1>🏝️ 綠佳利島</h1>
+  <p class="lead">環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。</p>
+
+  <section><h2>官方網站</h2><div class="links" id="official"></div></section>
+  <section><h2>官方社群</h2><div class="links" id="social"></div></section>
+  <section><h2>APP 與會員系統</h2><div class="links" id="member"></div></section>
+  <section id="salons"><h2>地區沙龍</h2><div id="salon-list"><p class="empty">載入中</p></div></section>
+  <section id="downloads"><h2>宣傳品下載</h2><div id="download-list"></div></section>
+</main>
+<script type="module">
+  import { OFFICIAL, SOCIAL, MEMBER, DOWNLOADS } from './data.js';
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+  const link = ({ label, url }) => { const a = el('a', '', label); a.href = url; a.target = '_blank'; a.rel = 'noopener'; return a; };
+  $('official').append(...OFFICIAL.map(link));
+  $('social').append(...SOCIAL.map(link));
+  $('member').append(...MEMBER.map(link));
+  for (const region of DOWNLOADS) {
+    const d = el('details'); const s = el('summary', '', region.name); s.append(el('span', '', `${region.items.length} 份`));
+    const list = el('div', 'links'); list.append(...region.items.map(link)); d.append(s, list); $('download-list').append(d);
+  }
+  $('download-list').querySelector('details')?.setAttribute('open', '');
+  // 地區沙龍：讀天空之城同一份原文（舊站「全球服務據點」），一字不改
+  fetch('/island/data/service.txt').then((r) => r.text()).then((t) => {
+    const lines = t.split(/\r?\n/).filter((l) => l && !l.startsWith('#') && l !== '全球服務據點' && !l.startsWith('了解更多'));
+    const box = $('salon-list'); box.innerHTML = '';
+    let cur = null;
+    for (const l of lines) {
+      if (/(服務中心|總公司.*)$/.test(l) && !l.startsWith('地址') || l === '海外據點') { cur = el('div', 'salon'); cur.append(el('h3', '', l)); box.append(cur); continue; }
+      if (!cur) continue;
+      cur.append(el('p', l === '地址' || l === '營業時間' ? 'k' : '', l));
+    }
+  }).catch(() => { $('salon-list').innerHTML = '<p class="empty">資料載入失敗，請重新整理。</p>'; });
+</script>
+</body>
+</html>

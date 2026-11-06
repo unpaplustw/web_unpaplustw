@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>雷達站｜A Plus 天空之城</title>
-<meta name="description" content="A Plus 雷達站：官方連結、各地區宣傳品下載、自媒體。">
+<meta name="description" content="A Plus 雷達站：夥伴的自媒體。">
 <meta name="theme-color" content="#f7f5f0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap">
@@ -37,17 +37,7 @@
 <main class="wrap">
   <a class="back" href="/">‹ 回天空之城</a>
   <h1>📡 雷達站</h1>
-  <p class="lead">官方連結、各地區宣傳品下載、自媒體。</p>
-
-  <section>
-    <h2>官方連結</h2>
-    <div class="links" id="official"></div>
-  </section>
-
-  <section>
-    <h2>宣傳品下載</h2>
-    <div id="downloads"></div>
-  </section>
+  <p class="lead">A Plus 夥伴的自媒體。公司官方的連結與宣傳品在 <a href="/company/">綠佳利島</a>。</p>
 
   <section>
     <h2>自媒體</h2>
@@ -55,27 +45,11 @@
   </section>
 </main>
 <script type="module">
-  import { OFFICIAL, MEDIA, DOWNLOADS } from './data.js';
-  const link = ({ label, url }) => {
-    const a = document.createElement('a');
-    a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label;
-    return a;
-  };
-  document.getElementById('official').append(...OFFICIAL.map(link));
+  import { MEDIA } from './data.js';
+  const link = ({ label, url }) => { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label; return a; };
   const media = document.getElementById('media');
   if (MEDIA.length) media.append(...MEDIA.map(link));
   else { const p = document.createElement('p'); p.className = 'empty'; p.textContent = '整理中，陸續補上。'; media.replaceWith(p); }
-  const box = document.getElementById('downloads');
-  for (const region of DOWNLOADS) {
-    const d = document.createElement('details');
-    const s = document.createElement('summary');
-    s.textContent = region.name;
-    const n = document.createElement('span'); n.textContent = `${region.items.length} 份`; s.append(n);
-    const list = document.createElement('div'); list.className = 'links';
-    list.append(...region.items.map(link));
-    d.append(s, list); box.append(d);
-  }
-  box.querySelector('details')?.setAttribute('open', '');
 </script>
 </body>
 </html>

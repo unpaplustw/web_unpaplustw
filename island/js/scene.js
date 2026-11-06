@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { TILES, PORTS, SATELLITES, ORBIT_AFTER_ACTIVITY_MS } from './data.js';
+import { TILES, PORTS, SATELLITES, COMPANY, ORBIT_AFTER_ACTIVITY_MS } from './data.js';
 
 // ─────────────── 尺寸 ───────────────
 const R1 = 24;                      // 島半徑
@@ -20,7 +20,10 @@ const PLOT_IN = 15.5;                // 空地上的功能區（往城內一點�
 const CLOUD_Y = -17;                // 雲海高度（島的地基很深，雲海放低才露得出來）
 const MT_HALF = 40;                  // 後方靠山的範圍（離正後方 ±40°，這段不蓋城牆）
 const MOAT_IN = 0.885, MOAT_OUT = 0.975; // 護城河在島緣的位置（島外形的比例）
-const PLAIN_TOWERS = [25, -25, 66];  // 一般哨塔（不是沙龍）的方位
+const PLAIN_TOWERS = [25, -25, 66, 112, 138, -45, -75, -105, -135]; // 城牆哨塔的方位
+const BRIDGE_DEG = 90;               // 往綠佳利島的吊橋，從東側城牆出去
+const COMP_POS = new THREE.Vector3(45, -0.6, 4); // 綠佳利島相對天空之城的位置（右邊）
+const TW_K = 8.4;                    // 台灣經緯度 → 島面座標的倍率
 const D2R = Math.PI / 180;
 
 // ─────────────── 調色盤（米白＋金）───────────────
@@ -428,6 +431,137 @@ function buildRainbow() {
 }
 
 
+// ─────────────── 綠佳利島（公司）：台灣輪廓的浮島 ───────────────
+const TW_OUTLINE = [[121.53, 25.30], [121.75, 25.16], [121.93, 25.02], [121.83, 24.85], [121.86, 24.60], [121.72, 24.30], [121.62, 24.00], [121.48, 23.50],
+  [121.38, 23.10], [121.18, 22.78], [120.95, 22.40], [120.85, 21.92], [120.73, 22.00], [120.62, 22.30], [120.42, 22.50], [120.27, 22.60], [120.15, 22.90],
+  [120.08, 23.05], [120.12, 23.40], [120.18, 23.70], [120.33, 24.05], [120.52, 24.30], [120.70, 24.60], [120.90, 24.85], [121.05, 25.03], [121.25, 25.12], [121.42, 25.22]];
+const twXZ = (lon, lat) => [(lon - 120.95) * TW_K, -(lat - 23.6) * TW_K];
+function buildCompany(mats) {
+  const r = rng(707);
+  const g = new THREE.Group(); g.position.copy(COMP_POS);
+  const k = new Kit();
+  const pts = TW_OUTLINE.map(([lo, la]) => { const [x, z] = twXZ(lo, la); return new THREE.Vector2(x, -z); });
+  const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+  const around = (f, ox = 0, oz = 0) => pts.map((p) => new THREE.Vector2(cx + (p.x - cx) * f + ox, cy + (p.y - cy) * f - oz));
+  k.add(slab(around(1.06), -1.2, 1.1, 0.3), PAL.rimDark);
+  k.add(slab(around(1.03), -0.9, 0.95, 0.28), PAL.rim);
+  k.add(slab(pts, -0.2, 0.55, 0.3), PAL.grass);
+  [[0.92, PAL.earth], [0.8, PAL.rock[0]], [0.64, PAL.rock[1]], [0.46, PAL.rock[2]], [0.28, PAL.rock[3]]]
+    .forEach(([f, col], i) => k.add(slab(around(f, (r() - 0.5) * 0.8, (r() - 0.5) * 0.8), -1.2 - (i + 1) * 1.4, 1.3, 0.3), col));
+  k.add(new THREE.ConeGeometry(2.6, 6, 7), PAL.rock[1], mat(cx, -11, -cy, 0.3, 1, 1, 1, Math.PI));
+  for (let i = 0; i < 22; i++) { const p = pts[i % pts.length], len = 1.5 + r() * 3; k.add(G.cyl6, PAL.root, mat(cx + (p.x - cx) * 0.85, -1.4 - len / 2, -(cy + (p.y - cy) * 0.85), 0, 0.1, len, 0.1)); }
+  const placed = [];
+  const spots = [...COMPANY.buildings, ...PORTS].map((b) => { const [x, z] = twXZ(b.lon, b.lat); return { x, z }; });
+  // 中央山脈：沿著台灣中間偏東一排小山（避開建築）
+  for (let t = 0; t <= 1; t += 0.09) {
+    const lon = 121.33 - t * 0.5, lat = 24.55 - t * 1.85, [x, z] = twXZ(lon, lat);
+    if (spots.some((s) => Math.hypot(s.x - x, s.z - z) < 1.6)) continue;
+    const h = 1.6 + Math.sin(t * Math.PI) * 2.2 + r() * 0.6, rad = 1.1 + r() * 0.4;
+    k.add(new THREE.ConeGeometry(rad, h, 6), t > 0.25 && t < 0.75 ? PAL.rock[0] : '#7fae5a', mat(x, G1 + h / 2 - 0.2, z, r() * 3));
+    placed.push({ x, z, r: rad });
+  }
+  const out = { group: g, buildings: [], salons: [] };
+  for (const b of COMPANY.buildings) {
+    const [x, z] = twXZ(b.lon, b.lat), h = COMPANY_KIT[b.kind](k, x, z);
+    placed.push({ x, z, r: 1.4 }); out.buildings.push({ def: b, x, z, h });
+  }
+  for (const p of PORTS) {
+    const [x, z] = twXZ(p.lon, p.lat), h = buildSalonHouse(k, x, z, p.id === 'taipei');
+    placed.push({ x, z, r: 1.0 }); out.salons.push({ port: p, x, z, h });
+  }
+  let n = 0, tries = 0;
+  while (n < 45 && tries++ < 1500) {
+    const p = pts[Math.floor(r() * pts.length)], f = r() * 0.85, x = cx + (p.x - cx) * f, z = -(cy + (p.y - cy) * f);
+    if (!inside(pts, x, z) || !placed.every((q) => Math.hypot(q.x - x, q.z - z) > q.r + 0.5)) continue;
+    const s0 = 0.55 + r() * 0.3; k.add(G.cyl6, PAL.trunk, mat(x, G1 + 0.2 * s0, z, 0, 0.14 * s0, 0.4 * s0, 0.14 * s0));
+    k.add(G.ico, pick(PAL.leaf, r), mat(x, G1 + 0.75 * s0, z, r() * 3, 0.9 * s0, 0.8 * s0, 0.9 * s0));
+    placed.push({ x, z, r: 0.35 }); n++;
+  }
+  out.westCoast = new THREE.Vector3(...((c) => [c[0], G1 + 0.1, c[1]])(twXZ(120.36, 24.08)));
+  out.center = new THREE.Vector3(...((c) => [c[0], G1, c[1]])(twXZ(120.95, 23.75)));
+  g.add(k.mesh(mats));
+  return out;
+}
+function buildSalonHouse(k, x, z, big) {
+  const { P, L } = B(k, x, G1, z, -0.4, big ? 1.25 : 1);
+  P(G.box, PAL.white, 0, 0.7, 0, 0, 1.6, 1.4, 1.3);
+  P(gable(), PAL.gold, 0, 1.4, 0, Math.PI / 2, 1.5, 0.75, 1.8);
+  P(G.box, PAL.gold, 0, 0.45, 0.66, 0, 0.42, 0.85, 0.04);
+  P(G.box, PAL.goldBright, 0, 1.15, 0.67, 0, 1.0, 0.24, 0.03);
+  P(G.cyl6, '#5a5348', 0.7, 2.0, -0.4, 0, 0.04, 1.4, 0.04);
+  P(G.box, PAL.gold, 0.92, 2.5, -0.4, 0, 0.42, 0.26, 0.03);
+  L(0, 1.15, 0.8, 1.0);
+  return (big ? 2.9 : 2.4) * (big ? 1.25 : 1);
+}
+const COMPANY_KIT = {
+  hq(k, x, z) { // 公司官網：玻璃總部大樓
+    const { P, L } = B(k, x, G1, z, -0.3);
+    P(G.box, '#cfe6ee', 0, 3.4, 0, 0, 1.9, 6.8, 1.9);
+    for (let i = 1; i <= 6; i++) P(G.box, PAL.white, 0, i * 1.1, 0, 0, 2.0, 0.1, 2.0);
+    P(G.box, PAL.goldSoft, 0, 6.9, 0, 0, 2.1, 0.2, 2.1);
+    P(G.cyl16, '#4f9a68', 0, 5.6, 0.97, 0, 0.9, 0.05, 0.9, Math.PI / 2);
+    P(G.cyl8, PAL.gold, 0, 7.6, 0, 0, 0.06, 1.2, 0.06);
+    L(0, 8.2, 0, 1.6);
+    return 8.6;
+  },
+  screen(k, x, z) { // 官方社群：大螢幕看板（FB 藍、YouTube 紅）
+    const { P, L } = B(k, x, G1, z, -0.5);
+    for (const s of [-1, 1]) P(G.box, '#5a5348', s * 1.1, 1.3, 0, 0, 0.14, 2.6, 0.14);
+    P(G.box, '#2a2a33', 0, 2.5, 0, 0, 2.7, 1.5, 0.16);
+    P(G.box, '#1877f2', -0.62, 2.5, 0.09, 0, 1.15, 1.2, 0.02);
+    P(G.box, '#ff2d2d', 0.62, 2.5, 0.09, 0, 1.15, 1.2, 0.02);
+    P(new THREE.ConeGeometry(0.22, 0.4, 3), '#ffffff', 0.66, 2.5, 0.11, 0, 1, 1, 1, Math.PI / 2, -Math.PI / 2);
+    L(0, 2.5, 0.3, 2);
+    return 3.6;
+  },
+  signal(k, x, z) { // APP：山頂訊號塔
+    const { P, L } = B(k, x, G1, z, 0);
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P(G.cyl6, '#9aa4ad', a * 0.4, 2.4, b * 0.4, 0, 0.08, 4.8, 0.08, b * -0.07, a * 0.07);
+    for (const y of [1.2, 2.4, 3.6]) P(G.box, '#9aa4ad', 0, y, 0, 0, 0.85 - y * 0.08, 0.05, 0.85 - y * 0.08);
+    P(G.box, PAL.white, 0, 5.2, 0, 0, 0.7, 1.2, 0.12);       // 手機造型的面板
+    P(G.box, '#6fb3df', 0, 5.25, 0.07, 0, 0.56, 0.9, 0.02);
+    P(G.sph, PAL.goldBright, 0, 6.1, 0, 0, 0.26, 0.26, 0.26);
+    L(0, 6.1, 0, 1.8);
+    return 6.6;
+  },
+  gate(k, x, z) { // NDS：會員之門（金色拱門）
+    const { P, L } = B(k, x, G1, z, -0.6);
+    for (const s of [-1, 1]) P(G.box, PAL.white, s * 1.0, 1.0, 0, 0, 0.4, 2.0, 0.4);
+    P(new THREE.TorusGeometry(1.0, 0.16, 6, 20, Math.PI), PAL.gold, 0, 2.0, 0);
+    P(G.box, PAL.goldBright, 0, 3.25, 0, 0, 1.2, 0.36, 0.08);
+    P(G.box, '#cfe6ee', 0, 1.0, 0, 0, 1.5, 1.9, 0.04);
+    L(0, 2.6, 0.2, 1.6);
+    return 3.8;
+  },
+  library(k, x, z) { // 宣傳品資料館：小型石柱館
+    const { P } = B(k, x, G1, z, 0.3);
+    P(G.box, PAL.stoneShade, 0, 0.12, 0, 0, 2.6, 0.24, 1.9);
+    P(G.box, PAL.white, 0, 0.9, -0.2, 0, 2.2, 1.3, 1.3);
+    for (let i = 0; i < 4; i++) P(G.cyl8, PAL.white, -0.9 + i * 0.6, 0.9, 0.6, 0, 0.16, 1.3, 0.16);
+    P(G.box, PAL.stone, 0, 1.62, 0.1, 0, 2.5, 0.14, 1.8);
+    P(gable(), PAL.navy, 0, 1.69, 0.1, Math.PI / 2, 1.8, 0.6, 2.5);
+    P(G.box, PAL.gold, 0, 0.55, 0.46, 0, 0.5, 0.8, 0.04);
+    return 2.9;
+  },
+};
+// 吊橋：兩端之間一片片木板，中間微微下垂，兩側繩索
+function buildBridge(k, a, b) {
+  const n = 30, side = new THREE.Vector3().subVectors(b, a).setY(0).normalize(), perp = new THREE.Vector3(-side.z, 0, side.x);
+  const pt = (t) => new THREE.Vector3().lerpVectors(a, b, t).add(new THREE.Vector3(0, -Math.sin(t * Math.PI) * 1.2, 0));
+  const ang = Math.atan2(b.x - a.x, b.z - a.z), len = a.distanceTo(b) / n;
+  for (let i = 0; i < n; i++) {
+    const p = pt((i + 0.5) / n);
+    k.add(G.box, i % 2 ? PAL.wood : '#9a6e45', mat(p.x, p.y, p.z, ang, 2.0, 0.12, len * 0.9));
+  }
+  for (const s of [-1, 1]) for (let i = 0; i < n; i++) {
+    const p0 = pt(i / n).addScaledVector(perp, s * 1.0), p1 = pt((i + 1) / n).addScaledVector(perp, s * 1.0);
+    const m = p0.clone().add(p1).multiplyScalar(0.5); m.y += 0.8;
+    k.add(G.box, '#7a5636', mat(m.x, m.y, m.z, ang, 0.06, 0.06, p0.distanceTo(p1) + 0.02, Math.atan2(p1.y - p0.y, len) * -1));
+    if (i % 5 === 0) k.add(G.cyl6, '#5a5348', mat(p0.x, p0.y + 0.4, p0.z, 0, 0.06, 0.8, 0.06));
+  }
+}
+
+
 function house(k, x, gy, z, rot, r, big) {
   const { P } = B(k, x, gy, z, rot);
   const w = (big ? 1.8 : 1.3) + r() * 0.4, d = 1.15 + r() * 0.3, h = (big ? 1.4 : 0.95) + r() * 0.5;
@@ -596,6 +730,7 @@ function buildCity(mats) {
     const ax = a.x, az = -a.y, bx = b.x, bz = -b.y, mx = (ax + bx) / 2, mz = (az + bz) / 2;
     if (mz > 0 && Math.abs(mx) < GATE_HALF) continue;                         // 城門開口
     if (Math.abs(Math.atan2(mx, mz) / D2R) > 180 - MT_HALF) continue;        // 靠山
+    if (Math.abs(Math.atan2(mx, mz) / D2R - BRIDGE_DEG) < 4) continue;        // 往綠佳利島的吊橋出口
     const len = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bx - ax, bz - az);
     k.add(G.box, PAL.wall, mat(mx, G1 + WALL_H / 2, mz, ang, 0.6, WALL_H, len + 0.06));
     k.add(G.box, PAL.wallDark, mat(mx, G1 + WALL_H + 0.04, mz, ang, 0.8, 0.08, len + 0.06));
@@ -604,7 +739,7 @@ function buildCity(mats) {
   }
   const onWall = (deg) => polar(deg, edgeAt(p1, deg) * WALL_F);
   for (const deg of PLAIN_TOWERS) { const [x, z] = onWall(deg); buildPlainTower(k, x, z); placed.push({ x, z, r: 1.8 }); }
-  const salons = PORTS.map((port) => { const [x, z] = onWall(port.angle); const h = buildSalon(k, x, z); placed.push({ x, z, r: 2.4 }); return { port, x, z, h }; });
+  const bridgeFrom = new THREE.Vector3(...((p) => [p[0], G1 + 0.1, p[1]])(onWall(BRIDGE_DEG)));
 
   // ── 靠山 ──
   for (const pk of buildMountains(k, r, p1)) placed.push(pk);
@@ -716,7 +851,7 @@ function buildCity(mats) {
 
   city.add(k.mesh(mats));
   return {
-    city, waterfalls, magic, radar, salons,
+    city, waterfalls, magic, radar, bridgeFrom,
     spots: {
       castle: { x: CASTLE[0], z: CASTLE[1], gy: GH, h: castleH, focusY: 9, focusR: 16, hit: [HILL_R * 0.8, 24] },
       left: { x: LEFT[0], z: LEFT[1], gy: G1, h: academy.h, focusY: 2.5, focusR: 9.5, hit: [5, 9], rooms: academy.rooms },
@@ -809,14 +944,28 @@ export function createIsland({ stage, onPick, onBackground }) {
     });
   }
 
-  // ── 地區沙龍（城牆上的沙龍塔，點了看地址與營業時間）──
-  for (const s of built.salons) {
-    const anchor = new THREE.Object3D(); anchor.position.set(s.x, G1, s.z); city.add(anchor);
-    const entry = { kind: 'port', id: s.port.id, object: anchor, offset: new THREE.Vector3(0, s.h + 0.4, 0), focusY: 3, focusR: 8, viewAz: Math.atan2(-s.x, -s.z),
+  // ── 綠佳利島（公司）＋吊橋 ──
+  const comp = buildCompany(mats); city.add(comp.group);
+  { const kb = new Kit(); buildBridge(kb, built.bridgeFrom, comp.westCoast.clone().add(COMP_POS)); city.add(kb.mesh(mats)); }
+  const compAnchor = (p) => { const a = new THREE.Object3D(); a.position.copy(p); comp.group.add(a); return a; };
+  {
+    const entry = { kind: 'company', id: COMPANY.id, island: true, object: compAnchor(comp.center), offset: new THREE.Vector3(0, 9.5, 0), focusY: 2, focusR: 15,
+      label: makeLabel(COMPANY, 'company', 'label-tile label-company', COMPANY.name) };
+    entries.push(entry);
+  }
+  for (const b of comp.buildings) {
+    const entry = { kind: 'company', id: b.def.id, object: compAnchor(new THREE.Vector3(b.x, G1, b.z)), offset: new THREE.Vector3(0, b.h + 0.3, 0), focusY: 2, focusR: 7,
+      label: makeLabel(b.def, 'company', 'label-tile', b.def.name) };
+    entries.push(entry);
+    addHit(entry.object, new THREE.CylinderGeometry(1.4, 1.4, b.h + 1, 10).translate(0, (b.h + 1) / 2 - 0.5, 0), entry);
+  }
+  for (const s of comp.salons) {
+    const entry = { kind: 'port', id: s.port.id, object: compAnchor(new THREE.Vector3(s.x, G1, s.z)), offset: new THREE.Vector3(0, s.h + 0.3, 0), focusY: 1.5, focusR: 6,
       label: makeLabel(s.port, 'port', 'label-port', s.port.salon) };
     entries.push(entry);
-    addHit(anchor, new THREE.CylinderGeometry(2.2, 2.2, 10, 10).translate(0, 4.5, 0), entry);
+    addHit(entry.object, new THREE.CylinderGeometry(1.1, 1.1, 4, 10).translate(0, 1.5, 0), entry);
   }
+
   const fitR = R1 + 6.5;
   // ── 彩虹（城的後方，鏡頭放低才出現）──
   const rainbow = buildRainbow(); scene.add(rainbow);
@@ -891,7 +1040,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     return { pos, target: target.clone() };
   }
   // 全景：側上方看過來，塔在中間、看得到底下的岩石與瀑布
-  const homeView = () => viewFor(new THREE.Vector3(0, portrait() ? 14 : 2, -2), fitDist(portrait() ? R1 * 1.05 : fitR * 1.18), THREE.MathUtils.degToRad(portrait() ? 70 : 70), 0.12);
+  const homeView = () => viewFor(new THREE.Vector3(portrait() ? 20 : 19, portrait() ? 22 : 1, 0), fitDist(portrait() ? 40 : 44), THREE.MathUtils.degToRad(70), portrait() ? 0.5 : 0.18); // 兩座島一起入鏡
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let fly = null;
   function flyTo(v, dur = 1.4) {
@@ -924,7 +1073,7 @@ export function createIsland({ stage, onPick, onBackground }) {
   }
 
   // 名牌重疊時，重要的先擺：選到的 → 精神之塔 → 功能區 → 衛星 → 停靠站；擺不下的先藏
-  const prio = (e) => (e.parent ? 8 : e.label.classList.contains('is-active') ? 9 : e.home ? 4 : e.kind === 'tile' ? 3 : e.kind === 'satellite' ? 2 : 1);
+  const prio = (e) => (e.parent ? 8 : e.label.classList.contains('is-active') ? 9 : e.home ? 4 : e.island ? 3.5 : e.kind === 'tile' ? 3 : e.kind === 'company' ? 2.5 : e.kind === 'satellite' ? 2 : 1);
   let activeId = null;
   const projected = new THREE.Vector3();
   function placeLabels() {
@@ -1055,7 +1204,7 @@ export function createIsland({ stage, onPick, onBackground }) {
       for (const entry of entries) {
         const active = entry.id === id;
         entry.label.classList.toggle('is-active', active);
-        if (active && (entry.kind === 'tile' || entry.kind === 'port')) focus = entry;
+        if (active && (entry.kind === 'tile' || entry.kind === 'port' || entry.kind === 'company')) focus = entry;
       }
       if (focus) { // 鏡頭靠近選到的地方，保留目前的方向
         const off = camera.position.clone().sub(controls.target);

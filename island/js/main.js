@@ -1,4 +1,4 @@
-import { TILES, PORTS, SATELLITES, TOUR } from './data.js';
+import { TILES, PORTS, SATELLITES, COMPANY, TOUR } from './data.js';
 import { loadAplus, loadPorts, loadCharity } from './content.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -60,8 +60,9 @@ function buildList() {
   $('#list-body').append(
     listGroup('APLUS城', home.map((tile) => listButton(tile.name, 'tile', tile.id))),
     listGroup('功能區', land.map((tile) => listButton(tile.name, 'tile', tile.id))),
+    listGroup('綠佳利島（公司）', [listButton(COMPANY.name, 'company', COMPANY.id), ...COMPANY.buildings.map((b) => listButton(b.name, 'company', b.id))]),
     listGroup('地區沙龍', PORTS.map((port) => listButton(port.salon, 'port', port.id))),
-    listGroup('衛星', SATELLITES.map(listLink)),
+    ...(SATELLITES.length ? [listGroup('衛星', SATELLITES.map(listLink))] : []),
   );
 }
 
@@ -246,6 +247,11 @@ function pick(kind, id) {
   island?.select(id);
   if (kind === 'port') {
     openCard(portCard(PORTS.find((port) => port.id === id)), false);
+    return;
+  }
+  if (kind === 'company') { // 綠佳利島：島本身開 /company/，建築開各自的按鈕
+    const b = id === COMPANY.id ? COMPANY : COMPANY.buildings.find((item) => item.id === id);
+    openCard(simpleCard(b), false);
     return;
   }
   const tile = TILES.find((item) => item.id === id);
