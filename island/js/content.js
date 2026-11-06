@@ -92,3 +92,9 @@ export async function loadPorts(ports) {
   }
   return result;
 }
+
+// 公益：第一行是標題，「支持對象-」開頭的行是小標，其餘是段落
+export async function loadCharity() {
+  const lines = await loadLines('data/donation.txt');
+  return { title: lines[0], lines: lines.slice(1) };
+}

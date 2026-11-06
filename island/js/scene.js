@@ -16,6 +16,7 @@ const HILL_R = 8;                    // 城堡高台半徑
 const CASTLE = [0, -10], LEFT = [-12.5, -5], RIGHT = [12.5, -5], FRONT = [0, 3]; // 城堡、左（學院）、右（LINEAI）、前（練功場）
 const WALL_F = 0.86, WALL_H = 1.4, GATE_HALF = 3.4; // 城牆在島緣的位置、高度、城門開口半寬
 const PLOT_R = 17.5;                 // 預留空地
+const PLOT_IN = 15.5;                // 空地上的功能區（往城內一點，避開城牆的城塔）
 const CLOUD_Y = -11;
 const D2R = Math.PI / 180;
 
@@ -313,6 +314,54 @@ function buildGate(k, x, gy, z, rot) {
   return 10.2;
 }
 
+// ── 健康檢查站：白色圓頂主樓＋門前發光的大儀表 ──
+function buildClinic(k, x, gy, z, rot) {
+  const { P, L } = B(k, x, gy, z, rot);
+  P(G.cyl16, PAL.stoneShade, 0, 0.12, 0, 0, 5.4, 0.24, 5.4);
+  P(G.cyl16, PAL.white, 0, 1.25, -0.4, 0, 3.8, 2.1, 3.8);
+  P(G.cyl16, PAL.goldSoft, 0, 2.33, -0.4, 0, 4.0, 0.12, 4.0);
+  P(new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), '#cfeae2', 0, 2.38, -0.4, 0, 3.7, 2.6, 3.7);
+  P(G.sph, PAL.goldBright, 0, 3.75, -0.4, 0, 0.3, 0.3, 0.3);
+  P(G.box, PAL.gold, 0, 0.75, 1.48, 0, 0.9, 1.3, 0.1);
+  for (const a of [-0.9, 0.9]) P(G.box, PAL.window, Math.sin(a) * 1.92, 1.4, -0.4 + Math.cos(a) * 1.92, a, 0.4, 0.6, 0.04);
+  // 門前的大儀表：白色錶盤＋綠黃橘刻度＋金色指針
+  P(G.cyl8, '#5a5348', 1.7, 0.8, 1.6, 0, 0.14, 1.6, 0.14);
+  P(G.cyl16, PAL.white, 1.7, 2.1, 1.6, 0, 1.6, 0.14, 1.6, Math.PI / 2);
+  P(G.cyl16, PAL.goldSoft, 1.7, 2.1, 1.56, 0, 1.75, 0.08, 1.75, Math.PI / 2);
+  ['#7ab35a', '#7ab35a', '#e8c766', '#e8c766', '#d9926a'].forEach((c, j) => {
+    const a = Math.PI * (0.85 - j * 0.175); P(G.box, c, 1.7 + Math.cos(a) * 0.58, 2.1 + Math.sin(a) * 0.58, 1.69, 0, 0.22, 0.1, 0.03, 0, a + Math.PI / 2);
+  });
+  P(G.box, PAL.gold, 1.7 + 0.2, 2.1 + 0.2, 1.72, 0, 0.06, 0.62, 0.03, 0, -Math.PI / 4);
+  P(G.cyl8, PAL.gold, 1.7, 2.1, 1.72, 0, 0.14, 0.04, 0.14, Math.PI / 2);
+  L(1.7, 2.1, 1.8, 2.2);
+  k.shadowAt(x, z, 2.8, gy);
+  return 4.4;
+}
+// ── 雷達站：控制室＋鐵架塔＋會轉的大碟型天線 ──
+function buildRadar(k, x, gy, z, rot, mats) {
+  const { P, L } = B(k, x, gy, z, rot);
+  P(G.box, PAL.stoneShade, 0, 0.1, 0, 0, 6.0, 0.2, 4.6);
+  P(G.box, PAL.white, -1.5, 0.85, 0.6, 0, 2.6, 1.5, 2.0);
+  P(G.box, PAL.navy, -1.5, 1.66, 0.6, 0, 2.8, 0.12, 2.2);
+  for (let c = 0; c < 3; c++) P(G.box, '#6fb3df', -2.3 + c * 0.8, 1.0, 1.61, 0, 0.5, 0.45, 0.02);
+  P(G.box, PAL.gold, -1.5, 0.55, 1.61, 0, 0.5, 0.9, 0.03);
+  for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P(G.cyl6, '#9aa4ad', 1.3 + a * 0.55, 2.0, -0.6 + b * 0.55, 0, 0.1, 4.0, 0.1, b * -0.1, a * 0.1);
+  for (const y of [1.0, 2.0, 3.0]) P(G.box, '#9aa4ad', 1.3, y, -0.6, 0, 1.2 - y * 0.12, 0.06, 1.2 - y * 0.12);
+  P(G.cyl16, PAL.goldSoft, 1.3, 4.0, -0.6, 0, 1.1, 0.16, 1.1);
+  L(1.3, 4.1, -0.6, 1.4);
+  const parts = [
+    prep(new THREE.SphereGeometry(1.7, 18, 8, 0, Math.PI * 2, 0, Math.PI / 3), '#eef2f4', mat(0, 0.2, 0, 0, 1, 1, 1, Math.PI * 0.62)),
+    prep(G.cyl8, PAL.gold, mat(0, 0.9, 0.5, 0, 0.08, 1.4, 0.08, Math.PI * 0.12)),
+    prep(G.sph, PAL.goldBright, mat(0, 1.55, 0.72, 0, 0.22, 0.22, 0.22)),
+    prep(G.cyl8, '#9aa4ad', mat(0, -0.15, 0, 0, 0.3, 0.6, 0.3)),
+  ];
+  const dish = new THREE.Mesh(mergeGeometries(parts), mats.solid);
+  const holder = new THREE.Group(); holder.position.set(x, gy, z); holder.rotation.y = rot;
+  const pivot = new THREE.Group(); pivot.position.set(1.3, 4.45, -0.6); pivot.add(dish); holder.add(pivot);
+  k.shadowAt(x, z, 3.2, gy);
+  return { h: 6.8, holder, pivot };
+}
+
 function house(k, x, gy, z, rot, r, big) {
   const { P } = B(k, x, gy, z, rot);
   const w = (big ? 1.8 : 1.3) + r() * 0.4, d = 1.15 + r() * 0.3, h = (big ? 1.4 : 0.95) + r() * 0.5;
@@ -547,8 +596,8 @@ function buildCity(mats) {
   stripLine(k, 0, FRONT[1] - 3.2, 0, hillFront + 1.6, 2.6, G1 + 0.03, PAL.path);
   lineBlock(0, gateZ - 1, 0, FRONT[1] + 3.2, 1.8);
   const crossZ = FRONT[1] + 7.5;
-  stripLine(k, -15, crossZ, 15, crossZ, 2.0, G1 + 0.035, PAL.path);
-  lineBlock(-15, crossZ, 15, crossZ, 1.5);
+  stripLine(k, -8.5, crossZ, 8.5, crossZ, 2.0, G1 + 0.035, PAL.path);
+  lineBlock(-8.5, crossZ, 8.5, crossZ, 1.5);
   stripLine(k, LEFT[0] + 1, LEFT[1] + 4.6, -4.8, FRONT[1], 1.6, G1 + 0.03, PAL.path);
   stripLine(k, RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.6, G1 + 0.03, PAL.path);
   lineBlock(LEFT[0] + 1, LEFT[1] + 4.6, -4.8, FRONT[1], 1.2);
@@ -573,12 +622,23 @@ function buildCity(mats) {
     placed.push({ x, z, r: 2.4 });
   });
 
+  // ── 城牆內空地上的功能區（spot: 'plot'）──
+  const plotSpots = {}; let radar = null;
+  TILES.filter((t) => t.spot === 'plot' && t.status !== 'reserved').forEach((t) => {
+    const [x, z] = polar(t.angle, PLOT_IN), rot = faceIn(x, z);
+    let h;
+    if (t.landmark === 'radar') { radar = buildRadar(k, x, G1, z, rot, mats); city.add(radar.holder); h = radar.h; }
+    else h = buildClinic(k, x, G1, z, rot);
+    placed.push({ x, z, r: 3.4 });
+    plotSpots[t.id] = { x, z, gy: G1, h, focusY: 2, focusR: 8.5, hit: [3.4, 8], viewAz: Math.atan2(-x, -z) }; // 鏡頭從城中央往外看
+  });
+
   // ── 住宅：主街兩側先排，再沿橫街、其他空地 ──
   const inWall = (x, z) => inside(scaled(p1, WALL_F - 0.05), x, z);
   for (let z = FRONT[1] + 4.2; z < gateZ - 3.5; z += 2.3) for (const s of [-1, 1]) {
     const x = s * 3.6; if (free(x, z, 1.0)) placed.push({ x, z, r: house(k, x, G1, z, s * -Math.PI / 2, r, r() < 0.3) });
   }
-  for (let x = -14; x <= 14; x += 2.4) for (const s of [-1, 1]) {
+  for (let x = -8; x <= 8; x += 2.4) for (const s of [-1, 1]) {
     const z = crossZ + s * 2.1; if (inWall(x, z) && free(x, z, 1.0)) placed.push({ x, z, r: house(k, x, G1, z, s > 0 ? Math.PI : 0, r, false) });
   }
   let n = 0, tries = 0;
@@ -598,13 +658,14 @@ function buildCity(mats) {
 
   city.add(k.mesh(mats));
   return {
-    city, waterfall, magic, wf: { x: wx, z: wz },
+    city, waterfall, magic, radar, wf: { x: wx, z: wz },
     spots: {
       castle: { x: CASTLE[0], z: CASTLE[1], gy: GH, h: castleH, focusY: 9, focusR: 16, hit: [HILL_R * 0.8, 24] },
       left: { x: LEFT[0], z: LEFT[1], gy: G1, h: academy.h, focusY: 2.5, focusR: 9.5, hit: [5, 9], rooms: academy.rooms },
       right: { x: RIGHT[0], z: RIGHT[1], gy: G1, h: magic.h, focusY: 4, focusR: 10, hit: [3.6, 14] },
       front: { x: FRONT[0], z: FRONT[1], gy: G1, h: dojoH, focusY: 1.5, focusR: 9.5, hit: [5, 5], labelAt: [4.2, -2.2] },
       gate: { x: gate.x, z: gate.z, gy: G1, h: gate.h, focusY: 5, focusR: 9, hit: [4.5, 11] },
+      ...plotSpots,
     },
   };
 }
@@ -670,11 +731,11 @@ export function createIsland({ stage, onPick, onBackground }) {
   const floaters = [{ obj: city, baseY: 0, amp: 0.25, ph: 0, sp: 0.35 }];
 
   for (const tile of TILES.filter((t) => t.status !== 'reserved')) {
-    const s = built.spots[tile.spot]; if (!s) continue;
+    const s = built.spots[tile.spot === 'plot' ? tile.id : tile.spot]; if (!s) continue;
     const anchor = new THREE.Object3D(); anchor.position.set(s.x, s.gy, s.z); city.add(anchor);
     const home = tile.status === 'full';
     const entry = { kind: 'tile', id: tile.id, object: anchor, offset: new THREE.Vector3(...(s.labelAt ? [s.labelAt[0], s.h + 0.6, s.labelAt[1]] : [0, s.h + 0.6, 0])), home, focusY: s.focusY, focusR: s.focusR,
-      label: makeLabel(tile, 'tile', home ? 'label-home' : 'label-tile', tile.name) };
+      viewAz: s.viewAz, label: makeLabel(tile, 'tile', home ? 'label-home' : 'label-tile', tile.name) };
     if (!home) { // 選到時地上的金色光圈
       const ring = new THREE.Mesh(new THREE.RingGeometry(s.hit[0], s.hit[0] + 0.4, 48).rotateX(-Math.PI / 2), mats.ring.clone());
       ring.position.y = 0.08; anchor.add(ring); entry.ring = ring;
@@ -845,6 +906,7 @@ export function createIsland({ stage, onPick, onBackground }) {
       mg.crystals.rotation.y = -T * 0.9; mg.crystals.position.y = mg.orb.position.y;
       mg.rings[0].rotation.z = T * 0.6; mg.rings[1].rotation.z = -T * 0.8;
       mg.halo.material.opacity = 0.6 + 0.2 * Math.sin(T * 2.2);
+      if (built.radar) built.radar.pivot.rotation.y = T * 0.5; // 雷達天線慢慢轉
     }
     for (const f of floaters) f.obj.position.y = f.baseY + (reducedMotion ? 0 : Math.sin(T * f.sp + f.ph) * f.amp);
     for (const e of entries) if (e.ring) { // 選到的功能區：地上的金色光圈
@@ -929,7 +991,7 @@ export function createIsland({ stage, onPick, onBackground }) {
         const off = camera.position.clone().sub(controls.target);
         const sph = new THREE.Spherical().setFromVector3(off);
         const t = focus.object.getWorldPosition(new THREE.Vector3()); t.y += focus.focusY;
-        flyTo(viewFor(t, fitDist(focus.focusR), THREE.MathUtils.clamp(sph.phi, 0.85, 1.12), sph.theta), 1.3);
+        flyTo(viewFor(t, fitDist(focus.focusR), THREE.MathUtils.clamp(sph.phi, 0.85, 1.12), focus.viewAz ?? sph.theta), 1.3);
       } else if (id === null && !userMoved) flyTo(homeView(), 1.3);
       activity();
     },

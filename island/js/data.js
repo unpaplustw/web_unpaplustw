@@ -1,7 +1,7 @@
 // A Plus 天空之城（城堡版）的所有設定。加一個功能區＝在 TILES 加一筆（或把 reserved 改成 empty），不用改程式。
 //
 // spot：在城裡的位置，對應 scene.js 的 SPOTS
-//   castle＝北邊的大城堡｜left＝城堡左側｜right＝城堡右側｜front＝城堡前方｜gate＝南邊城門上方
+//   castle＝北邊的大城堡｜left＝城堡左側｜right＝城堡右側｜front＝城堡前方｜gate＝南邊城門上方｜plot＝城牆內的空地（用 angle 指定方位）
 // rooms：建築裡的教室名牌（只是名牌，點了一樣開這一區的卡片）
 // status：
 //   full     精神之塔（點了開完整卡片）
@@ -20,8 +20,11 @@ export const TILES = [
     line: '優秀會員的歷程。', link: '/heroes/' },
 
   { id: 'plot-e', status: 'reserved', angle: 72 },
-  { id: 'plot-w', status: 'reserved', angle: -72 },
-  { id: 'plot-s', status: 'reserved', angle: 30 },
+  { id: 'radar',   name: '雷達站',       status: 'empty', spot: 'plot', angle: -72, landmark: 'radar',
+    line: '宣傳品下載、官方連結、自媒體。', link: '/radar/' },
+  { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'plot', angle: 45, landmark: 'clinic',
+    line: 'KC 抗氧化力檢測、全能查查。',
+    links: [{ label: 'KC 抗氧化力檢測', href: '/kc/' }, { label: '全能查查', href: '/checker/' }] },
 ];
 
 // bearing：飛艇停靠站在城的哪個方位（度，0＝北／後方，順時針）。

@@ -1,5 +1,5 @@
 import { TILES, PORTS, SATELLITES, TOUR } from './data.js';
-import { loadAplus, loadPorts } from './content.js';
+import { loadAplus, loadPorts, loadCharity } from './content.js';
 
 const $ = (selector) => document.querySelector(selector);
 const SCENE_TIMEOUT_MS = 15000;
@@ -16,6 +16,7 @@ const clickable = TILES.filter((tile) => tile.status !== 'reserved');
 let island = null;
 let aplus = null;
 let ports = null;
+let charity = null;
 let contentError = false;
 let activeId = null;
 
@@ -111,11 +112,16 @@ function markActive() {
 function simpleCard(tile) {
   const wrap = el('div', 'simple');
   wrap.append(el('h2', 'card-title', tile.name), el('p', 'simple-line', tile.line));
-  const button = el('a', 'button', '前往');
-  button.href = tile.link;
-  button.target = '_blank';
-  button.rel = 'noopener';
-  wrap.append(button);
+  const links = tile.links || [{ label: '前往', href: tile.link }];
+  const row = el('div', 'card-buttons');
+  for (const { label, href } of links) {
+    const button = el('a', 'button', label);
+    button.href = href;
+    button.target = '_blank';
+    button.rel = 'noopener';
+    row.append(button);
+  }
+  wrap.append(row);
   return wrap;
 }
 
@@ -189,6 +195,13 @@ function timelinePanel(data) {
   return panel;
 }
 
+function charityPanel(data) {
+  const panel = el('div');
+  panel.append(el('h3', 'section-title', data.title));
+  for (const line of data.lines) panel.append(el(line.startsWith('支持對象') ? 'h4' : 'p', line.startsWith('支持對象') ? 'timeline-label' : 'prose', line));
+  return panel;
+}
+
 function homeCard() {
   const wrap = el('div', 'home');
   if (!aplus) {
@@ -201,6 +214,7 @@ function homeCard() {
     ['領袖', leadersPanel(aplus)],
     ['典章', charterPanel(aplus)],
     ['大記事', timelinePanel(aplus)],
+    ...(charity ? [['公益', charityPanel(charity)]] : []),
   ];
   const tablist = el('div', 'tabs');
   tablist.setAttribute('role', 'tablist');
@@ -318,7 +332,7 @@ async function start() {
   window.addEventListener('resize', syncInset);
 
   try {
-    [aplus, ports] = await Promise.all([loadAplus(), loadPorts(PORTS)]);
+    [aplus, ports, charity] = await Promise.all([loadAplus(), loadPorts(PORTS), loadCharity()]);
   } catch (error) {
     console.error(error);
     contentError = true;

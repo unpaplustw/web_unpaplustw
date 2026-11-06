@@ -396,3 +396,6 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 
 /* 建築裡的教室名牌（只在選到該區時出現） */
 .label-room { z-index: 4; font-size: 11px; padding: 2px 7px; color: var(--sub); border-color: var(--gold-soft); }
+
+/* 卡片多個按鈕 */
+.card-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
