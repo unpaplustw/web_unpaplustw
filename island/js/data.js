@@ -8,23 +8,33 @@
 //   empty    功能區（點了開小卡片，需要 line 與 link）
 //   reserved 城牆內的預留空地（不能點，不進清單）；angle＝方位（0＝正前方、往右為正）
 
+// 卡片文案：hook＝第一句勾子（粗體），line＝說明，cta＝按鈕字（沒寫就是「前往」）。2026-11-06 Randoph 定稿
 export const TILES = [
-  { id: 'aplus',   name: 'APLUS城', status: 'full', spot: 'castle' },
-  { id: 'academy', name: '環球致富學院', status: 'empty', spot: 'left', rooms: ['公司', '商品', '制度'],
-    line: '自學平台，無期別、隨時進出，自己走。', link: '/academy/' },
+  { id: 'aplus',   name: 'APLUS城', status: 'full', spot: 'castle',
+    hook: 'A Plus 從 2004 年走到今天的地方。', line: '系統怎麼來、誰在帶路、守什麼規矩、做過哪些事，都在這裡。' },
+  { id: 'academy', name: '環球致富學院', status: 'empty', spot: 'left',
+    hook: '把「不知道下一步該做什麼」，變成照著修就會的學分。',
+    line: '21 個學分、46 個單元，每堂都有影片和作業。沒有開課日、沒有排行榜，照自己的節奏走。用 LINE 申請，審核通常 1～2 天，不用付費。',
+    cta: '看課程目錄', link: '/academy/' },
   { id: 'lineai',  name: 'LINEAI 顧問',  status: 'empty', spot: 'right',
-    line: 'AI 顧問系統。', link: '/lineai/' },
+    hook: '不用等領袖有空，24 小時隨時問。',
+    line: '領袖多年的實戰經驗都寫進了 AI 知識庫。遇到客人說太貴、不知道怎麼回，問一句，AI 就調出最相關的經驗回答你。',
+    cta: '認識 AI 顧問', link: '/lineai/' },
   { id: 'combat',  name: '實戰班',       status: 'empty', spot: 'front',
-    line: '有教練陪跑的行動班。', link: '/npcombat/' },
-  { id: 'stories', name: '英雄殿',       status: 'empty', spot: 'gate',
-    line: '優秀會員的歷程。', link: '/heroes/' },
+    hook: '一個人玩不是玩，一群人玩才是玩。',
+    line: '4 週、有教練帶的行動班，學完馬上做。每期的開班時間和報名費，以招生頁為準。',
+    cta: '看這期招生', link: '/npcombat/' },
+  { id: 'stories', name: '凱旋門',       status: 'empty', spot: 'gate',
+    hook: '每一位，都曾是和你一樣的普通人。',
+    line: '家庭主婦、補教老師、美髮店老闆、退休校長⋯⋯看他們怎麼從原本的生活，走到現在的成績。',
+    cta: '看他們的故事', link: '/heroes/' },
+  { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'plot', angle: 45, landmark: 'clinic',
+    hook: '你的抗氧化力還剩多少？18 秒測得出來。',
+    line: 'KC 用光照一下皮膚就有數字；全能查查幫你查商品成分和字號真偽，為家人把關（要用 LINE 登入）。',
+    links: [{ label: '測抗氧化力', href: '/kc/' }, { label: '查商品成分', href: '/checker/' }] },
 
   { id: 'plot-e', status: 'reserved', angle: 72 },
-  { id: 'radar',   name: '雷達站',       status: 'empty', spot: 'plot', angle: -72, landmark: 'radar',
-    line: 'A Plus 夥伴的自媒體（整理中）。', link: '/radar/' },
-  { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'plot', angle: 45, landmark: 'clinic',
-    line: 'KC 抗氧化力檢測、全能查查。',
-    links: [{ label: 'KC 抗氧化力檢測', href: '/kc/' }, { label: '全能查查', href: '/checker/' }] },
+  { id: 'plot-w', status: 'reserved', angle: -72 },   // 2026-11-06 雷達站拿掉（自媒體有內容再放回：spot: 'plot', landmark: 'radar', link: '/radar/'）
 ];
 
 // 地區沙龍：資料集中在綠佳利島的「公司總部」卡片（島上不再一間間蓋，太擠）。
@@ -41,18 +51,24 @@ export const PORTS = [
 // 綠佳利島（公司）：A Plus 天空之城右邊的另一座島，放所有「公司官方」的東西。
 // 島面＝台灣輪廓；建築用 lon／lat 擺位置。links＝卡片裡的按鈕；salons: true＝卡片下方列出各地區沙龍。
 export const COMPANY = {
-  id: 'company', name: '綠佳利島', line: '環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。', link: '/company/',
+  id: 'company', name: '綠佳利島', link: '/company/', cta: '進入綠佳利島',
+  hook: '環貫綠佳利的官方世界，一次找齊。', line: '官網、社群、APP、會員系統、全台服務中心、各地區宣傳品，都在這座島上。',
   buildings: [
-    { id: 'hq',     name: '公司總部',     kind: 'hq',      lon: 121.38, lat: 25.12, line: '環貫綠佳利總部：官方網站，以及各地區沙龍的地址與營業時間。', salons: true,
+    { id: 'hq',     name: '公司總部',     kind: 'hq',      lon: 121.38, lat: 25.12, salons: true,
+      hook: '台灣總部就在台北車站前的新光摩天大樓。', line: '下面有全台 6 個服務中心的地址和營業時間，出門前先看一下。',
       links: [{ label: '前往官網', href: 'https://www.naturally-plus.com/tw/zh' }] },
-    { id: 'social', name: '官方社群',     kind: 'screen',  lon: 121.50, lat: 23.95, line: '公司 Facebook、YouTube。',
+    { id: 'social', name: '官方社群',     kind: 'screen',  lon: 121.50, lat: 23.95,
+      hook: '公司官方的 Facebook 和 YouTube 頻道。',
       links: [{ label: 'Facebook', href: 'https://www.facebook.com/NaturallyPlusTW' }, { label: 'YouTube', href: 'https://youtube.com/c/NaturallyPlusTWNo1' }] },
-    { id: 'app',    name: '綠佳利 APP',   kind: 'signal',  lon: 121.02, lat: 23.55, line: '環貫綠佳利 APP 下載。',
+    { id: 'app',    name: '綠佳利 APP',   kind: 'signal',  lon: 121.02, lat: 23.55,
+      hook: '最好康的優惠、最即時的動態，一手掌握不漏接。', line: '公司不定期在 APP 上推出優惠活動。',
       links: [{ label: '下載 APP', href: 'http://cms.naturally-plus.com.tw/share/index.html' }] },
-    { id: 'nds',    name: 'NDS 會員登錄', kind: 'gate',    lon: 120.95, lat: 24.62, line: 'NDS 會員系統登入。',
-      links: [{ label: 'NDS 登入', href: 'https://nds.naturally-plus.com/login' }] },
-    { id: 'docs',   name: '宣傳品資料館', kind: 'library', lon: 120.42, lat: 23.45, line: '各地區 DM、小冊子下載。',
-      links: [{ label: '前往下載', href: '/company/#downloads' }] },
+    { id: 'nds',    name: 'NDS 會員登錄', kind: 'gate',    lon: 120.95, lat: 24.62,
+      hook: '已經是會員？登入 NDS 看自己的資料。', line: '獎金、點數、組織，都在會員系統裡。',
+      links: [{ label: '登入 NDS', href: 'https://nds.naturally-plus.com/login' }] },
+    { id: 'docs',   name: '宣傳品資料館', kind: 'library', lon: 120.42, lat: 23.45,
+      hook: '8 個地區、59 份官方 DM 和小冊子。', line: '要分享給朋友之前，先來這裡下載正確的版本。',
+      links: [{ label: '下載宣傳品', href: '/company/#downloads' }] },
   ],
 };
 // ⏳ IG：公司台灣官網頁尾沒有 IG，等 Randoph 提供網址再加進 social

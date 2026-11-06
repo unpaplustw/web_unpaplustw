@@ -113,8 +113,10 @@ function markActive() {
 
 function simpleCard(tile) {
   const wrap = el('div', 'simple');
-  wrap.append(el('h2', 'card-title', tile.name), el('p', 'simple-line', tile.line));
-  const links = tile.links || [{ label: '前往', href: tile.link }];
+  wrap.append(el('h2', 'card-title', tile.name));
+  if (tile.hook) wrap.append(el('p', 'card-hook', tile.hook));
+  if (tile.line) wrap.append(el('p', 'simple-line', tile.line));
+  const links = tile.links || [{ label: tile.cta || '前往', href: tile.link }];
   const row = el('div', 'card-buttons');
   for (const { label, href } of links) {
     const button = el('a', 'button', label);
@@ -223,6 +225,9 @@ function homeCard() {
     return wrap;
   }
   wrap.append(el('h2', 'card-title', aplus.title));
+  const intro = TILES.find((t) => t.status === 'full');
+  if (intro?.hook) wrap.append(el('p', 'card-hook', intro.hook));
+  if (intro?.line) wrap.append(el('p', 'simple-line', intro.line));
   const tabs = [
     ['起源', originPanel(aplus)],
     ['領袖', leadersPanel(aplus)],

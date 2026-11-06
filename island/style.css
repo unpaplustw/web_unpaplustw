@@ -406,3 +406,6 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 /* 公司總部卡片：每個地區沙龍之間加分隔線、標題縮小 */
 .simple .simple { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .simple .simple .card-title { font-size: 18px; margin-bottom: 4px; }
+
+/* 卡片第一句勾子 */
+.card-hook { margin: 4px 0 6px; font-size: 17px; font-weight: 700; line-height: 1.5; color: var(--ink); }

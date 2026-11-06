@@ -14,7 +14,7 @@ const R1 = 24;                      // 島半徑
 const G1 = 0.95, GH = 3.4;           // 地面／城堡高台高度
 const HILL_R = 8;                    // 城堡高台半徑
 const CASTLE = [0, -10], LEFT = [-12.5, -5], RIGHT = [12.5, -5], FRONT = [0, 3]; // 城堡、左（學院）、右（LINEAI）、前（練功場）
-const WALL_F = 0.86, WALL_H = 1.4, GATE_HALF = 3.4; // 城牆在島緣的位置、高度、城門開口半寬
+const WALL_F = 0.86, WALL_H = 1.4, GATE_HALF = 4.6; // 城牆在島緣的位置、高度、城門（凱旋門）開口半寬
 const PLOT_R = 17.5;                 // 預留空地
 const PLOT_IN = 15.5;                // 空地上的功能區（往城內一點，避開城牆的城塔）
 const CLOUD_Y = -17;                // 雲海高度（島的地基很深，雲海放低才露得出來）
@@ -208,34 +208,37 @@ function buildCastle(k, gy, pos) {
   return 23;
 }
 
-// ── 環球致富學院：學院大樓＋鐘樓＋前排三間教室（公司｜商品｜制度）──
+// ── 環球致富學院：三棟教學大樓＋前面一座有跑道的操場 ──
 function buildAcademy(k, x, gy, z, rot) {
   const { P, L, at } = B(k, x, gy, z, rot);
-  P(G.box, PAL.white, 0, 1.1, -1.0, 0, 5.4, 2.2, 2.6);
-  P(gable(), PAL.navy, 0, 2.2, -1.0, Math.PI / 2, 2.9, 1.1, 5.7);
-  windows(P, 5.4, 2.6, 0, 2.2, 2, 6);
-  P(G.box, PAL.stone, 0, 2.6, -0.6, 0, 1.3, 5.2, 1.3);
-  P(G.cyl16, PAL.goldBright, 0, 4.2, 0.07, 0, 0.9, 0.06, 0.9, Math.PI / 2);
-  P(G.box, '#3a3a44', 0, 4.2, 0.11, 0, 0.05, 0.36, 0.02);
-  P(G.box, PAL.goldSoft, 0, 5.25, -0.6, 0, 1.45, 0.14, 1.45);
-  P(new THREE.ConeGeometry(0.5, 1, 4), PAL.navy, 0, 6.05, -0.6, Math.PI / 4, 1.8, 1.5, 1.8);
-  P(G.sph, PAL.goldBright, 0, 6.9, -0.6, 0, 0.28, 0.28, 0.28);
-  L(0, 4.2, 0.2, 1.6);
-  const rooms = [];
-  [['#b8960c', -2.7], ['#6aa652', 0], ['#2f4a6d', 2.7]].forEach(([roof, rx]) => {
-    P(G.box, PAL.stone, rx, 0.8, 2.3, 0, 2.2, 1.6, 1.9);
-    P(gable(), roof, rx, 1.6, 2.3, Math.PI / 2, 2.1, 0.8, 2.4);
-    P(G.box, PAL.gold, rx, 0.55, 3.26, 0, 0.5, 1.0, 0.04);
-    P(G.box, PAL.window, rx - 0.65, 0.95, 3.26, 0, 0.34, 0.4, 0.02);
-    P(G.box, PAL.window, rx + 0.65, 0.95, 3.26, 0, 0.34, 0.4, 0.02);
-    rooms.push(at(rx, 2.6, 2.3));
+  [[-3.7, 2.2], [0, 2.8], [3.7, 2.2]].forEach(([bx, h], i) => {
+    P(G.box, PAL.white, bx, h / 2, -2.2, 0, 3.2, h, 2.2);
+    P(gable(), PAL.navy, bx, h, -2.2, Math.PI / 2, 2.4, 0.95, 3.4);
+    const floors = i === 1 ? 3 : 2;                                     // 窗戶：跟著每棟大樓的位置排，只排正面
+    for (let fl = 0; fl < floors; fl++) for (let c = 0; c < 4; c++) {
+      if (i === 1 && c > 0 && c < 3 && fl === floors - 1) continue;    // 中間那棟頂層讓給鐘樓
+      P(G.box, PAL.window, bx + (c - 1.5) * 0.7, h / floors * (fl + 0.55), -1.09, 0, 0.3, 0.36, 0.03);
+    }
+    P(G.box, PAL.gold, bx, 0.5, -1.09, 0, 0.6, 1.0, 0.04);
   });
-  P(G.box, PAL.path, 0, 0.04, 4.0, 0, 8.0, 0.06, 1.2);
-  k.shadowAt(x, z, 3.6, gy);
-  return { h: 7.4, rooms };
+  P(G.box, PAL.stone, 0, 3.2, -2.0, 0, 1.2, 2.4, 1.2);               // 中間大樓的鐘樓
+  P(G.cyl16, PAL.goldBright, 0, 3.7, -1.38, 0, 0.8, 0.06, 0.8, Math.PI / 2);
+  P(G.box, '#3a3a44', 0, 3.7, -1.34, 0, 0.05, 0.32, 0.02);
+  P(G.box, PAL.goldSoft, 0, 4.48, -2.0, 0, 1.35, 0.14, 1.35);
+  P(new THREE.ConeGeometry(0.5, 1, 4), PAL.navy, 0, 5.25, -2.0, Math.PI / 4, 1.7, 1.4, 1.7);
+  P(G.sph, PAL.goldBright, 0, 6.05, -2.0, 0, 0.26, 0.26, 0.26);
+  L(0, 3.7, -1.2, 1.6);
+  // 操場：紅色跑道＋綠色草坪＋白線＋兩座球門
+  P(G.cyl16, '#c9785a', 0, 0.04, 2.8, 0, 7.2, 0.08, 4.2);
+  P(G.cyl16, '#86bf5c', 0, 0.06, 2.8, 0, 5.6, 0.08, 2.7);
+  P(G.box, '#ffffff', 0, 0.11, 2.8, 0, 0.06, 0.02, 2.6);
+  P(new THREE.TorusGeometry(0.45, 0.03, 4, 20), '#ffffff', 0, 0.11, 2.8, 0, 1, 1, 1, Math.PI / 2);
+  for (const s of [-1, 1]) { P(G.box, '#ffffff', s * 2.5, 0.45, 2.8, 0, 0.05, 0.7, 0.9); P(G.box, '#ffffff', s * 2.5, 0.8, 2.8, 0, 0.05, 0.05, 0.9); }
+  k.shadowAt(x, z, 4.4, gy);
+  return { h: 6.6, rooms: [], fieldFront: at(3.2, 0, 4.6) };
 }
 
-// ── LINEAI 顧問：魔法塔頂著一顆會發光轉動的水晶球 ──
+
 function buildMagic(k, x, gy, z, rot, mats) {
   const { P, L } = B(k, x, gy, z, rot);
   P(G.cyl16, PAL.stoneShade, 0, 0.2, 0, 0, 5.6, 0.4, 5.6);
@@ -297,28 +300,30 @@ function buildDojo(k, x, gy, z, rot) {
   return 3.4;
 }
 
-// ── 城門＋英雄殿（城門上方的大獎盃）──
+// ── 凱旋門（城門）：白色石造大拱門＋金色飾帶 ──
 function buildGate(k, x, gy, z, rot) {
   const { P, L } = B(k, x, gy, z, rot);
+  const stone = PAL.white, shade = PAL.stoneShade, D = 3.0;
   for (const s of [-1, 1]) {
-    P(G.cyl16, PAL.white, s * 3.3, 2.9, 0, 0, 2.8, 5.8, 2.8);
-    P(G.cyl16, PAL.stone, s * 3.3, 5.9, 0, 0, 3.2, 0.3, 3.2);
-    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; P(G.box, PAL.stone, s * 3.3 + Math.sin(a) * 1.45, 6.25, Math.cos(a) * 1.45, a, 0.45, 0.4, 0.3); }
-    P(G.cone16, PAL.gold, s * 3.3, 7.9, 0, 0, 3.2, 3.2, 3.2);
-    P(G.box, PAL.window, s * 3.3, 3.6, 1.41, 0, 0.3, 0.7, 0.04);
-    L(s * 3.3, 9.6, 0, 1.2);
+    P(G.box, stone, s * 2.95, 2.3, 0, 0, 2.7, 4.6, D);                       // 兩側拱腳
+    P(G.box, PAL.goldSoft, s * 2.95, 2.0, D / 2 + 0.02, 0, 1.5, 1.9, 0.04);    // 浮雕金板
+    P(G.box, shade, s * 2.95, 0.25, 0, 0, 2.9, 0.5, D + 0.2);                 // 基座
   }
-  P(G.box, PAL.white, 0, 4.4, 0, 0, 4.0, 2.2, 2.2);                 // 門樓
-  P(G.box, PAL.goldSoft, 0, 5.55, 0, 0, 4.2, 0.14, 2.4);
-  for (const s of [-1, 1]) P(new THREE.TorusGeometry(1.3, 0.14, 6, 20, Math.PI), PAL.gold, 0, 2.0, s * 1.12); // 金色拱框（門洞保持空的）
-  for (const s of [-1, 1]) P(G.box, PAL.gold, s * 0.75, 1.45, 0.9, s * -0.5, 1.1, 2.8, 0.1);   // 半開的金門
-  P(G.box, PAL.stone, 0, 5.9, 0, 0, 2.0, 0.6, 1.6);                 // 獎盃台座
-  const prof = [[0, 0], [0.7, 0], [0.7, 0.2], [0.24, 0.34], [0.18, 1.0], [0.3, 1.25], [1.0, 1.6], [1.15, 2.7], [1.04, 2.75], [0.88, 1.8], [0, 1.6]].map(([a, b]) => new THREE.Vector2(a, b));
-  P(new THREE.LatheGeometry(prof, 18), PAL.goldBright, 0, 6.2, 0);
-  for (const s of [-1, 1]) P(new THREE.TorusGeometry(0.42, 0.08, 6, 12, Math.PI), PAL.gold, s * 1.12, 8.0, 0, 0, 1, 1, 1, 0, s * -Math.PI / 2);
-  L(0, 8.0, 0, 4);
-  return 10.2;
+  const sp = new THREE.Shape();                                               // 拱圈上方的兩塊三角
+  sp.moveTo(-1.6, 3.0); sp.lineTo(-1.6, 4.6); sp.lineTo(1.6, 4.6); sp.lineTo(1.6, 3.0); sp.absarc(0, 3.0, 1.6, 0, Math.PI, false);
+  const spg = new THREE.ExtrudeGeometry(sp, { depth: D, bevelEnabled: false, curveSegments: 16 }); spg.translate(0, 0, -D / 2);
+  P(spg, stone, 0, 0, 0);
+  for (const s of [-1, 1]) P(new THREE.TorusGeometry(1.6, 0.1, 6, 24, Math.PI), PAL.gold, 0, 3.0, s * (D / 2 + 0.02)); // 金色拱框
+  P(G.box, stone, 0, 5.4, 0, 0, 8.6, 1.6, D);                                // 楣
+  P(G.box, PAL.gold, 0, 5.75, 0, 0, 8.7, 0.22, D + 0.06);                    // 金色飾帶
+  P(G.box, shade, 0, 6.32, 0, 0, 8.9, 0.24, D + 0.3);                        // 簷口
+  P(G.box, stone, 0, 7.05, 0, 0, 8.3, 1.2, D - 0.2);                         // 頂層
+  P(G.box, shade, 0, 7.72, 0, 0, 8.5, 0.16, D);
+  for (const s of [-2.4, 0, 2.4]) P(G.cyl16, PAL.goldBright, s, 7.05, (D - 0.2) / 2 + 0.02, 0, 0.7, 0.05, 0.7, Math.PI / 2); // 金色圓章
+  L(-3.9, 8.0, 0, 1.4); L(3.9, 8.0, 0, 1.4); L(0, 3.0, D / 2 + 0.3, 2.4);
+  return 8.4;
 }
+
 
 // ── 健康檢查站：白色圓頂主樓＋門前發光的大儀表 ──
 function buildClinic(k, x, gy, z, rot) {
@@ -792,7 +797,7 @@ function buildCity(mats) {
 
   // ── 學院（左）、魔法塔（右）、練功場（前）──
   const academy = buildAcademy(k, LEFT[0], G1, LEFT[1], 0.35);
-  placed.push({ x: LEFT[0], z: LEFT[1] + 0.8, r: 5.2 });
+  placed.push({ x: LEFT[0], z: LEFT[1] - 1.5, r: 4.8 }, { x: LEFT[0] + 1.0, z: LEFT[1] + 2.6, r: 4.4 });
   const magic = buildMagic(k, RIGHT[0], G1, RIGHT[1], -0.35, mats);
   city.add(magic.holder);
   placed.push({ x: RIGHT[0], z: RIGHT[1], r: 4.4 });
@@ -806,9 +811,9 @@ function buildCity(mats) {
   const crossZ = FRONT[1] + 7.5;
   stripLine(k, -8.5, crossZ, 8.5, crossZ, 2.0, G1 + 0.035, PAL.path);
   lineBlock(-8.5, crossZ, 8.5, crossZ, 1.5);
-  stripLine(k, LEFT[0] + 1, LEFT[1] + 4.6, -4.8, FRONT[1], 1.6, G1 + 0.03, PAL.path);
+  stripLine(k, academy.fieldFront.x, academy.fieldFront.z, -4.8, FRONT[1], 1.6, G1 + 0.03, PAL.path);
   stripLine(k, RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.6, G1 + 0.03, PAL.path);
-  lineBlock(LEFT[0] + 1, LEFT[1] + 4.6, -4.8, FRONT[1], 1.2);
+  lineBlock(academy.fieldFront.x, academy.fieldFront.z, -4.8, FRONT[1], 1.2);
   lineBlock(RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.2);
   for (let z = FRONT[1] + 4; z < gateZ - 2; z += 3) for (const s of [-1, 1]) { lampPost(k, s * 1.7, G1, z); placed.push({ x: s * 1.7, z, r: 0.3 }); }
 
