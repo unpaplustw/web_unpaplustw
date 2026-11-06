@@ -9,7 +9,7 @@
 //   reserved 城牆內的預留空地（不能點，不進清單）；angle＝方位（0＝正前方、往右為正）
 
 export const TILES = [
-  { id: 'aplus',   name: 'A Plus 精神之塔', status: 'full', spot: 'castle' },
+  { id: 'aplus',   name: 'APLUS城', status: 'full', spot: 'castle' },
   { id: 'academy', name: '環球致富學院', status: 'empty', spot: 'left', rooms: ['公司', '商品', '制度'],
     line: '自學平台，無期別、隨時進出，自己走。', link: '/academy/' },
   { id: 'lineai',  name: 'LINEAI 顧問',  status: 'empty', spot: 'right',
@@ -27,15 +27,15 @@ export const TILES = [
     links: [{ label: 'KC 抗氧化力檢測', href: '/kc/' }, { label: '全能查查', href: '/checker/' }] },
 ];
 
-// bearing：飛艇停靠站在城的哪個方位（度，0＝北／後方，順時針）。
-// source：island/data/service.txt 裡的標題，地址與營業時間由此對應。
+// 地區沙龍：蓋在城牆上的沙龍塔。angle＝在城牆上的方位（度，0＝正前方城門、往右為正；後方 ±40° 是山，不放）
+// salon：塔上的名牌；source：island/data/service.txt 裡的標題，地址與營業時間由此對應。
 export const PORTS = [
-  { id: 'taipei',    name: '台北總公司', bearing: 0,    source: '台北總公司／台北服務中心' },
-  { id: 'yilan',     name: '宜蘭',       bearing: 52,   source: '宜蘭服務中心' },
-  { id: 'zhongli',   name: '中壢',       bearing: -52,  source: '中壢服務中心' },
-  { id: 'taichung',  name: '台中',       bearing: -128, source: '台中服務中心' },
-  { id: 'tainan',    name: '台南',       bearing: 180,  source: '台南服務中心' },
-  { id: 'kaohsiung', name: '高雄',       bearing: 128,  source: '高雄服務中心' },
+  { id: 'taipei',    name: '台北總公司', salon: '台北總公司', angle: 135,  source: '台北總公司／台北服務中心' },
+  { id: 'yilan',     name: '宜蘭',       salon: '宜蘭沙龍',   angle: 100,  source: '宜蘭服務中心' },
+  { id: 'zhongli',   name: '中壢',       salon: '中壢沙龍',   angle: -135, source: '中壢服務中心' },
+  { id: 'taichung',  name: '台中',       salon: '台中沙龍',   angle: -105, source: '台中服務中心' },
+  { id: 'tainan',    name: '台南',       salon: '台南沙龍',   angle: -75,  source: '台南服務中心' },
+  { id: 'kaohsiung', name: '高雄',       salon: '高雄沙龍',   angle: -45,  source: '高雄服務中心' },
 ];
 
 export const SATELLITES = [
@@ -43,7 +43,7 @@ export const SATELLITES = [
   { id: 'nds', name: 'NDS 會員登錄',   link: 'https://nds.naturally-plus.com/login', phase: 3.74 },
 ];
 
-export const TOUR = ['這是 A Plus 天空之城', '點建築看內容', '最高的城堡是 A Plus 精神之塔'];
+export const TOUR = ['這是 A Plus 天空之城', '點建築看內容', '最高的城堡是 APLUS城'];
 
 // 衛星在進站或操作後繞行多久（毫秒），之後停住並停止重繪，下次操作再繼續。
 export const ORBIT_AFTER_ACTIVITY_MS = 15000;

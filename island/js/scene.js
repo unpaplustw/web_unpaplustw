@@ -18,6 +18,9 @@ const WALL_F = 0.86, WALL_H = 1.4, GATE_HALF = 3.4; // 城牆在島緣的位置�
 const PLOT_R = 17.5;                 // 預留空地
 const PLOT_IN = 15.5;                // 空地上的功能區（往城內一點，避開城牆的城塔）
 const CLOUD_Y = -11;
+const MT_HALF = 40;                  // 後方靠山的範圍（離正後方 ±40°，這段不蓋城牆）
+const MOAT_IN = 0.885, MOAT_OUT = 0.975; // 護城河在島緣的位置（島外形的比例）
+const PLAIN_TOWERS = [25, -25, 66];  // 一般哨塔（不是沙龍）的方位
 const D2R = Math.PI / 180;
 
 // ─────────────── 調色盤（米白＋金）───────────────
@@ -362,6 +365,69 @@ function buildRadar(k, x, gy, z, rot, mats) {
   return { h: 6.8, holder, pivot };
 }
 
+// ── 地區沙龍：城牆上比較大的沙龍塔（陽台＋金頂＋小旗）──
+function buildSalon(k, x, z) {
+  const { P, L } = B(k, x, G1, z, faceIn(x, z));
+  P(G.cyl16, PAL.white, 0, 2.3, 0, 0, 3.0, 4.6, 3.0);
+  P(G.cyl16, PAL.goldSoft, 0, 3.3, 0, 0, 3.15, 0.14, 3.15);
+  P(G.cyl16, PAL.stone, 0, 4.7, 0, 0, 3.6, 0.3, 3.6);
+  for (let j = 0; j < 8; j++) { const a = j / 8 * Math.PI * 2; P(G.box, PAL.stone, Math.sin(a) * 1.65, 5.05, Math.cos(a) * 1.65, a, 0.5, 0.4, 0.3); }
+  P(G.cyl16, PAL.white, 0, 5.6, 0, 0, 2.2, 1.6, 2.2);
+  P(G.cone16, PAL.gold, 0, 7.5, 0, 0, 2.9, 2.6, 2.9);
+  P(G.cyl8, '#5a5348', 0, 9.2, 0, 0, 0.05, 0.9, 0.05);
+  P(G.box, PAL.gold, 0.32, 9.45, 0, 0, 0.6, 0.34, 0.04);
+  P(G.box, PAL.gold, 0, 0.9, 1.51, 0, 0.8, 1.6, 0.08);
+  for (const y of [2.3, 3.9]) for (const a of [-0.6, 0.6]) P(G.box, PAL.window, Math.sin(a) * 1.51, y, Math.cos(a) * 1.51, a, 0.32, 0.5, 0.04);
+  L(0, 2.3, 1.7, 1.6); L(0, 9.0, 0, 1.2);
+  return 9.6;
+}
+function buildPlainTower(k, x, z) {
+  k.add(G.cyl16, PAL.white, mat(x, G1 + 1.7, z, 0, 2.2, 3.4, 2.2));
+  k.add(G.cyl16, PAL.stone, mat(x, G1 + 3.5, z, 0, 2.5, 0.25, 2.5));
+  for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2; k.add(G.box, PAL.stone, mat(x + Math.sin(a) * 1.15, G1 + 3.8, z + Math.cos(a) * 1.15, a, 0.4, 0.35, 0.28)); }
+  k.add(G.cone16, PAL.gold, mat(x, G1 + 5.1, z, 0, 2.5, 2.4, 2.5));
+  k.glows.push([new THREE.Vector3(x, G1 + 6.4, z), 1.0]);
+}
+// ── 靠山：城堡後方一排山（岩石山身＋綠色山腳＋雪頂）──
+function buildMountains(k, r, p1) {
+  const peaks = [];
+  for (let j = -3; j <= 3; j++) {
+    const a = 180 + j * 12 + (r() - 0.5) * 4, d = 21.5 + (Math.abs(j) % 2) * 2.2 + r() * 0.8;
+    const [x, z] = polar(a, d), h = 19 - Math.abs(j) * 2.6 + r() * 1.5, rad = 6.2 - Math.abs(j) * 0.35;
+    k.add(new THREE.ConeGeometry(rad, h, 7), pick(PAL.rock, r), mat(x, G1 - 0.6 + h / 2, z, r() * 3));
+    k.add(new THREE.ConeGeometry(rad * 1.12, h * 0.42, 7), j % 2 ? '#7fae5a' : '#86b864', mat(x, G1 - 0.6 + h * 0.21, z, r() * 3));
+    k.add(new THREE.ConeGeometry(rad * 0.3, h * 0.28, 7), '#ffffff', mat(x, G1 - 0.6 + h * 0.86, z, r() * 3));
+    for (let t = 0; t < 3; t++) { const [tx, tz] = polar(a + (r() - 0.5) * 18, d - rad * 0.9 - r() * 1.2); tree(k, tx, G1, tz, r); }
+    peaks.push({ x, z, r: rad });
+  }
+  // 山底下多一塊岩盤撐住（山比島緣更外面）
+  const shelf = organic(10, 77, 0.08).map((p) => new THREE.Vector2(p.x, p.y + 23));
+  k.add(slab(shelf, -2.2, 2.6, 0.3), PAL.rimDark);
+  k.add(new THREE.ConeGeometry(8, 10, 7), PAL.rock[2], mat(0, -7.5, -23, 0.4, 1, 1, 1, Math.PI));
+  return peaks;
+}
+// ── 彩虹：鏡頭放低時才出現（半圓環，顏色由外紅到內紫）──
+function buildRainbow() {
+  const geo = new THREE.RingGeometry(58, 70, 96, 1, 0, Math.PI);
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide,
+    uniforms: { uOpacity: { value: 0 } },
+    vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: `uniform float uOpacity; varying vec3 vP;
+      vec3 hsv(float h){ vec3 k = clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0); return k; }
+      void main(){
+        float t = (length(vP.xy) - 58.0) / 12.0;            // 0 內圈 → 1 外圈
+        vec3 col = hsv(0.78 * (1.0 - t));                    // 外紅 → 內紫
+        float edge = smoothstep(0.0, 0.12, t) * smoothstep(1.0, 0.88, t);
+        float ends = smoothstep(0.0, 18.0, vP.y);            // 兩端漸隱
+        gl_FragColor = vec4(mix(col, vec3(1.0), 0.25), uOpacity * edge * ends);
+      }`,
+  });
+  const mesh = new THREE.Mesh(geo, m); mesh.renderOrder = -4; mesh.frustumCulled = false;
+  return mesh;
+}
+
+
 function house(k, x, gy, z, rot, r, big) {
   const { P } = B(k, x, gy, z, rot);
   const w = (big ? 1.8 : 1.3) + r() * 0.4, d = 1.15 + r() * 0.3, h = (big ? 1.4 : 0.95) + r() * 0.5;
@@ -403,26 +469,6 @@ function stairs(k, deg, d0, d1, y0, y1, w) { // 兩層之間的階梯（d0 在�
   }
 }
 
-// ── 飛艇停靠站 ──
-function buildDock(mats, seed) {
-  const r = rng(seed); const k = new Kit();
-  k.add(new THREE.CylinderGeometry(1.25, 1.3, 0.4, 8), PAL.rim, mat(0, -0.2, 0));
-  k.add(new THREE.CylinderGeometry(1.3, 0.9, 0.5, 8), PAL.rimDark, mat(0, -0.65, 0));
-  k.add(new THREE.ConeGeometry(0.9, 1.6, 8), pick(PAL.rock, r), mat(0, -1.7, 0, 0, 1, 1, 1, Math.PI));
-  k.add(G.cyl8, '#5a5348', mat(-0.5, 1.1, 0, 0, 0.12, 2.2, 0.12));
-  k.add(G.cyl16, PAL.gold, mat(-0.5, 2.25, 0, 0, 0.36, 0.1, 0.36));
-  const base = k.mesh(mats);
-  const ship = new Kit();
-  ship.add(G.sph, '#f6efe0', mat(0, 0, 0, 0, 2.6, 0.95, 0.95));
-  ship.add(G.cyl16, PAL.gold, mat(0, 0, 0, 0, 0.98, 0.18, 0.98, 0, Math.PI / 2));
-  for (const [y, z, rx] of [[0.42, 0, 0], [-0.42, 0, 0], [0, 0.42, Math.PI / 2], [0, -0.42, Math.PI / 2]]) ship.add(G.box, PAL.goldSoft, mat(-1.2, y, z, 0, 0.45, 0.06, 0.5, rx));
-  ship.add(G.box, PAL.wood, mat(0.1, -0.62, 0, 0, 0.7, 0.22, 0.32));
-  const blimp = ship.mesh(mats);
-  blimp.position.set(1.0, 2.35, 0);
-  base.add(blimp);
-  base.scale.setScalar(0.85);
-  return { group: base, blimp };
-}
 function buildSatellite(mats) {
   const k = new Kit();
   k.add(G.box, PAL.goldSoft, mat(0, 0, 0, 0, 0.55, 0.55, 0.55));
@@ -507,7 +553,6 @@ function buildWaterfall(x, z, rot, top, bottom, w) {
 }
 
 // ─────────────── 整座城（城堡版）───────────────
-const WF = 32; // 瀑布方位（正前方偏右，城牆外）
 function stripLine(k, x0, z0, x1, z1, w, y, color) {
   k.add(G.box, color, mat((x0 + x1) / 2, y, (z0 + z1) / 2, Math.atan2(x1 - x0, z1 - z0), w, 0.06, Math.hypot(x1 - x0, z1 - z0)));
 }
@@ -527,7 +572,7 @@ function buildCity(mats) {
   // 島面
   k.add(slab(p1, -1.3, 1.25, 0.32), PAL.rimDark);
   k.add(slab(scaled(p1, 0.985), -1.0, 1.05, 0.3), PAL.rim);
-  const grass1 = scaled(p1, 0.93);
+  const grass1 = scaled(p1, 0.88);
   k.add(slab(grass1, -0.2, 0.55, 0.3), PAL.grass);
   // 底部：一層層往下收的岩石＋尖錐＋垂吊碎石＋樹根
   [[0.9, PAL.earth], [0.78, PAL.rock[0]], [0.62, PAL.rock[1]], [0.45, PAL.rock[2]], [0.28, PAL.rock[3]]]
@@ -543,29 +588,40 @@ function buildCity(mats) {
   const free = (x, z, rad) => placed.every((p) => Math.hypot(p.x - x, p.z - z) > p.r + rad);
   const lineBlock = (x0, z0, x1, z1, rad) => { const n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.9); for (let i = 0; i <= n; i++) placed.push({ x: x0 + (x1 - x0) * i / n, z: z0 + (z1 - z0) * i / n, r: rad }); };
 
-  // ── 城牆＋城塔（沿島邊一圈，正前方留城門）──
+  // ── 城牆（沿島邊一圈，正前方留城門、後方靠山不蓋）──
   const wall = scaled(p1, WALL_F);
   const gateZ = Math.hypot(wall[0].x, wall[0].y);
-  const towers = [];
   for (let i = 0; i < wall.length; i++) {
     const a = wall[i], b = wall[(i + 1) % wall.length];
     const ax = a.x, az = -a.y, bx = b.x, bz = -b.y, mx = (ax + bx) / 2, mz = (az + bz) / 2;
-    if (mz > 0 && Math.abs(mx) < GATE_HALF) continue; // 城門開口
+    if (mz > 0 && Math.abs(mx) < GATE_HALF) continue;                         // 城門開口
+    if (Math.abs(Math.atan2(mx, mz) / D2R) > 180 - MT_HALF) continue;        // 靠山
     const len = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bx - ax, bz - az);
     k.add(G.box, PAL.wall, mat(mx, G1 + WALL_H / 2, mz, ang, 0.6, WALL_H, len + 0.06));
     k.add(G.box, PAL.wallDark, mat(mx, G1 + WALL_H + 0.04, mz, ang, 0.8, 0.08, len + 0.06));
     if (i % 2 === 0) k.add(G.box, PAL.wall, mat(mx, G1 + WALL_H + 0.3, mz, ang, 0.7, 0.45, 0.55)); // 城垛
     placed.push({ x: mx, z: mz, r: 1.1 });
-    if (i % 10 === 5 && !(mz > 0 && Math.abs(mx) < GATE_HALF + 4)) towers.push([bx, bz]);
   }
-  for (const [x, z] of towers) {
-    k.add(G.cyl16, PAL.white, mat(x, G1 + 1.7, z, 0, 2.2, 3.4, 2.2));
-    k.add(G.cyl16, PAL.stone, mat(x, G1 + 3.5, z, 0, 2.5, 0.25, 2.5));
-    for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2; k.add(G.box, PAL.stone, mat(x + Math.sin(a) * 1.15, G1 + 3.8, z + Math.cos(a) * 1.15, a, 0.4, 0.35, 0.28)); }
-    k.add(G.cone16, PAL.gold, mat(x, G1 + 5.1, z, 0, 2.5, 2.4, 2.5));
-    k.glows.push([new THREE.Vector3(x, G1 + 6.4, z), 1.0]);
-    placed.push({ x, z, r: 1.8 });
+  const onWall = (deg) => polar(deg, edgeAt(p1, deg) * WALL_F);
+  for (const deg of PLAIN_TOWERS) { const [x, z] = onWall(deg); buildPlainTower(k, x, z); placed.push({ x, z, r: 1.8 }); }
+  const salons = PORTS.map((port) => { const [x, z] = onWall(port.angle); const h = buildSalon(k, x, z); placed.push({ x, z, r: 2.4 }); return { port, x, z, h }; });
+
+  // ── 靠山 ──
+  for (const pk of buildMountains(k, r, p1)) placed.push(pk);
+
+  // ── 護城河＋城門前吊橋 ──
+  const moatShape = new THREE.Shape(scaled(p1, MOAT_OUT));
+  moatShape.holes.push(new THREE.Path(scaled(p1, MOAT_IN).reverse()));
+  const moatGeo = new THREE.ExtrudeGeometry(moatShape, { depth: 0.12, bevelEnabled: false, curveSegments: 1 });
+  moatGeo.rotateX(-Math.PI / 2); moatGeo.translate(0, 0.66, 0);
+  const moat = new THREE.Mesh(moatGeo, mats.water); city.add(moat);
+  const edge0 = edgeAt(p1, 0) * MOAT_OUT;
+  stripLine(k, 0, gateZ + 0.6, 0, edge0 + 0.6, 3.6, 0.92, PAL.wood);
+  for (const s of [-1, 1]) {
+    k.add(G.box, '#7a5636', mat(s * 1.85, 1.25, (gateZ + edge0) / 2 + 0.6, 0, 0.12, 0.6, edge0 - gateZ));
+    for (const zz of [gateZ + 0.8, edge0 + 0.3]) k.add(G.cyl6, '#5a5348', mat(s * 1.85, 1.3, zz, 0, 0.16, 1.0, 0.16));
   }
+
 
   // ── 城門＋英雄殿 ──
   const gate = { x: 0, z: gateZ, h: buildGate(k, 0, G1, gateZ, 0) };
@@ -604,12 +660,14 @@ function buildCity(mats) {
   lineBlock(RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.2);
   for (let z = FRONT[1] + 4; z < gateZ - 2; z += 3) for (const s of [-1, 1]) { lampPost(k, s * 1.7, G1, z); placed.push({ x: s * 1.7, z, r: 0.3 }); }
 
-  // ── 瀑布（城牆外，從島緣流進雲海）──
-  const wfEdge = edgeAt(p1, WF) * 0.93, [wx, wz] = polar(WF, wfEdge);
-  const [px, pz] = polar(WF, wfEdge - 0.9);
-  k.add(G.cyl16, PAL.water, mat(px, G1 + 0.04, pz, 0, 2.6, 0.06, 1.8));
-  const waterfall = buildWaterfall(wx, wz, WF * D2R, G1 + 0.06, CLOUD_Y + 0.5, 2.0);
-  city.add(waterfall);
+  // ── 瀑布：護城河的水從島的四周流下去 ──
+  const waterfalls = [];
+  for (let j = 0; j < 12; j++) {
+    const deg = 15 + j * 30 + (r() - 0.5) * 8, e = edgeAt(p1, deg) * 0.985, [x, z] = polar(deg, e);
+    const w = buildWaterfall(x, z, deg * D2R, 0.78, CLOUD_Y + 0.5, 2.0 + r() * 1.4);
+    city.add(w); waterfalls.push({ mesh: w, x, z, deg });
+  }
+
 
   // ── 預留空地（城牆內，圍籬）──
   TILES.filter((t) => t.status === 'reserved').forEach((t) => {
@@ -650,7 +708,7 @@ function buildCity(mats) {
   // 樹：城牆內補滿＋城牆外一圈
   n = 0; tries = 0;
   while (n < 150 && tries++ < 5000) {
-    const out = r() < 0.25, [x, z] = polar(r() * 360, out ? R1 * (WALL_F + 0.03) + r() * R1 * 0.03 : 3 + r() * (R1 * WALL_F - 4));
+    const out = false, [x, z] = polar(r() * 360, out ? R1 * (WALL_F + 0.03) + r() * R1 * 0.03 : 3 + r() * (R1 * WALL_F - 4));
     if (out ? !inside(grass1, x, z) || inWall(x, z) : !inWall(x, z)) continue;
     if (!free(x, z, 0.5)) continue;
     tree(k, x, G1, z, r); placed.push({ x, z, r: 0.45 }); n++;
@@ -658,7 +716,7 @@ function buildCity(mats) {
 
   city.add(k.mesh(mats));
   return {
-    city, waterfall, magic, radar, wf: { x: wx, z: wz },
+    city, waterfalls, magic, radar, salons,
     spots: {
       castle: { x: CASTLE[0], z: CASTLE[1], gy: GH, h: castleH, focusY: 9, focusR: 16, hit: [HILL_R * 0.8, 24] },
       left: { x: LEFT[0], z: LEFT[1], gy: G1, h: academy.h, focusY: 2.5, focusR: 9.5, hit: [5, 9], rooms: academy.rooms },
@@ -691,6 +749,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
     cloud: new THREE.MeshLambertMaterial({ color: '#ffffff', emissive: '#fff6ea', emissiveIntensity: 0.45, transparent: true, opacity: 0.96 }),
     ring: new THREE.MeshBasicMaterial({ color: '#f2d888', transparent: true, opacity: 0, depthWrite: false }),
+    water: new THREE.MeshStandardMaterial({ color: '#86c5ea', roughness: 0.2, metalness: 0.1, emissive: '#2f6f9a', emissiveIntensity: 0.12 }),
     orb: new THREE.MeshStandardMaterial({ color: '#9fe6ff', emissive: '#5fc8ff', emissiveIntensity: 1.1, roughness: 0.15, transparent: true, opacity: 0.78 }),
     orbCore: new THREE.MeshBasicMaterial({ color: '#ffffff' }),
     crystalA: new THREE.MeshBasicMaterial({ color: '#c9b6ff' }),
@@ -750,23 +809,18 @@ export function createIsland({ stage, onPick, onBackground }) {
     });
   }
 
-  // ── 飛艇停靠站（6 個服務中心，依方位排在城外）──
-  const dockR = R1 + 4.5;
-  const docks = PORTS.map((port, i) => {
-    const a = port.bearing * D2R; // 0＝北（後方 -z），順時針
-    const x = Math.sin(a) * dockR, z = -Math.cos(a) * dockR;
-    const d = buildDock(mats, 400 + i * 7);
-    d.group.position.set(x, -0.6 + (i % 2) * 1.2, z);
-    d.group.rotation.y = -a + Math.PI / 2;
-    scene.add(d.group);
-    const entry = { kind: 'port', id: port.id, object: d.group, offset: new THREE.Vector3(0, 3.4, 0),
-      label: makeLabel(port, 'port', 'label-port', `✈ ${port.name}`) };
+  // ── 地區沙龍（城牆上的沙龍塔，點了看地址與營業時間）──
+  for (const s of built.salons) {
+    const anchor = new THREE.Object3D(); anchor.position.set(s.x, G1, s.z); city.add(anchor);
+    const entry = { kind: 'port', id: s.port.id, object: anchor, offset: new THREE.Vector3(0, s.h + 0.4, 0), focusY: 3, focusR: 8, viewAz: Math.atan2(-s.x, -s.z),
+      label: makeLabel(s.port, 'port', 'label-port', s.port.salon) };
     entries.push(entry);
-    addHit(d.group, new THREE.CylinderGeometry(2.4, 2.4, 5, 8).translate(0, 1, 0), entry);
-    floaters.push({ obj: d.group, baseY: d.group.position.y, amp: 0.22, ph: i * 2.3, sp: 0.7 });
-    return { ...d, ph: i * 1.7 };
-  });
-  const fitR = dockR + 2;
+    addHit(anchor, new THREE.CylinderGeometry(2.2, 2.2, 10, 10).translate(0, 4.5, 0), entry);
+  }
+  const fitR = R1 + 6.5;
+  // ── 彩虹（城的後方，鏡頭放低才出現）──
+  const rainbow = buildRainbow(); scene.add(rainbow);
+
 
   // ── 衛星（高空）──
   const satR = R1 * 0.95, satY = 21;
@@ -799,12 +853,12 @@ export function createIsland({ stage, onPick, onBackground }) {
   }
   function placeClouds() { for (const c of clouds) { const u = c.userData; c.position.x = Math.cos(u.a) * u.R; c.position.z = Math.sin(u.a) * u.R * 0.85; } }
   // 瀑布底下的水霧
-  const mist = [];
-  for (let i = 0; i < 3; i++) {
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: '#ffffff', transparent: true, opacity: 0.7, depthWrite: false }));
-    const [mx, mz] = polar(WF, Math.hypot(built.wf.x, built.wf.z) + 2.5 + i);
-    sp.position.set(mx + (i - 1) * 1.5, CLOUD_Y + 1.2, mz); sp.scale.set(7, 4, 1); city.add(sp); mist.push(sp);
-  }
+  const mist = built.waterfalls.map((w) => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: '#ffffff', transparent: true, opacity: 0.6, depthWrite: false }));
+    const [mx, mz] = polar(w.deg, Math.hypot(w.x, w.z) + 3.2);
+    sp.position.set(mx, CLOUD_Y + 1.2, mz); sp.scale.set(7, 4, 1); city.add(sp); return sp;
+  });
+
 
   // ── 相機與操作 ──
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -884,7 +938,15 @@ export function createIsland({ stage, onPick, onBackground }) {
     placeSatellites(); placeClouds();
     cloudSea.material.uniforms.uTime.value = T;
     cloudSea.material.uniforms.uCam.value.copy(camera.position);
-    built.waterfall.material.uniforms.uTime.value = T;
+    for (const w of built.waterfalls) w.mesh.material.uniforms.uTime.value = T;
+    { // 彩虹：永遠在城的後方（相對鏡頭），鏡頭越低越清楚
+      const off = camera.position.clone().sub(controls.target), az = Math.atan2(off.x, off.z);
+      const phi = Math.acos(THREE.MathUtils.clamp(off.y / off.length(), -1, 1));
+      rainbow.position.set(controls.target.x - Math.sin(az) * 170, CLOUD_Y - 4, controls.target.z - Math.cos(az) * 170);
+      rainbow.rotation.y = az;
+      const k2 = THREE.MathUtils.smoothstep(phi, 1.12, 1.36);
+      rainbow.material.uniforms.uOpacity.value = 0.6 * k2; rainbow.visible = k2 > 0.01;
+    }
     camera.updateMatrixWorld();
     renderer.render(scene, camera);
     placeLabels();
@@ -899,8 +961,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     if (animating) {
       T += dt; orbitAngle += dt * (Math.PI * 2 / 90);
       for (const c of clouds) c.userData.a += dt * c.userData.sp;
-      for (const d of docks) d.blimp.rotation.z = Math.sin(T * 0.8 + d.ph) * 0.05;
-      mist.forEach((m, i) => (m.material.opacity = 0.55 + 0.15 * Math.sin(T * 1.3 + i)));
+      mist.forEach((m, i) => (m.material.opacity = 0.45 + 0.15 * Math.sin(T * 1.3 + i)));
       const mg = built.magic; // 水晶球：自轉、上下浮、水晶繞著飛、魔法環反向轉
       mg.orb.rotation.y = T * 0.8; mg.orb.position.y = mg.orbY + Math.sin(T * 1.4) * 0.18;
       mg.crystals.rotation.y = -T * 0.9; mg.crystals.position.y = mg.orb.position.y;
@@ -985,7 +1046,7 @@ export function createIsland({ stage, onPick, onBackground }) {
       for (const entry of entries) {
         const active = entry.id === id;
         entry.label.classList.toggle('is-active', active);
-        if (active && entry.kind === 'tile') focus = entry;
+        if (active && (entry.kind === 'tile' || entry.kind === 'port')) focus = entry;
       }
       if (focus) { // 鏡頭靠近選到的地方，保留目前的方向
         const off = camera.position.clone().sub(controls.target);

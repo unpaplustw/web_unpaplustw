@@ -58,9 +58,9 @@ function buildList() {
   const home = clickable.filter((tile) => tile.status === 'full');
   const land = clickable.filter((tile) => tile.status === 'empty');
   $('#list-body').append(
-    listGroup('精神之塔', home.map((tile) => listButton(tile.name, 'tile', tile.id))),
+    listGroup('APLUS城', home.map((tile) => listButton(tile.name, 'tile', tile.id))),
     listGroup('功能區', land.map((tile) => listButton(tile.name, 'tile', tile.id))),
-    listGroup('飛艇停靠站', PORTS.map((port) => listButton(port.name, 'port', port.id))),
+    listGroup('地區沙龍', PORTS.map((port) => listButton(port.salon, 'port', port.id))),
     listGroup('衛星', SATELLITES.map(listLink)),
   );
 }
