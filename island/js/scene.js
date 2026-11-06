@@ -17,7 +17,7 @@ const CASTLE = [0, -10], LEFT = [-12.5, -5], RIGHT = [12.5, -5], FRONT = [0, 3];
 const WALL_F = 0.86, WALL_H = 1.4, GATE_HALF = 3.4; // 城牆在島緣的位置、高度、城門開口半寬
 const PLOT_R = 17.5;                 // 預留空地
 const PLOT_IN = 15.5;                // 空地上的功能區（往城內一點，避開城牆的城塔）
-const CLOUD_Y = -11;
+const CLOUD_Y = -17;                // 雲海高度（島的地基很深，雲海放低才露得出來）
 const MT_HALF = 40;                  // 後方靠山的範圍（離正後方 ±40°，這段不蓋城牆）
 const MOAT_IN = 0.885, MOAT_OUT = 0.975; // 護城河在島緣的位置（島外形的比例）
 const PLAIN_TOWERS = [25, -25, 66];  // 一般哨塔（不是沙龍）的方位
@@ -403,7 +403,7 @@ function buildMountains(k, r, p1) {
   // 山底下多一塊岩盤撐住（山比島緣更外面）
   const shelf = organic(10, 77, 0.08).map((p) => new THREE.Vector2(p.x, p.y + 23));
   k.add(slab(shelf, -2.2, 2.6, 0.3), PAL.rimDark);
-  k.add(new THREE.ConeGeometry(8, 10, 7), PAL.rock[2], mat(0, -7.5, -23, 0.4, 1, 1, 1, Math.PI));
+  k.add(new THREE.ConeGeometry(9, 14, 7), PAL.rock[2], mat(0, -9.5, -23, 0.4, 1, 1, 1, Math.PI));
   return peaks;
 }
 // ── 彩虹：鏡頭放低時才出現（半圓環，顏色由外紅到內紫）──
@@ -575,12 +575,12 @@ function buildCity(mats) {
   const grass1 = scaled(p1, 0.88);
   k.add(slab(grass1, -0.2, 0.55, 0.3), PAL.grass);
   // 底部：一層層往下收的岩石＋尖錐＋垂吊碎石＋樹根
-  [[0.9, PAL.earth], [0.78, PAL.rock[0]], [0.62, PAL.rock[1]], [0.45, PAL.rock[2]], [0.28, PAL.rock[3]]]
-    .forEach(([f, col], i) => k.add(slab(scaled(p1, f, (r() - 0.5) * 1.6, (r() - 0.5) * 1.6), -1.3 - (i + 1) * 1.7, 1.5, 0.3), col));
-  k.add(new THREE.ConeGeometry(R1 * 0.2, 6, 7), PAL.rock[1], mat(0.5, -13.0, -0.4, 0.3, 1, 1, 1, Math.PI));
-  for (let i = 0; i < 14; i++) { const [x, z] = polar(r() * 360, R1 * (0.3 + r() * 0.5)), q = 0.6 + r() * 0.9; k.add(G.dode, pick(PAL.rock, r), mat(x, -3 - r() * 7, z, r() * 3, q, q * 1.5, q)); }
+  [[0.97, PAL.earth], [0.92, PAL.earth], [0.84, PAL.rock[0]], [0.74, PAL.rock[1]], [0.62, PAL.rock[2]], [0.49, PAL.rock[3]], [0.35, PAL.rock[1]], [0.22, PAL.rock[0]]]
+    .forEach(([f, col], i) => k.add(slab(scaled(p1, f, (r() - 0.5) * 2.0, (r() - 0.5) * 2.0), -1.3 - (i + 1) * 1.75, 1.6, 0.35), col)); // 地基土方：一層層往下收
+  k.add(new THREE.ConeGeometry(R1 * 0.26, 9, 7), PAL.rock[1], mat(0.5, -20.0, -0.4, 0.3, 1, 1, 1, Math.PI));
+  for (let i = 0; i < 14; i++) { const [x, z] = polar(r() * 360, R1 * (0.3 + r() * 0.5)), q = 0.8 + r() * 1.2; k.add(G.dode, pick(PAL.rock, r), mat(x, -4 - r() * 12, z, r() * 3, q, q * 1.5, q)); }
   for (let i = 0; i < 46; i++) {
-    const a = r() * 360, [x, z] = polar(a, edgeAt(p1, a) * (0.8 + r() * 0.14)), len = 1.5 + r() * 3.5;
+    const a = r() * 360, [x, z] = polar(a, edgeAt(p1, a) * (0.8 + r() * 0.14)), len = 2 + r() * 5;
     k.add(G.cyl6, PAL.root, mat(x, -1.5 - len / 2, z, 0, 0.12, len, 0.12, (r() - 0.5) * 0.3, (r() - 0.5) * 0.3));
   }
 
@@ -851,13 +851,13 @@ export function createIsland({ stage, onPick, onBackground }) {
     c.scale.set(low ? 2.6 + (i % 3) * 0.6 : 1.8, low ? 0.9 : 1.1, low ? 2.6 + (i % 3) * 0.6 : 1.8);
     scene.add(c); clouds.push(c);
   }
-  // 島周圍一圈厚雲：貼著島底下繞，把島托住
-  for (let i = 0; i < 26; i++) {
-    const c = buildCloud(mats, 1400 + i * 7, false, 9 + (i % 4));
-    const R = R1 * (0.95 + (i % 3) * 0.16);
-    c.userData = { a: i / 26 * Math.PI * 2, R, zf: 1, sp: 0.004 * (i % 2 ? 1 : -1) };
-    c.position.y = -4.5 - (i % 4) * 1.4;
-    c.scale.set(2.3 + (i % 3) * 0.5, 1.5 + (i % 2) * 0.4, 2.3 + (i % 3) * 0.5);
+  // 島周圍一圈雲：離島遠一點、放在雲海上方，露出島的地基
+  for (let i = 0; i < 14; i++) {
+    const c = buildCloud(mats, 1400 + i * 7, false, 7 + (i % 3));
+    const R = R1 * (1.2 + (i % 3) * 0.2);
+    c.userData = { a: i / 14 * Math.PI * 2 + 0.2, R, zf: 1, sp: 0.004 * (i % 2 ? 1 : -1) };
+    c.position.y = CLOUD_Y + 2.5 + (i % 3) * 1.5;
+    c.scale.set(1.7 + (i % 3) * 0.3, 1.1, 1.7 + (i % 3) * 0.3);
     scene.add(c); clouds.push(c);
   }
   function placeClouds() { for (const c of clouds) { const u = c.userData; c.position.x = Math.cos(u.a) * u.R; c.position.z = Math.sin(u.a) * u.R * (u.zf || 0.85); } }
@@ -891,7 +891,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     return { pos, target: target.clone() };
   }
   // 全景：側上方看過來，塔在中間、看得到底下的岩石與瀑布
-  const homeView = () => viewFor(new THREE.Vector3(0, portrait() ? 14 : 5, -2), fitDist(portrait() ? R1 * 1.05 : fitR * 1.05), THREE.MathUtils.degToRad(portrait() ? 70 : 70), 0.12);
+  const homeView = () => viewFor(new THREE.Vector3(0, portrait() ? 14 : 2, -2), fitDist(portrait() ? R1 * 1.05 : fitR * 1.18), THREE.MathUtils.degToRad(portrait() ? 70 : 70), 0.12);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let fly = null;
   function flyTo(v, dur = 1.4) {
