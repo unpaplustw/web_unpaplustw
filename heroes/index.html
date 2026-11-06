@@ -422,7 +422,7 @@ async function showDetail(k) {
   /* 第 2 層：一個手機畫面看完——金句、身分、標籤、重點摘要、30 秒介紹 */
   document.getElementById("quoteBox").innerHTML = d.q ? `<blockquote>${esc(d.q)}</blockquote>` : "";
   const isSelf = (d.six || []).length > 0;
-  const kind = isSelf ? `<span class="src self">🗣 本人自述</span>` : d.mag ? `<span class="src">📰 月刊報導</span>` : "";
+  const kind = isSelf ? `<span class="src self">🗣 本人自述</span>` : (d.mag || (d.mag6 || []).length) ? `<span class="src">📰 月刊報導</span>` : "";
   const co = d.co && d.co.name ? ` <span class="src co">👥 與 ${esc(d.co.name)} ${esc(d.co.relation)}共同</span>` : "";
   let html = `
     <div class="phead">
@@ -451,8 +451,15 @@ async function showDetail(k) {
     html += `<details class="fold"><summary>看他完整的故事（本人自述）</summary><div>
       <div class="story">${d.six.map(b => `<p class="beat">${esc(b)}</p>`).join("")}</div></div></details>`;
   }
+  /* 月刊六拍（母體「## 月刊故事」，第三人稱，逐句回月刊原文核對過）。沒有自述時預設展開 */
+  if ((d.mag6 || []).length) {
+    const coT = d.co && d.co.name ? `（與 ${esc(d.co.name)} ${esc(d.co.relation)}同篇報導）` : "";
+    html += `<details class="fold"${isSelf ? "" : " open"}><summary>${isSelf ? "展翅月刊報導" : "完整故事（展翅月刊整理）"}${coT}</summary><div>
+      ${isSelf ? `<p class="conote">這是較早的月刊報導，放在這裡當佐證。上面那篇才是他自己現在講的版本。</p>` : ""}
+      <div class="story">${d.mag6.map(b => `<p class="beat">${esc(b)}</p>`).join("")}</div></div></details>`;
+  }
   if (d.mag) {
-    const title = isSelf ? "展翅月刊報導" : (d.co && d.co.name ? `他的故事（與 ${esc(d.co.name)} ${esc(d.co.relation)}共同報導）` : "他的故事（展翅月刊報導）");
+    const title = isSelf ? "展翅月刊報導" : (d.co && d.co.name ? `完整故事（與 ${esc(d.co.name)} ${esc(d.co.relation)}共同報導）` : "完整故事（展翅月刊報導）");
     html += `<details class="fold"${isSelf ? "" : " open"}><summary>${title}</summary><div>
       ${d.co && d.co.name ? `<p class="conote">這是一篇<strong>${esc(d.co.relation)}共同報導</strong>，內容同時講 ${esc(d.n)} 與 ${esc(d.co.name)} 兩個人，所以開頭不一定從 ${esc(d.n)} 講起。</p>` : ""}
       ${isSelf ? `<p class="conote">這是較早的月刊報導，放在這裡當佐證。上面那篇才是他自己現在講的版本。</p>` : ""}
