@@ -291,14 +291,10 @@ function ava(p, img) { return `<div class="ava">${img ? `<img src="${esc(img)}" 
 /* 有故事的人才在瀏覽時出現；只有榮耀線的人只能用搜尋找到（Randoph 2026-11-06） */
 function listed(p) { return !!p.s; }
 
-/* 加權洗牌：有故事、勳章高的傾向排前面，每次進來順序不同 */
+/* 排序（Randoph 2026-11-06）：資料越豐富、越近期有更新的越前面。
+   分數 w 由重生腳本算好（豐富度＋新鮮度）；同分才隨機，讓同一級的人輪流露臉。 */
 function shuffle(arr) {
-  arr.forEach(p => {
-    const top = (p.b || []).map(b => RANK.indexOf(b)).filter(i => i >= 0);
-    const r = top.length ? RANK.length - Math.min(...top) : 0;
-    const w = 1 + r * 0.35 + (p.s === "self" ? 2 : p.s ? 1 : 0);
-    p._k = Math.pow(Math.random() || 1e-9, 1 / w);
-  });
+  arr.forEach(p => p._k = (p.w || 0) + Math.random() * 0.5);
   arr.sort((a, b) => b._k - a._k);
 }
 
