@@ -2523,6 +2523,11 @@ function renderPairing() {
             <div class="pick" data-sid="${s.id}" onclick="pickS('${s.id}')">
               <div class="pick-name">${nm(s)}${trackTag(s.track)}</div>
               <div class="pick-meta">${s.phone||'—'}${sp(s)?' ｜ 上線：'+sp(s):''}</div>
+              <!-- 2026-11-06：分組前就要能改班別（截止後認定→調班→才分組；原本只有分好組的學員能改，Randoph 找不到邱智賢） -->
+              <div class="pick-meta" onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span style="white-space:nowrap">班別</span>${stuTrkSel(s)}
+                ${s.applied_track && s.applied_track !== s.track ? `<span>（報名時選 ${trackName(s.applied_track)}）</span>` : ''}
+              </div>
             </div>`).join('')}
         </div>
         <div class="pair-col">
