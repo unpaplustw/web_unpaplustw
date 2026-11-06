@@ -660,12 +660,12 @@ function buildCity(mats) {
   lineBlock(RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.2);
   for (let z = FRONT[1] + 4; z < gateZ - 2; z += 3) for (const s of [-1, 1]) { lampPost(k, s * 1.7, G1, z); placed.push({ x: s * 1.7, z, r: 0.3 }); }
 
-  // ── 瀑布：護城河的水從島的四周流下去 ──
+  // ── 瀑布：集中在正門，吊橋兩側各兩道（中間寬、外側窄，吊橋正下方留空）──
   const waterfalls = [];
-  for (let j = 0; j < 12; j++) {
-    const deg = 15 + j * 30 + (r() - 0.5) * 8, e = edgeAt(p1, deg) * 0.985, [x, z] = polar(deg, e);
-    const w = buildWaterfall(x, z, deg * D2R, 0.78, CLOUD_Y + 0.5, 2.0 + r() * 1.4);
-    city.add(w); waterfalls.push({ mesh: w, x, z, deg });
+  for (const [deg, w] of [[-21, 2.6], [-9, 3.8], [9, 3.8], [21, 2.6]]) {
+    const e = edgeAt(p1, deg) * 0.985, [x, z] = polar(deg, e);
+    const mesh = buildWaterfall(x, z, deg * D2R, 0.78, CLOUD_Y + 0.5, w);
+    city.add(mesh); waterfalls.push({ mesh, x, z, deg });
   }
 
 
