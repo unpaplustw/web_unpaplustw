@@ -534,13 +534,13 @@ function buildWaterfall(x, z, rot, top, bottom, w) {
   geo.computeVertexNormals();
   const m = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
-    uniforms: { uTime: { value: 0 } },
+    uniforms: { uTime: { value: 0 }, uCols: { value: Math.max(14, w * 4) } }, // 水紋條數跟著寬度，寬瀑布才不會變馬賽克
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: `uniform float uTime; varying vec2 vUv;
+    fragmentShader: `uniform float uTime; uniform float uCols; varying vec2 vUv;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
       void main(){
         float y = vUv.y * 10.0 + uTime * 1.6;
-        float s = hash(vec2(floor(vUv.x * 14.0), floor(y)));
+        float s = hash(vec2(floor(vUv.x * uCols), floor(y)));
         vec3 col = mix(vec3(0.66,0.84,0.95), vec3(1.0), step(0.5, s) * 0.85);
         float edge = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
         float a = edge * mix(0.12, 0.92, smoothstep(0.0, 0.45, vUv.y));
@@ -660,9 +660,9 @@ function buildCity(mats) {
   lineBlock(RIGHT[0] - 1, RIGHT[1] + 3, 4.8, FRONT[1], 1.2);
   for (let z = FRONT[1] + 4; z < gateZ - 2; z += 3) for (const s of [-1, 1]) { lampPost(k, s * 1.7, G1, z); placed.push({ x: s * 1.7, z, r: 0.3 }); }
 
-  // ── 瀑布：集中在正門，吊橋兩側各兩道（中間寬、外側窄，吊橋正下方留空）──
+  // ── 瀑布：正門下方一道大面積瀑布 ──
   const waterfalls = [];
-  for (const [deg, w] of [[-21, 2.6], [-9, 3.8], [9, 3.8], [21, 2.6]]) {
+  for (const [deg, w] of [[0, 12]]) {
     const e = edgeAt(p1, deg) * 0.985, [x, z] = polar(deg, e);
     const mesh = buildWaterfall(x, z, deg * D2R, 0.78, CLOUD_Y + 0.5, w);
     city.add(mesh); waterfalls.push({ mesh, x, z, deg });
