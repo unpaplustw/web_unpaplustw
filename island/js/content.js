@@ -98,3 +98,11 @@ export async function loadCharity() {
   const lines = await loadLines('data/donation.txt');
   return { title: lines[0], lines: lines.slice(1) };
 }
+
+
+// 海外據點：service.txt 「海外據點」之後的原文（拿掉沒有連結的「了解更多」那行）
+export async function loadOverseas() {
+  const lines = await loadLines('data/service.txt');
+  const at = lines.indexOf('海外據點');
+  return at < 0 ? null : { title: lines[at], lines: lines.slice(at + 1).filter((l) => !l.startsWith('了解更多')) };
+}

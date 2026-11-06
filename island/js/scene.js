@@ -451,7 +451,7 @@ function buildCompany(mats) {
   k.add(new THREE.ConeGeometry(2.6, 6, 7), PAL.rock[1], mat(cx, -11, -cy, 0.3, 1, 1, 1, Math.PI));
   for (let i = 0; i < 22; i++) { const p = pts[i % pts.length], len = 1.5 + r() * 3; k.add(G.cyl6, PAL.root, mat(cx + (p.x - cx) * 0.85, -1.4 - len / 2, -(cy + (p.y - cy) * 0.85), 0, 0.1, len, 0.1)); }
   const placed = [];
-  const spots = [...COMPANY.buildings, ...PORTS].map((b) => { const [x, z] = twXZ(b.lon, b.lat); return { x, z }; });
+  const spots = COMPANY.buildings.map((b) => { const [x, z] = twXZ(b.lon, b.lat); return { x, z }; });
   // 中央山脈：沿著台灣中間偏東一排小山（避開建築）
   for (let t = 0; t <= 1; t += 0.09) {
     const lon = 121.33 - t * 0.5, lat = 24.55 - t * 1.85, [x, z] = twXZ(lon, lat);
@@ -464,10 +464,6 @@ function buildCompany(mats) {
   for (const b of COMPANY.buildings) {
     const [x, z] = twXZ(b.lon, b.lat), h = COMPANY_KIT[b.kind](k, x, z);
     placed.push({ x, z, r: 1.4 }); out.buildings.push({ def: b, x, z, h });
-  }
-  for (const p of PORTS) {
-    const [x, z] = twXZ(p.lon, p.lat), h = buildSalonHouse(k, x, z, p.id === 'taipei');
-    placed.push({ x, z, r: 1.0 }); out.salons.push({ port: p, x, z, h });
   }
   let n = 0, tries = 0;
   while (n < 45 && tries++ < 1500) {
@@ -958,12 +954,6 @@ export function createIsland({ stage, onPick, onBackground }) {
       label: makeLabel(b.def, 'company', 'label-tile', b.def.name) };
     entries.push(entry);
     addHit(entry.object, new THREE.CylinderGeometry(1.4, 1.4, b.h + 1, 10).translate(0, (b.h + 1) / 2 - 0.5, 0), entry);
-  }
-  for (const s of comp.salons) {
-    const entry = { kind: 'port', id: s.port.id, object: compAnchor(new THREE.Vector3(s.x, G1, s.z)), offset: new THREE.Vector3(0, s.h + 0.3, 0), focusY: 1.5, focusR: 6,
-      label: makeLabel(s.port, 'port', 'label-port', s.port.salon) };
-    entries.push(entry);
-    addHit(entry.object, new THREE.CylinderGeometry(1.1, 1.1, 4, 10).translate(0, 1.5, 0), entry);
   }
 
   const fitR = R1 + 6.5;

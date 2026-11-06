@@ -402,3 +402,7 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 
 /* 綠佳利島（公司）的島名：淡綠色，跟 A Plus 的金色區分 */
 .label-company { z-index: 3; background: #eef6ea; border-color: #7fae5a; color: #3c6b33; font-weight: 700; }
+
+/* 公司總部卡片：每個地區沙龍之間加分隔線、標題縮小 */
+.simple .simple { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.simple .simple .card-title { font-size: 18px; margin-bottom: 4px; }

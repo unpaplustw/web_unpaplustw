@@ -1,5 +1,5 @@
 import { TILES, PORTS, SATELLITES, COMPANY, TOUR } from './data.js';
-import { loadAplus, loadPorts, loadCharity } from './content.js';
+import { loadAplus, loadPorts, loadCharity, loadOverseas } from './content.js';
 
 const $ = (selector) => document.querySelector(selector);
 const SCENE_TIMEOUT_MS = 15000;
@@ -17,6 +17,7 @@ let island = null;
 let aplus = null;
 let ports = null;
 let charity = null;
+let overseas = null;
 let contentError = false;
 let activeId = null;
 
@@ -61,7 +62,7 @@ function buildList() {
     listGroup('APLUS城', home.map((tile) => listButton(tile.name, 'tile', tile.id))),
     listGroup('功能區', land.map((tile) => listButton(tile.name, 'tile', tile.id))),
     listGroup('綠佳利島（公司）', [listButton(COMPANY.name, 'company', COMPANY.id), ...COMPANY.buildings.map((b) => listButton(b.name, 'company', b.id))]),
-    listGroup('地區沙龍', PORTS.map((port) => listButton(port.salon, 'port', port.id))),
+
     ...(SATELLITES.length ? [listGroup('衛星', SATELLITES.map(listLink))] : []),
   );
 }
@@ -141,6 +142,18 @@ function portCard(port) {
   for (const line of data.hours) dl.append(el('dd', '', line));
   wrap.append(dl);
   for (const line of data.notes) wrap.append(el('p', 'note', line));
+  return wrap;
+}
+
+// 公司總部：官網按鈕＋各地區沙龍（重用 portCard）＋海外據點
+function hqCard(b) {
+  const wrap = simpleCard(b);
+  wrap.append(el('h3', 'section-title', '地區沙龍'));
+  for (const port of PORTS) wrap.append(portCard(port));
+  if (overseas) {
+    wrap.append(el('h3', 'section-title', overseas.title));
+    for (const line of overseas.lines) wrap.append(el('p', 'prose', line));
+  }
   return wrap;
 }
 
@@ -251,7 +264,7 @@ function pick(kind, id) {
   }
   if (kind === 'company') { // 綠佳利島：島本身開 /company/，建築開各自的按鈕
     const b = id === COMPANY.id ? COMPANY : COMPANY.buildings.find((item) => item.id === id);
-    openCard(simpleCard(b), false);
+    openCard(b.salons ? hqCard(b) : simpleCard(b), Boolean(b.salons));
     return;
   }
   const tile = TILES.find((item) => item.id === id);
@@ -338,7 +351,7 @@ async function start() {
   window.addEventListener('resize', syncInset);
 
   try {
-    [aplus, ports, charity] = await Promise.all([loadAplus(), loadPorts(PORTS), loadCharity()]);
+    [aplus, ports, charity, overseas] = await Promise.all([loadAplus(), loadPorts(PORTS), loadCharity(), loadOverseas()]);
   } catch (error) {
     console.error(error);
     contentError = true;

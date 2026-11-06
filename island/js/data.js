@@ -27,7 +27,7 @@ export const TILES = [
     links: [{ label: 'KC 抗氧化力檢測', href: '/kc/' }, { label: '全能查查', href: '/checker/' }] },
 ];
 
-// 地區沙龍：在右邊「綠佳利島」上，照台灣實際位置擺。lon／lat＝經緯度（島面依此換算）
+// 地區沙龍：資料集中在綠佳利島的「公司總部」卡片（島上不再一間間蓋，太擠）。
 // salon：名牌；source：island/data/service.txt 裡的標題，地址與營業時間由此對應。
 export const PORTS = [
   { id: 'taipei',    name: '台北總公司', salon: '台北總公司', lon: 121.52, lat: 25.04, source: '台北總公司／台北服務中心' },
@@ -39,11 +39,11 @@ export const PORTS = [
 ];
 
 // 綠佳利島（公司）：A Plus 天空之城右邊的另一座島，放所有「公司官方」的東西。
-// 島面＝台灣輪廓；建築用 lon／lat 擺位置。links＝卡片裡的按鈕。
+// 島面＝台灣輪廓；建築用 lon／lat 擺位置。links＝卡片裡的按鈕；salons: true＝卡片下方列出各地區沙龍。
 export const COMPANY = {
   id: 'company', name: '綠佳利島', line: '環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。', link: '/company/',
   buildings: [
-    { id: 'hq',     name: '公司官網',     kind: 'hq',      lon: 121.38, lat: 25.12, line: '環貫綠佳利股份有限公司官方網站。',
+    { id: 'hq',     name: '公司總部',     kind: 'hq',      lon: 121.38, lat: 25.12, line: '環貫綠佳利總部：官方網站，以及各地區沙龍的地址與營業時間。', salons: true,
       links: [{ label: '前往官網', href: 'https://www.naturally-plus.com/tw/zh' }] },
     { id: 'social', name: '官方社群',     kind: 'screen',  lon: 121.50, lat: 23.95, line: '公司 Facebook、YouTube。',
       links: [{ label: 'Facebook', href: 'https://www.facebook.com/NaturallyPlusTW' }, { label: 'YouTube', href: 'https://youtube.com/c/NaturallyPlusTWNo1' }] },
