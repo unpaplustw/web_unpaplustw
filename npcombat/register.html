@@ -693,7 +693,8 @@
         <p class="hint">已寫 <span id="introCount">0</span> 字　<span class="i6-warn" id="i6Warn"></span></p>
       </div>
 
-      <div class="field">
+      <!-- 2026-11-06 Randoph：終身行動組本身是高峰，不用引路人 → 選終身組時整欄隱藏、不必填、存空值 -->
+      <div class="field" id="coach-field">
         <label>引路人：帶你來的教練 <span class="req">*</span></label>
         <select id="f-coach">
           <option value="">— 請選擇 —</option>
@@ -1240,6 +1241,8 @@ function onTrackChange() {
   if (box) box.style.display = (t === 'learn') ? 'none' : '';
   document.getElementById('advExtra').style.display  = t === 'advanced' ? '' : 'none';
   document.getElementById('lifeExtra').style.display = t === 'lifetime' ? '' : 'none';
+  const cf = document.getElementById('coach-field');
+  if (cf) cf.style.display = t === 'lifetime' ? 'none' : '';
 }
 document.addEventListener('change', e => {
   if (!e.target) return;
@@ -1306,7 +1309,7 @@ async function handleStudentSubmit() {
     else if (meetTo <= meetFrom) errors.push('作戰會議的結束時間要晚於開始時間');
   }
   if (track === 'lifetime' && !lifeRank) errors.push('請選擇你已達成的是高峰還是終身成就');
-  if (!coachId)     errors.push('請選擇引路人（帶你來的教練）');
+  if (!coachId && track !== 'lifetime') errors.push('請選擇引路人（帶你來的教練）');   // 終身組（高峰）不用引路人
   const transferClean = transfer.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   if (!/^[0-9]{5}$/.test(transferClean)) errors.push('匯款帳號後 5 碼必須是 5 位數字');
 
@@ -1330,7 +1333,7 @@ async function handleStudentSubmit() {
     const { error: studentErr } = await sb.from('batch_students').upsert({
       batch_id:      BATCH_ID,
       member_id:     member.id,
-      sponsor_id:    coachId,
+      sponsor_id:    track === 'lifetime' ? null : coachId,   // 終身組不記引路人（不計入引路榜／引路名單）
       phone,
       registered:    registered === 'yes',
       track,                          // 最終班別：報名時先等於報名班別，截止後認定／調整才可能改

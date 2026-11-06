@@ -1659,7 +1659,7 @@ function phaseBefore() {
   // ⑦ 精英組席次：29 期沒有精英組，2026-10-23 拿掉
 
   // ⑧ 上線
-  const noSp = stu.filter(s => !s.sponsor_id);
+  const noSp = stu.filter(s => !s.sponsor_id && s.track !== 'lifetime');   // 終身組（高峰）不用引路人，2026-11-06
   add(noSp.length ? 'warn' : 'ok', '上線（sponsor）',
     noSp.length ? `${noSp.length} 人未設上線：${few(noSp)}` : '全部已設', ['check','pairArea']);
 
@@ -2362,7 +2362,11 @@ function renderOrg() {
       my.map(s => stuRow(s, coachOf(s))).join(''), `${my.length} 名`, !my.length);
   }).join('');
 
-  const noSp = stu.filter(s => !s.sponsor_id).sort(byTime);
+  // 終身組（高峰）不用引路人：單獨列一張，不算「未指定」（2026-11-06）
+  const life = stu.filter(s => !s.sponsor_id && s.track === 'lifetime').sort(byTime);
+  if (life.length) h += treeCard('👑 終身行動組（不需引路人）', '高峰以上自己報名，不計入引路', '',
+    life.map(s => stuRow(s, coachOf(s))).join(''), `${life.length} 名`, true);
+  const noSp = stu.filter(s => !s.sponsor_id && s.track !== 'lifetime').sort(byTime);
   if (noSp.length) h += treeCard('⚠️ 未指定上線', '到 🩺檢查 的「分組與資料調整」設定', '',
     noSp.map(s => stuRow(s, coachOf(s))).join(''), `${noSp.length} 名`, true);
 
