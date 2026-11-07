@@ -1,7 +1,7 @@
 // A Plus 天空之城（城堡版）的所有設定。加一個功能區＝在 TILES 加一筆（或把 reserved 改成 empty），不用改程式。
 //
 // spot：在城裡的位置，對應 scene.js 的 SPOTS
-//   castle＝北邊的大城堡｜left＝城堡左側｜right＝城堡右側｜front＝城堡前方｜gate＝南邊城門上方｜plot＝城牆內的空地（用 angle 指定方位）
+//   castle＝北邊的大城堡｜left＝城堡左側｜right＝城堡右側｜front＝城堡前方｜gate＝南邊城門上方｜plot＝城牆內的空地（用 angle 指定方位）｜checkpoint＝城門前方的小島（檢查哨）
 // rooms：建築裡的教室名牌（只是名牌，點了一樣開這一區的卡片）
 // status：
 //   full     精神之塔（點了開完整卡片）
@@ -28,7 +28,7 @@ export const TILES = [
     hook: '每一位，都曾是和你一樣的普通人。',
     line: '家庭主婦、補教老師、美髮店老闆、退休校長⋯⋯看他們怎麼從原本的生活，走到現在的成績。',
     cta: '看他們的故事', link: '/heroes/' },
-  { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'plot', angle: 45, landmark: 'clinic',
+  { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'checkpoint', landmark: 'clinic',
     hook: '你的抗氧化力還剩多少？18 秒測得出來。',
     line: 'KC 用光照一下皮膚就有數字；全能查查幫你查商品成分和字號真偽，為家人把關（要用 LINE 登入）。',
     links: [{ label: '測抗氧化力', href: '/kc/' }, { label: '查商品成分', href: '/checker/' }] },
@@ -50,23 +50,24 @@ export const PORTS = [
 
 // 綠佳利島（公司）：A Plus 天空之城右邊的另一座島，放所有「公司官方」的東西。
 // 島面＝台灣輪廓；建築用 lon／lat 擺位置。links＝卡片裡的按鈕；salons: true＝卡片下方列出各地區沙龍。
+// 能按的地標全部放在西部平原（NDS 在吊橋上岸處）；東半邊留給中央山脈與海岸山脈。
 export const COMPANY = {
   id: 'company', name: '綠佳利島', link: '/company/', cta: '進入綠佳利島',
   hook: '環貫綠佳利的官方世界，一次找齊。', line: '官網、社群、APP、會員系統、全台服務中心、各地區宣傳品，都在這座島上。',
   buildings: [
-    { id: 'hq',     name: '公司總部',     kind: 'hq',      lon: 121.38, lat: 25.12, salons: true,
+    { id: 'hq',     name: '公司總部',     kind: 'hq',      lon: 121.22, lat: 24.95, salons: true,
       hook: '台灣總部就在台北車站前的新光摩天大樓。', line: '下面有全台 6 個服務中心的地址和營業時間，出門前先看一下。',
       links: [{ label: '前往官網', href: 'https://www.naturally-plus.com/tw/zh' }] },
-    { id: 'social', name: '官方社群',     kind: 'screen',  lon: 121.50, lat: 23.95,
+    { id: 'social', name: '官方社群',     kind: 'screen',  lon: 120.82, lat: 24.55,
       hook: '公司官方的 Facebook 和 YouTube 頻道。',
       links: [{ label: 'Facebook', href: 'https://www.facebook.com/NaturallyPlusTW' }, { label: 'YouTube', href: 'https://youtube.com/c/NaturallyPlusTWNo1' }] },
-    { id: 'app',    name: '綠佳利 APP',   kind: 'signal',  lon: 121.02, lat: 23.55,
+    { id: 'app',    name: '綠佳利 APP',   kind: 'signal',  lon: 120.36, lat: 23.70,
       hook: '最好康的優惠、最即時的動態，一手掌握不漏接。', line: '公司不定期在 APP 上推出優惠活動。',
       links: [{ label: '下載 APP', href: 'http://cms.naturally-plus.com.tw/share/index.html' }] },
-    { id: 'nds',    name: 'NDS 會員登錄', kind: 'gate',    lon: 120.95, lat: 24.62,
+    { id: 'nds',    name: 'NDS 會員登錄', kind: 'gate',    lon: 120.50, lat: 24.16,
       hook: '已經是會員？登入 NDS 看自己的資料。', line: '獎金、點數、組織，都在會員系統裡。',
       links: [{ label: '登入 NDS', href: 'https://nds.naturally-plus.com/login' }] },
-    { id: 'docs',   name: '宣傳品資料館', kind: 'library', lon: 120.42, lat: 23.45,
+    { id: 'docs',   name: '宣傳品資料館', kind: 'library', lon: 120.28, lat: 23.22,
       hook: '8 個地區、59 份官方 DM 和小冊子。', line: '要分享給朋友之前，先來這裡下載正確的版本。',
       links: [{ label: '下載宣傳品', href: '/company/#downloads' }] },
   ],

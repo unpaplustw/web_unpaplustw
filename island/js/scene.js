@@ -320,8 +320,12 @@ function buildGate(k, x, gy, z, rot) {
   P(G.box, stone, 0, 7.05, 0, 0, 8.3, 1.2, D - 0.2);                         // 頂層
   P(G.box, shade, 0, 7.72, 0, 0, 8.5, 0.16, D);
   for (const s of [-2.4, 0, 2.4]) P(G.cyl16, PAL.goldBright, s, 7.05, (D - 0.2) / 2 + 0.02, 0, 0.7, 0.05, 0.7, Math.PI / 2); // 金色圓章
-  L(-3.9, 8.0, 0, 1.4); L(3.9, 8.0, 0, 1.4); L(0, 3.0, D / 2 + 0.3, 2.4);
-  return 8.4;
+  P(G.box, PAL.stone, 0, 8.05, 0, 0, 1.8, 0.5, 1.5);                       // 獎盃台座
+  const cup = [[0, 0], [0.62, 0], [0.62, 0.18], [0.22, 0.3], [0.16, 0.9], [0.27, 1.12], [0.9, 1.44], [1.03, 2.43], [0.94, 2.48], [0.8, 1.62], [0, 1.44]].map(([a, b]) => new THREE.Vector2(a, b));
+  P(new THREE.LatheGeometry(cup, 18), PAL.goldBright, 0, 8.3, 0);
+  for (const s of [-1, 1]) P(new THREE.TorusGeometry(0.38, 0.07, 6, 12, Math.PI), PAL.gold, s * 1.0, 9.95, 0, 0, 1, 1, 1, 0, s * -Math.PI / 2);
+  L(-3.9, 8.0, 0, 1.4); L(3.9, 8.0, 0, 1.4); L(0, 3.0, D / 2 + 0.3, 2.4); L(0, 9.8, 0, 3.2);
+  return 11.2;
 }
 
 
@@ -457,14 +461,26 @@ function buildCompany(mats) {
   for (let i = 0; i < 22; i++) { const p = pts[i % pts.length], len = 1.5 + r() * 3; k.add(G.cyl6, PAL.root, mat(cx + (p.x - cx) * 0.85, -1.4 - len / 2, -(cy + (p.y - cy) * 0.85), 0, 0.1, len, 0.1)); }
   const placed = [];
   const spots = COMPANY.buildings.map((b) => { const [x, z] = twXZ(b.lon, b.lat); return { x, z }; });
-  // 中央山脈：沿著台灣中間偏東一排小山（避開建築）
-  for (let t = 0; t <= 1; t += 0.09) {
-    const lon = 121.33 - t * 0.5, lat = 24.55 - t * 1.85, [x, z] = twXZ(lon, lat);
-    if (spots.some((s) => Math.hypot(s.x - x, s.z - z) < 1.6)) continue;
-    const h = 1.6 + Math.sin(t * Math.PI) * 2.2 + r() * 0.6, rad = 1.1 + r() * 0.4;
-    k.add(new THREE.ConeGeometry(rad, h, 6), t > 0.25 && t < 0.75 ? PAL.rock[0] : '#7fae5a', mat(x, G1 + h / 2 - 0.2, z, r() * 3));
+  // 中央山脈：從北到南一整排高山（兩列交錯，玉山附近最高、有雪頂）
+  const mountain = (lon, lat, h, rad, snow) => {
+    const [x, z] = twXZ(lon, lat);
+    if (!inside(pts, x, z) || spots.some((s) => Math.hypot(s.x - x, s.z - z) < 2.2)) return;
+    k.add(new THREE.ConeGeometry(rad, h, 6), h > 3.4 ? pick(PAL.rock, r) : '#6f9f4f', mat(x, G1 + h / 2 - 0.25, z, r() * 3));
+    k.add(new THREE.ConeGeometry(rad * 1.15, h * 0.4, 6), '#7fae5a', mat(x, G1 + h * 0.2 - 0.25, z, r() * 3));
+    if (snow) k.add(new THREE.ConeGeometry(rad * 0.32, h * 0.26, 6), '#ffffff', mat(x, G1 + h * 0.87 - 0.25, z, r() * 3));
     placed.push({ x, z, r: rad });
+  };
+  for (let t = 0; t <= 1.0001; t += 0.045) {
+    const lon = 121.55 - t * 0.68, lat = 24.8 - t * 2.6;
+    const yushan = Math.exp(-((lat - 23.47) ** 2) / 0.08);                 // 玉山一帶最高
+    const h = 2.2 + Math.sin(Math.min(1, t * 1.15) * Math.PI) * 2.4 + yushan * 1.8 + r() * 0.5;
+    mountain(lon, lat, h, 1.35 + r() * 0.3, h > 4.6);
+    mountain(lon - 0.16, lat + 0.05, h * 0.62, 1.05, false);              // 西側的前山
+    mountain(lon + 0.13, lat - 0.04, h * 0.75, 1.1, false);               // 東側的支脈
   }
+  // 海岸山脈：花蓮到台東的東海岸，一排比較矮的山（中間留縱谷）
+  for (let t = 0; t <= 1.0001; t += 0.11) mountain(121.5 - t * 0.33, 23.88 - t * 1.0, 1.4 + Math.sin(t * Math.PI) * 0.9 + r() * 0.3, 0.85, false);
+
   const out = { group: g, buildings: [], salons: [] };
   for (const b of COMPANY.buildings) {
     const [x, z] = twXZ(b.lon, b.lat), h = COMPANY_KIT[b.kind](k, x, z);
@@ -778,6 +794,24 @@ function buildCity(mats) {
     k.add(G.box, '#7a5636', mat(s * 1.85, 1.25, (gateZ + edge0) / 2 + 0.6, 0, 0.12, 0.6, edge0 - gateZ));
     for (const zz of [gateZ + 0.8, edge0 + 0.3]) k.add(G.cyl6, '#5a5348', mat(s * 1.85, 1.3, zz, 0, 0.16, 1.0, 0.16));
   }
+  // ── 檢查哨小島：吊橋前方一座超小的浮島，放健康檢查站＋崗亭與攔路桿 ──
+  const CK_R = 5.2, ckZ = edge0 + CK_R + 5.5;
+  const ck = organic(CK_R, 91, 0.08);
+  k.add(slab(scaled(ck, 1, 0, ckZ), -1.0, 1.0, 0.28), PAL.rimDark);
+  k.add(slab(scaled(ck, 0.94, 0, ckZ), -0.2, 0.55, 0.3), PAL.grass);
+  [[0.85, PAL.earth], [0.62, PAL.rock[0]], [0.4, PAL.rock[1]]].forEach(([f, col], n) => k.add(slab(scaled(ck, f, 0, ckZ), -1.0 - (n + 1) * 1.3, 1.2, 0.25), col));
+  k.add(new THREE.ConeGeometry(1.4, 3.5, 6), PAL.rock[2], mat(0, -6.6, ckZ, 0.2, 1, 1, 1, Math.PI));
+  buildBridge(k, new THREE.Vector3(0, 0.92, edge0 + 0.6), new THREE.Vector3(0, G1 + 0.1, ckZ - CK_R * 0.9));
+  stripLine(k, 0, ckZ - CK_R * 0.9, 0, ckZ - 2.6, 1.6, G1 + 0.03, PAL.path);
+  const clinicH = buildClinic(k, 0, G1, ckZ + 0.4, 0);                // 面向外側：遊客從外面來、首頁鏡頭也從前方看
+  { const { P } = B(k, 1.9, G1, ckZ - 3.0, 0);                         // 崗亭＋紅白攔路桿
+    P(G.box, PAL.white, 0, 0.75, 0, 0, 0.9, 1.5, 0.9); P(G.box, PAL.gold, 0, 1.6, 0, 0, 1.1, 0.16, 1.1);
+    P(G.box, '#6fb3df', 0, 0.95, -0.46, 0, 0.6, 0.45, 0.02);
+    P(G.cyl6, '#5a5348', -0.7, 0.5, -0.4, 0, 0.1, 1.0, 0.1);
+    for (let n = 0; n < 6; n++) P(G.box, n % 2 ? PAL.white : '#d9534f', -1.0 - n * 0.32, 0.95, -0.4, 0, 0.32, 0.12, 0.12);
+  }
+  const checkpoint = { x: 0, z: ckZ + 0.6, gy: G1, h: clinicH, focusY: 2, focusR: 9, hit: [3.6, 8], viewAz: Math.PI * 0.08 };
+
 
 
   // ── 城門＋英雄殿 ──
@@ -881,6 +915,7 @@ function buildCity(mats) {
       front: { x: FRONT[0], z: FRONT[1], gy: G1, h: dojoH, focusY: 1.5, focusR: 9.5, hit: [5, 5], labelAt: [4.2, -2.2] },
       gate: { x: gate.x, z: gate.z, gy: G1, h: gate.h, focusY: 5, focusR: 9, hit: [4.5, 11] },
       ...plotSpots,
+      checkpoint,
     },
   };
 }
@@ -1056,7 +1091,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     return { pos, target: target.clone() };
   }
   // 全景：側上方看過來，塔在中間、看得到底下的岩石與瀑布
-  const homeView = () => viewFor(new THREE.Vector3(portrait() ? 20 : 19, portrait() ? 22 : 1, 0), fitDist(portrait() ? 40 : 44), THREE.MathUtils.degToRad(70), portrait() ? 0.5 : 0.18); // 兩座島一起入鏡
+  const homeView = () => viewFor(new THREE.Vector3(portrait() ? 13 : 19, portrait() ? 22 : 1, 0), fitDist(portrait() ? 45 : 44), THREE.MathUtils.degToRad(70), portrait() ? 0.5 : 0.18); // 兩座島一起入鏡
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let fly = null;
   function flyTo(v, dur = 1.4) {
