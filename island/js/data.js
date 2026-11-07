@@ -84,9 +84,9 @@ export const TOUR = ['這是 A Plus 天空之城', '點建築看內容', '最高
 export const ORBIT_AFTER_ACTIVITY_MS = 15000;
 
 // 首頁會員入口（右上角）。liffId 空白＝還沒建好，按鈕不顯示（預覽：網址加 #preview-member=none｜0｜1）
-// ⏳ 首頁 LIFF：Randoph 在 LINE Developers 新建，Endpoint＝https://unpaplus.com.tw/
+// 首頁 LIFF：「總會員中心」，在 LINE Developers 的「np-aplus › 會員中心」頻道底下
 export const MEMBER = {
-  liffId: '',
+  liffId: '2009692859-h2XfVyCT',   // 「總會員中心」LIFF（Endpoint https://unpaplus.com.tw/，2026-11-08 Randoph 建）
   hubLiffId: '2009692859-9mE2Ymmb',   // 會員中心（註冊／我的會員卡）
   liffSdk: 'https://static.line-scdn.net/liff/edge/2/sdk.js',
 };
