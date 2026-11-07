@@ -1,5 +1,6 @@
 import { TILES, PORTS, SATELLITES, COMPANY, TOUR } from './data.js';
 import { loadAplus, loadPorts, loadCharity, loadOverseas } from './content.js';
+import { initMember } from './member.js';
 
 const $ = (selector) => document.querySelector(selector);
 const SCENE_TIMEOUT_MS = 15000;
@@ -365,6 +366,7 @@ async function start() {
   if (!has3d) useTextMode();
   $('#loader').hidden = true;
   if (has3d) startTour();
+  initMember({ openCard, el });
 }
 
 start();

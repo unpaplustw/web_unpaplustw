@@ -409,3 +409,14 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 
 /* 卡片第一句勾子 */
 .card-hook { margin: 4px 0 6px; font-size: 17px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+
+/* 首頁右上角的會員入口 */
+#member-btn { position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 30; display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px 6px 6px; min-height: 40px; border: 1px solid var(--gold); border-radius: 999px; background: rgba(255,255,255,.94);
+  box-shadow: var(--shadow); font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
+#member-btn[hidden] { display: none; }
+#member-btn .member-pic { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+#member-btn .member-name { padding-left: 6px; font-weight: 700; }
+#member-btn .member-vip { padding: 2px 8px; border-radius: 999px; background: var(--gold); color: #fff; font-size: 12px; font-weight: 700; }
+.button-sub { background: var(--gold-soft) !important; color: var(--ink) !important; }
+@media (min-width: 900px) { body:has(#card:not([hidden])) #member-btn { visibility: hidden; } } /* 桌機卡片在右上角，打開時讓位，不壓到關閉鈕 */

@@ -82,3 +82,11 @@ export const TOUR = ['這是 A Plus 天空之城', '點建築看內容', '最高
 
 // 衛星在進站或操作後繞行多久（毫秒），之後停住並停止重繪，下次操作再繼續。
 export const ORBIT_AFTER_ACTIVITY_MS = 15000;
+
+// 首頁會員入口（右上角）。liffId 空白＝還沒建好，按鈕不顯示（預覽：網址加 #preview-member=none｜0｜1）
+// ⏳ 首頁 LIFF：Randoph 在 LINE Developers 新建，Endpoint＝https://unpaplus.com.tw/
+export const MEMBER = {
+  liffId: '',
+  hubLiffId: '2009692859-9mE2Ymmb',   // 會員中心（註冊／我的會員卡）
+  liffSdk: 'https://static.line-scdn.net/liff/edge/2/sdk.js',
+};
