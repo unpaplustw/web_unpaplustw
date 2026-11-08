@@ -1,4 +1,4 @@
-// A Plus 天空之城（城堡版）的所有設定。加一個功能區＝在 TILES 加一筆（或把 reserved 改成 empty），不用改程式。
+// A Plus 系統首頁（城堡版）的所有設定。加一個功能區＝在 TILES 加一筆（或把 reserved 改成 empty），不用改程式。
 //
 // spot：在城裡的位置，對應 scene.js 的 SPOTS
 //   castle＝北邊的大城堡｜left＝城堡左側｜right＝城堡右側｜front＝城堡前方｜gate＝南邊城門上方｜plot＝城牆內的空地（用 angle 指定方位）｜checkpoint＝城門前方的小島（檢查哨）
@@ -48,7 +48,7 @@ export const PORTS = [
   { id: 'kaohsiung', name: '高雄',       salon: '高雄沙龍',   lon: 120.30, lat: 22.63, source: '高雄服務中心' },
 ];
 
-// 綠佳利島（公司）：A Plus 天空之城右邊的另一座島，放所有「公司官方」的東西。
+// 綠佳利島（公司）：A Plus 系統首頁右邊的另一座島，放所有「公司官方」的東西。
 // 島面＝台灣輪廓；建築用 lon／lat 擺位置。links＝卡片裡的按鈕；salons: true＝卡片下方列出各地區沙龍。
 // 能按的地標全部放在西部平原（NDS 在吊橋上岸處）；東半邊留給中央山脈與海岸山脈。
 export const COMPANY = {
@@ -78,7 +78,7 @@ export const COMPANY = {
 export const SATELLITES = [];
 
 
-export const TOUR = ['這是 A Plus 天空之城', '點建築看內容', '最高的城堡是 APLUS城'];
+export const TOUR = ['這是 A Plus 系統', '點建築看內容', '最高的城堡是 APLUS城'];
 
 // 衛星在進站或操作後繞行多久（毫秒），之後停住並停止重繪，下次操作再繼續。
 export const ORBIT_AFTER_ACTIVITY_MS = 15000;

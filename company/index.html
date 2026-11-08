@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>綠佳利島｜A Plus 天空之城</title>
+<title>綠佳利島｜A Plus 系統</title>
 <meta name="description" content="環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。">
 <meta name="theme-color" content="#f7f5f0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,7 +40,7 @@
 </head>
 <body>
 <main class="wrap">
-  <a class="back" href="/">‹ 回天空之城</a>
+  <a class="back" href="/">‹ 回首頁</a>
   <h1>🏝️ 綠佳利島</h1>
   <p class="lead">環貫綠佳利官方：官網、社群、APP、NDS、各地區沙龍、宣傳品下載。</p>
 
@@ -63,7 +63,7 @@
     const list = el('div', 'links'); list.append(...region.items.map(link)); d.append(s, list); $('download-list').append(d);
   }
   $('download-list').querySelector('details')?.setAttribute('open', '');
-  // 地區沙龍：讀天空之城同一份原文（舊站「全球服務據點」），一字不改
+  // 地區沙龍：讀首頁同一份原文（舊站「全球服務據點」），一字不改
   fetch('/island/data/service.txt').then((r) => r.text()).then((t) => {
     const lines = t.split(/\r?\n/).filter((l) => l && !l.startsWith('#') && l !== '全球服務據點' && !l.startsWith('了解更多'));
     const box = $('salon-list'); box.innerHTML = '';

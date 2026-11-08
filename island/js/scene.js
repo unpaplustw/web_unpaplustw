@@ -1,4 +1,4 @@
-// A Plus 天空之城（第三版場景）
+// A Plus 系統首頁（第三版場景）
 // 一座三層的浮空城：最上層＝精神之塔、中層＝功能區圍著塔、外環＝街道住宅與預留空地；底部倒掛岩石＋樹根＋瀑布。
 // 全部幾何由程式產生，不載入模型或貼圖。
 // 省電：devicePixelRatio 上限 2、沒有即時陰影（假陰影圓盤）、操作後只動 ORBIT_AFTER_ACTIVITY_MS，之後停止重繪。
@@ -22,7 +22,7 @@ const MT_HALF = 40;                  // 後方靠山的範圍（離正後方 ±4
 const MOAT_IN = 0.885, MOAT_OUT = 0.975; // 護城河在島緣的位置（島外形的比例）
 const PLAIN_TOWERS = [25, -25, 66, 112, 138, -45, -75, -105, -135]; // 城牆哨塔的方位
 const BRIDGE_DEG = 90;               // 往綠佳利島的吊橋，從東側城牆出去
-const COMP_POS = new THREE.Vector3(45, -0.6, 4); // 綠佳利島相對天空之城的位置（右邊）
+const COMP_POS = new THREE.Vector3(45, -0.6, 4); // 綠佳利島相對主島的位置（右邊）
 const TW_K = 8.4;                    // 台灣經緯度 → 島面座標的倍率
 const D2R = Math.PI / 180;
 

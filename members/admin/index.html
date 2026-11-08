@@ -7,7 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
   會員中心後台（2026-11-08，致富學院對話定）
-  - 給「中央、OA 管理員、以後的幹部」用；一般會員的會員卡／註冊在天空之城首頁
+  - 給「中央、OA 管理員、以後的幹部」用；一般會員的會員卡／註冊在 A Plus 系統首頁
   - 每個按鈕都經會員閘道 member-gate（action: 'admin'），伺服器驗 LINE 身分
   - 能不能做由資料庫授權表 admin_grants 判斷（admin_can），這頁只負責顯示；網頁說了不算
   - 預覽：/members/admin/#preview（假資料，免 LINE 登入，不寫任何東西）
@@ -134,7 +134,7 @@ async function init(){
   const d = await gate('admin_whoami');
   if(!d.ok){
     if(d.error === 'no_grant') msg('🔒', '沒有後台權限', `${esc(d.name || '')}，你目前沒有被授權。<br>需要的話請聯繫中央。`);
-    else if(d.error === 'no_member') msg('🔒', '找不到你的會員資料', '請先從天空之城首頁登入註冊。');
+    else if(d.error === 'no_member') msg('🔒', '找不到你的會員資料', '請先從 A Plus 系統首頁登入註冊。');
     else msg('⚠️', '連線失敗', '請稍後再試。');
     return;
   }

@@ -1,7 +1,7 @@
 // 綠佳利島（公司）頁面的所有資料。改內容只改這個檔。
 // 宣傳品：來源 https://unpaplus.com/unpaplus-download-resorce/（2026-11-06 擷取；標籤照原文，只拿掉「點擊下載」）
 // ⚠️ 台灣地區三份原標籤是「小冊子點擊下載」「點擊這裡」，名稱是依檔名與縮圖檔名推的
-// 地區沙龍的地址與營業時間不在這裡，直接讀 /island/data/service.txt（跟天空之城同一份原文）
+// 地區沙龍的地址與營業時間不在這裡，直接讀 /island/data/service.txt（跟首頁同一份原文）
 
 export const OFFICIAL = [
   { label: '環貫綠佳利官網', url: 'https://www.naturally-plus.com/tw/zh' },
