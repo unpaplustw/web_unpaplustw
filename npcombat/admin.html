@@ -242,6 +242,7 @@
   .ck-d{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:3px}
   .ck-d b{color:#f87171}
   .ck-go{flex-shrink:0;align-self:center;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--gold-bd);background:var(--gold-lt);color:var(--gold);font-family:inherit;white-space:nowrap}
+  .ck-done{margin:8px 0 14px}  .ck-done summary{cursor:pointer;padding:12px 14px;border-radius:12px;background:rgba(61,154,95,.12);color:#7fd39a;font-weight:800;font-size:14px;list-style:none}  .ck-done summary::-webkit-details-marker{display:none}  .ck-done[open] summary{margin-bottom:8px}
   .ck-go:hover{background:var(--gold-bd)}
   .ck-sum{padding:14px 16px;border-radius:12px;font-size:14px;font-weight:700;margin-bottom:14px;text-align:center}
   .ck-sum.go{background:rgba(34,160,90,.14);color:#4ade80}
@@ -1632,9 +1633,13 @@ function phaseBefore() {
     noSp.length ? `${noSp.length} 人未設上線：${few(noSp)}` : '全部已設', ['check','pairArea']);
 
   // ⑨ 教練組別
-  const noGrp = apprCoaches.filter(c => !c.group_name);
+  // 2026-11-08 Randoph：總教練、總培訓師本來就不帶組 → 沒組別又沒組員＝不帶組（正常）；有組員卻沒組別才警示
+  const noGrpAll = apprCoaches.filter(c => !c.group_name);
+  const noGrp = noGrpAll.filter(c => paired.some(s => s.coach_id === c.id));
+  const noLead = noGrpAll.filter(c => !noGrp.includes(c));
   add(noGrp.length ? 'warn' : 'ok', '教練組別',
-    noGrp.length ? `${noGrp.length} 位未設組別：${few(noGrp, 99)}（不帶組者屬正常）` : '全部已設', ['check','pairArea']);
+    noGrp.length ? `<b>${noGrp.length} 位有組員卻沒設組別</b>：${few(noGrp, 99)}`
+      : `全部已設${noLead.length ? `（不帶組：${few(noLead, 99)}）` : ''}`, noGrp.length ? ['check','pairArea'] : null);
 
   // ⑩ 繳費（排除教練——教練不用繳，算進去只會製造雜訊）
   const unpaid = stu.filter(s => !s.payment_confirmed);
@@ -1676,10 +1681,14 @@ function phaseBefore() {
   let h = `<div class="ck-sum ${bad ? 'no' : 'go'}">${bad ? `🔴 有 ${bad} 項必須處理才能開班` : warn ? `🟡 可以開班，但有 ${warn} 項建議先確認` : '🟢 全部就緒，可以開班'}</div>`;
   h += `<div class="sec-title"><span>📋 開班前檢查清單</span><span class="sec-count">${b.name || ''}　${ck.length} 項</span></div>`;
   const ICO = { ok:'✅', warn:'🟡', bad:'🔴' };
-  ck.forEach(c => h += `<div class="ck ${c.lvl}"><div class="ck-ico">${ICO[c.lvl]}</div>` +
+  // 2026-11-08 Randoph：完成的折疊，只攤開有警示的
+  const ckRow = c => `<div class="ck ${c.lvl}"><div class="ck-ico">${ICO[c.lvl]}</div>` +
     `<div class="ck-b"><div class="ck-t">${c.t}</div><div class="ck-d">${c.d}</div></div>` +
     (c.go ? `<button class="ck-go" onclick="jump('${c.go[0]}','${c.go[1]}')">去處理 →</button>` : '') +
-    `</div>`);
+    `</div>`;
+  ck.filter(c => c.lvl !== 'ok').forEach(c => h += ckRow(c));
+  const oks = ck.filter(c => c.lvl === 'ok');
+  if (oks.length) h += `<details class="ck-done"><summary>✅ 已完成 ${oks.length} 項（點開看）</summary>${oks.map(ckRow).join('')}</details>`;
   return h;
 }
 
