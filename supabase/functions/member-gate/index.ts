@@ -5,6 +5,7 @@
 // 目前的動作：
 //   me       → 回傳自己的會員資料（名字、VIP 等級、AI 點數；不含電話 email）
 //   academy  → 環球致富學院的 8 支函式（白名單），身分欄一律換成驗證過的 userId，前端傳的不算
+//   admin    → 會員中心後台的 7 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -23,6 +24,18 @@ const ACADEMY: Record<string, { id: string; args: string[] }> = {
   get_academy_starter:      { id: 'p_line_user_id',  args: [] },                        // 新手村 17 堂＋自己的進度
   log_academy_progress:     { id: 'p_line_user_id',  args: ['p_lesson_id', 'p_pct'] },  // 看到幾成（>=90 算看過）
 };
+
+// 會員中心後台（/members/admin/）：權限由 DB 的 admin_can() 照授權表判斷，這裡只負責「你是誰」
+const ADMIN: Record<string, { id: string; args: string[] }> = {
+  admin_whoami:       { id: 'p_caller_line_id', args: [] },
+  admin_list_members: { id: 'p_caller_line_id', args: ['p_status'] },
+  admin_approve:      { id: 'p_caller_line_id', args: ['p_member_id'] },
+  admin_reject:       { id: 'p_caller_line_id', args: ['p_member_id'] },
+  admin_set_level:    { id: 'p_caller_line_id', args: ['p_member_id', 'p_level'] },
+  admin_list_grants:  { id: 'p_caller_line_id', args: [] },
+  admin_set_grant:    { id: 'p_caller_line_id', args: ['p_member_id', 'p_action', 'p_scope_type', 'p_scope_id', 'p_on'] },
+};
+const CHANNELS: Record<string, Record<string, { id: string; args: string[] }>> = { academy: ACADEMY, admin: ADMIN };
 
 function cors(req: Request) {
   const o = req.headers.get('origin') ?? '';
@@ -64,12 +77,14 @@ Deno.serve(async (req) => {
       const member = data && data.id ? { name: data.name, level: data.level ?? 0, ai_credits: data.ai_credits ?? 0 } : null;
       return json(req, { ok: true, profile: { displayName: who.displayName, pictureUrl: who.pictureUrl }, member });
     }
-    case 'academy': {
-      const spec = ACADEMY[body.fn ?? ''];
+    case 'academy':
+    case 'admin': {
+      const list = CHANNELS[body.action], fn = body.fn ?? '';
+      const spec = Object.hasOwn(list, fn) ? list[fn] : null;
       if (!spec) return json(req, { ok: false, error: 'unknown_fn' }, 400);
       const params: Record<string, unknown> = { [spec.id]: who.userId };
       for (const k of spec.args) params[k] = body.args?.[k] ?? null;
-      const { data, error } = await sb.rpc(body.fn!, params);
+      const { data, error } = await sb.rpc(fn, params);
       if (error) return json(req, { ok: false, error: 'db' }, 500);
       return json(req, { ok: true, data });
     }

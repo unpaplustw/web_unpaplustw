@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會員中心後台 — A Plus</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!--
+  會員中心後台（2026-11-08，致富學院對話定）
+  - 給「中央、OA 管理員、以後的幹部」用；一般會員的會員卡／註冊在天空之城首頁
+  - 每個按鈕都經會員閘道 member-gate（action: 'admin'），伺服器驗 LINE 身分
+  - 能不能做由資料庫授權表 admin_grants 判斷（admin_can），這頁只負責顯示；網頁說了不算
+  - 預覽：/members/admin/#preview（假資料，免 LINE 登入，不寫任何東西）
+-->
+<style>
+:root{
+  --bg:#0f172a;--bg2:#1e293b;--border:rgba(255,255,255,.08);--border-hl:rgba(255,255,255,.16);
+  --primary:#8a2be2;--accent:#00d2ff;--text:#fff;--muted:#94a3b8;
+  --green:#34d399;--green-bg:rgba(52,211,153,.12);--red:#f87171;--red-bg:rgba(248,113,113,.12);
+  --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,.12);--glass:rgba(255,255,255,.05);--glass-bd:rgba(255,255,255,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 0%,rgba(138,43,226,.15) 0,transparent 50%),radial-gradient(at 100% 100%,rgba(0,210,255,.12) 0,transparent 50%);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:18px 16px 80px}
+.hd{text-align:center;padding:14px 0 12px}
+.hd-title{font-size:22px;font-weight:800}
+.hd-sub{font-size:14px;color:var(--muted);margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.chip{font-size:12px;padding:3px 10px;border-radius:12px;font-weight:700;background:rgba(0,210,255,.12);color:var(--accent);border:1px solid rgba(0,210,255,.25)}
+.chip.central{background:rgba(138,43,226,.2);color:#c084fc;border-color:rgba(138,43,226,.35)}
+.center{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:10px;padding:30px}
+.center.active{display:flex}
+.center .ic{font-size:52px}
+.center p{color:var(--muted);line-height:1.8;max-width:320px;font-size:15px}
+.spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#main{display:none}#main.active{display:block}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.tab{flex-shrink:0;padding:9px 14px;border-radius:12px;border:1px solid var(--glass-bd);background:var(--glass);color:var(--muted);font-size:15px;font-weight:700;cursor:pointer}
+.tab.on{background:linear-gradient(135deg,rgba(138,43,226,.35),rgba(0,210,255,.25));color:#fff;border-color:var(--border-hl)}
+.tab .n{font-size:12px;opacity:.8;margin-left:4px}
+.search{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--glass-bd);background:var(--glass);color:#fff;font-size:16px;margin-bottom:12px}
+.card{background:var(--glass);border:1px solid var(--glass-bd);border-radius:14px;padding:14px;margin-bottom:10px}
+.empty{color:var(--muted);text-align:center;padding:30px 0;font-size:15px}
+.m-row{display:flex;gap:12px;align-items:center}
+.av{width:42px;height:42px;border-radius:50%;background:var(--bg2);flex-shrink:0;object-fit:cover;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--muted)}
+.m-main{flex:1;min-width:0}
+.m-name{font-size:16px;font-weight:800;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.m-meta{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5}
+.lv{font-size:11px;padding:2px 8px;border-radius:8px;font-weight:800}
+.lv0{background:rgba(148,163,184,.15);color:var(--muted)}
+.lv1{background:var(--green-bg);color:var(--green)}
+.lv2{background:var(--yellow-bg);color:var(--yellow)}
+.lvx{background:rgba(138,43,226,.2);color:#c084fc}
+.acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.btn{padding:9px 16px;border-radius:10px;border:1px solid transparent;font-size:14px;font-weight:800;cursor:pointer;color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.ok{background:linear-gradient(135deg,#059669,#10b981)}
+.no{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,.3)}
+.sec{background:var(--glass);border-color:var(--glass-bd)}
+select{padding:8px 10px;border-radius:10px;border:1px solid var(--glass-bd);background:var(--bg2);color:#fff;font-size:14px}
+.g-person{font-size:16px;font-weight:800;margin-bottom:8px}
+.g-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);font-size:14px}
+.g-row:first-of-type{border-top:none}
+.form{display:grid;gap:10px}
+.form label{font-size:13px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px}
+.form select{width:100%}
+.hint{font-size:13px;color:var(--muted);line-height:1.6}
+.note{background:var(--yellow-bg);border:1px solid rgba(251,191,36,.25);color:#fde68a;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;border:1px solid var(--border-hl);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .2s;z-index:9;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="s-loading" class="center active"><div class="spinner"></div><p>載入中…</p></div>
+  <div id="s-msg" class="center"><div class="ic" id="msg-ic">🔒</div><h2 id="msg-h">沒有後台權限</h2><p id="msg-p"></p></div>
+
+  <div id="main">
+    <div class="hd">
+      <div class="hd-title">🛡️ 會員中心後台</div>
+      <div class="hd-sub" id="me-name"></div>
+      <div class="chips" id="me-chips"></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="pane"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LIFF_ID = '';   // ⏳ 等 Randoph 在 LINE Developers 建「會員中心後台」（Endpoint＝/members/admin/）後填入
+const GATE = 'https://nsgqsopqlkhayuefdout.supabase.co/functions/v1/member-gate';
+
+const ACTION_NAME = {view:'調閱名單', confirm:'第一段確認', approve:'最終通過', set_level:'調整等級', manage_peaks:'維護高峰表', grant:'授權別人'};
+const CORES = {'2':'顏麗玉、游天貴','5':'林甘霖、楊牧潔','6':'蔡依儒、尤竣億','7':'林姍嬅、凌翊迅','8':'楊敬豪、林珊合'};
+const LV_NAME = {0:'VIP0 尚未入會', 1:'VIP1 綠佳利會員', 2:'VIP2 A Plus 成員'};
+const TABS = [
+  {k:'pending',  nm:'待審'},
+  {k:'approved', nm:'已通過'},
+  {k:'visitor',  nm:'訪客'},
+  {k:'rejected', nm:'已退回'},
+  {k:'grants',   nm:'授權', needGrant:true},
+];
+
+let me = null, cur = 'pending', rows = [], q = '';
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = iso => { if(!iso) return '-'; const d = new Date(iso); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; };
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove('on'), 2200); }
+function show(id){ ['s-loading','s-msg','main'].forEach(x => document.getElementById(x).classList.toggle('active', x === id)); }
+function msg(ic, h, p){ document.getElementById('msg-ic').textContent = ic; document.getElementById('msg-h').textContent = h; document.getElementById('msg-p').innerHTML = p; show('s-msg'); }
+
+async function gate(fn, args){
+  try{
+    const r = await fetch(GATE, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({access_token: liff.getAccessToken(), action:'admin', fn, args: args || {}})});
+    const d = await r.json();
+    return d.ok ? d.data : {ok:false, error: d.error || 'gate'};
+  }catch(e){ return {ok:false, error:'network'}; }
+}
+const canGrant = () => me && (me.is_central || me.grants.some(g => g.action === 'grant'));
+
+// ========== 啟動 ==========
+async function init(){
+  if(!LIFF_ID){ msg('⏳', '後台還沒接上 LINE', '「會員中心後台」的 LIFF 尚未建立。'); return; }
+  try{
+    await liff.init({liffId: LIFF_ID});
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+  }catch(e){ msg('⚠️', '開啟失敗', '請從 LINE 開啟這個頁面。'); return; }
+  const d = await gate('admin_whoami');
+  if(!d.ok){
+    if(d.error === 'no_grant') msg('🔒', '沒有後台權限', `${esc(d.name || '')}，你目前沒有被授權。<br>需要的話請聯繫中央。`);
+    else if(d.error === 'no_member') msg('🔒', '找不到你的會員資料', '請先從天空之城首頁登入註冊。');
+    else msg('⚠️', '連線失敗', '請稍後再試。');
+    return;
+  }
+  me = d; renderShell(); go('pending');
+}
+
+function renderShell(){
+  document.getElementById('me-name').textContent = me.me.name || '';
+  const chips = me.is_central ? ['<span class="chip central">中央：全部權限</span>']
+    : me.grants.map(g => `<span class="chip">${ACTION_NAME[g.action] || g.action}｜${esc(scopeLabel(g))}</span>`);
+  document.getElementById('me-chips').innerHTML = chips.join('');
+  document.getElementById('tabs').innerHTML = TABS.filter(t => !t.needGrant || canGrant())
+    .map(t => `<div class="tab" id="tab-${t.k}" onclick="go('${t.k}')">${t.nm}<span class="n" id="n-${t.k}"></span></div>`).join('');
+  show('main');
+}
+function scopeLabel(g){
+  if(g.scope_type === 'all') return '全部';
+  if(g.scope_type === 'tenant') return g.scope_name || 'OA';
+  if(g.scope_type === 'core') return (g.scope_id ? g.scope_id + ' 號核心' : '核心') + (CORES[g.scope_id] ? `（${CORES[g.scope_id]}）` : '');
+  return g.scope_type;
+}
+
+async function go(k){
+  cur = k;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + k));
+  const pane = document.getElementById('pane');
+  pane.innerHTML = '<div class="empty">載入中…</div>';
+  if(k === 'grants') return loadGrants();
+  const d = await gate('admin_list_members', {p_status: k});
+  if(!d.ok){ pane.innerHTML = '<div class="empty">載入失敗</div>'; return; }
+  rows = d.members || [];
+  const n = document.getElementById('n-' + k); if(n) n.textContent = rows.length;
+  renderMembers();
+}
+
+// ========== 名單 ==========
+function renderMembers(){
+  const pane = document.getElementById('pane');
+  const kw = q.trim();
+  const list = kw ? rows.filter(m => [m.name, m.code, m.phone, m.tenant].some(x => String(x || '').includes(kw))) : rows;
+  const tip = cur === 'pending'
+    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後成為 VIP1（綠佳利會員）</b>，學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
+  pane.innerHTML = tip + `<input class="search" placeholder="搜尋姓名、編號、手機、團隊" value="${esc(q)}" oninput="q=this.value;renderMembers()">`
+    + (list.length ? list.map(card).join('') : '<div class="empty">沒有資料</div>');
+}
+function lvTag(l){ return `<span class="lv ${l===0?'lv0':l===1?'lv1':l===2?'lv2':'lvx'}">VIP${l}</span>`; }
+function card(m){
+  const av = m.picture_url ? `<img class="av" src="${esc(m.picture_url)}" alt="">` : `<div class="av">${esc((m.name||'?').slice(0,1))}</div>`;
+  const acts = [];
+  if(m.level === 0 && m.code && !m.rejected_at && m.can_approve) acts.push(`<button class="btn ok" onclick="approve('${m.id}', this)">通過 → VIP1</button>`);
+  if(m.level === 0 && m.code && !m.rejected_at && m.can_reject)  acts.push(`<button class="btn no" onclick="reject('${m.id}', this)">退回</button>`);
+  if(m.can_set_level && !m.is_central) acts.push(`<select onchange="setLevel('${m.id}', this)" aria-label="調整等級">${[0,1,2].map(l =>
+      `<option value="${l}" ${l===m.level?'selected':''}>${LV_NAME[l]}</option>`).join('')}${m.level > 2 ? `<option selected>VIP${m.level}</option>` : ''}</select>`);
+  return `<div class="card"><div class="m-row">${av}<div class="m-main">
+      <div class="m-name">${esc(m.name || '未填寫')} ${lvTag(m.level)} ${m.is_central ? '<span class="lv lvx">中央</span>' : ''}</div>
+      <div class="m-meta">${esc(m.code || '未填編號')} · ${esc(m.phone || '-')} · ${esc(m.tenant || '未綁團隊')} · ${fmt(m.joined_at)}${m.rejected_at ? ' · 退回於 ' + fmt(m.rejected_at) : ''}</div>
+    </div></div>${acts.length ? `<div class="acts">${acts.join('')}</div>` : ''}</div>`;
+}
+async function approve(id, btn){
+  const m = rows.find(x => x.id === id);
+  if(!confirm(`確認通過「${m?.name || ''}」？\n通過後成為 VIP1（綠佳利會員），並加 50 點。`)) return;
+  btn.disabled = true;
+  const d = await gate('admin_approve', {p_member_id: id});
+  if(!d.ok){ toast(d.error === 'forbidden' ? '你沒有通過的權限' : '通過失敗'); btn.disabled = false; return; }
+  toast('已通過'); go(cur);
+}
+async function reject(id, btn){
+  const m = rows.find(x => x.id === id);
+  if(!confirm(`確認退回「${m?.name || ''}」？\n退回後對方可以重新提交。`)) return;
+  btn.disabled = true;
+  const d = await gate('admin_reject', {p_member_id: id});
+  if(!d.ok){ toast(d.error === 'forbidden' ? '你沒有退回的權限' : '退回失敗'); btn.disabled = false; return; }
+  toast('已退回'); go(cur);
+}
+async function setLevel(id, sel){
+  const m = rows.find(x => x.id === id), to = Number(sel.value);
+  if(!confirm(`把「${m?.name || ''}」改成 ${LV_NAME[to]}？`)){ sel.value = m.level; return; }
+  const d = await gate('admin_set_level', {p_member_id: id, p_level: to});
+  if(!d.ok){ toast('修改失敗'); sel.value = m.level; return; }
+  toast('已修改'); go(cur);
+}
+
+// ========== 授權 ==========
+let people = [];
+async function loadGrants(){
+  const pane = document.getElementById('pane');
+  const [g, a] = await Promise.all([gate('admin_list_grants'), gate('admin_list_members', {p_status:'all'})]);
+  if(!g.ok){ pane.innerHTML = '<div class="empty">' + (g.error === 'forbidden' ? '你沒有授權的權限' : '載入失敗') + '</div>'; return; }
+  people = (a.members || []).filter(m => m.code || m.level >= 1).sort((x, y) => String(x.name).localeCompare(String(y.name), 'zh-Hant'));
+  const by = {};
+  (g.grants || []).forEach(x => { (by[x.member_id] = by[x.member_id] || {name: x.name, code: x.code, list: []}).list.push(x); });
+  const groups = Object.entries(by).map(([mid, p]) => `<div class="card"><div class="g-person">${esc(p.name)} <span class="hint">${esc(p.code || '')}</span></div>
+      ${p.list.map(x => `<div class="g-row"><span>${ACTION_NAME[x.action] || x.action}｜${esc(scopeLabel(x))}</span>
+        <button class="btn no" onclick="setGrant('${mid}','${x.action}','${x.scope_type}','${esc(x.scope_id || '')}',false)">收回</button></div>`).join('')}
+    </div>`).join('');
+  const tenantOpts = (me.tenants || []).map(t => `<option value="tenant:${t.id}">OA：${esc(t.name)}</option>`).join('');
+  const coreOpts = Object.entries(CORES).map(([k, v]) => `<option value="core:${k}">${k} 號核心組織（${esc(v)}）</option>`).join('');
+  pane.innerHTML = `
+    <div class="card"><div class="g-person">➕ 新增授權</div>
+      <div class="form">
+        <div><label>授權給誰</label><select id="f-who">${people.map(p => `<option value="${p.id}">${esc(p.name || '未填寫')}　${esc(p.code || '')}　VIP${p.level}</option>`).join('')}</select></div>
+        <div><label>能做什麼</label><select id="f-act">${Object.entries(ACTION_NAME).filter(([k]) => k !== 'grant' || me.is_central)
+              .map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div><label>範圍</label><select id="f-scope"><option value="all:">全部</option>${tenantOpts}${coreOpts}</select>
+          <div class="hint" style="margin-top:6px">「核心組織」要等族譜建好才會生效（之後的步驟），現在可以先設。</div></div>
+        <button class="btn ok" onclick="addGrant(this)">授權</button>
+      </div></div>
+    <div class="hint" style="margin:14px 0 8px">中央（你）天生擁有全部權限，不會出現在下面。</div>
+    ${groups || '<div class="empty">目前沒有其他人被授權</div>'}`;
+}
+async function addGrant(btn){
+  const who = document.getElementById('f-who').value, act = document.getElementById('f-act').value;
+  const [st, sid] = document.getElementById('f-scope').value.split(':');
+  if(!who) return;
+  btn.disabled = true;
+  await setGrant(who, act, st, sid, true);
+  btn.disabled = false;
+}
+async function setGrant(mid, act, st, sid, on){
+  if(!on && !confirm('確認收回這項授權？')) return;
+  const d = await gate('admin_set_grant', {p_member_id: mid, p_action: act, p_scope_type: st, p_scope_id: sid || null, p_on: on});
+  if(!d.ok){ toast(d.error === 'central_only' ? '「授權別人」只有中央能給' : d.error === 'forbidden' ? '你沒有授權的權限' : '操作失敗'); return; }
+  toast(on ? '已授權' : '已收回'); loadGrants();
+}
+
+// ========== 預覽（免 LINE 登入，假資料，不寫任何東西）==========
+function previewInit(){
+  const T = [{id:'t1', name:'敬豪團隊', handle:'@809lipop'}, {id:'t2', name:'魷魚團隊', handle:'@453ajvfv'}];
+  const M = [
+    {id:'m1', name:'王小明', code:'2712345', phone:'0912-345-678', level:0, tenant:'敬豪團隊', joined_at:'2026-11-05', can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m2', name:'陳美玲', code:'2723456', phone:'0922-111-222', level:0, tenant:'魷魚團隊', joined_at:'2026-11-07', can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m3', name:'林珊合', code:'2600001', phone:'0933-000-111', level:1, tenant:'敬豪團隊', joined_at:'2026-06-26', can_set_level:true},
+    {id:'m4', name:'游育杰', code:'2675630', phone:'-', level:1, tenant:'Aplus', joined_at:'2026-06-26', is_central:true},
+  ];
+  window.liff = {getAccessToken: () => 'preview'};
+  window.gate = async (fn, args) => {
+    if(fn === 'admin_whoami') return {ok:true, is_central:true, me:{name:'預覽：中央'}, grants:[], tenants:T};
+    if(fn === 'admin_list_members'){
+      const s = args.p_status;
+      return {ok:true, members: M.filter(m => s === 'all' || (s === 'pending' ? m.level === 0 && m.code && !m.rejected_at
+        : s === 'approved' ? m.level >= 1 : s === 'visitor' ? m.level === 0 && !m.code : s === 'rejected' ? !!m.rejected_at : true))};
+    }
+    if(fn === 'admin_list_grants') return {ok:true, grants:[
+      {member_id:'m3', name:'林珊合', code:'2600001', action:'view', scope_type:'tenant', scope_id:'t1', scope_name:'敬豪團隊'},
+      {member_id:'m3', name:'林珊合', code:'2600001', action:'confirm', scope_type:'tenant', scope_id:'t1', scope_name:'敬豪團隊'}]};
+    return {ok:true};
+  };
+  me = null;
+  gate('admin_whoami').then(d => { me = d; renderShell(); go('pending'); });
+}
+
+if(location.hash === '#preview') previewInit(); else init();
+</script>
+</body>
+</html>
