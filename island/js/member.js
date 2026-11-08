@@ -1,6 +1,7 @@
 // 首頁的會員入口（右上角）：用 LINE 登入，向會員中心查「名字、VIP 等級、AI 點數」。
 // 會員中心是核心（身分、團隊、等級、點數）；這裡只讀，不寫任何資料。
-// 只用 get_member_basic（不含電話、email）與 list_join_oas（可加入的 OA 清單），都是會員中心既有的函式。
+// 自己的會員資料一律走「會員閘道」member-gate（伺服器拿 LIFF access token 問 LINE 驗明正身才查），前端說了不算。
+// list_join_oas（可加入的 OA 清單）是公開資料，直接查。
 //
 // 預覽（不用登入）：網址加 #preview-member=none｜0｜1   none＝還沒加任何 OA
 import { MEMBER } from './data.js';
@@ -8,6 +9,7 @@ import { MEMBER } from './data.js';
 const SB_URL = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
 const HUB = `https://liff.line.me/${MEMBER.hubLiffId}`;
+const GATE = `${SB_URL}/functions/v1/member-gate`;
 
 async function rpc(name, args) {
   const res = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, {
@@ -84,8 +86,12 @@ export function initMember({ openCard, el }) {
 
   async function lookup() {
     if (preview) { member = preview === 'none' ? null : { name: '預覽會員', level: Number(preview), ai_credits: preview === '0' ? 30 : 80 }; return; }
-    const m = await rpc('get_member_basic', { p_line_user_id: lineUserId });
-    member = m && m.id ? m : null;
+    const res = await fetch(GATE, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: window.liff.getAccessToken(), action: 'me' }) });
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || 'gate');
+    if (d.profile) profile = { ...profile, ...d.profile };
+    member = d.member;                       // null＝會員中心查不到（還沒加任何團隊 OA）
   }
 
   btn.addEventListener('click', async () => {
