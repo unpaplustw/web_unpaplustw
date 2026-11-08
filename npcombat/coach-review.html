@@ -66,6 +66,33 @@
   /* ── Editable student rows ── */
   .stu-data-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:8px 16px;overflow:hidden}
   .stu-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .stu-row.my-nrow{flex-wrap:wrap}
+  .act-names{flex-basis:100%;width:100%;max-width:100%;min-width:0;box-sizing:border-box;display:none;margin-top:8px}
+  .act-names.on{display:block}  .act-names.slim .nm-tabs,.act-names.slim .nm-chips{display:none}
+  .nm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;min-width:0}
+  .nm-tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+  .nm-tab{border:none;background:#f3eee2;border-radius:14px;padding:4px 10px;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--muted);white-space:nowrap}
+  .nm-tab.on{background:var(--gold-lt);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
+  .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer}
+  .nm-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}  .nm-chip.new{border-style:dashed;color:var(--gold);font-weight:700}
+  .nm-add{display:flex;gap:6px;min-width:0}
+  .nm-add input{flex:1 1 0;width:0;min-width:0;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:8px 11px;font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
+  .nm-add input:focus{outline:none;border-style:solid;border-color:var(--gold)}
+  .nm-add button{flex-shrink:0;border:none;border-radius:10px;background:var(--gold-lt);color:var(--gold);font-weight:800;font-size:14px;padding:0 12px;font-family:inherit}
+  .my-book{margin:14px 0 4px;padding:12px 14px;border-radius:14px;background:#fff;border:1.5px solid var(--border)}
+  .my-book summary{font-size:16px;font-weight:800;color:var(--gold);cursor:pointer;list-style:none}  .my-book summary::-webkit-details-marker{display:none}
+  .my-book summary span{float:right;font-size:13px;color:var(--muted);font-weight:700}  .my-book[open] summary{margin-bottom:10px}
+  .my-book .bk-empty{font-size:14px;color:var(--muted);line-height:1.7;padding:6px 0 10px}
+  .my-book .bk-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 8px}
+  .my-book .bk-tab{border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:6px 11px;font-size:13.5px;font-weight:700;font-family:inherit;color:var(--text);white-space:nowrap}
+  .my-book .bk-tab b{margin-left:4px;color:var(--gold)}  .my-book .bk-tab.on{background:var(--gold);border-color:var(--gold);color:#fff}  .my-book .bk-tab.on b{color:#fff}  .my-book .bk-tab.z{opacity:.45}
+  .my-book .bk-pt{font-size:14px;font-weight:800;color:var(--gold);margin:4px 0 2px}
+  .my-book .bk-r{border-top:1px dashed var(--border);padding:8px 0}  .my-book .bk-n{font-size:16px;font-weight:700;color:var(--text)}
+  .my-book .bk-tag{margin-left:8px;font-size:12px;font-weight:700;color:#c0392b;background:#fdecea;border-radius:10px;padding:2px 8px}
+  .my-book .bk-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;font-size:12.5px}  .my-book .bk-line i{color:#c9c2b4;font-style:normal}
+  .my-book .bk-st{color:#b8b0a0;border:1px solid #e6dfd0;border-radius:10px;padding:1px 7px}  .my-book .bk-st.ok{color:#fff;background:var(--gold);border-color:var(--gold);font-weight:700}
+  .my-book .bk-st.yuan{background:#8a7a5a;border-color:#8a7a5a;color:#fff;font-weight:700}  .my-book .bk-st.no{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700}
+  .my-book .bk-copy{display:block;width:100%;margin:10px 0 2px;padding:12px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:15px;font-weight:800;font-family:inherit}
   .stu-row:last-child{border:none}
   /* 雙勾：證明 + 督導 */
   .stu-act-row{padding:10px 0;border-bottom:1px solid var(--border)}
@@ -1191,8 +1218,8 @@ async function init() {
       const myYesterdayLog = (myLogs||[]).find(l => l.log_date === yesterdayStr);
       myData._logId_today = myTodayLog?.id || null;
       myData._logId_yesterday = myYesterdayLog?.id || null;
-      myData.today = myTodayLog ? { name_list:myTodayLog.name_list||0, meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 } : null;
-      myData.yesterday = myYesterdayLog ? { name_list:myYesterdayLog.name_list||0, meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 } : null;
+      myData.today = myTodayLog ? { name_list:myTodayLog.name_list||0, meet:myTodayLog.meet||0, invite:myTodayLog.invite||0, present:myTodayLog.present||0, seminar:myTodayLog.seminar||0, ghosted:myTodayLog.ghosted||0, rejected:myTodayLog.rejected||0 , names:myTodayLog.names||{} } : null;
+      myData.yesterday = myYesterdayLog ? { name_list:myYesterdayLog.name_list||0, meet:myYesterdayLog.meet||0, invite:myYesterdayLog.invite||0, present:myYesterdayLog.present||0, seminar:myYesterdayLog.seminar||0, ghosted:myYesterdayLog.ghosted||0, rejected:myYesterdayLog.rejected||0 , names:myYesterdayLog.names||{} } : null;
 
       // 載入教練自己的締結紀錄
       const { data: myCloses } = await sb.from('closing_records').select('*')
@@ -1200,6 +1227,7 @@ async function init() {
         .in('close_date', [todayStr, yesterdayStr]);
       myCloseData.today = (myCloses||[]).filter(c => c.close_date === todayStr);
       myCloseData.yesterday = (myCloses||[]).filter(c => c.close_date === yesterdayStr);
+      loadMyBook();   // 📒 我的名單本（背景載入）
     }
 
     if (myGoalClose) loadMyDirect();   // 🎯 教練自己的締結目標（載好會重畫我的頁）
@@ -2521,6 +2549,7 @@ function renderMyReport() {
   } else {
     MY_FIELDS.forEach(f => { myVals[f.key] = 0; });
   }
+  myNames = JSON.parse(JSON.stringify((d && d.names) || {}));   // 📒 這一天記下的人
 
   // 七大行動與學員端同一道鎖：action_open_date 之前只能填締結
   const actLocked = isActionLocked();
@@ -2536,13 +2565,14 @@ function renderMyReport() {
     const valCls = v === 0 ? 'zero' : (f.neg ? 'neg' : '');
     const btnCls = f.neg ? 'neg-btn' : '';
     const dis = actLocked ? ' disabled' : '';
-    h += `<div class="stu-row${actLocked ? ' locked' : ''}">
+    h += `<div class="stu-row my-nrow${actLocked ? ' locked' : ''}">
       <span class="stu-row-label">${f.emoji} ${f.label}</span>
       <div class="stu-row-ctrl">
         <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',-1)"${dis}>−</button>
         <div class="stu-val ${valCls}" id="my-${f.key}">${v}</div>
         <button class="stu-adj ${btnCls}" onclick="adjMy('${f.key}',1)"${dis}>＋</button>
       </div>
+      ${myNameRowHtml(f.key)}
     </div>`;
   });
   h += '</div>';
@@ -2553,12 +2583,147 @@ function renderMyReport() {
   myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: c.badge || null, pts: c.points, saved: true,
     tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '', org: !!c.is_org, via: c.org_via || '' }));
   h += renderMyCloseSection();
+  h += '<div id="myBookArea"></div>';
 
   document.getElementById('myDataArea').innerHTML = h;
+  renderMyBook(); MY_FIELDS.forEach(f => renderMyNameRow(f.key));
 
   const btn = document.getElementById('btnMySubmit');
   btn.textContent = d ? '更新我的回報' : '儲存我的回報';
   btn.disabled = !myStudentId;
+}
+
+// ══ 📒 教練自己的「記下是誰」＋名單本（2026-11-08 Randoph：教練也要拼業績）═══════════
+//   與學員回報頁同一套資料：contacts（student_id＝教練的學員身分）＋ action_logs.names；規則也一樣
+//   （認識新友只能新增；選人列分組頁籤＋依行動推薦；選了人數字自動補；分組看最後發生的事、未果回到該邀請）
+let myContacts = [], myNames = {}, myDayNames = { today: {}, yesterday: {} };
+let myBookLogs = [], myBookCloses = [], myContactGrp = {}, myBookTab = null, myBookOpen = false;
+const myPickTab = {}, myRowOpen = new Set();
+const MY_GROUPS = [
+  { key:'meet',    e:'📅', s:'該約',   t:'認識了，下一步約見面' },
+  { key:'invite',  e:'📣', s:'該邀請', t:'約到了／未果，下一步邀請' },
+  { key:'invited', e:'⏳', s:'等締結', t:'邀請過，等締結' },
+  { key:'done',    e:'🎉', s:'已締結', t:'已締結' },
+];
+const MY_PICK_FIRST = { invite: ['meet'], present: ['invite', 'meet'], seminar: ['invite', 'meet'], rejected: ['invited'] };
+const escM = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+const mdM = ds => { const [, m, d] = String(ds).split('-'); return `${+m}/${+d}`; };
+const myCName = id => (myContacts.find(c => c.id === id) || {}).name || '';
+
+async function loadMyBook() {
+  if (!myStudentId) return;
+  const [{ data: cts }, { data: logs }, { data: cls }] = await Promise.all([
+    sb.from('contacts').select('id, name, created_at').eq('batch_id', BATCH_ID).eq('student_id', myStudentId).order('created_at', { ascending: false }),
+    sb.from('action_logs').select('log_date, names').eq('batch_id', BATCH_ID).eq('student_id', myStudentId),
+    sb.from('closing_records').select('target_name, close_date, verified').eq('member_id', coachMemberId).eq('batch_id', BATCH_ID),
+  ]);
+  myContacts = cts || []; myBookLogs = logs || []; myBookCloses = (cls || []).filter(c => c.verified !== false);
+  renderMyBook(); MY_FIELDS_KEYS().forEach(renderMyNameRow);   // 元素不在畫面上時兩個函式自己會略過
+}
+const MY_FIELDS_KEYS = () => STU_FIELDS.filter(f => !f.special).map(f => f.key);
+function myBookRows() {
+  return myContacts.map(c => {
+    const first = {}, last = {}, times = {};
+    myBookLogs.forEach(l => Object.entries(l.names || {}).forEach(([k, ids]) => {
+      if (!(ids || []).includes(c.id)) return;
+      times[k] = (times[k] || 0) + 1;
+      if (!first[k] || l.log_date < first[k]) first[k] = l.log_date;
+      if (!last[k] || l.log_date > last[k]) last[k] = l.log_date;
+    }));
+    const closed = myBookCloses.filter(x => (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0] || null;
+    const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
+    const back = !!last.rejected && (!lastInv || last.rejected >= lastInv);
+    const grp = closed ? 'done' : (lastInv && !back) ? 'invited' : (back || last.invite) ? 'invite' : 'meet';
+    return { c, first, last, times, closed, grp, back, invited: [first.present, first.seminar].filter(Boolean).sort()[0] || null };
+  });
+}
+function renderMyBook() {
+  const box = document.getElementById('myBookArea'); if (!box) return;
+  const rows = myBookRows();
+  myContactGrp = {}; rows.forEach(r => { myContactGrp[r.c.id] = r.grp; });
+  const cnt = k => rows.filter(r => r.grp === k).length;
+  if (!myBookTab || !cnt(myBookTab)) myBookTab = (MY_GROUPS.find(g => cnt(g.key)) || MY_GROUPS[0]).key;
+  const g = MY_GROUPS.find(x => x.key === myBookTab);
+  const st = (lab, ds) => `<span class="bk-st ${ds ? 'ok' : ''}">${lab}${ds ? ' ' + mdM(ds) : ''}</span>`;
+  const line = r => {
+    const yuan = !r.first.meet && (r.first.invite || r.invited || r.closed || r.times.rejected);
+    return (yuan ? '<span class="bk-st yuan">緣故</span>' : st('認識', r.first.meet)) + '<i>›</i>' + st('邀約', r.first.invite) + '<i>›</i>'
+      + st('邀請', r.invited) + '<i>›</i>' + (r.back ? `<span class="bk-st no">未果 ${mdM(r.last.rejected)}</span>` : st('締結', r.closed));
+  };
+  const rs = rows.filter(r => r.grp === myBookTab);
+  box.innerHTML = `<details class="my-book"${myBookOpen ? ' open' : ''} ontoggle="myBookOpen=this.open">`
+    + `<summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
+    + (rows.length ? `<div class="bk-tabs">` + MY_GROUPS.map(x => `<button type="button" class="bk-tab${x.key === myBookTab ? ' on' : ''}${cnt(x.key) ? '' : ' z'}" onclick="myBookTab='${x.key}';renderMyBook()">${x.e} ${x.s}<b>${cnt(x.key)}</b></button>`).join('') + `</div>`
+      + `<div class="bk-pt">${g.e} ${g.t}</div>`
+      + (rs.length ? rs.map(r => `<div class="bk-r"><div class="bk-n">${escM(r.c.name)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</div><div class="bk-line">${line(r)}</div></div>`).join('') : `<div class="bk-empty">這一組目前沒有人</div>`)
+      + `<button type="button" class="bk-copy" onclick="copyMyBook()">📋 一鍵複製我的名單本</button>`
+      : `<div class="bk-empty">還沒有人。在上面的行動下面「記下是誰」，就會出現在這裡。</div>`)
+    + `</details>`;
+}
+function copyMyBook() {
+  const rows = myBookRows();
+  const ln = r => {
+    const p = [];
+    if (r.first.meet) p.push(`認識 ${mdM(r.first.meet)}`); else if (r.first.invite || r.invited || r.closed) p.push('緣故');
+    if (r.first.invite) p.push(`邀約 ${mdM(r.first.invite)}`);
+    if (r.first.present) p.push(`溝通本 ${mdM(r.first.present)}`);
+    if (r.first.seminar) p.push(`說明會 ${mdM(r.first.seminar)}`);
+    if (r.closed) p.push(`締結 ${mdM(r.closed)}`);
+    if (r.times.rejected) p.push(`未果 ${r.times.rejected} 次`);
+    return `・${r.c.name}${p.length ? '（' + p.join('・') + '）' : ''}`;
+  };
+  const parts = MY_GROUPS.map(g => { const rs = rows.filter(r => r.grp === g.key); return rs.length ? `${g.e} ${g.t}（${rs.length}）\n${rs.map(ln).join('\n')}` : ''; }).filter(Boolean);
+  const text = `📒 我的名單本｜${(document.getElementById('coachName') || {}).textContent || ''}\n共 ${rows.length} 人\n\n${parts.join('\n\n')}`;
+  const done = () => toast('✅ 名單本已複製');
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => toast('⚠️ 複製失敗'));
+  else { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} ta.remove(); }
+}
+async function ensureMyContact(raw) {
+  const name = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  if (!name || !myStudentId) return null;
+  const hit = myContacts.find(c => c.name === name); if (hit) return hit.id;
+  const { data, error } = await sb.from('contacts').insert({ batch_id: BATCH_ID, student_id: myStudentId, name }).select('id, name, created_at').single();
+  if (error) { await loadMyBook(); const again = myContacts.find(c => c.name === name); if (again) return again.id; toast('加入失敗：' + error.message); return null; }
+  myContacts.unshift(data); return data.id;
+}
+function myNameRowHtml(key) {
+  return `<div class="act-names" id="mnm-${key}"><div class="nm-tabs"></div><div class="nm-chips"></div>`
+    + `<div class="nm-add"><input type="text" placeholder="${key === 'meet' ? '新朋友的名字' : '記下是誰？點我選人'}" maxlength="20" `
+    + `onfocus="myRowOpen.add('${key}');renderMyNameRow('${key}')" oninput="renderMyNameRow('${key}')" onkeydown="if(event.key==='Enter'){event.preventDefault();myAddName('${key}')}">`
+    + `<button type="button" onclick="myAddName('${key}')">＋ 加入</button></div></div>`;
+}
+function syncMyCount(key) { const n = (myNames[key] || []).length, v = myVals[key] || 0; if (n > v) adjMy(key, n - v); }
+async function myAddName(key) {
+  const inp = document.querySelector(`#mnm-${key} input`); if (!inp) return;
+  const id = await ensureMyContact(inp.value); if (!id) return;
+  myNames[key] = [...new Set([...(myNames[key] || []), id])]; inp.value = '';
+  myRowOpen.add(key); syncMyCount(key); MY_FIELDS_KEYS().forEach(renderMyNameRow);
+}
+function myToggleName(key, id) {
+  const cur = myNames[key] || [];
+  myNames[key] = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  syncMyCount(key); renderMyNameRow(key);
+}
+function renderMyNameRow(key) {
+  const row = document.getElementById('mnm-' + key); if (!row) return;
+  const sel = myNames[key] || [];
+  row.classList.toggle('on', !isActionLocked());
+  row.classList.toggle('slim', !((myVals[key] || 0) > 0 || sel.length || myRowOpen.has(key)));
+  const q = row.querySelector('input').value.trim();
+  const grpOf = c => myContactGrp[c.id] || 'meet';
+  const cnt = g => myContacts.filter(c => grpOf(c) === g).length;
+  const onlyNew = key === 'meet';
+  let tab = myPickTab[key];
+  if (!tab || !cnt(tab)) tab = [...(MY_PICK_FIRST[key] || []), ...MY_GROUPS.map(g => g.key)].find(g => cnt(g)) || 'meet';
+  const chosen = myContacts.filter(c => sel.includes(c.id));
+  const pool = onlyNew ? [] : q ? myContacts.filter(c => c.name.includes(q)) : myContacts.filter(c => grpOf(c) === tab);
+  const others = pool.filter(c => !sel.includes(c.id)).slice(0, 30);
+  row.querySelector('.nm-tabs').innerHTML = (onlyNew || q || !myContacts.length) ? '' : MY_GROUPS.filter(g => cnt(g.key)).map(g =>
+    `<button type="button" class="nm-tab${g.key === tab ? ' on' : ''}" onclick="myPickTab['${key}']='${g.key}';renderMyNameRow('${key}')">${g.e} ${g.s} ${cnt(g.key)}</button>`).join('');
+  row.querySelector('.nm-chips').innerHTML =
+      chosen.map(c => `<button type="button" class="nm-chip on" onclick="myToggleName('${key}','${c.id}')">✓ ${escM(c.name)}</button>`).join('')
+    + others.map(c => `<button type="button" class="nm-chip" onclick="myToggleName('${key}','${c.id}')">${escM(c.name)}</button>`).join('')
+    + (q && !myContacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" onclick="myAddName('${key}')">＋ 新增「${escM(q)}」</button>` : '');
 }
 
 // 教練的七大行動與學員端共用同一個開放日（DB batches.action_open_date）
@@ -2718,7 +2883,8 @@ async function submitMyReport() {
     const payload = {
       name_list: myVals.name_list, meet: myVals.meet, invite: myVals.invite,
       present: myVals.present, seminar: myVals.seminar,
-      ghosted: myVals.ghosted, rejected: myVals.rejected
+      ghosted: myVals.ghosted, rejected: myVals.rejected,
+      names: Object.fromEntries(Object.entries(myNames).filter(([, v]) => (v || []).length))   // 📒 記下是誰
     };
 
     if (logId) {
@@ -2770,7 +2936,8 @@ async function submitMyReport() {
 
     // 更新本地
     const dayKey = currentDay === 'today' ? 'today' : 'yesterday';
-    myData[dayKey] = { ...myVals };
+    myData[dayKey] = { ...myVals, names: payload.names };
+    loadMyBook();   // 名單本分組跟著更新
     myDirectCount = null;   // 締結可能變了 → 重算我的締結目標
     toast('回報已儲存 ✓');
     renderMyReport();
