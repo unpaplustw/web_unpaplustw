@@ -116,6 +116,7 @@
   .bk-tab.z{opacity:.45}
   .bk-pt{font-size:14px;font-weight:800;color:var(--gold);margin:4px 0 2px}
   .bk-st.yuan{background:#8a7a5a;border-color:#8a7a5a;color:#fff;font-weight:700}   /* 緣故朋友：沒經過認識直接邀約 */
+  .bk-st.no{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700}   /* 未果：再邀請一次 */
   .bk-r{border-top:1px dashed var(--border);padding:8px 0}
   .bk-top{display:flex;justify-content:space-between;align-items:center}
   .bk-n{font-size:16px;font-weight:700;color:var(--text)}
@@ -492,21 +493,7 @@
   <div class="sec">
     <div class="sec-hd">🛡️ 挫折也是養分</div>
     <div class="act-list">
-      <div class="act neg" data-key="ghosted">
-        <div class="act-left">
-          <div class="act-emoji">🕊️</div>
-          <div class="act-info">
-            <div class="act-label">被放鴿子</div>
-            <div class="act-desc">📷 趣味照</div>
-            <div class="act-desc act-cheer">被放鴿子代表你有在行動！</div>
-          </div>
-        </div>
-        <div class="act-ctrl">
-          <button class="act-btn" onclick="adj('ghosted',-1)">−</button>
-          <div class="act-num zero" id="n-ghosted">0</div>
-          <button class="act-btn" onclick="adj('ghosted',1)">＋</button>
-        </div>
-      </div>
+      <!-- 2026-11-08 拿掉「被放鴿子」：名單本只走 認識→邀約→邀請→締結成功／未果 -->
       <div class="act neg" data-key="rejected">
         <div class="act-left">
           <div class="act-emoji">💪</div>
@@ -743,7 +730,6 @@ const COUNT_FIELDS = [
   { key:'invite',    emoji:'💬', label:'邀約見面',     pts:2 },
   { key:'present',   emoji:'🗣️', label:'邀請溝通本',   pts:5 },
   { key:'seminar',   emoji:'🏛️', label:'邀請說明會',   pts:5 },
-  { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true },
   { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true },
 ];
 
@@ -768,6 +754,7 @@ const BADGES = [
 const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
+vals.ghosted = 0;   // 2026-11-08 拿掉放鴿子：欄位還在（舊期資料、結果頁累計），29 期起一律 0
 // ══ 名單本（2026-11-08 Randoph）══════════════════════════════════════════
 //  人＝contacts（一人一筆）｜事＝action_logs.names {行動欄位:[contact id]}｜進度＝用算的，不存。
 //  可選填、不影響計分；課程結束 purge 一併清除，結案匯出不帶姓名。
@@ -832,8 +819,8 @@ function toggleName(key, id) {
   renderNameRow(key);
 }
 // 每個行動優先推薦哪幾組人（組名同 BOOK_GROUPS）；contactGrp 由 renderBook 依已存的紀錄算出
-const PICK_FIRST = { invite: ['meet', 'ghosted'], present: ['invite', 'meet'], seminar: ['invite', 'meet'],
-                     ghosted: ['invite', 'meet'], rejected: ['invited'] };
+const PICK_FIRST = { invite: ['meet'], present: ['invite', 'rejected', 'meet'], seminar: ['invite', 'rejected', 'meet'],
+                     rejected: ['invited'] };   // 未果的人＝再邀請的對象
 let contactGrp = {};
 // 選人列分頁（2026-11-08 Randoph：「我不是說要做頁籤嗎」）：一次看一組，打字時改成全部搜尋
 //   預設停在這個行動最相關的那組（PICK_FIRST），新加的人還沒有紀錄 → 算在「該約」
@@ -883,9 +870,8 @@ let bookLogs = [], bookCloses = [];
 const BOOK_GROUPS = [
   { key:'meet',     e:'📅', s:'該約',   t:'認識了，下一步約見面' },
   { key:'invite',   e:'📣', s:'該邀請', t:'約到了，下一步邀請' },
-  { key:'ghosted',  e:'🕊️', s:'再約',   t:'被放鴿子，再約一次' },
   { key:'invited',  e:'⏳', s:'等締結', t:'邀請過，等締結' },
-  { key:'rejected', e:'💪', s:'未果',   t:'未果，換個時機再追' },
+  { key:'rejected', e:'💪', s:'未果',   t:'未果，再邀請一次' },
   { key:'done',     e:'🎉', s:'已締結', t:'已締結' },
 ];
 async function loadBook() {
@@ -903,27 +889,29 @@ async function loadBook() {
 }
 function bookRows() {
   return contacts.map(c => {
-    const first = {}, times = {};
+    const first = {}, times = {}, last = {};
     bookLogs.forEach(l => Object.entries(l.names || {}).forEach(([k, ids]) => {
       if (!(ids || []).includes(c.id)) return;
       times[k] = (times[k] || 0) + 1;
       if (!first[k] || l.log_date < first[k]) first[k] = l.log_date;
+      if (!last[k] || l.log_date > last[k]) last[k] = l.log_date;
     }));
     const closed = bookCloses.filter(x => (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0] || null;
     const invited = [first.present, first.seminar].filter(Boolean).sort()[0] || null;
-    const grp = closed ? 'done' : times.rejected ? 'rejected' : invited ? 'invited'
-              : times.ghosted ? 'ghosted' : first.invite ? 'invite' : 'meet';
-    return { c, first, times, closed, invited, grp };
+    // 分組看「最後發生的事」（2026-11-08）：未果之後又邀請 → 回到等締結；拿掉放鴿子，舊資料的 ghosted 不看
+    const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
+    const grp = closed ? 'done' : (last.rejected && (!lastInv || last.rejected >= lastInv)) ? 'rejected'
+              : lastInv ? 'invited' : last.invite ? 'invite' : 'meet';
+    return { c, first, last, times, closed, invited, grp };
   });
 }
 function stageLine(r) {
   const st = (lab, ds) => `<span class="bk-st ${ds ? 'ok' : ''}">${lab}${ds ? ' ' + mdOf(ds) : ''}</span>`;
-  const extra = (r.times.ghosted ? `<span class="bk-x">🕊️×${r.times.ghosted}</span>` : '')
-              + (r.times.rejected ? `<span class="bk-x">💪×${r.times.rejected}</span>` : '');
+  const extra = r.times.rejected > 1 ? `<span class="bk-x">💪×${r.times.rejected}</span>` : '';
   // 緣故朋友（2026-11-08 Randoph）：沒記過「認識」但已經往後走了 → 第一格顯示「緣故」，不是漏掉
   const yuan = !r.first.meet && (r.first.invite || r.invited || r.closed || r.times.ghosted || r.times.rejected);
   return (yuan ? '<span class="bk-st yuan">緣故</span>' : st('認識', r.first.meet)) + '<i>›</i>' + st('邀約', r.first.invite) + '<i>›</i>'
-       + st(r.first.seminar && !r.first.present ? '說明會' : '邀請', r.invited) + '<i>›</i>' + st('締結', r.closed) + extra;
+       + st(r.first.seminar && !r.first.present ? '說明會' : '邀請', r.invited) + '<i>›</i>' + (r.grp === 'rejected' ? `<span class="bk-st no">未果 ${mdOf(r.last.rejected)}</span>` : st('締結', r.closed)) + extra;
 }
 // 名單本分頁（2026-11-08 Randoph：「應該用分頁區分而不是一長串」）：一次看一組，預設停在第一個有人的組
 let bookTab = null;
@@ -1010,7 +998,6 @@ function bookText() {
     if (r.first.present) p.push(`溝通本 ${mdOf(r.first.present)}`);
     if (r.first.seminar) p.push(`說明會 ${mdOf(r.first.seminar)}`);
     if (r.closed) p.push(`締結 ${mdOf(r.closed)}`);
-    if (r.times.ghosted) p.push(`放鴿子 ${r.times.ghosted} 次`);
     if (r.times.rejected) p.push(`未果 ${r.times.rejected} 次`);
     return `・${r.c.name}${p.length ? '（' + p.join('・') + '）' : ''}`;
   };

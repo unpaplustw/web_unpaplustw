@@ -848,7 +848,7 @@ const STU_FIELDS = [
   { key:'present',   emoji:'🗣️', label:'邀請溝通本',   pts:5, check:'請檢查合照+溝通本畫面是否發群組' },
   { key:'seminar',   emoji:'🏛️', label:'邀請說明會',   pts:5, check:'請檢查合照+會場畫面是否發群組' },
   { key:'close',     emoji:'✅', label:'締結成功', special:true },
-  { key:'ghosted',   emoji:'🕊️', label:'被放鴿子',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
+  // 2026-11-08 拿掉「被放鴿子」（名單本只走 認識→邀約→邀請→締結成功／未果）；舊期資料 ghosted 欄位照留
   { key:'rejected',  emoji:'💪', label:'締結未果',     pts:1, neg:true, check:'請檢查趣味照是否發群組' },
 ];
 
@@ -2730,8 +2730,8 @@ const engOpen = new Set();   // 展開中的學員 id，重繪後要保持展開
 // ── 📒 組員的名單本（唯讀，2026-11-08）：與 daily.html 同一套分組；進度用算的
 let contactName = {};
 const nmOf = x => contactName[x] || (/^[0-9a-f-]{36}$/.test(String(x)) ? '' : String(x));   // 舊格式存的是名字
-const SB_GROUPS = [['meet','📅 認識了，下一步約見面'],['invite','📣 約到了，下一步邀請'],['ghosted','🕊️ 被放鴿子，再約一次'],
-                   ['invited','⏳ 邀請過，等締結'],['rejected','💪 未果，換個時機再追'],['done','🎉 已締結']];
+const SB_GROUPS = [['meet','📅 認識了，下一步約見面'],['invite','📣 約到了，下一步邀請'],
+                   ['invited','⏳ 邀請過，等締結'],['rejected','💪 未果，再邀請一次'],['done','🎉 已締結']];
 async function showStuBook(sid, btn) {
   const box = document.getElementById('sb-' + sid);
   if (!box) return;
@@ -2744,16 +2744,19 @@ async function showStuBook(sid, btn) {
     sb.from('closing_records').select('target_name, close_date, verified').eq('member_id', stu.member_id).eq('batch_id', BATCH_ID)]);
   const md = ds => { const [, m, d] = ds.split('-'); return `${+m}/${+d}`; };
   const rows = (cts || []).map(c => {
-    const first = {}, times = {};
+    const first = {}, times = {}, last = {};
     (logs || []).forEach(l => Object.entries(l.names || {}).forEach(([k, ids]) => {
       if (!(ids || []).includes(c.id)) return;
       times[k] = (times[k] || 0) + 1;
-      if (!first[k] || l.log_date < first[k]) first[k] = l.log_date; }));
+      if (!first[k] || l.log_date < first[k]) first[k] = l.log_date; if (!last[k] || l.log_date > last[k]) last[k] = l.log_date; }));
     const closed = (cls || []).filter(x => x.verified !== false && (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0];
     const invited = first.present || first.seminar;
-    const grp = closed ? 'done' : times.rejected ? 'rejected' : invited ? 'invited' : times.ghosted ? 'ghosted' : first.invite ? 'invite' : 'meet';
+    // 分組看「最後發生的事」（2026-11-08）：未果之後又邀請 → 回到等締結；拿掉放鴿子，舊資料的 ghosted 不看
+    const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
+    const grp = closed ? 'done' : (last.rejected && (!lastInv || last.rejected >= lastInv)) ? 'rejected'
+              : lastInv ? 'invited' : last.invite ? 'invite' : 'meet';
     const p = [first.meet && `認識 ${md(first.meet)}`, first.invite && `邀約 ${md(first.invite)}`, first.present && `溝通本 ${md(first.present)}`,
-               first.seminar && `說明會 ${md(first.seminar)}`, closed && `締結 ${md(closed)}`].filter(Boolean);
+               first.seminar && `說明會 ${md(first.seminar)}`, closed && `締結 ${md(closed)}`, !closed && last.rejected && `未果 ${md(last.rejected)}`].filter(Boolean);
     return { name: c.name, grp, p };
   });
   const esc = s => String(s).replace(/[<>&]/g, '');
