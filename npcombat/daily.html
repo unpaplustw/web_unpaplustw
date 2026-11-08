@@ -82,14 +82,43 @@
   .act-label{font-size:20px;font-weight:700;color:var(--text)}
   .act-desc{font-size:12px;color:var(--muted);margin-top:3px}
   .act-cheer{color:var(--gold);font-style:italic}
-  /* 2026-11-08 選填姓名：數字 >0 才出現在卡片下方；結業時一鍵匯出成戰績名單（names 欄，課程結束清除） */
+  /* 2026-11-08 選人列＋📒名單本：數字 >0 才出現選人列；名單本在頁面最下面，預設收合 */
   .act{flex-wrap:wrap}
   .act-names{flex-basis:100%;display:none;margin-top:8px}
   .act-names.on{display:block}
-  .act-names input{width:100%;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:9px 12px;
-    font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
-  .act-names input:focus{outline:none;border-style:solid;border-color:var(--gold)}
-  .act-names small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
+  .nm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .nm-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
+  .nm-chip.new{border-style:dashed;color:var(--gold);font-weight:700}
+  .nm-add{display:flex;gap:6px}
+  .nm-add input{flex:1;min-width:0;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:8px 11px;font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
+  .nm-add input:focus{outline:none;border-style:solid;border-color:var(--gold)}
+  .nm-add button{flex-shrink:0;border:none;border-radius:10px;background:var(--gold-lt);color:var(--gold);font-weight:800;font-size:14px;padding:0 12px;font-family:inherit}
+  .act-names small{display:block;margin-top:5px;font-size:11.5px;color:var(--muted)}
+  #bookArea{padding:0 16px;max-width:500px;margin:18px auto 28px}
+  .book{background:var(--card);border:2px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:0 14px}
+  .book>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-size:17px;font-weight:800;color:var(--text);cursor:pointer}
+  .book>summary::-webkit-details-marker{display:none}
+  .book>summary span{font-size:13px;font-weight:700;color:var(--gold);background:var(--gold-lt);border-radius:12px;padding:3px 10px}
+  .bk-hint{font-size:12.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px}
+  .bk-empty{font-size:14px;color:var(--muted);line-height:1.7;padding:6px 0 16px}
+  .bk-g{margin-bottom:12px}
+  .bk-gt{display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:var(--gold);margin:6px 0}
+  .bk-gt b{color:var(--muted);font-weight:700}
+  .bk-r{border-top:1px dashed var(--border);padding:8px 0}
+  .bk-top{display:flex;justify-content:space-between;align-items:center}
+  .bk-n{font-size:16px;font-weight:700;color:var(--text)}
+  .bk-ed{border:none;background:none;font-size:15px;padding:2px 6px;cursor:pointer}
+  .bk-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;font-size:12.5px}
+  .bk-line i{color:#c9c2b4;font-style:normal}
+  .bk-st{color:#b8b0a0;border:1px solid #e6dfd0;border-radius:10px;padding:1px 7px}
+  .bk-st.ok{color:#fff;background:var(--gold);border-color:var(--gold);font-weight:700}
+  .bk-x{margin-left:4px;color:var(--muted)}
+  .bk-er{display:flex;gap:6px;margin-top:6px}
+  .bk-er input,.bk-er select{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;font-family:inherit;background:#fff}
+  .bk-er button{border:none;border-radius:8px;background:var(--gold-lt);color:var(--gold);font-weight:800;padding:0 12px;font-family:inherit;font-size:14px}
+  .bk-er .bk-del{background:#fdecea;color:#c0392b;padding:6px 12px}
+  .bk-copy{display:block;width:100%;margin:6px 0 14px;padding:12px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:15px;font-weight:800;font-family:inherit}
   .act-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
   .act-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:20px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
   .act-btn:active{background:var(--gold-lt);border-color:var(--gold)}
@@ -521,6 +550,7 @@
 </div><!-- /actionPane -->
 
 <div class="ft">實戰班委員會<br><span id="verTag" style="font-size:10px;opacity:.45"></span></div>
+<div id="bookArea" style="display:none"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -685,23 +715,245 @@ const BADGES = [
 const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
-// 2026-11-08 選填姓名：{ meet:['王小明'], invite:[...] }。可寫可不寫、跟數字不必對齊；結業一鍵匯出戰績用
-let names = {};
-const parseNames = s => [...new Set(String(s || '').split(/[、,，;；\s]+/).map(x => x.trim().slice(0, 20)).filter(Boolean))].slice(0, 30);
+// ══ 名單本（2026-11-08 Randoph）══════════════════════════════════════════
+//  人＝contacts（一人一筆）｜事＝action_logs.names {行動欄位:[contact id]}｜進度＝用算的，不存。
+//  可選填、不影響計分；課程結束 purge 一併清除，結案匯出不帶姓名。
+//  為什麼不直接存名字：同一個人打成「小明／王小明」就變兩個人；改名、合併要回頭改幾十筆。一個人一個家。
+let contacts = [];   // [{id, name, created_at}]，新的在前
+let names = {};      // 今天這張表各行動選了誰 {meet:[id]}
+const cName = id => (contacts.find(c => c.id === id) || {}).name || '';
+const escH = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+const mdOf = ds => { const [, m, d] = String(ds).split('-'); return `${+m}/${+d}`; };
+
+async function loadContacts() {
+  if (!studentId) return;
+  const { data } = await sb.from('contacts').select('id, name, created_at')
+    .eq('batch_id', BATCH_ID).eq('student_id', studentId).order('created_at', { ascending: false });
+  contacts = data || [];
+}
+async function ensureContact(raw) {
+  const name = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  if (!name) return null;
+  const hit = contacts.find(c => c.name === name);
+  if (hit) return hit.id;
+  const { data, error } = await sb.from('contacts')
+    .insert({ batch_id: BATCH_ID, student_id: studentId, name }).select('id, name, created_at').single();
+  if (error) {   // 撞「同一人不能重名」：別的分頁剛建過 → 重讀一次
+    await loadContacts();
+    const again = contacts.find(c => c.name === name);
+    if (again) return again.id;
+    toast('加入失敗：' + error.message); return null;
+  }
+  contacts.unshift(data);
+  return data.id;
+}
+
+// ── 每個行動卡下面的「選人」列：數字 >0 才出現；點名字加入／再點取消；打字可找人或新增
 function setupNameRows() {
   COUNT_FIELDS.forEach(f => {
     const card = document.querySelector(`.act[data-key="${f.key}"]`);
     if (!card || card.querySelector('.act-names')) return;
     card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
-      + `<input type="text" placeholder="記下是誰（選填）例：王小明、李大華" enterkeyhint="done">`
-      + `<small>結業時可一鍵匯出成你的戰績名單，課程結束後清除</small></div>`);
-    card.querySelector('.act-names input').addEventListener('input', ev => { names[f.key] = parseNames(ev.target.value); });
+      + `<div class="nm-chips"></div>`
+      + `<div class="nm-add"><input type="text" placeholder="打名字找人，或新增一位" enterkeyhint="done" maxlength="20">`
+      + `<button type="button">＋ 加入</button></div>`
+      + `<small>選填・點名字加入，再點一次取消。會記進你的📒名單本，課程結束後清除</small></div>`);
+    const row = card.querySelector('.act-names');
+    const inp = row.querySelector('input');
+    inp.addEventListener('input', () => renderNameRow(f.key));
+    inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); addName(f.key); } });
+    row.querySelector('.nm-add button').addEventListener('click', () => addName(f.key));
   });
 }
-function syncNameRow(key) {
-  const row = document.getElementById('nm-' + key);
-  if (row) row.classList.toggle('on', vals[key] > 0 || (names[key] || []).length > 0);
+async function addName(key) {
+  const inp = document.querySelector(`#nm-${key} input`);
+  const id = await ensureContact(inp.value);
+  if (!id) return;
+  names[key] = [...new Set([...(names[key] || []), id])];
+  inp.value = '';
+  COUNT_FIELDS.forEach(f => renderNameRow(f.key));   // 新加的人，其他行動也點得到
 }
+function toggleName(key, id) {
+  const cur = names[key] || [];
+  names[key] = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  renderNameRow(key);
+}
+function renderNameRow(key) {
+  const row = document.getElementById('nm-' + key);
+  if (!row) return;
+  const sel = names[key] || [];
+  row.classList.toggle('on', vals[key] > 0 || sel.length > 0);
+  const q = row.querySelector('input').value.trim();
+  const chosen = contacts.filter(c => sel.includes(c.id));
+  const others = contacts.filter(c => !sel.includes(c.id) && (!q || c.name.includes(q))).slice(0, q ? 20 : 12);
+  row.querySelector('.nm-chips').innerHTML =
+      chosen.map(c => `<button type="button" class="nm-chip on" data-id="${c.id}">✓ ${escH(c.name)}</button>`).join('')
+    + others.map(c => `<button type="button" class="nm-chip" data-id="${c.id}">${escH(c.name)}</button>`).join('')
+    + (q && !contacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" data-new="1">＋ 新增「${escH(q)}」</button>` : '');
+  row.querySelectorAll('.nm-chip').forEach(b => { b.onclick = () => b.dataset.new ? addName(key) : toggleName(key, b.dataset.id); });
+}
+function syncNameRow(key) { renderNameRow(key); }
+// 帶回今天已填的：11/8 前一版存的是名字字串 → 轉成名單本的人
+async function restoreNames(saved) {
+  names = {};
+  for (const [k, arr] of Object.entries(saved || {})) {
+    const ids = [];
+    for (const v of (arr || [])) {
+      const id = contacts.some(c => c.id === v) ? v : await ensureContact(v);
+      if (id) ids.push(id);
+    }
+    if (ids.length) names[k] = [...new Set(ids)];
+  }
+  COUNT_FIELDS.forEach(f => renderNameRow(f.key));
+}
+
+// ── 📒 名單本：每個人走到哪一關（從所有回報與締結算出來）──────────────
+let bookLogs = [], bookCloses = [];
+const BOOK_GROUPS = [
+  { key:'meet',     t:'📅 認識了，下一步約見面' },
+  { key:'invite',   t:'📣 約到了，下一步邀請' },
+  { key:'ghosted',  t:'🕊️ 被放鴿子，再約一次' },
+  { key:'invited',  t:'⏳ 邀請過，等締結' },
+  { key:'rejected', t:'💪 未果，換個時機再追' },
+  { key:'done',     t:'🎉 已締結' },
+];
+async function loadBook() {
+  const box = document.getElementById('bookArea');
+  if (!box || !studentId) return;
+  const [{ data: logs }, { data: cls }] = await Promise.all([
+    sb.from('action_logs').select('id, log_date, names').eq('batch_id', BATCH_ID).eq('student_id', studentId),
+    sb.from('closing_records').select('target_name, close_date, verified').eq('member_id', memberId).eq('batch_id', BATCH_ID)
+  ]);
+  bookLogs = logs || [];
+  bookCloses = (cls || []).filter(c => c.verified !== false);
+  await loadContacts();
+  COUNT_FIELDS.forEach(f => renderNameRow(f.key));
+  renderBook();
+}
+function bookRows() {
+  return contacts.map(c => {
+    const first = {}, times = {};
+    bookLogs.forEach(l => Object.entries(l.names || {}).forEach(([k, ids]) => {
+      if (!(ids || []).includes(c.id)) return;
+      times[k] = (times[k] || 0) + 1;
+      if (!first[k] || l.log_date < first[k]) first[k] = l.log_date;
+    }));
+    const closed = bookCloses.filter(x => (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0] || null;
+    const invited = [first.present, first.seminar].filter(Boolean).sort()[0] || null;
+    const grp = closed ? 'done' : times.rejected ? 'rejected' : invited ? 'invited'
+              : times.ghosted ? 'ghosted' : first.invite ? 'invite' : 'meet';
+    return { c, first, times, closed, invited, grp };
+  });
+}
+function stageLine(r) {
+  const st = (lab, ds) => `<span class="bk-st ${ds ? 'ok' : ''}">${lab}${ds ? ' ' + mdOf(ds) : ''}</span>`;
+  const extra = (r.times.ghosted ? `<span class="bk-x">🕊️×${r.times.ghosted}</span>` : '')
+              + (r.times.rejected ? `<span class="bk-x">💪×${r.times.rejected}</span>` : '');
+  return st('認識', r.first.meet) + '<i>›</i>' + st('邀約', r.first.invite) + '<i>›</i>'
+       + st(r.first.seminar && !r.first.present ? '說明會' : '邀請', r.invited) + '<i>›</i>' + st('締結', r.closed) + extra;
+}
+function renderBook() {
+  const box = document.getElementById('bookArea');
+  const open = actionOpenDate ? today() >= actionOpenDate : true;
+  if (!box || (!open && !contacts.length)) { if (box) box.style.display = 'none'; return; }
+  box.style.display = '';
+  const rows = bookRows();
+  const wasOpen = box.querySelector('details')?.open;
+  const body = !rows.length
+    ? `<div class="bk-empty">還沒有人。回報行動時點「＋」，在卡片下面加上對方的名字，就會出現在這裡。</div>`
+    : BOOK_GROUPS.map(g => {
+        const rs = rows.filter(r => r.grp === g.key);
+        if (!rs.length) return '';
+        return `<div class="bk-g"><div class="bk-gt">${g.t}<b>${rs.length}</b></div>`
+          + rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}</span>`
+          + `<button type="button" class="bk-ed" onclick="toggleBookEdit('${r.c.id}')">✏️</button></div>`
+          + `<div class="bk-line">${stageLine(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('')
+          + `</div>`;
+      }).join('')
+      + `<button type="button" class="bk-copy" onclick="copyBook()">📋 一鍵複製我的名單本</button>`;
+  box.innerHTML = `<details class="book"${wasOpen ? ' open' : ''}><summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
+    + `<div class="bk-hint">從你回報的行動自動長出來：每個人走到哪一關，下一步做什麼。只有你和你的教練看得到。</div>${body}</details>`;
+}
+function toggleBookEdit(id) {
+  const ed = document.querySelector(`#bk-${id} .bk-edit`);
+  if (!ed) return;
+  if (ed.style.display !== 'none') { ed.style.display = 'none'; return; }
+  const used = bookLogs.some(l => Object.values(l.names || {}).some(ids => (ids || []).includes(id)));
+  const opts = contacts.filter(c => c.id !== id).map(c => `<option value="${c.id}">${escH(c.name)}</option>`).join('');
+  ed.innerHTML = `<div class="bk-er"><input id="bk-rn-${id}" value="${escH(cName(id))}" maxlength="20"><button type="button" onclick="renameContact('${id}')">改名</button></div>`
+    + (opts ? `<div class="bk-er"><select id="bk-mg-${id}"><option value="">和誰是同一個人？</option>${opts}</select><button type="button" onclick="mergeContact('${id}', document.getElementById('bk-mg-${id}').value)">合併</button></div>` : '')
+    + (used ? '' : `<div class="bk-er"><button type="button" class="bk-del" onclick="deleteContact('${id}')">刪除這個人</button></div>`);
+  ed.style.display = '';
+}
+async function renameContact(id) {
+  const nv = (document.getElementById('bk-rn-' + id)?.value || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  if (!nv || nv === cName(id)) return;
+  const dup = contacts.find(c => c.name === nv);
+  if (dup) return mergeContact(id, dup.id);   // 改成名單本裡已經有的名字＝同一個人
+  const { error } = await sb.from('contacts').update({ name: nv }).eq('id', id);
+  if (error) return toast('改名失敗：' + error.message);
+  toast('已改名'); await loadBook();
+}
+async function mergeContact(fromId, toId) {
+  if (!fromId || !toId || fromId === toId) return toast('請選要合併到哪一位');
+  if (!confirm(`「${cName(fromId)}」和「${cName(toId)}」是同一個人？\n合併後所有紀錄都算在「${cName(toId)}」。`)) return;
+  for (const l of bookLogs) {
+    let hit = false;
+    const nn = {};
+    for (const [k, ids] of Object.entries(l.names || {})) {
+      nn[k] = [...new Set((ids || []).map(x => { if (x === fromId) { hit = true; return toId; } return x; }))];
+    }
+    if (!hit) continue;
+    const { error } = await sb.from('action_logs').update({ names: nn }).eq('id', l.id);   // 只動 names，不碰次數
+    if (error) return toast('合併失敗：' + error.message);
+  }
+  for (const k of Object.keys(names)) names[k] = [...new Set(names[k].map(x => x === fromId ? toId : x))];
+  const { error } = await sb.from('contacts').delete().eq('id', fromId);
+  if (error) return toast('合併失敗：' + error.message);
+  toast('已合併'); await loadBook();
+}
+async function deleteContact(id) {
+  if (!confirm(`刪除「${cName(id)}」？`)) return;
+  for (const k of Object.keys(names)) names[k] = names[k].filter(x => x !== id);
+  const { error } = await sb.from('contacts').delete().eq('id', id);
+  if (error) return toast('刪除失敗：' + error.message);
+  toast('已刪除'); await loadBook();
+}
+function bookText() {
+  const rows = bookRows();
+  const who = (document.getElementById('userName') || {}).textContent || '';
+  const ln = r => {
+    const p = [];
+    if (r.first.meet) p.push(`認識 ${mdOf(r.first.meet)}`);
+    if (r.first.invite) p.push(`邀約 ${mdOf(r.first.invite)}`);
+    if (r.first.present) p.push(`溝通本 ${mdOf(r.first.present)}`);
+    if (r.first.seminar) p.push(`說明會 ${mdOf(r.first.seminar)}`);
+    if (r.closed) p.push(`締結 ${mdOf(r.closed)}`);
+    if (r.times.ghosted) p.push(`放鴿子 ${r.times.ghosted} 次`);
+    if (r.times.rejected) p.push(`未果 ${r.times.rejected} 次`);
+    return `・${r.c.name}${p.length ? '（' + p.join('・') + '）' : ''}`;
+  };
+  const parts = BOOK_GROUPS.map(g => {
+    const rs = rows.filter(r => r.grp === g.key);
+    return rs.length ? `${g.t}（${rs.length}）\n${rs.map(ln).join('\n')}` : '';
+  }).filter(Boolean);
+  return `📒 我的名單本｜${who.trim()}｜${(batchInfo && batchInfo.name) || '實戰班'}\n共 ${rows.length} 人\n\n${parts.join('\n\n')}\n\n💪 接著做：先把「下一步」最前面那一組約出來`;
+}
+function copyText(text, okMsg) {
+  const done = () => toast(okMsg);
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+    ok ? done() : toast('⚠️ 複製失敗，請長按文字自行複製');
+  };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+}
+function copyBook() { copyText(bookText(), '✅ 名單本已複製，可以貼到記事本或 LINE 自己留存'); }
 let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
 let declRead = false;
 
@@ -981,7 +1233,7 @@ async function init() {
       const { data: grp } = await sb.from('batch_coaches').select('track').eq('id', stu.coach_id).maybeSingle();
       if (grp?.track) myTrack = grp.track;
     }
-    setupNameRows();     // 選填姓名列（要在帶回今天已填之前建好）
+    await loadContacts(); setupNameRows();   // 名單本＋選人列（要在帶回今天已填之前建好）
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
     memberName = member.name;
@@ -998,15 +1250,11 @@ async function init() {
       existingId = existing.id;
       // 帶回今天已填的行動數值
       COUNT_FIELDS.forEach(f => { vals[f.key] = existing[f.key] || 0; document.getElementById('n-'+f.key).textContent = vals[f.key]; });
-      names = (existing.names && typeof existing.names === 'object') ? existing.names : {};
-      COUNT_FIELDS.forEach(f => {
-        const inp = document.querySelector(`#nm-${f.key} input`);
-        if (inp) inp.value = (names[f.key] || []).join('、');
-        syncNameRow(f.key);
-      });
+      await restoreNames(existing.names);
       toast('今天已回報過，可修改重送');
     }
 
+    loadBook();   // 📒 名單本（不等它，背景載入）
     // 帶回今天已填的締結（2026-08-12 修）
     // 為什麼必要：送出時是「先刪今天的 daily 締結再重建」，如果重開頁面沒把舊的載回來，
     // 學員晚上補填行動再送一次，早上填的締結就會被刪掉而且補不回來。
@@ -1318,6 +1566,7 @@ async function submit() {
     }
   }
 
+  loadBook();   // 剛送出的行動算進名單本
   showResult();
 }
 

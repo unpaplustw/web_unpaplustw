@@ -210,6 +210,11 @@
   .eng-ditem span:last-child{font-weight:900;color:var(--gold)}
   .eng-ditem.z span:last-child{color:#c9c2b4}
   .eng-ditem small{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}   /* 2026-11-08 對象姓名 */
+  .eng-book{margin-top:10px;width:100%;border:1.5px dashed var(--gold);background:#fffaf0;color:var(--gold);border-radius:10px;padding:8px;font-size:14px;font-weight:800;font-family:inherit}
+  .sb{margin-top:8px;font-size:13.5px;line-height:1.7}
+  .sb-gt{font-weight:800;color:var(--gold);margin-top:8px}
+  .sb-r{padding-left:6px}
+  .sb-r small{color:var(--muted)}
   .eng-dclose{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;font-size:14px;font-weight:700}
   .eng-dclose span:last-child{color:var(--green)}
   .eng-nofill{font-size:15px;font-weight:700;color:var(--muted);padding:4px 0 2px}
@@ -1153,6 +1158,9 @@ async function init() {
 
     // 查學員基本資料
     const memberIds = students.map(s => s.member_id);
+    // 📒 組員名單本的人名（action_logs.names 存的是 contacts id）2026-11-08
+    { const { data: cts } = await sb.from('contacts').select('id, name').in('student_id', students.map(s => s.id));
+      contactName = {}; (cts || []).forEach(c => contactName[c.id] = c.name); }
     const { data: memberInfos } = await sb.from('members_master').select('id, name, member_code')
       .in('id', memberIds);
     const memberMap = {};
@@ -2729,16 +2737,53 @@ function engModeFor(dateStr) {
 // 2026-08-12 定案：📝／⬜ 小符號標示有無填寫，點姓名展開明細
 const engOpen = new Set();   // 展開中的學員 id，重繪後要保持展開
 
+// ── 📒 組員的名單本（唯讀，2026-11-08）：與 daily.html 同一套分組；進度用算的
+let contactName = {};
+const nmOf = x => contactName[x] || (/^[0-9a-f-]{36}$/.test(String(x)) ? '' : String(x));   // 舊格式存的是名字
+const SB_GROUPS = [['meet','📅 認識了，下一步約見面'],['invite','📣 約到了，下一步邀請'],['ghosted','🕊️ 被放鴿子，再約一次'],
+                   ['invited','⏳ 邀請過，等締結'],['rejected','💪 未果，換個時機再追'],['done','🎉 已締結']];
+async function showStuBook(sid, btn) {
+  const box = document.getElementById('sb-' + sid);
+  if (!box) return;
+  if (box.innerHTML) { box.innerHTML = ''; btn.textContent = '📒 看名單本'; return; }
+  box.innerHTML = '<div class="sb">載入中…</div>';
+  const stu = studentList.find(s => s.id === sid) || {};
+  const [{ data: cts }, { data: logs }, { data: cls }] = await Promise.all([
+    sb.from('contacts').select('id, name').eq('student_id', sid),
+    sb.from('action_logs').select('log_date, names').eq('batch_id', BATCH_ID).eq('student_id', sid),
+    sb.from('closing_records').select('target_name, close_date, verified').eq('member_id', stu.member_id).eq('batch_id', BATCH_ID)]);
+  const md = ds => { const [, m, d] = ds.split('-'); return `${+m}/${+d}`; };
+  const rows = (cts || []).map(c => {
+    const first = {}, times = {};
+    (logs || []).forEach(l => Object.entries(l.names || {}).forEach(([k, ids]) => {
+      if (!(ids || []).includes(c.id)) return;
+      times[k] = (times[k] || 0) + 1;
+      if (!first[k] || l.log_date < first[k]) first[k] = l.log_date; }));
+    const closed = (cls || []).filter(x => x.verified !== false && (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0];
+    const invited = first.present || first.seminar;
+    const grp = closed ? 'done' : times.rejected ? 'rejected' : invited ? 'invited' : times.ghosted ? 'ghosted' : first.invite ? 'invite' : 'meet';
+    const p = [first.meet && `認識 ${md(first.meet)}`, first.invite && `邀約 ${md(first.invite)}`, first.present && `溝通本 ${md(first.present)}`,
+               first.seminar && `說明會 ${md(first.seminar)}`, closed && `締結 ${md(closed)}`].filter(Boolean);
+    return { name: c.name, grp, p };
+  });
+  const esc = s => String(s).replace(/[<>&]/g, '');
+  box.innerHTML = `<div class="sb">${rows.length ? SB_GROUPS.map(([k, t]) => { const rs = rows.filter(r => r.grp === k); return rs.length
+    ? `<div class="sb-gt">${t}（${rs.length}）</div>` + rs.map(r => `<div class="sb-r">・${esc(r.name)} <small>${r.p.join('・')}</small></div>`).join('') : ''; }).join('')
+    : '名單本還沒有人（學員回報行動時可選填對象）'}</div>`;
+  btn.textContent = `📒 收起名單本（${rows.length} 人）`;
+}
+const bookBtn = stu => `<button class="eng-book" onclick="event.stopPropagation();showStuBook('${stu.id}', this)">📒 看名單本</button><div id="sb-${stu.id}"></div>`;
+
 function fillDetailHtml(stu) {
   const d = getStuData(stu);
   if (!d) {
     return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))}</div>
-      <div class="eng-nofill">今天還沒填</div>`;
+      <div class="eng-nofill">今天還沒填</div>${bookBtn(stu)}`;
   }
   const items = STU_FIELDS.filter(f => !f.special).map(f => {
     const v = d[f.key] || 0;
-    const nm = (d.names && d.names[f.key]) || [];
-    return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}${nm.length ? `<small>${nm.map(x => String(x).replace(/[<>&]/g, '')).join('、')}</small>` : ''}</span><span>${v}</span></div>`;
+    const nm = ((d.names && d.names[f.key]) || []).map(nmOf).filter(Boolean);
+    return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}${nm.length ? `<small>${nm.map(x => x.replace(/[<>&]/g, '')).join('、')}</small>` : ''}</span><span>${v}</span></div>`;
   }).join('');
   // 締結列出內容與分數（原本只有筆數）——教練要「知道組員報了什麼」；
   // 審核是上線的事，見 renderVerifyBlock()
@@ -2750,7 +2795,7 @@ function fillDetailHtml(stu) {
         c.verified === false ? '（已退回）' : c.verified === true ? ' ✔' : '（待上線審）'}</span></div>`).join('')
     : `<div class="eng-dclose"><span>✅ 締結成功</span><span>0 筆</span></div>`;
   return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))} 填的內容</div>
-    <div class="eng-dgrid">${items}</div>${closeHtml}`;
+    <div class="eng-dgrid">${items}</div>${closeHtml}${bookBtn(stu)}`;
 }
 
 function toggleEngDetail(studentId) {
