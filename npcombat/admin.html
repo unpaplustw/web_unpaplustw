@@ -821,10 +821,9 @@ function renderHwMatrix(realStudents, coachById, scope) {
   const today = localDateStr(new Date());
   // 🔴 2026-09-15 班別掛在組上（28 期起）：作業表只列學習組；行動表每人從自己那組的行動起算日開始
   //    學習組＝study_end 後第一個週一（9/28）／行動組、精英組＝action_open_date（9/14）
-  if (scope === 'study') realStudents = realStudents.filter(stuIsLearn);
-  if (scope === 'action') realStudents = realStudents.filter(s => stuActFrom(s) <= today);
+  // 2026-11-08 回應一覽表：全部學員都列（學習組不再等到學習期結束）
   if (!realStudents.length) return '';
-  const actFromBy = {}; realStudents.forEach(s => actFromBy[s.id] = stuActFrom(s));
+  const isLearnStu = {}; realStudents.forEach(s => isLearnStu[s.id] = stuIsLearn(s));
 
   // ══════════════════════════════════════════════════════════
   // 一覽表改成「日期 × 學員」（2026-08-19 Randoph 定案）
@@ -853,17 +852,14 @@ function renderHwMatrix(realStudents, coachById, scope) {
   //    不是「隔天」。27 期 8/20（四）上完課，8/21（五）只有 9 人填、8/22–23 是週末，
   //    8/24（一）才真正啟動（教練標記 12→19 人）。用「隔天」會把 8/21 列進表，
   //    那天沒填的 30 人平白多一筆缺件。28 期同理（10/2 週五 → 10/5 週一）。
-  const actViewFrom = realStudents.map(s => actFromBy[s.id]).sort()[0] || learnActFrom();
+  // 回應一覽表：開班日到今天每一天都列；學習組週末格子顯示「不用回報」
   // 🔴 2026-09-20：行動天天都做，一覽表含週末（2026-08-30 定）；作業只有排課日，本來就靠 dayUnits 過濾。
   //    原本一律跳過週六日 → 9/19（六）的 24 筆教練標記在 admin 完全看不到。
   const days = [];
   if (b.start_date)
-    for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
+    // 2026-11-08：從開始回報那天列起（開班典禮當天沒有要回報），同教練專區
+    for (let d = new Date((b.submit_from || b.action_open_date || b.start_date) + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
       const ds = localDateStr(d), w = d.getDay();
-      if (scope === 'study') {
-        if (w < 1 || w > 5) continue;
-        if (!(dayUnits[ds] || []).length) continue;        // 沒排單元的日子不進作業表
-      } else if (actViewFrom && ds < actViewFrom) continue; // 行動週之前不進行動表
       days.push(ds);
     }
 
@@ -897,33 +893,34 @@ function renderHwMatrix(realStudents, coachById, scope) {
   //   🔴 2026-09-13：學員自述（daily「我已經小組回報」勾）拿掉，現在只看教練標記。
   //      原本 2026-08-19 的「兩條線交叉驗證」（學員自述＋教練標）已廢止。
   function cellOf(sid, ds) {
-    if (scope === 'action' && actFromBy[sid] && ds < actFromBy[sid]) return { k:'lock', txt:'', why:'這一組行動還沒開始' };
-    const units = dayUnits[ds];
+    const learn = isLearnStu[sid], wdn = new Date(ds + 'T00:00:00').getDay();
+    if (learn && (wdn < 1 || wdn > 5)) return { k:'lock', txt:'', why:'學習組週末不用回報' };
+    const units = learn ? dayUnits[ds] : null;   // 只有學習組的排課日是作業格
     const eng   = engBy[sid + '|' + ds];
     const log   = logBy[sid + '|' + ds];
     const over  = dayOverdue(ds);
 
-    if (scope !== 'action' && units && units.length) {
+    if (units && units.length) {
       // ① 逐題紀錄最優先（唯一能講出「缺第幾題」的來源）
       const recs = units.map(u => hwBy[sid + '|' + u]).filter(Boolean);
       if (recs.length === units.length) {
         const done = recs.reduce((a, r) => a + (r.done || 0), 0);
         const tot  = recs.reduce((a, r) => a + (r.total || 0), 0);
-        if (tot > 0 && done >= tot) return { k:'full', txt:'✓', why:'逐題檢核：全繳' };
-        if (done > 0) return { k:'part', txt:`${done}/${tot}`, why:'逐題檢核：部分繳' };
-        return { k:'none', txt:'✕', why:'逐題檢核：沒繳' };
+        if (tot > 0 && done >= tot) return { k:'full', txt:'✓', why:'逐題檢核：全繳', hw:true };
+        if (done > 0) return { k:'part', txt:`${done}/${tot}`, why:'逐題檢核：部分繳', hw:true };
+        return { k:'none', txt:'✕', why:'逐題檢核：沒繳', hw:true };
       }
       // ② 教練標了什麼（連動）
       if (eng && eng.homework === true)
-        return { k:'full', txt:'✓', why:'LINE 標已交（未逐題檢核）', soft:true };
+        return { k:'full', txt:'✓', why:'LINE 標已交（未逐題檢核）', soft:true, hw:true };
       if (eng && eng.homework === false)
-        return { k:'none', txt:'✕', why:'LINE 標沒交' };
+        return { k:'none', txt:'✕', why:'LINE 標沒交', hw:true };
       // ③ 教練沒標
       return over ? { k:'unk', txt:'？', why:'教練還沒回報，學員交了沒不知道' }
                   : { k:'na',  txt:'',  why:'還在期限內' };
     }
 
-    // 行動：看學員有沒有填 daily ＋ 小組心得（scope='action' 時即使那天有單元也走這條）
+    // 心得格：看學員有沒有填 daily ＋ 小組心得（行動三組天天、學習組排課日以外）
     if (actStart && ds < actStart) return { k:'lock', txt:'', why:'行動尚未開放' };
     if (!simpleMode) {
       if (log) return log.confirmed ? { k:'full', txt:'✓', why:'學員已填＋教練已確認（full 模式）' }
@@ -967,13 +964,13 @@ function renderHwMatrix(realStudents, coachById, scope) {
   const zeroDone     = rows.filter(r => (r.na + r.nax + r.unk) === days.length).length;
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
-  const isAct = scope === 'action';
+  // 2026-11-08 回應一覽表：作業格與心得格混在同一張
   // 分頁標題已經寫過表名，內層只放統計（同一個雙標題的坑之前在「②／各組完成度」踩過一次）
   let h = `<div class="sec-title"><span>${overdueCells
       ? `<b style="color:#d9534f">⚠️ 教練還沒回報 ${overdueCells} 格（狀況不明）</b>` : '✅ 每一格教練都回報了'}</span><span class="sec-count">${
-    days.length} 個${isAct ? '行動日' : '上課日'} · ${realStudents.length} 位學員</span></div>`;
+    days.length} 天 · ${realStudents.length} 位學員</span></div>`;
   h += `<div class="cov-note">
-    ${isAct ? '綠✓=填＋貼都有　橘「填」=只填行動紀錄　橘「貼」=只貼心得' : '綠✓=準時　橘=部分'}　紅✕=沒交　藍補=學員遲交　紫補=教練補標　<b>灰？=教練還沒回報</b>　空=未開放<br>
+    作業格：綠✓=準時　橘=部分｜心得格：綠✓=填＋貼都有　橘「填」=只填行動紀錄　橘「貼」=只貼心得｜　紅✕=沒交　藍補=學員遲交　紫補=教練補標　<b>灰？=教練還沒回報</b>　空=未開放<br>
     ✏️ <b>點格子可改</b>（只有總教練）｜👤 點學員名字看教練與領袖｜滑過格子看判定理由${
       zeroDone ? `<br>⚠️ <b>${zeroDone} 人</b>整排都沒被處理——要找的是教練` : ''}</div>`;
   // 教練／領袖收進學員名字（Randoph：寬度有限）——hover 有 title、點一下彈出小卡，
@@ -982,7 +979,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
     <th class="nm nm1">學員</th>`;
   days.forEach(ds => {
     const us = dayUnits[ds];
-    const tag = scope === 'action' ? '行動' : (us ? 'U' + us.join('·') : '行動');
+    const tag = us ? 'U' + us.join('·') : '心得';   // 排課日：學習組看作業、行動三組照樣看心得
     h += `<th title="${ds}（週${wd(ds)}）· ${tag}">${
       ds.slice(5).replace('-', '/')}<br><span class="hwm-u">${tag}</span></th>`;
   });
@@ -1003,7 +1000,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
     days.forEach(ds => {
       const c = cellOf(r.s.id, ds);
       const mk = c.k === 'full' && mkSet.has(r.s.id + '|' + ds);
-      const late = isAct && c.k === 'full' && !mk && lateSet.has(r.s.id + '|' + ds);   // 遲交只看行動（作業沒有學員的時間戳）
+      const late = !c.hw && c.k === 'full' && !mk && lateSet.has(r.s.id + '|' + ds);   // 遲交只看心得格（作業沒有學員的時間戳）
       const canEdit = !isReadonly && c.k !== 'lock';
       h += `<td class="hwm-c ${c.k}${c.soft ? ' soft' : ''}${mk ? ' mk' : ''}${late ? ' late' : ''}${canEdit ? ' editable' : ''}"${
         canEdit ? ` onclick="openCellEdit(event,this,'${r.s.id}','${ds}','${scope}')"` : ''} title="${ds}（週${wd(ds)}）｜${c.why}${mk ? '｜教練結案後才補標' : ''}${late ? '｜學員 22:00 後才填' : ''}${canEdit ? '｜點一下可改' : ''}">${mk || late ? '補' : c.txt}</td>`;
@@ -1332,20 +1329,10 @@ const ANA = [
       return `上方＝今天 ${t.slice(5).replace('-','/')}（週${w(t)}）進行中 · 下方＝${r.slice(5).replace('-','/')}（週${w(r)}）已結算`; },
     render: el => renderDashboard(el, 'daily') },
 
-  { k:'hw', t:'📋 作業一覽表', only:'study',
-    d:() => `日期 × 學員 · 已上 ${(() => { let n = 0; const t = localDateStr(new Date());
-      Object.entries(SCHEDULE || {}).forEach(([d, a]) => { if (d <= t) n += a.length; }); return n; })()} 單元`,
-    render: el => renderHwSection(el, 'study') },
-
-  { k:'act', t:'🏃 行動一覽表', only:null,
-    d:() => {
-      const hasAct = coaches.some(c => c.track && c.track !== 'learn');
-      const hasLearn = coaches.some(c => !c.track || c.track === 'learn');
-      const f = s => s ? s.slice(5).replace('-', '/') : '—';
-      return `日期 × 學員 · ${[hasAct ? `行動組 ${f(actionStartDate())} 起` : '',
-                                hasLearn ? `學習組 ${f(learnActFrom())} 起` : ''].filter(Boolean).join('、')}`;
-    },
-    render: el => renderHwSection(el, 'action') },
+  // 🔴 2026-11-08 Randoph：作業表與行動表合併——教練每天只標「有沒有在小組貼」，學習週貼作業、之後貼心得，一張就夠
+  { k:'resp', t:'📋 回應一覽表', only:null,
+    d:() => `日期 × 學員 · 學習組排課日看作業、其他日子看心得 · 行動 ${(s => s ? s.slice(5).replace('-', '/') : '—')(actionStartDate())} 起`,
+    render: el => renderHwSection(el, 'resp') },
 
   { k:'status', t:'📊 學員與教練狀況', only:null,
     d:() => {
@@ -1485,7 +1472,7 @@ function showWho(ev, td) {
 let cellEdit = null;
 function openCellEdit(ev, td, sid, ds, scope) {
   ev.stopPropagation();
-  const units = scope === 'action' ? [] : ((SCHEDULE || {})[ds] || []);
+  const units = (scope === 'action' || !stuIsLearn(students.find(x => x.id === sid) || {})) ? [] : ((SCHEDULE || {})[ds] || []);
   cellEdit = { sid, ds, units };
   let box = document.getElementById('cellPop');
   if (!box) { box = document.createElement('div'); box.id = 'cellPop'; box.className = 'cell-pop'; document.body.appendChild(box); }
@@ -1587,9 +1574,7 @@ function renderHwSection(target, scope) {
   const realStudents = students.filter(s => s.status === 'approved' && !s.dropped_at && !coachMemberIds.has(s.member_id));
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   target.insertAdjacentHTML('beforeend', renderHwMatrix(realStudents, coachById, scope) ||
-    `<div class="dash-empty">${scope === 'action'
-      ? '行動還沒開始（行動組從 action_open_date 起；學習組從 study_end 後第一個週一起）'
-      : '尚無可顯示的日期'}</div>`);
+    `<div class="dash-empty">還沒有可顯示的日子（開班日 ${batchRow().start_date || '未設定'}）</div>`);
 }
 
 // ── 開班前：全綠才能開班 ──────────────────────────────

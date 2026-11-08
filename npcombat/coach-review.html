@@ -1441,17 +1441,15 @@ async function loadHwChecks() {
 //   資料仍按單元存進 homework_checks（唯一能講出缺第幾題的來源）。
 // ══════════════════════════════════════════════════════════
 function dayUnitsOf(ds) { return (SCHEDULE || {})[ds] || null; }
+function respUnitsOf(ds) { return isLearnGroup() ? dayUnitsOf(ds) : null; }   // 回應一覽表：學習組排課日看作業，其他看心得
 
 // 一覽表內部切「作業／行動」——不加頂層分頁（手機上四個字已經在折行了）
 // 預設停在當前階段該看的那個：學習週開作業、行動週開行動。
 let hwScope = null;                       // null＝跟著階段走；使用者點過就固定
-function defaultScope() {
-  // 🔴 行動組／精英組不上課，審查一打開就是行動表（2026-09-15：原本停在作業表，教練標的行動心得看不到）
-  if (!isLearnGroup()) return 'action';
-  const t = getDateStr('today');
-  return (batchDates.studyEnd && t > batchDates.studyEnd) ? 'action' : 'study';
-}
-function curScope() { return hwScope || defaultScope(); }   // 'study' | 'action' | 'verify'
+// 🔴 2026-11-08 Randoph：作業表與行動表合併成「回應一覽表」——教練每天只標一件事（學員有沒有在小組貼），
+//    學習週貼的是作業、行動週貼的是心得，一張表就夠。scope 只剩 resp（回應）／verify（締結核對）
+function defaultScope() { return 'resp'; }
+function curScope() { return hwScope === 'verify' ? 'verify' : 'resp'; }   // 'resp' | 'verify'
 function setHwScope(k) { hwScope = k; hwOpen = null; renderHw(); }
 const pendingVerifyCount = () =>
   downlineCloses.filter(c => c.verified === null || c.verified === undefined).length;
@@ -1613,30 +1611,24 @@ function actionViewFrom() {
   return dateStrOf(d);
 }
 
-function dayList() {                       // 開班日到結業日（未來格子另外鎖），再依 scope 過濾
+function dayList() {                       // 回應一覽表：教練要標的每一天（同 pendingSubmitDays 的規則），畫到結業日
   const out = [];
-  if (!batchDates.start) return out;
-  const sc = curScope(), actFrom = actionViewFrom();
-  if (sc === 'verify') return out;                    // 締結核對不吃日期軸
+  if (!batchDates.start || curScope() === 'verify') return out;   // 締結核對不吃日期軸
+  const from = batchDates.submitFrom || batchDates.start;
   // 🔴 2026-09-15 Randoph：整期的格子都畫出來（畫到結業日），未來的格子不能點，避免誤填
   const last = batchDates.end || getDateStr('today');
-  for (let d = new Date(batchDates.start + 'T00:00:00'); dateStrOf(d) <= last; d.setDate(d.getDate() + 1)) {
+  for (let d = new Date(from + 'T00:00:00'); dateStrOf(d) <= last; d.setDate(d.getDate() + 1)) {
     const w = d.getDay();
-    // 🔴 行動不是只有平日在做——2026-08-29（六）有 15 人填報、12 個行動，跟平日一樣多。
-    //    但那天教練的一覽表看不到，也標不到。所以行動表含週末，作業表維持只有平日
-    //    （課表本來就只排平日）。送出制不變：教練週末不用送出（見 pendingSubmitDays）。
-    if (sc !== 'action' && (w < 1 || w > 5)) continue;
-    const ds = dateStrOf(d);
-    if (sc === 'study'  && !(dayUnitsOf(ds) || []).length) continue;   // 沒排課的日子不進作業表
-    if (sc === 'action' && actFrom && ds < actFrom) continue;          // 行動週之前不進行動表
-    out.push(ds);
+    // 學習組只有平日要標（週末不排課、也不用送出）；行動三組天天都做（2026-08-29 週六 15 人填報）
+    if (isLearnGroup() && (w < 1 || w > 5)) continue;
+    out.push(dateStrOf(d));
   }
   return out;
 }
 
 // 一格的狀態：full / part / none / na
 function dayState(sid, ds) {
-  const units = curScope() === 'action' ? null : dayUnitsOf(ds);
+  const units = respUnitsOf(ds);
   if (units && units.length) {
     // ① 逐題紀錄完整 → 以逐題為準（唯一講得出「缺第幾題」的來源）
     const recs = units.map(u => hwMap[sid + '|' + u]).filter(Boolean);
@@ -1660,7 +1652,7 @@ function dayState(sid, ds) {
     }
     return overDeadline(ds) ? { k:'unk', label:'？' } : { k:'na', label:'' };
   }
-  // 行動週：看小組心得（教練標）
+  // 心得日：看小組心得（教練標）
   const r = engAll[sid + '|' + ds];
   if (r && r.homework === true)  return { k:'full', label:'✓' };
   if (r && r.homework === false) return { k:'none', label:'✕' };
@@ -1701,8 +1693,7 @@ function renderHw() {
   const sc0 = curScope();
   const pv = pendingVerifyCount();
   const scopeBar = `<div class="hw-scope">
-    <button class="hw-sc ${sc0 === 'study' ? 'on' : ''}" onclick="setHwScope('study')">📋 作業</button>
-    <button class="hw-sc ${sc0 === 'action' ? 'on' : ''}" onclick="setHwScope('action')">🏃 行動</button>
+    <button class="hw-sc ${sc0 === 'resp' ? 'on' : ''}" onclick="setHwScope('resp')">📋 回應一覽表</button>
     <button class="hw-sc ${sc0 === 'verify' ? 'on' : ''}" onclick="setHwScope('verify')">✅ 締結核對${
       pv ? `<span class="sc-badge">${pv}</span>` : ''}</button>
   </div>`;
@@ -1711,10 +1702,6 @@ function renderHw() {
     grid.innerHTML = scopeBar + renderVerifyBlock();
     clearBelow();
     return;
-  }
-  if (sc0 === 'study' && !isLearnGroup()) {
-    grid.innerHTML = scopeBar + `<div class="hw-hint">你這一組是<b>${trackLabel(myTrack) || '行動組'}</b>，不用交作業。<br>組員的行動心得請看「🏃 行動」。</div>`;
-    clearBelow(); return;
   }
   if (!studentsLoaded) {
     grid.innerHTML = scopeBar + '<div class="hw-hint">載入中…</div>';
@@ -1728,22 +1715,20 @@ function renderHw() {
   const days = dayList();
   if (!days.length) {
     // 🔴 切換鈕一定要留著——否則切到行動又沒資料，教練就被卡在空白頁回不去
-    grid.innerHTML = scopeBar + (sc0 === 'action'
-      ? `<div class="hw-hint">🏃 行動週從 <b>${actionViewFrom()}</b> 開始，還沒到。<br>現在請看「📋 作業」。</div>`
-      : `<div class="hw-hint">目前沒有可顯示的上課日。<br>班期起日 ${batchDates.start || '（未設定）'}，今天 ${getDateStr('today')}。</div>`);
+    grid.innerHTML = scopeBar + `<div class="hw-hint">還沒有要標的日子。<br>從 <b>${batchDates.submitFrom || batchDates.start || '（未設定）'}</b> 開始，今天 ${getDateStr('today')}。</div>`;
     clearBelow(); return;
   }
   const wd = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
-  const isAct = sc0 === 'action';
+  const anyHw = days.some(ds => (respUnitsOf(ds) || []).length);   // 這張表有沒有作業日（決定提醒文案）
   let h = scopeBar;
   h += `<div class="hw-hint">點任何一格可以改。<b>已結案的日子（🔒）改動會記成補標（紫色「補」）</b>——
     教練每天只送出一次，之後就在這裡回追。</div>`;
   h += '<div class="hw-wrap"><table class="hw-tbl"><tr><th class="hw-nm">學員</th>';
   days.forEach(ds => {
-    const us = isAct ? null : dayUnitsOf(ds);   // 行動表的欄位標「行動」，不標單元（行動組 9/14 起那幾天剛好有課表）
+    const us = respUnitsOf(ds);   // 作業日標單元號，其他日子標「心得」（行動三組不上課，一律心得）
     h += `<th title="${ds}（週${wd(ds)}）">${ds.slice(5).replace('-', '/')}<br>
-      <span class="hw-sub">${us ? 'U' + us.join('·') : '行動'}${dateClosed(ds) ? ' 🔒' : ''}</span></th>`;
+      <span class="hw-sub">${us ? 'U' + us.join('·') : '心得'}${dateClosed(ds) ? ' 🔒' : ''}</span></th>`;
   });
   h += '</tr>';
   const missing = [];
@@ -1773,8 +1758,8 @@ function renderHw() {
                onclick="openDay('${stu.id}','${ds}')"
                title="${ds}（週${wd(ds)}）${st.soft ? '｜組員頁已標已交（還沒逐題檢核）' : ''}${mk ? '｜補交' : ''}${dateClosed(ds) ? '｜已結案，改動記為補交' : ''}">${mk ? '補' : st.label}</td>`;
       if (st.k !== 'full') {
-        const us = isAct ? null : dayUnitsOf(ds);
-        const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + (isAct ? ' 行動心得' : '');
+        const us = respUnitsOf(ds);
+        const tag = us ? 'U' + us.join('·') : ds.slice(5).replace('-', '/') + ' 行動心得';
         if (st.k === 'part') {
           // 部分繳：列出缺哪幾題，教練不必再點開確認
           const lack = [];
@@ -1801,7 +1786,7 @@ function renderHw() {
 
   const mbox = document.getElementById('hwMissing');
   if (!missing.length) {
-    mbox.innerHTML = `<div class="hw-missing">🎉 ${isAct ? '行動心得每天都有' : '目前為止每位學員都全繳了'}</div>`;
+    mbox.innerHTML = `<div class="hw-missing">🎉 目前為止每位學員都有回應</div>`;
     return;
   }
   // 複製文字只放「真的缺件」；「教練請確定」是自己的事，貼給學員只會讓他困惑
@@ -1810,9 +1795,14 @@ function renderHw() {
   const mineN = missing.reduce((a, m) => a + m.miss.filter(x => x.mine).length, 0);
   const lines = forCopy.map(m => `【${m.name}】\n` + m.list.map(x => '　' + x.t).join('\n'));
   const copyText = forCopy.length ? (
-    (isAct ? '🏃 行動回報小提醒\n\n每天在小組貼行動心得，是把當天做的事講成自己的話。\n有幾天還沒看到你的分享——\n\n'
-           : '📋 作業進度小提醒\n\n課程作業是把每一堂學到的東西練成自己的話。有一些還沒完成，' +
-             '沒有真正落實學習，未來在事業上就很難專業呈現——這也是我們一起來上課的初衷。\n\n') +
+    (() => {
+      const all = forCopy.flatMap(m => m.list.map(x => x.t));
+      const hw = all.some(t => / U\d/.test(t)), act = all.some(t => t.includes('行動心得'));
+      if (hw && act) return '📋 作業／行動心得小提醒\n\n課程作業和每天的行動心得，都是把做過、學過的事講成自己的話。有幾項還沒看到——\n\n';
+      if (act) return '🏃 行動回報小提醒\n\n每天在小組貼行動心得，是把當天做的事講成自己的話。\n有幾天還沒看到你的分享——\n\n';
+      return '📋 作業進度小提醒\n\n課程作業是把每一堂學到的東西練成自己的話。有一些還沒完成，' +
+             '沒有真正落實學習，未來在事業上就很難專業呈現——這也是我們一起來上課的初衷。\n\n';
+    })() +
     lines.join('\n\n') + '\n\n' +
     '缺哪個就補哪個，補上就好，不用趕、也不用一次全部。有卡住的地方隨時在群裡說，我陪你一起看 💪'
   ) : '（目前沒有需要提醒學員的缺件）';
@@ -1821,7 +1811,7 @@ function renderHw() {
     `<div class="hw-miss-p"><b>${m.name}</b>${m.miss.map(x =>
       `<div class="${x.mine ? 'hw-miss-mine' : ''}">　${x.t}</div>`).join('')}</div>`).join('');
   mbox.innerHTML = `<div class="hw-missing">
-    <div class="hw-missing-hd"><span>📣 ${isAct ? '行動' : '作業'}缺件（${missing.length} 人）</span><button class="hw-copy" onclick="copyGuide('hwCopySrc', this)">📋 一鍵複製</button></div>
+    <div class="hw-missing-hd"><span>📣 還沒回應（${missing.length} 人）</span><button class="hw-copy" onclick="copyGuide('hwCopySrc', this)">📋 一鍵複製</button></div>
     ${shown}
     <div id="hwCopySrc" class="hw-copy-src" style="display:none">${copyText.replace(/</g,'&lt;')}</div>
     <div style="margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.8">
@@ -1844,7 +1834,7 @@ function renderHwDetail() {
   if (!stu) { box.style.display = 'none'; return; }
   // 🔴 2026-09-15：行動表點開要看「行動心得交了沒」，不是作業題目。
   //    原本不看分頁一律 dayUnitsOf(ds)，9/14～9/24 有排課 → 行動組補交跳出 U1·2 逐題勾（同 dayState 的判斷）
-  const ds = hwOpen.ds, units = curScope() === 'action' ? null : dayUnitsOf(ds), closed = dateClosed(ds);
+  const ds = hwOpen.ds, units = respUnitsOf(ds), closed = dateClosed(ds);
   const wdc = '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
 
   let h = `<div class="hw-det">
