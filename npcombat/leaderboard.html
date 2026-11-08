@@ -256,7 +256,7 @@ const AWARDS = [
   //   週榜＝推薦王（人頭），整期＝締結王／開店王／金牌王。同一個 1400 分，
   //   放在週榜會壓垮那一週，放整期就只是「她這期開了張大單」——尺度對了，倍率就不用吵。
   { key:'branch_pts',  emoji:'🏪', name:'開店王',    desc:'自己開分店的締結分（全期累積）', unit:'分', fun:false, cumulative:true },
-  { key:'badge_units', emoji:'🥇', name:'單位王',    desc:'推薦新人開出的單位數（全期累積）', unit:'單位', fun:false, cumulative:true },   // 2026-09-18 金牌王→單位王（小金大金拿掉，一個單位報一筆）
+  { key:'badge_units', emoji:'🥇', name:'單位王',    desc:'推薦新人＋自己開分店的單位數（全期累積）', unit:'單位', fun:false, cumulative:true },   // 2026-09-18 金牌王→單位王（小金大金拿掉，一個單位報一筆）
   { key:'slots',     emoji:'🎫', name:'獎勵達人',  desc:'達成挑戰門檻名額最多（全期累積）', unit:'位', fun:false, cumulative:true },
   // 2026-11-08 拿掉「📋 彈藥充足」：29 期起回報頁不再有狂列名單（Randoph：鼓勵去行動）。BASE_PTS 的 name_list 留著給舊期資料，29 期全是 0
   { key:'meet',      emoji:'🦋', name:'社交蝴蝶',  desc:'認識新友次數最多',         unit:'次', fun:false },
@@ -576,7 +576,8 @@ function calcStats(startDate, endDate) {
     }
     // 🔴 小金／大金只有一套才算（2026-09-13）。原本 select 沒撈 badge 欄位，金牌王一直是 0，一併修正
     // 🥇 單位王：推薦新人每報一筆＝1 單位；9/18 前的舊紀錄若選了小金／大金，照 3／7 單位算
-    if (c.is_new !== false) st.badge_units += (c.badge && c.size === 'full') ? (c.badge === 'big_gold' ? 7 : 3) : 1;
+    // 🔴 2026-11-08 Randoph：單位王＝推薦新人（001）＋自己開分店（自己推薦自己）的總單位數；推薦王只看人數，兩獎不重複
+    st.badge_units += (c.is_new !== false && c.badge && c.size === 'full') ? (c.badge === 'big_gold' ? 7 : 3) : 1;
   });
   const arr = Object.values(students);
   arr.forEach(s => {
