@@ -12,6 +12,7 @@
 <title>環球致富學院</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://player.vimeo.com/api/player.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif}
 :root{
@@ -79,6 +80,28 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .tile.hero{background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);
   box-shadow:0 4px 18px rgba(184,150,12,.20)}
 .tile.admin-t{border-color:rgba(184,150,12,.35)}
+/* 新手村：進度條＋講師封面牆（封面＝Vimeo 縮圖，滑到才載） */
+.vprog{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.vprog .t{display:flex;justify-content:space-between;align-items:baseline;font-size:17px;font-weight:900}
+.vprog .t b{color:var(--gold3);font-size:20px}
+.vprog .bar{height:10px;border-radius:6px;background:rgba(184,150,12,.12);margin-top:10px;overflow:hidden}
+.vprog .bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--gold2),var(--gold3));transition:width .4s}
+.village{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (min-width:700px){.village{grid-template-columns:repeat(3,1fr)}}
+.vcard{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  box-shadow:var(--shadow);cursor:pointer;transition:all .2s}
+.vcard:active{transform:scale(.98)}
+.vcard:hover{border-color:rgba(184,150,12,.35);box-shadow:0 6px 18px rgba(0,0,0,.09)}
+.vcard .img{position:relative;aspect-ratio:16/9;background:#f1ede2}
+.vcard img{width:100%;height:100%;object-fit:cover;display:block}
+.vcard .nm{padding:9px 11px 11px;font-size:17px;font-weight:900;line-height:1.35}
+.vcard .nm .no{color:var(--gold3);margin-right:5px}
+.vcard .nm .du{display:block;font-size:13px;font-weight:700;color:var(--txt2);margin-top:2px}
+.vcard .st{display:inline-block;margin-left:6px;padding:1px 8px;font-size:12px;font-weight:900;color:#fff;border-radius:8px;vertical-align:1px}
+.vcard .st.done{background:var(--green)}
+.vcard .st.half{background:var(--gold3)}
+.hw-intro{font-size:16px;color:var(--txt2);line-height:1.7;margin:-2px 0 10px}
+#lesson-next{margin-top:18px}
 /* 四大類 → 學分 */
 .cat{margin:22px 0 10px;display:flex;align-items:center;gap:9px}
 .cat .n{font-size:20px;font-weight:900}
@@ -246,12 +269,14 @@ textarea:focus{outline:none;border-color:var(--gold2)}
   <!-- 學院首頁：課程列表 -->
   <div id="screen-home" class="screen">
     <div class="hd">
-      <div class="hd-icon">🎓</div>
-      <div class="hd-title">學院廣場</div>
+      <div class="hd-icon">🏡</div>
+      <div class="hd-title">新手村</div>
       <div class="hd-sub" id="home-sub">歡迎回來</div>
-      <div><span class="chip ok">✅ 已入場</span> <span class="chip admin" id="admin-chip" style="display:none">🛡️ 學院管理員</span></div>
+      <div><span class="chip admin" id="admin-chip" style="display:none">🛡️ 學院管理員</span></div>
     </div>
-    <div class="plaza" id="plaza"></div>
+    <div class="vprog" id="vprog"></div>
+    <div class="village" id="village"><div class="card">載入中…</div></div>
+    <div class="plaza" id="plaza" style="margin-top:18px"></div>
   </div>
 
   <!-- 課程（廣場 → 課程） -->
@@ -276,15 +301,17 @@ textarea:focus{outline:none;border-color:var(--gold2)}
 
   <!-- 單課 -->
   <div id="screen-lesson" class="screen">
-    <div class="back" id="lesson-back">← 回課列表</div>
+    <div class="back" id="lesson-back">← 回新手村</div>
     <div class="hd" style="padding:8px 0 14px">
       <div class="hd-title" id="lesson-title" style="font-size:21px;line-height:1.4"></div>
     </div>
     <div class="player" id="player"></div>
     <div class="hw">
-      <h3>📝 這一課的作業</h3>
+      <h3>📝 練習題</h3>
+      <div class="hw-intro">這是實戰班的課程作業。你也可以試著做做看，寫好或錄好之後，交給自己的領袖一起討論。</div>
       <div id="homework"></div>
     </div>
+    <div id="lesson-next"></div>
   </div>
 
   <!-- 管理員 -->
@@ -518,16 +545,8 @@ function renderHome(){
   document.getElementById('admin-chip').style.display = isAdmin ? '' : 'none';
   showFab(isAdmin);
 
-  const cr = allCredits();
-  const 開放單元 = cr.reduce((s,c)=>s+(c.open_count||0),0);
-
-  const tiles = [
-    {ic:'🚀', nm:'我的下一步', sub:'啟動器', soon:true, wide:true},
-    {ic:'📖', nm:'學分地圖', sub:`${cr.length} 學分 · ${開放單元} 單元`, go:'courses'},
-    {ic:'🎬', nm:'影片庫', sub:'說明會 · 領袖訪談', soon:true},
-    {ic:'🏆', nm:'故事探索', sub:'找到像你的人', soon:true},
-    {ic:'🏅', nm:'我的集點', sub:'學分與徽章', soon:true},
-  ];
+  // 2026-11-08 廣場 → 新手村：只剩管理員的審核格，「準備中」的格子全部拿掉
+  const tiles = [];
   if (isAdmin) tiles.push({ic:'🛡️', nm:'審核', sub:'入場申請', act:"go('admin');loadAdmin('pending')", admin:true, wide:true});
 
   document.getElementById('plaza').innerHTML = tiles.map(x => `
@@ -537,7 +556,70 @@ function renderHome(){
       <div><div class="nm">${x.nm}</div><div class="sub">${x.soon?'準備中':x.sub}</div></div>
     </div>`).join('');
   go('home');
+  loadStarter();
 }
+
+// ========== 新手村（初階 17 堂，照舊站 01～17）==========
+let starter = [];     // [{id,no,title,cover_url,duration_sec,pct,done}]
+async function loadStarter(){
+  const {data, error} = await gate('get_academy_starter', {});
+  if(error || !data?.ok){
+    document.getElementById('village').innerHTML = '<div class="card">課程載入失敗，請重新整理</div>';
+    return;
+  }
+  starter = data.lessons || [];
+  renderVillage();
+}
+const pad2 = n => String(n).padStart(2,'0');
+function renderVillage(){
+  const done = starter.filter(x => x.done).length, total = starter.length;
+  document.getElementById('vprog').innerHTML =
+    `<div class="t"><span>新手村進度</span><span>已看 <b>${done}</b>／${total}</span></div>
+     <div class="bar"><i style="width:${total ? Math.round(done*100/total) : 0}%"></i></div>`;
+  document.getElementById('village').innerHTML = starter.map(x => {
+    const st = x.done ? '<span class="st done">✓ 已看</span>'
+             : x.pct > 0 ? '<span class="st half">看到一半</span>' : '';
+    const du = x.duration_sec ? `${Math.max(1, Math.round(x.duration_sec/60))} 分鐘` : '';
+    return `<div class="vcard" onclick="openLesson('${x.id}')">
+      <div class="img">${x.cover_url ? `<img src="${esc(x.cover_url)}" alt="" loading="lazy">` : ''}</div>
+      <div class="nm"><span class="no">${pad2(x.no)}</span>${esc(x.title)}<span class="du">${du}${st}</span></div>
+    </div>`;
+  }).join('') || '<div class="card">課程準備中</div>';
+}
+
+// 看到幾成 → 寫回（只升不降；首播、25/50/75、90 各記一次）
+function trackVimeo(iframe, lessonId){
+  if(!window.Vimeo || !iframe) return;
+  const row = starter.find(x => x.id === lessonId);
+  const marks = [1, 25, 50, 75, 90];
+  let sent = row?.done ? 90 : (row?.pct || 0);
+  const send = pct => {
+    sent = pct;
+    if(row){ row.pct = Math.max(row.pct||0, pct); if(pct >= 90) row.done = true; }
+    gate('log_academy_progress', {p_lesson_id: lessonId, p_pct: pct});
+  };
+  try{
+    const pl = new Vimeo.Player(iframe);
+    pl.on('timeupdate', d => {
+      const pct = Math.floor((d.percent || 0) * 100);
+      const m = marks.filter(k => k <= pct && k > sent).pop();
+      if(m) send(m === 90 ? Math.max(90, pct) : m);
+    });
+    pl.on('ended', () => { if(sent < 100) send(100); });
+  }catch(e){ console.warn('vimeo track', e); }
+}
+
+// 看完接下一堂（照新手村編號）；最後一堂回新手村
+function renderNext(lessonId){
+  const el = document.getElementById('lesson-next');
+  const i = starter.findIndex(x => x.id === lessonId);
+  if(i < 0){ el.innerHTML = ''; return; }
+  const nx = starter[i+1];
+  el.innerHTML = nx
+    ? `<button class="btn" onclick="openLesson('${nx.id}')">下一堂：${pad2(nx.no)} ${esc(nx.title)} →</button>`
+    : `<button class="btn sec" onclick="goVillage()">🏡 回新手村</button>`;
+}
+function goVillage(){ renderVillage(); go('home'); }
 
 // 四大類＝時間軸：底層觀念／見人前／見人時／見人後
 const CAT_DESC = {'觀念確信':'我為什麼相信','行前準備':'見人之前','會場運作':'人在面前時','組織運作':'他進來之後'};
@@ -582,7 +664,10 @@ function stripNo(t){ return String(t).replace(/^\d+\.\s*/, ''); }
 
 // ========== 單課（video_id 只有這裡拿得到）==========
 async function openLesson(id){
-  document.getElementById('lesson-back').onclick = () => openCourse(curCourse.id);
+  const inVillage = starter.some(x => x.id === id);
+  document.getElementById('lesson-back').textContent = inVillage ? '← 回新手村' : '← 回課列表';
+  document.getElementById('lesson-back').onclick = () => inVillage ? goVillage() : openCourse(curCourse.id);
+  document.getElementById('lesson-next').innerHTML = '';
   document.getElementById('player').innerHTML = '<div class="noplay">載入中…</div>';
   document.getElementById('homework').innerHTML = '';
   go('lesson');
@@ -596,7 +681,8 @@ async function openLesson(id){
     return;
   }
   const l = data.lesson;
-  document.getElementById('lesson-title').textContent = l.title;
+  const sv = starter.find(x => x.id === l.id);
+  document.getElementById('lesson-title').textContent = sv ? pad2(sv.no) + ' ' + l.title : l.title;
 
   const code = ctx.member?.np_member_code || ctx.member?.name || '';
   if(l.video_id && l.video_platform === 'vimeo'){
@@ -609,13 +695,23 @@ async function openLesson(id){
       `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(l.video_id)}" allowfullscreen></iframe>
        <div class="mark">${esc(code)}</div>`;
   }else{
-    document.getElementById('player').innerHTML = '<div class="noplay">這一課沒有影片，請直接完成下方作業</div>';
+    document.getElementById('player').innerHTML = '<div class="noplay">這一課沒有影片，可以直接看下方的練習題</div>';
   }
 
   const hw = Array.isArray(l.homework) ? l.homework : [];
   document.getElementById('homework').innerHTML = hw.length
     ? '<ol>' + hw.map(h => `<li>${esc(stripNo(h))}</li>`).join('') + '</ol>'
     : '<div class="none">這一課沒有指定作業。</div>';
+  document.querySelector('#screen-lesson .hw-intro').style.display = hw.length ? '' : 'none';
+
+  // 看過紀錄：Vimeo 播到 9 成算看過；沒有影片的單元點進來就算
+  if(l.video_id && l.video_platform === 'vimeo'){
+    trackVimeo(document.querySelector('#player iframe'), l.id);
+  }else if(!l.video_id && sv && !sv.done){
+    sv.pct = 100; sv.done = true;
+    gate('log_academy_progress', {p_lesson_id: l.id, p_pct: 100});
+  }
+  renderNext(l.id);
 }
 
 // ========== 管理員 ==========
@@ -661,22 +757,21 @@ async function doRevoke(memberId){
 // ========== 預覽模式（免 LINE 登入）==========
 function isPreview(){ return location.hash === '#preview' || new URLSearchParams(location.search).has('preview'); }
 function previewInit(){
-  ctx = {state:'active', access:true, is_admin:true,
-    member:{name:'預覽帳號', np_member_code:'NP000000'},
-    courses:[
-      {id:'p1', title:'初階課程', description:'舊官網 unpaplus.com 轉入', lesson_count:2,
-       lessons:[{id:'l1',seq:1,title:'01.初階-前導',has_video:true},{id:'l2',seq:2,title:'02.初階-夢想版',has_video:true}]},
-      {id:'p2', title:'高階課程', description:'', lesson_count:0, lessons:[]}
-    ]};
+  // 預覽：免 LINE 登入，假資料（新手村前 6 堂，封面是真的 Vimeo 縮圖）
+  ctx = {state:'active', access:true, is_admin:true, member:{name:'預覽帳號', np_member_code:'NP000000'}};
+  window.gate = async () => ({data:{ok:true}, error:null});   // 預覽不寫任何東西
+  window.loadStarter = () => { starter = [{"id": "l1", "no": 1, "title": "前導", "cover_url": "https://i.vimeocdn.com/video/2185881090-43b459ab39a0d8f46e4dea09be14d65a1ffb9cd73b5229415a6405b3cac28e85-d_640", "duration_sec": 352, "pct": 100, "done": true}, {"id": "l2", "no": 2, "title": "夢想版", "cover_url": "https://i.vimeocdn.com/video/2185776967-f37475ba821f45eafdcb5eb7bcd6653f2273fe4eeb4f2406cd22a2c6cfda0b93-d_640", "duration_sec": 419, "pct": 40, "done": false}, {"id": "l3", "no": 3, "title": "確信行業", "cover_url": "https://i.vimeocdn.com/video/2202401425-3b4de6b61698ec2fac47f899ca848c4feef673cc8eff0be3292e86474eea5eb0-d_640", "duration_sec": 1627, "pct": 0, "done": false}, {"id": "l4", "no": 4, "title": "確信公司", "cover_url": "https://i.vimeocdn.com/video/2185777684-9d18a55dd9aa7f4b0c45200390154a81270097bd57b80313199f603dc7baa90f-d_640", "duration_sec": 276, "pct": 0, "done": false}, {"id": "l5", "no": 5, "title": "五大商品優勢", "cover_url": "https://i.vimeocdn.com/video/2187362631-7be686d085f77d2e697f08dcd33dc55772c3736104ba36a5f12c1c44a8985cd8-d_640", "duration_sec": 1360, "pct": 0, "done": false}, {"id": "l6", "no": 6, "title": "確信制度", "cover_url": "https://i.vimeocdn.com/video/2185778479-5c76b1a441deba90bf7930e9c3f6532701f5e7fcb9e4dbc0c12abc7e5f106b21-d_640", "duration_sec": 1015, "pct": 0, "done": false}]; renderVillage(); };
   renderHome();
   window.openLesson = (id) => {
-    document.getElementById('lesson-back').onclick = () => openCourse(curCourse.id);
-    document.getElementById('lesson-title').textContent = '01.初階-前導';
+    const sv = starter.find(x => x.id === id);
+    document.getElementById('lesson-back').textContent = '← 回新手村';
+    document.getElementById('lesson-back').onclick = goVillage;
+    document.getElementById('lesson-title').textContent = pad2(sv.no) + ' ' + sv.title;
     document.getElementById('player').innerHTML =
       '<div class="noplay">預覽模式不載入影片</div><div class="mark">NP000000</div>';
     document.getElementById('homework').innerHTML =
-      '<ol><li>人生最光榮的時刻是？【文字】</li><li>這個單元對我的幫助？【錄音1分鐘】</li></ol>';
-    go('lesson');
+      '<ol><li>說出3個傳直銷的優勢。【錄音1分鐘內】</li><li>這個單元對我的幫助？【錄音1分鐘內】</li></ol>';
+    go('lesson'); renderNext(id);
   };
 }
 

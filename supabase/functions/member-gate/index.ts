@@ -4,7 +4,7 @@
 //
 // 目前的動作：
 //   me       → 回傳自己的會員資料（名字、VIP 等級、AI 點數；不含電話 email）
-//   academy  → 環球致富學院的 6 支函式（白名單），身分欄一律換成驗證過的 userId，前端傳的不算
+//   academy  → 環球致富學院的 8 支函式（白名單），身分欄一律換成驗證過的 userId，前端傳的不算
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -20,6 +20,8 @@ const ACADEMY: Record<string, { id: string; args: string[] }> = {
   list_academy_enrollments: { id: 'p_admin_line_id', args: ['p_status'] },
   approve_academy:          { id: 'p_admin_line_id', args: ['p_member_id', 'p_plan', 'p_expires_at'] },
   revoke_academy:           { id: 'p_admin_line_id', args: ['p_member_id', 'p_reason'] },
+  get_academy_starter:      { id: 'p_line_user_id',  args: [] },                        // 新手村 17 堂＋自己的進度
+  log_academy_progress:     { id: 'p_line_user_id',  args: ['p_lesson_id', 'p_pct'] },  // 看到幾成（>=90 算看過）
 };
 
 function cors(req: Request) {
