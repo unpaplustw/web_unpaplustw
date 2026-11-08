@@ -87,9 +87,9 @@
   .act-names{flex-basis:100%;width:100%;max-width:100%;min-width:0;box-sizing:border-box;display:none;margin-top:8px}   /* min-width:0：iPhone 上輸入框原生寬度會把整列撐出卡片 */
   .act-names.on{display:block}
   .nm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;min-width:0}
-  .nm-tabs{display:flex;gap:5px;overflow-x:auto;margin-bottom:7px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nm-tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}   /* 2026-11-08 改換行：橫滑時最右邊被切一半，看起來像破框 */
   .nm-tabs::-webkit-scrollbar{display:none}
-  .nm-tab{flex-shrink:0;border:none;background:#f3eee2;border-radius:14px;padding:4px 10px;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--muted);white-space:nowrap}
+  .nm-tab{border:none;background:#f3eee2;border-radius:14px;padding:4px 10px;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--muted);white-space:nowrap}
   .nm-tab.on{background:var(--gold-lt);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
   .nm-empty{font-size:12.5px;color:var(--muted);padding:2px 2px 6px}
   .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -107,9 +107,9 @@
   .book>summary span{font-size:13px;font-weight:700;color:var(--gold);background:var(--gold-lt);border-radius:12px;padding:3px 10px}
   .bk-hint{font-size:12.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px}
   .bk-empty{font-size:14px;color:var(--muted);line-height:1.7;padding:6px 0 16px}
-  .bk-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .bk-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 8px}   /* 同上：換行不橫滑 */
   .bk-tabs::-webkit-scrollbar{display:none}
-  .bk-tab{flex-shrink:0;border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:6px 11px;font-size:13.5px;font-weight:700;font-family:inherit;color:var(--text);white-space:nowrap}
+  .bk-tab{border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:6px 11px;font-size:13.5px;font-weight:700;font-family:inherit;color:var(--text);white-space:nowrap}
   .bk-tab b{margin-left:4px;color:var(--gold)}
   .bk-tab.on{background:var(--gold);border-color:var(--gold);color:#fff}
   .bk-tab.on b{color:#fff}
