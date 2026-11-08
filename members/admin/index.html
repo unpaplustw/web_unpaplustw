@@ -93,7 +93,7 @@ select{padding:8px 10px;border-radius:10px;border:1px solid var(--glass-bd);back
 const LIFF_ID = '2009692859-K26oPBlC';   // 「會員中心後台」LIFF（Endpoint＝/members/admin/，2026-11-08 建）
 const GATE = 'https://nsgqsopqlkhayuefdout.supabase.co/functions/v1/member-gate';
 
-const ACTION_NAME = {view:'調閱名單', confirm:'第一段確認', approve:'最終通過', set_level:'調整等級', manage_peaks:'維護高峰表', grant:'授權別人'};
+const ACTION_NAME = {view:'調閱名單', confirm:'第一段確認', approve:'最終通過', set_level:'調整等級', manage_peaks:'維護族譜與高峰表', grant:'授權別人'};
 const CORES = {'2':'顏麗玉、游天貴','5':'林甘霖、楊牧潔','6':'蔡依儒、尤竣億','7':'林姍嬅、凌翊迅','8':'楊敬豪、林珊合'};
 const LV_NAME = {0:'VIP0 尚未入會', 1:'VIP1 綠佳利會員', 2:'VIP2 A Plus 成員'};
 const TABS = [
@@ -101,6 +101,7 @@ const TABS = [
   {k:'approved', nm:'已通過'},
   {k:'visitor',  nm:'訪客'},
   {k:'rejected', nm:'已退回'},
+  {k:'lineage',  nm:'族譜', needPeaks:true},
   {k:'grants',   nm:'授權', needGrant:true},
 ];
 
@@ -121,6 +122,7 @@ async function gate(fn, args){
   }catch(e){ return {ok:false, error:'network'}; }
 }
 const canGrant = () => me && (me.is_central || me.grants.some(g => g.action === 'grant'));
+const canPeaks = () => me && (me.is_central || me.grants.some(g => g.action === 'manage_peaks'));
 
 // ========== 啟動 ==========
 async function init(){
@@ -144,7 +146,7 @@ function renderShell(){
   const chips = me.is_central ? ['<span class="chip central">中央：全部權限</span>']
     : me.grants.map(g => `<span class="chip">${ACTION_NAME[g.action] || g.action}｜${esc(scopeLabel(g))}</span>`);
   document.getElementById('me-chips').innerHTML = chips.join('');
-  document.getElementById('tabs').innerHTML = TABS.filter(t => !t.needGrant || canGrant())
+  document.getElementById('tabs').innerHTML = TABS.filter(t => (!t.needGrant || canGrant()) && (!t.needPeaks || canPeaks()))
     .map(t => `<div class="tab" id="tab-${t.k}" onclick="go('${t.k}')">${t.nm}<span class="n" id="n-${t.k}"></span></div>`).join('');
   show('main');
 }
@@ -161,6 +163,7 @@ async function go(k){
   const pane = document.getElementById('pane');
   pane.innerHTML = '<div class="empty">載入中…</div>';
   if(k === 'grants') return loadGrants();
+  if(k === 'lineage') return loadLineage();
   const d = await gate('admin_list_members', {p_status: k});
   if(!d.ok){ pane.innerHTML = '<div class="empty">載入失敗</div>'; return; }
   rows = d.members || [];
@@ -258,6 +261,75 @@ async function setGrant(mid, act, st, sid, on){
   toast(on ? '已授權' : '已收回'); loadGrants();
 }
 
+// ========== 族譜（推薦線正本；四欄必有：編號、姓名、推薦人編號、推薦人姓名）==========
+let lin = [], linFilter = 'peaks', linQ = '', linEdit = null;
+const CODE_RE = /^[0-9]{7}[A-Z]?$/;   // 共同經營帶英文字尾（例 2828004B）
+async function loadLineage(){
+  const pane = document.getElementById('pane');
+  pane.innerHTML = '<div class="empty">載入中…</div>';
+  const d = await gate('admin_list_lineage', {p_filter: linFilter});
+  if(!d.ok){ pane.innerHTML = '<div class="empty">' + (d.error === 'forbidden' ? '你沒有族譜權限' : '載入失敗') + '</div>'; return; }
+  lin = d.rows || [];
+  const n = document.getElementById('n-lineage'); if(n) n.textContent = lin.length;
+  renderLineage();
+}
+function chainText(r){
+  const c = r.chain || {};
+  if(r.peak_core) return `<span class="lv lv2">${r.peak_core} 號核心的根</span>`;
+  if(c.core) return `<span class="lv lv2">→ ${c.core} 號核心</span> <span class="hint">經 ${esc(c.via || c.via_code)}${c.depth > 1 ? `（往上 ${c.depth} 層）` : ''}</span>`;
+  return `<span class="lv lv0">推薦線斷了</span> <span class="hint">停在 ${esc(c.broken_at || r.code)}</span>`;
+}
+function renderLineage(){
+  const pane = document.getElementById('pane');
+  const kw = linQ.trim();
+  const list = kw ? lin.filter(r => [r.code, r.name, r.sponsor_code, r.sponsor_name].some(x => String(x || '').includes(kw))) : lin;
+  const chip = (k, t) => `<div class="tab ${linFilter === k ? 'on' : ''}" onclick="linFilter='${k}';linEdit=null;loadLineage()">${t}</div>`;
+  pane.innerHTML = `
+    <div class="note">每個人都要有<b>會員編號、姓名、推薦人編號、推薦人姓名</b>才追得到。高峰標了「所屬核心」，他底下沿推薦線的人就會算進那個核心（之後通過時自動給 VIP2）。</div>
+    <div class="tabs">${chip('peaks', '高峰／CFC')}${chip('incomplete', '資料不全')}${chip('all', '全部')}</div>
+    <input class="search" placeholder="搜尋編號、姓名、推薦人" value="${esc(linQ)}" oninput="linQ=this.value;renderLineage()">
+    <button class="btn sec" style="width:100%;margin-bottom:10px" onclick="linEdit='__new';renderLineage()">➕ 新增一個人</button>
+    ${linEdit === '__new' ? linForm({}) : ''}
+    ${list.length ? list.map(r => linEdit === r.code ? linForm(r) : linCard(r)).join('') : '<div class="empty">沒有資料</div>'}`;
+}
+function linCard(r){
+  const miss = v => v ? esc(v) : '<span style="color:var(--red)">缺</span>';
+  return `<div class="card">
+    <div class="m-name">${miss(r.name)} <span class="hint">${esc(r.code)}</span> ${r.rank ? `<span class="lv lvx">${esc(r.rank)}</span>` : ''} ${r.in_hub ? '<span class="lv lv1">會員中心</span>' : ''}</div>
+    <div class="m-meta">推薦人：${miss(r.sponsor_name)} <span class="hint">${r.sponsor_code ? esc(r.sponsor_code) : '<span style="color:var(--red)">編號缺</span>'}</span></div>
+    <div class="m-meta" style="margin-top:6px">${chainText(r)}</div>
+    <div class="acts"><button class="btn sec" onclick="linEdit='${esc(r.code)}';renderLineage()">修改</button></div>
+  </div>`;
+}
+function linForm(r){
+  const isNew = !r.code;
+  const coreOpts = ['<option value="">不是核心的根</option>'].concat(Object.entries(CORES).map(([k, v]) =>
+    `<option value="${k}" ${r.peak_core === k ? 'selected' : ''}>${k} 號核心（${esc(v)}）</option>`)).join('');
+  return `<div class="card"><div class="form">
+    <div><label>會員編號 *</label><input class="search" style="margin:0" id="l-code" value="${esc(r.code || '')}" ${isNew ? '' : 'readonly'} placeholder="7 位數字，共同經營可帶英文字尾"></div>
+    <div><label>姓名 *</label><input class="search" style="margin:0" id="l-name" value="${esc(r.name || '')}"></div>
+    <div><label>推薦人編號 *</label><input class="search" style="margin:0" id="l-sc" value="${esc(r.sponsor_code || '')}"></div>
+    <div><label>推薦人姓名 *</label><input class="search" style="margin:0" id="l-sn" value="${esc(r.sponsor_name || '')}"></div>
+    <div><label>高峰所屬核心（只有 A Plus 核心的高峰才選）</label><select id="l-core">${coreOpts}</select></div>
+    <div class="acts" style="margin-top:0"><button class="btn ok" onclick="saveLin(this)">儲存</button><button class="btn sec" onclick="linEdit=null;renderLineage()">取消</button></div>
+  </div></div>`;
+}
+async function saveLin(btn){
+  const v = id => document.getElementById(id).value.trim();
+  const code = v('l-code').toUpperCase(), sc = v('l-sc').toUpperCase();
+  if(!CODE_RE.test(code)){ toast('會員編號要 7 位數字（共同經營可帶英文字尾）'); return; }
+  if(sc && !CODE_RE.test(sc)){ toast('推薦人編號格式不對'); return; }
+  if(!v('l-name')){ toast('姓名要填'); return; }
+  if(!sc || !v('l-sn')) { if(!confirm('推薦人編號或姓名還沒填，先存著之後再補？')) return; }
+  btn.disabled = true;
+  const d = await gate('admin_save_lineage', {p_member_code: code, p_name: v('l-name'), p_sponsor_code: sc || null,
+    p_sponsor_name: v('l-sn') || null, p_peak_core: document.getElementById('l-core').value || null});
+  btn.disabled = false;
+  if(!d.ok){ toast({forbidden:'你沒有族譜權限', bad_code:'會員編號格式不對', bad_sponsor_code:'推薦人編號格式不對', self_sponsor:'推薦人不能是自己'}[d.error] || '儲存失敗'); return; }
+  toast('已儲存'); linEdit = null; loadLineage();
+}
+
+
 // ========== 預覽（免 LINE 登入，假資料，不寫任何東西）==========
 function previewInit(){
   const T = [{id:'t1', name:'敬豪團隊', handle:'@809lipop'}, {id:'t2', name:'魷魚團隊', handle:'@453ajvfv'}];
@@ -275,6 +347,10 @@ function previewInit(){
       return {ok:true, members: M.filter(m => s === 'all' || (s === 'pending' ? m.level === 0 && m.code && !m.rejected_at
         : s === 'approved' ? m.level >= 1 : s === 'visitor' ? m.level === 0 && !m.code : s === 'rejected' ? !!m.rejected_at : true))};
     }
+    if(fn === 'admin_list_lineage') return {ok:true, rows:[
+      {code:'2675630', name:'游育杰', sponsor_code:'1477169', sponsor_name:'林甘霖', rank:'高峰', peak_core:'5', in_hub:true, chain:{core:'5', via:'游育杰', depth:0}},
+      {code:'2828004B', name:'翟元菱', sponsor_code:'1490772', sponsor_name:null, rank:'高峰', peak_core:null, chain:{core:null, broken_at:'1490772', depth:1}},
+      {code:'2712345', name:'王小明', sponsor_code:'2675630', sponsor_name:'游育杰', rank:null, peak_core:null, in_hub:true, chain:{core:'5', via:'游育杰', depth:1}}]};
     if(fn === 'admin_list_grants') return {ok:true, grants:[
       {member_id:'m3', name:'林珊合', code:'2600001', action:'view', scope_type:'tenant', scope_id:'t1', scope_name:'敬豪團隊'},
       {member_id:'m3', name:'林珊合', code:'2600001', action:'confirm', scope_type:'tenant', scope_id:'t1', scope_name:'敬豪團隊'}]};

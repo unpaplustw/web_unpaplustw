@@ -5,7 +5,7 @@
 // 目前的動作：
 //   me       → 回傳自己的會員資料（名字、VIP 等級、AI 點數；不含電話 email）
 //   academy  → 環球致富學院的 8 支函式（白名單），身分欄一律換成驗證過的 userId，前端傳的不算
-//   admin    → 會員中心後台的 7 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
+//   admin    → 會員中心後台的 9 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -34,6 +34,8 @@ const ADMIN: Record<string, { id: string; args: string[] }> = {
   admin_set_level:    { id: 'p_caller_line_id', args: ['p_member_id', 'p_level'] },
   admin_list_grants:  { id: 'p_caller_line_id', args: [] },
   admin_set_grant:    { id: 'p_caller_line_id', args: ['p_member_id', 'p_action', 'p_scope_type', 'p_scope_id', 'p_on'] },
+  admin_list_lineage: { id: 'p_caller_line_id', args: ['p_filter'] },   // 族譜（中央／manage_peaks 權）
+  admin_save_lineage: { id: 'p_caller_line_id', args: ['p_member_code', 'p_name', 'p_sponsor_code', 'p_sponsor_name', 'p_peak_core'] },
 };
 const CHANNELS: Record<string, Record<string, { id: string; args: string[] }>> = { academy: ACADEMY, admin: ADMIN };
 
