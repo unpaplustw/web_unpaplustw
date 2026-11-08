@@ -321,6 +321,12 @@
   /* ── Group report checkbox ── */
 
   /* ── Footer ── */
+  /* 整頁頁籤（2026-11-08）：黏在頂端，點了整頁切換 */
+  .ptabs{position:sticky;top:0;z-index:30;display:flex;gap:6px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);max-width:500px;margin:0 auto}
+  .ptab{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:12px;padding:10px 4px;font-size:15px;font-weight:800;font-family:inherit;color:var(--muted);white-space:nowrap}
+  .ptab.on{background:var(--gold);border-color:var(--gold);color:#fff}
+  .ptab-n{margin-left:3px;font-size:12.5px;opacity:.85}
+  #pgBook .book>summary{pointer-events:none}   /* 名單本頁籤裡永遠展開 */
   .ft{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
 
   /* ── Toast ── */
@@ -369,10 +375,12 @@
   <div class="hd-day" id="dayCount"></div>
 </div>
 <div class="deadline-bar">⏰ 每日最晚 22:00 填寫回報</div>
+<div class="ptabs" id="pageTabs" style="display:none"></div>   <!-- 整頁頁籤（2026-11-08） -->
 
 <div id="actionPane">
 <!-- ── 今天的課程：學習組有排課的日子才出現（行動／精英組的鼓勵卡待定） ── -->
-<div id="todayCard"></div>
+<div id="pgCourse"><div id="todayCard"></div></div>
+<div id="pgReport">
 <!-- ── 戰報儀表板 ── -->
 <div class="war-report" id="warReport" style="display:none">
   <div class="wr-card" id="wrCard">
@@ -558,10 +566,11 @@
     <button class="btn-edit" onclick="backToEdit()">修改回報</button>
   </div>
 </div>
+</div><!-- /pgReport -->
+<div id="pgBook"><div id="bookArea" style="display:none"></div></div>
 </div><!-- /actionPane -->
 
 <div class="ft">實戰班委員會<br><span id="verTag" style="font-size:10px;opacity:.45"></span></div>
-<div id="bookArea" style="display:none"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -630,6 +639,29 @@ function copyHW(no) {
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
   else fallback();
 }
+// ══ 整頁頁籤（2026-11-08 Randoph 選「整頁最上方的大頁籤」）══════════════
+//   不用一路往下滑找名單本；學習組有排課的日子預設停在「課程」，其他停在「今日回報」
+let pageTab = null;
+function setupPageTabs() {
+  const tabs = [];
+  if (myTrack === 'learn') tabs.push(['course', '📖 課程']);
+  tabs.push(['report', '📝 今日回報'], ['book', '📒 名單本']);
+  const bar = document.getElementById('pageTabs');
+  if (!bar) return;
+  bar.innerHTML = tabs.map(([k, t]) => `<button type="button" class="ptab" data-k="${k}" onclick="setPageTab('${k}')">${t}<span class="ptab-n" id="ptn-${k}"></span></button>`).join('');
+  bar.style.display = '';
+  const hasClass = myTrack === 'learn' && (unitsOfDay(today()) || []).length;
+  setPageTab(hasClass ? 'course' : 'report', true);
+}
+function setPageTab(k, quiet) {
+  pageTab = k;
+  [['pgCourse', 'course'], ['pgReport', 'report'], ['pgBook', 'book']].forEach(([id, t]) => {
+    const el = document.getElementById(id); if (el) el.style.display = (k === t) ? '' : 'none'; });
+  document.querySelectorAll('#pageTabs .ptab').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  if (k === 'book') renderBook();
+  if (!quiet) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function renderTodayCard() {
   const el = document.getElementById('todayCard');
   if (!el || myTrack !== 'learn') return;          // 行動組的鼓勵卡：金句清單待定
@@ -891,13 +923,13 @@ function setBookTab(k) { bookTab = k; renderBook(); }
 function renderBook() {
   const box = document.getElementById('bookArea');
   const open = !actionsLocked();
-  if (!box || (!open && !contacts.length)) { if (box) box.style.display = 'none'; return; }
+  if (!box) return;   // 2026-11-08 名單本有自己的頁籤：永遠顯示（還沒開放時顯示說明）
   box.style.display = '';
   const rows = bookRows();
   contactGrp = {}; rows.forEach(r => { contactGrp[r.c.id] = r.grp; });
-  const wasOpen = box.querySelector('details')?.open;
+  const nEl = document.getElementById('ptn-book'); if (nEl) nEl.textContent = rows.length ? String(rows.length) : '';
   const body = !rows.length
-    ? `<div class="bk-empty">還沒有人。回報行動時點「＋」，在卡片下面加上對方的名字，就會出現在這裡。</div>`
+    ? `<div class="bk-empty">${open ? '' : '🔒 行動開放後就能用。'}還沒有人。到「📝 今日回報」按行動的「＋」，在卡片下面加上對方的名字，就會出現在這裡。</div>`
     : (() => {
         const cnt = k => rows.filter(r => r.grp === k).length;
         if (!bookTab || !cnt(bookTab)) bookTab = (BOOK_GROUPS.find(g => cnt(g.key)) || BOOK_GROUPS[0]).key;
@@ -912,7 +944,7 @@ function renderBook() {
             : `<div class="bk-empty">這一組目前沒有人</div>`);
       })()
       + `<button type="button" class="bk-copy" onclick="copyBook()">📋 一鍵複製我的名單本</button>`;
-  box.innerHTML = `<details class="book"${wasOpen ? ' open' : ''}><summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
+  box.innerHTML = `<details class="book" open><summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
     + `<div class="bk-hint">從你回報的行動自動長出來：每個人走到哪一關，下一步做什麼。只有你和你的教練看得到。</div>${body}</details>`;
 }
 function toggleBookEdit(id) {
@@ -1280,6 +1312,7 @@ async function init() {
     await loadContacts(); setupNameRows();   // 名單本＋選人列（要在帶回今天已填之前建好）
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
+    setupPageTabs();     // 整頁頁籤（要在 myTrack 確定之後）
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
     document.getElementById('userName').textContent = member.name;   // 🔴 9/10 移除天神視角時漏刪這裡的 _isGodView → ReferenceError，整頁「載入失敗」（9/13 開班日才發現）
