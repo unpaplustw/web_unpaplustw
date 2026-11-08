@@ -1245,7 +1245,7 @@ function renderCloseEntries() {
         ${SIZES.map(s => `<div class="close-half ${e.size===s.key?'sel':''}" onclick="setSize(${i},'${s.key}')">${s.label}</div>`).join('')}
       </div>` : ''}
       ${pts > 0 ? `<div class="close-pts">＋${pts} 分</div>` : ''}
-      ${e.kind === 'new' && v.k === 'new' && e.plan && e.size ? `<button class="btn-add-unit" onclick="addUnit(${i})">＋ 同一人再加一個單位</button>` : ''}
+      <!-- 2026-11-08 Randoph：推薦只能推薦一次（新人加開的單位是他自己的分店）→ 拿掉「同一人再加一個單位」，作廢 9/18 的 002／003 報法 -->
     </div>`;
   });
   // 同一位新人開了幾個單位、合計幾分——一眼看得出 001／002 有沒有都報到
