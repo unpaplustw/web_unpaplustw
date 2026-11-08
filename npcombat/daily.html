@@ -174,6 +174,7 @@
   .close-who .w-code{flex:0 0 96px;text-align:center;letter-spacing:1px;font-variant-numeric:tabular-nums}
   .close-who .w-dash{color:var(--muted);font-weight:700}
   .close-who .w-sub{flex:0 0 52px;text-align:center;letter-spacing:1px}
+  .close-who .w-subtag{flex-shrink:0;font-size:12.5px;font-weight:700;color:var(--gold);background:var(--gold-lt);border-radius:10px;padding:4px 8px;white-space:nowrap}   /* 2026-11-08 推薦新人不填分號，加開單位才顯示 */
   .close-who .w-name{flex:1}
   .close-verdict{margin-top:6px;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:8px;display:inline-block}
   .close-verdict.new{background:var(--green-bg);color:var(--green)}
@@ -1228,7 +1229,7 @@ function renderCloseEntries() {
       </div>
       ${e.kind === 'new' ? `<div class="close-who">
         <input class="w-code" inputmode="numeric" maxlength="7" placeholder="會員編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
-        <span class="w-dash">-</span><input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||'001'}" oninput="setWho(${i},'tsub',this.value)">
+        ${subOf(e) !== '001' ? `<span class="w-subtag">第 ${+subOf(e)} 個單位</span>` : ''}
         <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>${closePickHtml(i)}` : ''}
       ${e.kind === 'branch' ? `<div class="close-who">

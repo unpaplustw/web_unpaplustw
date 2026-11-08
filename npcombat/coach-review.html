@@ -357,6 +357,7 @@
   .my-close-who .w-code{flex:0 0 96px;text-align:center;letter-spacing:1px}
   .my-close-who .w-dash{color:var(--muted);font-weight:700}
   .my-close-who .w-sub{flex:0 0 52px;text-align:center}
+  .my-close-who .w-subtag{flex-shrink:0;font-size:12px;font-weight:700;color:var(--gold);background:var(--gold-lt);border-radius:10px;padding:4px 8px;white-space:nowrap}   /* 2026-11-08 推薦新人不填分號 */
   .my-close-who .w-name{flex:1}
   .my-close-verdict{margin-bottom:8px;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:8px;display:inline-block}
   .my-close-verdict.new{background:var(--green-bg);color:var(--green)}
@@ -2550,8 +2551,7 @@ function renderMyCloseSection() {
         <div class="my-close-entry-num">第 ${i+1} 筆</div>
         <div class="my-close-who">
           <input class="w-code" inputmode="numeric" maxlength="7" placeholder="主編號" value="${e.tcode||''}" oninput="setMyWho(${i},'tcode',this.value)">
-          <span class="w-dash">−</span>
-          <input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||''}" oninput="setMyWho(${i},'tsub',this.value)">
+          ${((e.tsub || '').replace(/\D/g, '') || '1') * 1 > 1 ? `<span class="w-subtag">第 ${((e.tsub || '').replace(/\D/g, '')) * 1} 個單位</span>` : ''}
           <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setMyWho(${i},'tname',this.value)">
         </div>
         <div class="my-close-verdict ${verdictOfMy(e).k}" id="my-verdict-${i}">${verdictOfMy(e).t}</div>
