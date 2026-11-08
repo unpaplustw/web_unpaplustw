@@ -2730,8 +2730,8 @@ const engOpen = new Set();   // 展開中的學員 id，重繪後要保持展開
 // ── 📒 組員的名單本（唯讀，2026-11-08）：與 daily.html 同一套分組；進度用算的
 let contactName = {};
 const nmOf = x => contactName[x] || (/^[0-9a-f-]{36}$/.test(String(x)) ? '' : String(x));   // 舊格式存的是名字
-const SB_GROUPS = [['meet','📅 認識了，下一步約見面'],['invite','📣 約到了，下一步邀請'],
-                   ['invited','⏳ 邀請過，等締結'],['rejected','💪 未果，再邀請一次'],['done','🎉 已締結']];
+const SB_GROUPS = [['meet','📅 認識了，下一步約見面'],['invite','📣 約到了／未果，下一步邀請'],
+                   ['invited','⏳ 邀請過，等締結'],['done','🎉 已締結']];
 async function showStuBook(sid, btn) {
   const box = document.getElementById('sb-' + sid);
   if (!box) return;
@@ -2751,12 +2751,13 @@ async function showStuBook(sid, btn) {
       if (!first[k] || l.log_date < first[k]) first[k] = l.log_date; if (!last[k] || l.log_date > last[k]) last[k] = l.log_date; }));
     const closed = (cls || []).filter(x => x.verified !== false && (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0];
     const invited = first.present || first.seminar;
-    // 分組看「最後發生的事」（2026-11-08）：未果之後又邀請 → 回到等締結；拿掉放鴿子，舊資料的 ghosted 不看
+    // 流程（2026-11-08 Randoph 定案）：邀約→邀請（溝通本／說明會）→締結成功（填締結資料）；未果→回到「該邀請」再邀請
     const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
-    const grp = closed ? 'done' : (last.rejected && (!lastInv || last.rejected >= lastInv)) ? 'rejected'
-              : lastInv ? 'invited' : last.invite ? 'invite' : 'meet';
+    const backToInvite = !!last.rejected && (!lastInv || last.rejected >= lastInv);   // 最近一次是未果
+    const grp = closed ? 'done' : (lastInv && !backToInvite) ? 'invited'
+              : (backToInvite || last.invite) ? 'invite' : 'meet';
     const p = [first.meet && `認識 ${md(first.meet)}`, first.invite && `邀約 ${md(first.invite)}`, first.present && `溝通本 ${md(first.present)}`,
-               first.seminar && `說明會 ${md(first.seminar)}`, closed && `締結 ${md(closed)}`, !closed && last.rejected && `未果 ${md(last.rejected)}`].filter(Boolean);
+               first.seminar && `說明會 ${md(first.seminar)}`, closed && `締結 ${md(closed)}`, !closed && backToInvite && `💪未果 ${md(last.rejected)}→再邀請`].filter(Boolean);
     return { name: c.name, grp, p };
   });
   const esc = s => String(s).replace(/[<>&]/g, '');

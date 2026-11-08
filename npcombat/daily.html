@@ -95,6 +95,7 @@
   .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
   .nm-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
   .nm-chip.new{border-style:dashed;color:var(--gold);font-weight:700}
+  .close-pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}   .close-pick small{font-size:12px;color:var(--muted)}
   .nm-add{display:flex;gap:6px;min-width:0}
   .nm-add input{flex:1 1 0;width:0;min-width:0;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:8px 11px;font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
   .nm-add input:focus{outline:none;border-style:solid;border-color:var(--gold)}
@@ -117,6 +118,7 @@
   .bk-pt{font-size:14px;font-weight:800;color:var(--gold);margin:4px 0 2px}
   .bk-st.yuan{background:#8a7a5a;border-color:#8a7a5a;color:#fff;font-weight:700}   /* 緣故朋友：沒經過認識直接邀約 */
   .bk-st.no{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700}   /* 未果：再邀請一次 */
+  .bk-tag{margin-left:8px;font-size:12px;font-weight:700;color:#c0392b;background:#fdecea;border-radius:10px;padding:2px 8px;vertical-align:middle}
   .bk-r{border-top:1px dashed var(--border);padding:8px 0}
   .bk-top{display:flex;justify-content:space-between;align-items:center}
   .bk-n{font-size:16px;font-weight:700;color:var(--text)}
@@ -819,7 +821,7 @@ function toggleName(key, id) {
   renderNameRow(key);
 }
 // 每個行動優先推薦哪幾組人（組名同 BOOK_GROUPS）；contactGrp 由 renderBook 依已存的紀錄算出
-const PICK_FIRST = { invite: ['meet'], present: ['invite', 'rejected', 'meet'], seminar: ['invite', 'rejected', 'meet'],
+const PICK_FIRST = { invite: ['meet'], present: ['invite', 'meet'], seminar: ['invite', 'meet'],
                      rejected: ['invited'] };   // 未果的人＝再邀請的對象
 let contactGrp = {};
 // 選人列分頁（2026-11-08 Randoph：「我不是說要做頁籤嗎」）：一次看一組，打字時改成全部搜尋
@@ -869,9 +871,8 @@ async function restoreNames(saved) {
 let bookLogs = [], bookCloses = [];
 const BOOK_GROUPS = [
   { key:'meet',     e:'📅', s:'該約',   t:'認識了，下一步約見面' },
-  { key:'invite',   e:'📣', s:'該邀請', t:'約到了，下一步邀請' },
+  { key:'invite',   e:'📣', s:'該邀請', t:'約到了／未果，下一步邀請' },
   { key:'invited',  e:'⏳', s:'等締結', t:'邀請過，等締結' },
-  { key:'rejected', e:'💪', s:'未果',   t:'未果，再邀請一次' },
   { key:'done',     e:'🎉', s:'已締結', t:'已締結' },
 ];
 async function loadBook() {
@@ -898,11 +899,12 @@ function bookRows() {
     }));
     const closed = bookCloses.filter(x => (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0] || null;
     const invited = [first.present, first.seminar].filter(Boolean).sort()[0] || null;
-    // 分組看「最後發生的事」（2026-11-08）：未果之後又邀請 → 回到等締結；拿掉放鴿子，舊資料的 ghosted 不看
+    // 流程（2026-11-08 Randoph 定案）：邀約→邀請（溝通本／說明會）→締結成功（填締結資料）；未果→回到「該邀請」再邀請
     const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
-    const grp = closed ? 'done' : (last.rejected && (!lastInv || last.rejected >= lastInv)) ? 'rejected'
-              : lastInv ? 'invited' : last.invite ? 'invite' : 'meet';
-    return { c, first, last, times, closed, invited, grp };
+    const backToInvite = !!last.rejected && (!lastInv || last.rejected >= lastInv);   // 最近一次是未果
+    const grp = closed ? 'done' : (lastInv && !backToInvite) ? 'invited'
+              : (backToInvite || last.invite) ? 'invite' : 'meet';
+    return { c, first, last, times, closed, invited, grp, backToInvite };
   });
 }
 function stageLine(r) {
@@ -911,7 +913,7 @@ function stageLine(r) {
   // 緣故朋友（2026-11-08 Randoph）：沒記過「認識」但已經往後走了 → 第一格顯示「緣故」，不是漏掉
   const yuan = !r.first.meet && (r.first.invite || r.invited || r.closed || r.times.ghosted || r.times.rejected);
   return (yuan ? '<span class="bk-st yuan">緣故</span>' : st('認識', r.first.meet)) + '<i>›</i>' + st('邀約', r.first.invite) + '<i>›</i>'
-       + st(r.first.seminar && !r.first.present ? '說明會' : '邀請', r.invited) + '<i>›</i>' + (r.grp === 'rejected' ? `<span class="bk-st no">未果 ${mdOf(r.last.rejected)}</span>` : st('締結', r.closed)) + extra;
+       + st(r.first.seminar && !r.first.present ? '說明會' : '邀請', r.invited) + '<i>›</i>' + (r.backToInvite ? `<span class="bk-st no">未果 ${mdOf(r.last.rejected)}</span><i>›</i>${st('再邀請', null)}` : st('締結', r.closed)) + extra;
 }
 // 名單本分頁（2026-11-08 Randoph：「應該用分頁區分而不是一長串」）：一次看一組，預設停在第一個有人的組
 let bookTab = null;
@@ -934,7 +936,7 @@ function renderBook() {
         return `<div class="bk-tabs">` + BOOK_GROUPS.map(x => `<button type="button" class="bk-tab${x.key === bookTab ? ' on' : ''}${cnt(x.key) ? '' : ' z'}"`
             + ` onclick="setBookTab('${x.key}')">${x.e} ${x.s}<b>${cnt(x.key)}</b></button>`).join('') + `</div>`
           + `<div class="bk-pt">${g.e} ${g.t}</div>`
-          + (rs.length ? rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}</span>`
+          + (rs.length ? rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</span>`
             + `<button type="button" class="bk-ed" onclick="toggleBookEdit('${r.c.id}')">✏️</button></div>`
             + `<div class="bk-line">${stageLine(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('')
             : `<div class="bk-empty">這一組目前沒有人</div>`);
@@ -1185,6 +1187,18 @@ function setWho(i, field, val) {
   if (el) { const v = verdictOf(closeEntries[i]); el.className = 'close-verdict ' + v.k; el.textContent = v.t; }
 }
 
+// ✅ 締結填對方姓名時從名單本點選（2026-11-08 Randoph：締結只從填締結資料產生）——名字一定對得上，名單本才會自動打勾
+//    等締結的人排最前面；點了只帶姓名，會員編號仍要自己填
+function closePickHtml(i) {
+  if (!contacts.length) return '';
+  const order = ['invited', 'invite', 'meet', 'done'];
+  const e = closeEntries[i];
+  const list = contacts.map((c, n) => [c, n]).sort((a, b) => order.indexOf(contactGrp[a[0].id] || 'meet') - order.indexOf(contactGrp[b[0].id] || 'meet') || a[1] - b[1])
+    .map(x => x[0]).slice(0, 10);
+  return `<div class="close-pick"><small>📒 從名單本選：</small>` + list.map(c => `<button type="button" class="nm-chip${(e.tname || '').trim() === c.name ? ' on' : ''}"`
+    + ` onclick="pickCloseName(${i}, '${c.id}')">${contactGrp[c.id] === 'invited' ? '⏳ ' : ''}${escH(c.name)}</button>`).join('') + `</div>`;
+}
+function pickCloseName(i, id) { closeEntries[i].tname = cName(id); renderCloseEntries(); }
 function renderCloseEntries() {
   const wrap = document.getElementById('closeEntries');
   let h = '';
@@ -1204,7 +1218,7 @@ function renderCloseEntries() {
         <input class="w-code" inputmode="numeric" maxlength="7" placeholder="會員編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
         <span class="w-dash">-</span><input class="w-sub" inputmode="numeric" maxlength="3" placeholder="001" value="${e.tsub||'001'}" oninput="setWho(${i},'tsub',this.value)">
         <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
-      </div>` : ''}
+      </div>${closePickHtml(i)}` : ''}
       ${e.kind === 'branch' ? `<div class="close-who">
         <input class="w-name" placeholder="分店名稱" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>` : ''}
