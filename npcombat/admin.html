@@ -416,7 +416,6 @@
     <div id="reviewArea"></div>
     <div id="pairArea"></div>
     <div id="financeArea"></div>
-    <div id="batchArea"></div>
   </div>
 
   <div class="panel" id="p-perm"><div id="permArea"><div class="loading-box">載入中…</div></div></div>
@@ -675,7 +674,7 @@ const TAB_RENDER = {
   now:    () => renderNow(),
   roster: () => { renderRoster(); renderOrg(); renderRosterBar(); },
   check:  () => { renderChecklist(); renderReview(); renderPairing();
-                  renderFinance(); renderBatchFields(); renderCheckBar(); },
+                  renderFinance(); renderCheckBar(); },
   perm:   () => renderPerm(),
 };
 // 切 Tab 抽成函式：檢查清單要能跨頁跳（「上線未設」在名冊頁，清單在檢查頁）
@@ -713,8 +712,7 @@ function anchorBar(barId, pairs) {
 }
 function renderRosterBar() { anchorBar('rosterBar', [['🎓 分組','rosterArea'],['🚩 引路','orgArea']]); }
 function renderCheckBar()  { anchorBar('checkBar', [['清單','checkArea'],['審核','reviewArea'],
-                                                    ['配對','pairArea'],['繳費','financeArea'],
-                                                    ['設定','batchArea']]); }
+                                                    ['配對','pairArea'],['繳費','financeArea']]); }
 
 // ⚙️ 設定：班期欄位一覽（唯讀顯示，改值仍走 Supabase；先讓人看得到全貌）
 // 🩺 檢查：清單（目錄）
@@ -727,22 +725,7 @@ function renderChecklist() {
 }
 
 // 🩺 檢查：班期欄位一覽（唯讀顯示——改值仍要走 Supabase，這裡只讓人看得到全貌）
-function renderBatchFields() {
-  const b = allBatches.find(x => x.id === bid);
-  const el = document.getElementById('batchArea');
-  if (!el) return;
-  if (!b) { el.innerHTML = ''; return; }
-  const row = (k, v, note) => `<div class="ck ${v ? 'ok' : 'warn'}"><div class="ck-ico">${v ? '✅' : '🟡'}</div><div class="ck-b"><div class="ck-t">${k}　<span style="color:var(--gold)">${v || '（未設）'}</span></div>${note ? `<div class="ck-d">${note}</div>` : ''}</div></div>`;
-  let h = `<div class="sec-title"><span>⚙️ 班期設定</span><span class="sec-count">${b.name}</span></div>`;
-  h += row('期間', b.start_date && b.end_date ? `${b.start_date} ～ ${b.end_date}` : '', '倒數、週次、階段判定都看這個');
-  h += row('學習週 study_start / study_end', b.study_start && b.study_end ? `${b.study_start} ～ ${b.study_end}` : '', '⚠️ 課表共四處副本，改這裡也要改 units.js／course.html／brochure.html');
-  h += row('行動開放日 action_open_date', b.action_open_date, 'NULL＝不鎖，開班第一天就能填七大行動與小組回報心得');
-  h += row('教練模式 coach_mode', b.coach_mode, 'simple＝信任制一鍵勾（27 期起）／full＝逐項審核（26 期）');
-  h += row('獎勵活動 event_name', b.event_name, '留空＝無活動，相關 UI 自動隱藏');
-  h += row('當期 is_active', b.is_active ? '🟢 是' : '否', '唯一索引擋雙開；學員端 8 個檔都讀它，班期中途不可切換');
-  h += row('開放報名 registration_open', b.registration_open ? '🟢 開放中' : '關閉', '與 is_active 分開——可在前一期還在跑時就開放下一期報名');
-  el.innerHTML = h;
-}
+// 2026-11-08 ⚙️班期設定獨立區拿掉，併進檢查清單的「班期設定」「報名狀態」兩行（Randoph：通知要講重點）
 
 // ════════════════════════════════════════════
 // Tab: 追蹤分析（需要關注名單）
@@ -1645,7 +1628,7 @@ function phaseBefore() {
 
   // ⑧ 上線
   const noSp = stu.filter(s => !s.sponsor_id && s.track !== 'lifetime');   // 終身組（高峰）不用引路人，2026-11-06
-  add(noSp.length ? 'warn' : 'ok', '上線（sponsor）',
+  add(noSp.length ? 'warn' : 'ok', '上線',
     noSp.length ? `${noSp.length} 人未設上線：${few(noSp)}` : '全部已設', ['check','pairArea']);
 
   // ⑨ 教練組別
@@ -1659,24 +1642,23 @@ function phaseBefore() {
     unpaid.length ? `<b>${unpaid.length} 位學員未確認</b>：${few(unpaid)}` : `${stu.length} 位學員全部確認`, ['check','financeArea']);
 
   // ⑪ DB 設定
+  const md = s => s ? `${+s.slice(5,7)}/${+s.slice(8,10)}` : '—';
   const miss = [];
-  if (!b.start_date) miss.push('start_date');
-  if (!b.end_date) miss.push('end_date');
-  if (!b.study_start) miss.push('study_start');
-  if (!b.study_end) miss.push('study_end');
-  if (!b.coach_mode) miss.push('coach_mode');
+  if (!b.start_date || !b.end_date) miss.push('開班／結業日');
+  if (!b.study_start || !b.study_end) miss.push('學習組上課期間');
+  if (!b.coach_mode) miss.push('教練模式');
   add(miss.length ? 'bad' : 'ok', '班期設定',
     miss.length ? `<b>缺：${miss.join('、')}</b>`
-      : `${b.start_date} ～ ${b.end_date}｜學習 ${b.study_start}～${b.study_end}｜${b.coach_mode}｜行動開放 ${b.action_open_date || '不鎖'}｜活動「${b.event_name || '無'}」`, ['check','batchArea']);
+      : `${md(b.start_date)} 開班～${md(b.end_date)} 結業｜學習組上課 ${md(b.study_start)}～${md(b.study_end)}｜行動 ${b.action_open_date ? md(b.action_open_date) + ' 開放' : '不鎖'}｜教練${b.coach_mode === 'full' ? '逐項審核' : '只勾有交／沒交'}`);
 
   // ⑫ 課表對齊（units.js 的 SCHEDULE 首末日 vs 班期）——27/28 期都踩過
   let sd = null, ed = null;
   if (typeof SCHEDULE !== 'undefined') { const ks = Object.keys(SCHEDULE).sort(); sd = ks[0]; ed = ks[ks.length-1]; }
   const okSched = sd && b.study_start && sd === b.study_start && ed === b.study_end;
-  add(okSched ? 'ok' : 'bad', '課表四處對齊',
-    !sd ? 'units.js 未載入'
-      : okSched ? `units.js ${sd} ～ ${ed}，與 study_start/end 一致`
-      : `<b>不一致</b>：units.js 排到 ${sd} ～ ${ed}，DB study 是 ${b.study_start} ～ ${b.study_end}<br>→ 課表共四處副本（units.js／course.html 的 PLAN＋靜態表／brochure.html），要一起改`);
+  add(okSched ? 'ok' : 'bad', '課表日期',
+    !sd ? '課表檔沒載入，重新整理一次'
+      : okSched ? `課表 ${md(sd)}～${md(ed)}，跟學習組上課期間一致`
+      : `<b>對不上</b>：課表排 ${md(sd)}～${md(ed)}，學習組上課期間是 ${md(b.study_start)}～${md(b.study_end)}<br>→ 請 Claude 改課表（共四個地方）`);
 
   // ⑬ 報名開關——原本不管開或關都是綠的（2026-09-12 修）：
   //    開班前沒開＝招不到人；開班後還開著＝新報名會混進正在跑的這一期。
@@ -1684,11 +1666,11 @@ function phaseBefore() {
   const started = b.start_date && today >= b.start_date;
   add(b.registration_open === !started ? 'ok' : 'warn', '報名狀態',
     b.registration_open
-      ? (started ? `<b>🟢 還開著，但這一期已經開班了</b>（${b.start_date}）<br>→ 新報名會寫進這一期，通常該關了`
+      ? (started ? '<b>🟢 還開著，但已經開班了</b><br>→ 新報名會混進這一期，通常該關了'
                  : '🟢 開放中——新報名會寫進這一期')
-      : (started ? '🔴 已關閉（開班後本來就該關）'
+      : (started ? '已關閉（開班後就該關）'
                  : `<b>🔴 關閉中，但還沒開班</b>（${b.start_date || '未設'}）<br>→ 報名頁現在收不到人`),
-    ['check','batchArea']);
+    null);
 
   const bad = ck.filter(c => c.lvl === 'bad').length, warn = ck.filter(c => c.lvl === 'warn').length;
   let h = `<div class="ck-sum ${bad ? 'no' : 'go'}">${bad ? `🔴 有 ${bad} 項必須處理才能開班` : warn ? `🟡 可以開班，但有 ${warn} 項建議先確認` : '🟢 全部就緒，可以開班'}</div>`;

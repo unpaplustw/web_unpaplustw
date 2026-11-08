@@ -938,10 +938,8 @@ async function resolveBatch() {
   }
   const { data: pre } = await sb.from('batches')
     .select(cols).eq('registration_open', true).maybeSingle();
-  if (pre) return pre;
-  const { data } = await sb.from('batches')
-    .select(cols).eq('is_active', true).maybeSingle();
-  return data || null;
+  return pre || null;
+  // 🔴 2026-11-08 拿掉「退回 is_active」：開班後關報名，舊寫法會改抓當期、報名表照收（Randoph：報名關閉）
 }
 
 // 報名頁抬頭：班名/活動/開班典禮/截止
