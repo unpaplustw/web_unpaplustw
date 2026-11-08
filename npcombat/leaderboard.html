@@ -439,7 +439,7 @@ async function reloadData() {
 
   // 🔴 上線退回的締結不計分（2026-08-23）。verified：NULL＝待審仍計分／true＝已確認／false＝退回
   const { data: closeData } = await sb.from('closing_records')
-    .select('member_id, points, close_date, source, is_new, target_code, target_sub, size, badge, verified')
+    .select('member_id, points, close_date, source, is_new, target_code, target_sub, size, badge, verified, is_org')
     .in('member_id', memberIds).not('verified', 'is', false);
   allCloses = closeData || [];
 }
@@ -558,6 +558,8 @@ function calcStats(startDate, endDate) {
     const sid = memberToStu[c.member_id];
     if (!sid || !students[sid]) return;
     if (!closeCounts(c)) return;
+    // 🌱 組織締結（2026-11-08）：推薦新人一半分數已寫在 points；算進總分，不算推薦王／單位王／締結王
+    if (c.is_org) { students[sid].org_pts = (students[sid].org_pts || 0) + (c.points || 0); return; }
     const st = students[sid];
     const isBranchOfDownline = c.is_new === true && c.target_code && c.target_sub && c.target_sub !== '001'
       && !has001.has(c.member_id + '|' + c.target_code);
@@ -582,7 +584,7 @@ function calcStats(startDate, endDate) {
   const arr = Object.values(students);
   arr.forEach(s => {
     s.action_pts = Math.round(s.action_pts); // 折扣可能產生 .5，四捨五入
-    s.total = s.action_pts + s.close_pts + s.branch_pts;   // 獎勵活動：新人＋分店全算
+    s.total = s.action_pts + s.close_pts + s.branch_pts + (s.org_pts || 0);   // ＋組織締結（2026-11-08）   // 獎勵活動：新人＋分店全算
   });
   // 👑 領袖王：下線(sponsor)實戰班總分平均，歸給該上線教練 + 收集下線名字
   const sidToSponsor = {};

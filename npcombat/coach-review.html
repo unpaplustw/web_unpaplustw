@@ -941,7 +941,9 @@ async function loadDownlineCloses() {
   if (!coachId) return;
   const { data: ds, error: e1 } = await sb.from('batch_students')
     .select('member_id, members_master(name)')
-    .eq('batch_id', BATCH_ID).eq('sponsor_id', coachId).eq('status', 'approved');
+    .eq('batch_id', BATCH_ID).eq('status', 'approved')
+    // 審核人＝引路人；終身組沒有引路人 → 由該組教練審（2026-11-08 Randoph）
+    .or(`sponsor_id.eq.${coachId},and(track.eq.lifetime,coach_id.eq.${coachId})`);
   if (e1) throw new Error('下線名單：' + e1.message);
   // 教練締結免審：正常情況寫入時已標 verified=true，這裡再排除一次當保險
   const { data: cos } = await sb.from('batch_coaches')
@@ -952,7 +954,7 @@ async function loadDownlineCloses() {
   ds.forEach(d => { if (!coachMids.has(d.member_id)) nameOf[d.member_id] = (d.members_master || {}).name || '—'; });
   if (!Object.keys(nameOf).length) return;
   const { data: cs, error: e2 } = await sb.from('closing_records')
-    .select('id, member_id, close_date, plan, size, badge, points, target_name, target_code, verified, verify_note')
+    .select('id, member_id, close_date, plan, size, badge, points, target_name, target_code, verified, verify_note, is_new, is_org, org_via')
     .eq('batch_id', BATCH_ID).in('member_id', Object.keys(nameOf))
     .order('close_date', { ascending: false });
   if (e2) throw new Error('下線締結：' + e2.message);
@@ -968,7 +970,7 @@ function renderVerifyBlock() {
       <span style="color:var(--muted)">教練自己的締結免審，不會出現在這裡。</span></div>`;
   }
   return `<div class="vf-box">
-    <div class="vf-hd">🔍 待你審核（你的直屬下線）<span>${pend.length} 筆</span></div>
+    <div class="vf-hd">🔍 待你審核（你帶進來的學員；終身組＝你這組）<span>${pend.length} 筆</span></div>
     <div class="vf-note">你是他們的上線，只有你知道這筆生意的真假。
       <b>確認</b>＝沒問題；<b>退回</b>＝填錯或沒這筆（退回後不計分，學員可重填）。</div>
     ${pend.map(c => {
@@ -978,7 +980,7 @@ function renderVerifyBlock() {
           <span class="vf-pt">${c.points} 分</span></div>
         <div class="vf-d">${CLOSE_PLAN[c.plan] || c.plan || '—'} ·
           ${CLOSE_SIZE[c.size] || c.size || '—'}${c.badge ? ' · ' + (CLOSE_BADGE[c.badge] || c.badge) : ''}
-          ${c.target_name ? '　對方：' + c.target_name : ''}${c.target_code ? '（' + c.target_code + '）' : ''}</div>
+          ${c.is_org ? `　<b style="color:#2f6f45">🌱 組織締結${c.org_via ? '（經 ' + c.org_via + '）' : ''}</b>` : c.is_new === false ? '　🏪 自己開分店' : ''}${c.target_name ? '　對方：' + c.target_name : ''}${c.target_code ? '（' + c.target_code + '）' : ''}</div>
         ${armed ? `<select class="mk-in" id="vfR-${c.id}" style="margin:8px 0">${
             REJECT_REASONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>` : ''}
         <div class="vf-btns">

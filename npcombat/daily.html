@@ -168,6 +168,8 @@
     cursor:pointer;text-align:center;line-height:1.4}
   .close-kind-btn.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
   .close-kind-btn small{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.8}
+  .org-note{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f2faf4;border:1px solid #bfe3cb;font-size:12.5px;line-height:1.6;color:#2f6f45}   /* 🌱 組織締結說明 */
+  .close-kind-btn{padding:10px 3px;font-size:13.5px;white-space:nowrap;letter-spacing:-.3px}   /* 三種並排（2026-11-08 加組織締結）：不讓「推薦新人」折成兩行 */
   .close-who{display:flex;gap:6px;margin-top:8px;align-items:center}
   .close-who input{border:2px solid var(--border);border-radius:10px;padding:10px 8px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);min-width:0;-webkit-appearance:none}
   .close-who input:focus{outline:none;border-color:var(--gold)}
@@ -650,7 +652,7 @@ async function loadGoals() {
   const box = document.getElementById('goalPanel');
   if (!box || !studentId) return;
   const [{ data: cls }, { data: eng }, { data: hw }, { data: me }] = await Promise.all([
-    sb.from('closing_records').select('target_code, target_sub, is_new, verified').eq('member_id', memberId).eq('batch_id', BATCH_ID),
+    sb.from('closing_records').select('target_code, target_sub, is_new, is_org, verified').eq('member_id', memberId).eq('batch_id', BATCH_ID),
     myTrack === 'learn' ? sb.from('coach_engagement').select('log_date').eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('homework', true) : Promise.resolve({ data: [] }),
     myTrack === 'learn' ? sb.from('homework_checks').select('unit_no, done, total').eq('batch_id', BATCH_ID).eq('student_id', studentId) : Promise.resolve({ data: [] }),
     myTrack === 'advanced' ? sb.from('batch_students').select('extend_count').eq('id', studentId).maybeSingle() : Promise.resolve({ data: null }),
@@ -671,7 +673,18 @@ async function loadGoals() {
   }
   const g = GOALS[myTrack];
   if (g) h += bar('🎯', '締結目標・直推', direct, g, '推薦新人 001');
-  // 進階組「組織延伸 4 位」：等「組織締結」做好再加（實戰班下線自動算＋自己填組織締結、上線審核）——2026-11-08 Randoph
+  if (myTrack === 'advanced') {   // 2+4 的「4」＝實戰班直推夥伴報的推薦新人 001 ＋ 自己的組織締結（同一人一次、退回不算）
+    const ext = new Set((cls || []).filter(c => c.is_org && c.verified !== false && c.target_code).map(c => c.target_code));
+    if (myCode) {
+      const { data: kids } = await sb.from('members_master').select('id').eq('sponsor_code', myCode);
+      const ids = (kids || []).map(k => k.id);
+      if (ids.length) {
+        const { data: kc } = await sb.from('closing_records').select('target_code, target_sub, is_new, verified').eq('batch_id', BATCH_ID).in('member_id', ids);
+        (kc || []).filter(c => c.is_new === true && c.verified !== false && c.target_code && (c.target_sub || '001') === '001').forEach(c => ext.add(c.target_code));
+      }
+    }
+    h += bar('🌱', '組織延伸・第二代', ext.size, 4, '實戰班夥伴＋組織締結');
+  }
   box.innerHTML = h;
   box.style.display = h ? '' : 'none';
 }
@@ -1196,7 +1209,8 @@ function getEntryPts(e) {
   const p = PLANS.find(p => p.key === e.plan);
   if (!p) return 0;
   // 2026-09-18：小金／大金按鈕拿掉，改成「一個單位報一筆」。badge 只剩當天以前的舊紀錄帶回來時還原用
-  return (p[e.size] || 0) * (e.size === 'full' && e.badge ? badgeMult(e.badge) : 1);
+  const base = (p[e.size] || 0) * (e.size === 'full' && e.badge ? badgeMult(e.badge) : 1);
+  return e.kind === 'org' ? Math.round(base / 2) : base;   // 🌱 組織締結＝推薦新人一半（2026-11-08 Randoph）
 }
 
 // 締結對象判定（2026-08-14 開會定案）：
@@ -1205,6 +1219,12 @@ function getEntryPts(e) {
 // 用編號本身當分類，學員不必自我申報「新人／分店」，沒有報錯空間。
 function verdictOf(e) {
   if (!e.kind) return { k:'pending', t:'先選上面的種類' };
+  if (e.kind === 'org') {
+    const oc = (e.tcode || '').replace(/\D/g, '');
+    if (oc.length < 7 || !(e.tname || '').trim() || !(e.via || '').trim()) return { k:'pending', t:'請填新人編號 7 碼＋姓名＋是哪位夥伴推薦的' };
+    if (myCode && oc === myCode) return { k:'pending', t:'⚠️ 這是你自己的編號' };
+    return { k:'org', t:`🌱 組織締結（經 ${e.via.trim()}）· 組織延伸 +1，推薦新人一半分數` };
+  }
   if (e.kind === 'branch') {
     return (e.tname || '').trim()
       ? { k:'branch', t:`🏪 你的分店（編號 ${myCode || '—'}）· 計入獎勵活動，不算推薦人數` }
@@ -1221,7 +1241,7 @@ function setKind(i, k) {
   if (e.kind === k) return;
   e.kind = k;
   // 換種類時清掉對方欄位，避免留下上一種的殘值
-  e.tcode = ''; e.tname = ''; e.tsub = k === 'new' ? '001' : '';
+  e.tcode = ''; e.tname = ''; e.via = ''; e.tsub = (k === 'new' || k === 'org') ? '001' : '';
   renderCloseEntries();
 }
 
@@ -1272,12 +1292,19 @@ function renderCloseEntries() {
           👤 推薦新人<small>別人加入</small></div>
         <div class="close-kind-btn ${e.kind==='branch'?'sel':''}" onclick="setKind(${i},'branch')">
           🏪 我開分店<small>自己加開</small></div>
+        <div class="close-kind-btn ${e.kind==='org'?'sel':''}" onclick="setKind(${i},'org')">
+          🌱 組織締結<small>夥伴推薦</small></div>
       </div>
       ${e.kind === 'new' ? `<div class="close-who">
         <input class="w-code" inputmode="numeric" maxlength="7" placeholder="會員編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
         ${subOf(e) !== '001' ? `<span class="w-subtag">第 ${+subOf(e)} 個單位</span>` : ''}
         <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>${closePickHtml(i)}` : ''}
+      ${e.kind === 'org' ? `<div class="org-note">🌱 你組織裡<b>沒參加實戰班</b>的夥伴推薦的新人才填這裡；有參加實戰班的夥伴自己會報，系統自動算進你的組織延伸。由你的負責上線審核。</div>
+      <div class="close-who">
+        <input class="w-code" inputmode="numeric" maxlength="7" placeholder="新人編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
+        <input class="w-name" placeholder="新人姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
+      </div><div class="close-who"><input class="w-name" placeholder="是哪位夥伴推薦的（姓名）" value="${e.via||''}" oninput="setWho(${i},'via',this.value)"></div>` : ''}
       ${e.kind === 'branch' ? `<div class="close-who">
         <input class="w-name" placeholder="分店名稱" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>` : ''}
@@ -1381,9 +1408,9 @@ async function init() {
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
     setupPageTabs();     // 整頁頁籤（要在 myTrack 確定之後）
-    loadGoals();         // 目標完成率（背景載入）
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
+    loadGoals();         // 目標完成率（背景載入；要在 myCode 之後，組織延伸要用）
     document.getElementById('userName').textContent = member.name;   // 🔴 9/10 移除天神視角時漏刪這裡的 _isGodView → ReferenceError，整頁「載入失敗」（9/13 開班日才發現）
     document.getElementById('declName1').textContent = ' ' + member.name + ' ';
     document.getElementById('declName2').textContent = ' ' + member.name + ' ';
@@ -1406,13 +1433,13 @@ async function init() {
     // 學員晚上補填行動再送一次，早上填的締結就會被刪掉而且補不回來。
     // 以前做不到是因為只存 points（方案反推不出來），有了 plan／size 才能精確還原。
     const { data: todayCloses } = await sb.from('closing_records')
-      .select('plan, size, badge, points, target_code, target_sub, target_name, is_new')
+      .select('plan, size, badge, points, target_code, target_sub, target_name, is_new, is_org, org_via')
       .eq('member_id', memberId).eq('batch_id', BATCH_ID)
       .eq('close_date', d).eq('source', 'daily');
     if (todayCloses && todayCloses.length) {
       closeEntries = todayCloses.map(c => ({ plan: c.plan, size: c.size, badge: c.badge || null,
         tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '',
-        kind: c.is_new === false ? 'branch' : 'new' }));   // 重開頁面要還原種類
+        via: c.org_via || '', kind: c.is_org ? 'org' : c.is_new === false ? 'branch' : 'new' }));   // 重開頁面要還原種類
       // 舊資料沒有 plan／size（欄位是 2026-08-12 才加的）→ 用 points 反查，查不到就留空讓學員重選
       closeEntries.forEach((e, i) => {
         if (e.plan && e.size) return;
@@ -1695,9 +1722,10 @@ async function submit() {
             member_id: memberId, batch_id: BATCH_ID, close_date: today(),
             plan: e.plan, size: e.size, badge: e.size === 'full' ? (e.badge || null) : null,
             target_code: code || null,
-            target_sub: isBranch ? null : subOf(e),        // 2026-09-18：推薦新人可報 002、003…
+            target_sub: isBranch ? null : e.kind === 'org' ? '001' : subOf(e),
             target_name: (e.tname || '').trim(),
-            is_new: !isBranch,
+            is_new: e.kind === 'org' ? null : !isBranch,   // 組織締結不算推薦人數也不算分店
+            is_org: e.kind === 'org', org_via: e.kind === 'org' ? (e.via || '').trim() : null,
             points: getEntryPts(e), source: 'daily'
           };
         });
