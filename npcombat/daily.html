@@ -84,14 +84,19 @@
   .act-cheer{color:var(--gold);font-style:italic}
   /* 2026-11-08 選人列＋📒名單本：數字 >0 才出現選人列；名單本在頁面最下面，預設收合 */
   .act{flex-wrap:wrap}
-  .act-names{flex-basis:100%;display:none;margin-top:8px}
+  .act-names{flex-basis:100%;width:100%;max-width:100%;min-width:0;box-sizing:border-box;display:none;margin-top:8px}   /* min-width:0：iPhone 上輸入框原生寬度會把整列撐出卡片 */
   .act-names.on{display:block}
-  .nm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .nm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;min-width:0}
+  .nm-tabs{display:flex;gap:5px;overflow-x:auto;margin-bottom:7px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nm-tabs::-webkit-scrollbar{display:none}
+  .nm-tab{flex-shrink:0;border:none;background:#f3eee2;border-radius:14px;padding:4px 10px;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--muted);white-space:nowrap}
+  .nm-tab.on{background:var(--gold-lt);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
+  .nm-empty{font-size:12.5px;color:var(--muted);padding:2px 2px 6px}
   .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
   .nm-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
   .nm-chip.new{border-style:dashed;color:var(--gold);font-weight:700}
-  .nm-add{display:flex;gap:6px}
-  .nm-add input{flex:1;min-width:0;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:8px 11px;font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
+  .nm-add{display:flex;gap:6px;min-width:0}
+  .nm-add input{flex:1 1 0;width:0;min-width:0;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:8px 11px;font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
   .nm-add input:focus{outline:none;border-style:solid;border-color:var(--gold)}
   .nm-add button{flex-shrink:0;border:none;border-radius:10px;background:var(--gold-lt);color:var(--gold);font-weight:800;font-size:14px;padding:0 12px;font-family:inherit}
   .act-names small{display:block;margin-top:5px;font-size:11.5px;color:var(--muted)}
@@ -764,7 +769,7 @@ function setupNameRows() {
     const card = document.querySelector(`.act[data-key="${f.key}"]`);
     if (!card || card.querySelector('.act-names')) return;
     card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
-      + `<div class="nm-chips"></div>`
+      + `<div class="nm-tabs"></div><div class="nm-chips"></div>`
       + `<div class="nm-add"><input type="text" placeholder="打名字找人，或新增一位" enterkeyhint="done" maxlength="20">`
       + `<button type="button">＋ 加入</button></div>`
       + `<small>選填・點名字加入，再點一次取消。會記進你的📒名單本，課程結束後清除</small></div>`);
@@ -792,22 +797,30 @@ function toggleName(key, id) {
 const PICK_FIRST = { invite: ['meet', 'ghosted'], present: ['invite', 'meet'], seminar: ['invite', 'meet'],
                      ghosted: ['invite', 'meet'], rejected: ['invited'] };
 let contactGrp = {};
+// 選人列分頁（2026-11-08 Randoph：「我不是說要做頁籤嗎」）：一次看一組，打字時改成全部搜尋
+//   預設停在這個行動最相關的那組（PICK_FIRST），新加的人還沒有紀錄 → 算在「該約」
+const pickTab = {};
+function setPickTab(key, g) { pickTab[key] = g; renderNameRow(key); }
 function renderNameRow(key) {
   const row = document.getElementById('nm-' + key);
   if (!row) return;
   const sel = names[key] || [];
   row.classList.toggle('on', vals[key] > 0 || sel.length > 0);
   const q = row.querySelector('input').value.trim();
+  const grpOf = c => contactGrp[c.id] || 'meet';
+  const cnt = g => contacts.filter(c => grpOf(c) === g).length;
   const chosen = contacts.filter(c => sel.includes(c.id));
-  // 依行動推薦（2026-11-08）：先列「下一步正好是這個行動」的人，學員通常不用搜尋
-  const want = PICK_FIRST[key] || [];
-  const rank = c => { const g = contactGrp[c.id]; const k = want.indexOf(g); return k < 0 ? want.length : k; };
-  const others = contacts.filter(c => !sel.includes(c.id) && (!q || c.name.includes(q)))
-    .map((c, n) => [c, n]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]).slice(0, q ? 20 : 12);
+  let tab = pickTab[key];
+  if (!tab || !cnt(tab)) tab = [...(PICK_FIRST[key] || []), ...BOOK_GROUPS.map(g => g.key)].find(g => cnt(g)) || 'meet';
+  const pool = q ? contacts.filter(c => c.name.includes(q)) : contacts.filter(c => grpOf(c) === tab);
+  const others = pool.filter(c => !sel.includes(c.id)).slice(0, 30);
+  row.querySelector('.nm-tabs').innerHTML = (q || !contacts.length) ? '' : BOOK_GROUPS.filter(g => cnt(g.key)).map(g =>
+    `<button type="button" class="nm-tab${g.key === tab ? ' on' : ''}" onclick="setPickTab('${key}','${g.key}')">${g.e} ${g.s} ${cnt(g.key)}</button>`).join('');
   row.querySelector('.nm-chips').innerHTML =
       chosen.map(c => `<button type="button" class="nm-chip on" data-id="${c.id}">✓ ${escH(c.name)}</button>`).join('')
     + others.map(c => `<button type="button" class="nm-chip" data-id="${c.id}">${escH(c.name)}</button>`).join('')
-    + (q && !contacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" data-new="1">＋ 新增「${escH(q)}」</button>` : '');
+    + (q && !contacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" data-new="1">＋ 新增「${escH(q)}」</button>` : '')
+    + (!q && !others.length && contacts.length ? `<span class="nm-empty">這一組的人都選了</span>` : '');
   row.querySelectorAll('.nm-chip').forEach(b => { b.onclick = () => b.dataset.new ? addName(key) : toggleName(key, b.dataset.id); });
 }
 function syncNameRow(key) { renderNameRow(key); }
