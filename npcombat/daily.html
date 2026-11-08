@@ -102,12 +102,15 @@
   .book>summary span{font-size:13px;font-weight:700;color:var(--gold);background:var(--gold-lt);border-radius:12px;padding:3px 10px}
   .bk-hint{font-size:12.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px}
   .bk-empty{font-size:14px;color:var(--muted);line-height:1.7;padding:6px 0 16px}
-  .bk-g{margin-bottom:10px}
-  .bk-g>summary{list-style:none;display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:var(--gold);padding:8px 0;cursor:pointer}
-  .bk-g>summary::-webkit-details-marker{display:none}
-  .bk-g>summary b{color:var(--muted);font-weight:700}
-  .bk-g>summary b::after{content:' ▾'}
-  .bk-g:not([open])>summary b::after{content:' ▸'}
+  .bk-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .bk-tabs::-webkit-scrollbar{display:none}
+  .bk-tab{flex-shrink:0;border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:6px 11px;font-size:13.5px;font-weight:700;font-family:inherit;color:var(--text);white-space:nowrap}
+  .bk-tab b{margin-left:4px;color:var(--gold)}
+  .bk-tab.on{background:var(--gold);border-color:var(--gold);color:#fff}
+  .bk-tab.on b{color:#fff}
+  .bk-tab.z{opacity:.45}
+  .bk-pt{font-size:14px;font-weight:800;color:var(--gold);margin:4px 0 2px}
+  .bk-st.yuan{background:#8a7a5a;border-color:#8a7a5a;color:#fff;font-weight:700}   /* 緣故朋友：沒經過認識直接邀約 */
   .bk-r{border-top:1px dashed var(--border);padding:8px 0}
   .bk-top{display:flex;justify-content:space-between;align-items:center}
   .bk-n{font-size:16px;font-weight:700;color:var(--text)}
@@ -656,8 +659,12 @@ const openLabel = ymd => { const [, m, d] = ymd.split('-'); return `${+m}/${+d} 
 // 2026-08-08 定案：行動心得要到行動日才能按——有行動才有心得可分享
 // 締結與宣言不受此鎖影響，全期開放
 
+// 🧪 2026-11-08 Randoph：「我現在學員模式去看，可以先開啟吧，不然根本不能測試」
+//    只有後台管理員（admin_users）不受行動開放日限制，其他學員照常；管理員測的資料自己清
+let testerBypass = false;
+const actionsLocked = () => !testerBypass && !!actionOpenDate && today() < actionOpenDate;
 function applyActionLock() {
-  if (!actionOpenDate || today() >= actionOpenDate) return;
+  if (!actionsLocked()) return;
   const label = openLabel(actionOpenDate);
 
   document.querySelectorAll('.act[data-key]').forEach(card => {
@@ -821,12 +828,12 @@ async function restoreNames(saved) {
 // ── 📒 名單本：每個人走到哪一關（從所有回報與締結算出來）──────────────
 let bookLogs = [], bookCloses = [];
 const BOOK_GROUPS = [
-  { key:'meet',     t:'📅 認識了，下一步約見面' },
-  { key:'invite',   t:'📣 約到了，下一步邀請' },
-  { key:'ghosted',  t:'🕊️ 被放鴿子，再約一次' },
-  { key:'invited',  t:'⏳ 邀請過，等締結' },
-  { key:'rejected', t:'💪 未果，換個時機再追' },
-  { key:'done',     t:'🎉 已締結' },
+  { key:'meet',     e:'📅', s:'該約',   t:'認識了，下一步約見面' },
+  { key:'invite',   e:'📣', s:'該邀請', t:'約到了，下一步邀請' },
+  { key:'ghosted',  e:'🕊️', s:'再約',   t:'被放鴿子，再約一次' },
+  { key:'invited',  e:'⏳', s:'等締結', t:'邀請過，等締結' },
+  { key:'rejected', e:'💪', s:'未果',   t:'未果，換個時機再追' },
+  { key:'done',     e:'🎉', s:'已締結', t:'已締結' },
 ];
 async function loadBook() {
   const box = document.getElementById('bookArea');
@@ -860,15 +867,17 @@ function stageLine(r) {
   const st = (lab, ds) => `<span class="bk-st ${ds ? 'ok' : ''}">${lab}${ds ? ' ' + mdOf(ds) : ''}</span>`;
   const extra = (r.times.ghosted ? `<span class="bk-x">🕊️×${r.times.ghosted}</span>` : '')
               + (r.times.rejected ? `<span class="bk-x">💪×${r.times.rejected}</span>` : '');
-  return st('認識', r.first.meet) + '<i>›</i>' + st('邀約', r.first.invite) + '<i>›</i>'
+  // 緣故朋友（2026-11-08 Randoph）：沒記過「認識」但已經往後走了 → 第一格顯示「緣故」，不是漏掉
+  const yuan = !r.first.meet && (r.first.invite || r.invited || r.closed || r.times.ghosted || r.times.rejected);
+  return (yuan ? '<span class="bk-st yuan">緣故</span>' : st('認識', r.first.meet)) + '<i>›</i>' + st('邀約', r.first.invite) + '<i>›</i>'
        + st(r.first.seminar && !r.first.present ? '說明會' : '邀請', r.invited) + '<i>›</i>' + st('締結', r.closed) + extra;
 }
-// 名單本各組開合：預設只開需要動作的三組；學員自己開合過就照他的（重畫時保留）
-const GRP_OPEN_DEFAULT = ['meet', 'invite', 'ghosted'];
-const grpOpen = {};
+// 名單本分頁（2026-11-08 Randoph：「應該用分頁區分而不是一長串」）：一次看一組，預設停在第一個有人的組
+let bookTab = null;
+function setBookTab(k) { bookTab = k; renderBook(); }
 function renderBook() {
   const box = document.getElementById('bookArea');
-  const open = actionOpenDate ? today() >= actionOpenDate : true;
+  const open = !actionsLocked();
   if (!box || (!open && !contacts.length)) { if (box) box.style.display = 'none'; return; }
   box.style.display = '';
   const rows = bookRows();
@@ -876,19 +885,22 @@ function renderBook() {
   const wasOpen = box.querySelector('details')?.open;
   const body = !rows.length
     ? `<div class="bk-empty">還沒有人。回報行動時點「＋」，在卡片下面加上對方的名字，就會出現在這裡。</div>`
-    : BOOK_GROUPS.map(g => {
-        const rs = rows.filter(r => r.grp === g.key);
-        if (!rs.length) return '';
-        return `<details class="bk-g" data-g="${g.key}"${(grpOpen[g.key] ?? GRP_OPEN_DEFAULT.includes(g.key)) ? ' open' : ''}><summary>${g.t}<b>${rs.length}</b></summary>`
-          + rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}</span>`
-          + `<button type="button" class="bk-ed" onclick="toggleBookEdit('${r.c.id}')">✏️</button></div>`
-          + `<div class="bk-line">${stageLine(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('')
-          + `</details>`;
-      }).join('')
+    : (() => {
+        const cnt = k => rows.filter(r => r.grp === k).length;
+        if (!bookTab || !cnt(bookTab)) bookTab = (BOOK_GROUPS.find(g => cnt(g.key)) || BOOK_GROUPS[0]).key;
+        const g = BOOK_GROUPS.find(x => x.key === bookTab);
+        const rs = rows.filter(r => r.grp === bookTab);
+        return `<div class="bk-tabs">` + BOOK_GROUPS.map(x => `<button type="button" class="bk-tab${x.key === bookTab ? ' on' : ''}${cnt(x.key) ? '' : ' z'}"`
+            + ` onclick="setBookTab('${x.key}')">${x.e} ${x.s}<b>${cnt(x.key)}</b></button>`).join('') + `</div>`
+          + `<div class="bk-pt">${g.e} ${g.t}</div>`
+          + (rs.length ? rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}</span>`
+            + `<button type="button" class="bk-ed" onclick="toggleBookEdit('${r.c.id}')">✏️</button></div>`
+            + `<div class="bk-line">${stageLine(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('')
+            : `<div class="bk-empty">這一組目前沒有人</div>`);
+      })()
       + `<button type="button" class="bk-copy" onclick="copyBook()">📋 一鍵複製我的名單本</button>`;
   box.innerHTML = `<details class="book"${wasOpen ? ' open' : ''}><summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
     + `<div class="bk-hint">從你回報的行動自動長出來：每個人走到哪一關，下一步做什麼。只有你和你的教練看得到。</div>${body}</details>`;
-  box.querySelectorAll('.bk-g').forEach(d => d.addEventListener('toggle', () => { grpOpen[d.dataset.g] = d.open; }));
 }
 function toggleBookEdit(id) {
   const ed = document.querySelector(`#bk-${id} .bk-edit`);
@@ -940,7 +952,7 @@ function bookText() {
   const who = (document.getElementById('userName') || {}).textContent || '';
   const ln = r => {
     const p = [];
-    if (r.first.meet) p.push(`認識 ${mdOf(r.first.meet)}`);
+    if (r.first.meet) p.push(`認識 ${mdOf(r.first.meet)}`); else if (r.first.invite || r.first.present || r.first.seminar || r.closed) p.push('緣故');
     if (r.first.invite) p.push(`邀約 ${mdOf(r.first.invite)}`);
     if (r.first.present) p.push(`溝通本 ${mdOf(r.first.present)}`);
     if (r.first.seminar) p.push(`說明會 ${mdOf(r.first.seminar)}`);
@@ -951,7 +963,7 @@ function bookText() {
   };
   const parts = BOOK_GROUPS.map(g => {
     const rs = rows.filter(r => r.grp === g.key);
-    return rs.length ? `${g.t}（${rs.length}）\n${rs.map(ln).join('\n')}` : '';
+    return rs.length ? `${g.e} ${g.t}（${rs.length}）\n${rs.map(ln).join('\n')}` : '';
   }).filter(Boolean);
   return `📒 我的名單本｜${who.trim()}｜${(batchInfo && batchInfo.name) || '實戰班'}\n共 ${rows.length} 人\n\n${parts.join('\n\n')}\n\n💪 接著做：先把「下一步」最前面那一組約出來`;
 }
@@ -1036,7 +1048,7 @@ function formatDate(d) {
 
 // ── +/- control ──
 function adj(key, delta) {
-  if (actionOpenDate && today() < actionOpenDate) return;   // 尚未開放，不受理
+  if (actionsLocked()) return;   // 尚未開放，不受理
   vals[key] = Math.max(0, vals[key] + delta);
   const el = document.getElementById('n-' + key);
   el.textContent = vals[key];
@@ -1249,6 +1261,9 @@ async function init() {
       const { data: grp } = await sb.from('batch_coaches').select('track').eq('id', stu.coach_id).maybeSingle();
       if (grp?.track) myTrack = grp.track;
     }
+    { const { data: adm } = await sb.from('admin_users').select('id').eq('member_id', memberId).maybeSingle();
+      testerBypass = !!adm && !!actionOpenDate && today() < actionOpenDate;
+      if (testerBypass) setTimeout(() => toast('🧪 管理員測試：行動提前開放（只有你，其他學員照常）'), 800); }
     await loadContacts(); setupNameRows();   // 名單本＋選人列（要在帶回今天已填之前建好）
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
