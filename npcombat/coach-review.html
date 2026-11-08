@@ -122,6 +122,7 @@
   .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
   .eng-item{border-bottom:1px solid var(--border)}
   .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px}
+  .gchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px 44px;margin-top:-6px}  .gchip{font-size:12px;font-weight:700;color:var(--muted);background:#f3eee2;border-radius:10px;padding:2px 8px}  .gchip.ok{color:#2f6f45;background:#e6f4ea}  .ggoal{margin:10px 12px 12px;padding:12px 14px;border-radius:12px;background:#fffaf0;border:1.5px solid var(--gold)}  .ggoal-t{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:800;color:var(--gold)}  .ggoal-t span{font-size:12.5px;color:var(--muted);font-weight:700}  .ggoal-row{display:flex;justify-content:space-between;font-size:13.5px;margin-top:6px}  .ggoal-row b{color:var(--gold)}  .ggoal-bar{height:8px;background:#efe9da;border-radius:6px;margin-top:4px;overflow:hidden}  .ggoal-bar i{display:block;height:100%;background:var(--gold)}
   /* 🔴 min-width:0 是手機版面爆掉的根因（2026-09-23）：flex 子項預設 min-width:auto＝
      不縮到比內容窄，姓名那格撐爆整行 → 右邊「已回」被切、中文逐字直排。窄螢幕另見下方 @media。 */
   .eng-name{flex:1;min-width:0;font-size:16px;font-weight:600;color:var(--text)}
@@ -1238,6 +1239,7 @@ async function init() {
       };
     });
 
+    loadGroupGoals();   // 🎯 組員目標進度（背景載入，好了重畫組員頁）
     // 簡單模式：載入今天/昨天的「作業／回應」紀錄
     if (coachMode === 'simple' && coachId) {
       const { data: engRows } = await sb.from('coach_engagement')
@@ -2799,6 +2801,47 @@ function toggleEngDetail(studentId) {
   renderEngagement();
 }
 
+// ══ 🎯 組員目標進度（2026-11-08）══════════════════════════════════
+const TRACK_GOAL = { learn: 1, basic: 2, advanced: 2, lifetime: 8 };
+let grpGoal = {};        // student_id → { direct, goal, units }
+async function loadGroupGoals() {
+  const list = studentList || [];
+  if (!list.length) return;
+  const ids = list.map(s => s.id), mids = list.map(s => s.member_id).filter(Boolean);
+  const [{ data: cls }, { data: eng }, { data: hw }] = await Promise.all([
+    sb.from('closing_records').select('member_id, target_code, target_sub, is_new, verified').eq('batch_id', BATCH_ID).in('member_id', mids),
+    sb.from('coach_engagement').select('student_id, log_date').eq('batch_id', BATCH_ID).in('student_id', ids).eq('homework', true),
+    sb.from('homework_checks').select('student_id, unit_no, done, total').eq('batch_id', BATCH_ID).in('student_id', ids),
+  ]);
+  grpGoal = {};
+  list.forEach(s => {
+    const direct = new Set((cls || []).filter(c => c.member_id === s.member_id && c.is_new === true && c.verified !== false
+      && c.target_code && (c.target_sub || '001') === '001').map(c => c.target_code)).size;
+    const units = new Set();
+    (eng || []).filter(r => r.student_id === s.id).forEach(r => ((SCHEDULE || {})[r.log_date] || []).forEach(u => units.add(u)));
+    (hw || []).filter(r => r.student_id === s.id && (r.total || 0) > 0 && (r.done || 0) >= r.total).forEach(r => units.add(r.unit_no));
+    grpGoal[s.id] = { direct, goal: TRACK_GOAL[s.track] || TRACK_GOAL[myTrack] || 1, units: units.size, learn: (s.track || myTrack) === 'learn' };
+  });
+  if (document.getElementById('summaryBody')) renderEngagement();
+}
+const goalChips = stu => {
+  const g = grpGoal[stu.id]; if (!g) return '';
+  const chip = (txt, ok) => `<span class="gchip${ok ? ' ok' : ''}">${ok ? '✅ ' : ''}${txt}</span>`;
+  return `<div class="gchips">${chip(`🎯 直推 ${g.direct}/${g.goal}`, g.direct >= g.goal)}${g.learn ? chip(`📖 學習 ${g.units}/${UNITS.length}`, g.units >= UNITS.length) : ''}</div>`;
+};
+function groupGoalHtml() {
+  const act = activeStudents(); const gs = act.map(s => grpGoal[s.id]).filter(Boolean);
+  if (!gs.length) return '';
+  const done = gs.filter(g => g.direct >= g.goal).length, sum = gs.reduce((a, g) => a + g.direct, 0), need = gs.reduce((a, g) => a + g.goal, 0);
+  const pct = need ? Math.min(100, Math.round(sum * 100 / need)) : 0;
+  const learn = gs.filter(g => g.learn);
+  const avg = learn.length ? Math.round(learn.reduce((a, g) => a + g.units, 0) / learn.length * 10) / 10 : null;
+  return `<div class="ggoal"><div class="ggoal-t">🎯 本組目標<span>${done}/${gs.length} 人達成直推目標</span></div>`
+    + `<div class="ggoal-row"><span>本組直推合計</span><b>${sum} / ${need}</b></div><div class="ggoal-bar"><i style="width:${pct}%"></i></div>`
+    + (avg !== null ? `<div class="ggoal-row"><span>📖 平均學習進度</span><b>${avg} / ${UNITS.length} 單元</b></div>` : '')
+    + `</div>`;
+}
+
 function renderEngagement() {
   if (!studentsLoaded) {
     const b = document.getElementById('summaryBody');
@@ -2825,6 +2868,7 @@ function renderEngagement() {
        沒標到的已計入教練記點。學員事後補交到「📋 一覽表」點那一格改，改動會記成補交。</div>`
     : `<div class="eng-hint">${M.hint}<br>✅ 每一格點了就存，不會掉；<b class="eng-auto">但要按最下面的「送出」，這天才算結案</b></div>`;
 
+  h = groupGoalHtml() + h;   // 🎯 本組目標放在最上面
   activeStudents().forEach(stu => {
     const rec = map[stu.id] || {};
     const sv = rec[M.stu.field], cv = rec[M.coach.field];   // true / false / undefined(未標記)
@@ -2851,6 +2895,7 @@ function renderEngagement() {
                 : `<button class="eng-btn coach" disabled title="先點左邊判斷學員交了沒">${M.coach.label}</button>`}
         </span>
       </div>
+      ${goalChips(stu)}
       <div class="eng-det ${engOpen.has(stu.id) ? 'open' : ''}"><div class="eng-det-in">${fillDetailHtml(stu)}</div></div>
     </div>`;
   });
