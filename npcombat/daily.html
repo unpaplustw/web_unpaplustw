@@ -326,6 +326,17 @@
   /* ── Group report checkbox ── */
 
   /* ── Footer ── */
+  /* 目標完成率（2026-11-08）：每日最晚 22:00 下面，提醒這一組要完成的事 */
+  .goal-panel{max-width:500px;margin:0 auto;padding:10px 16px 4px;display:flex;flex-direction:column;gap:8px}
+  .goal{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:9px 12px}
+  .goal-top{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:800;color:var(--text)}
+  .goal-top b{color:var(--gold);font-size:15px}
+  .goal-top small{font-size:11.5px;font-weight:600;color:var(--muted);margin-left:6px}
+  .goal-bar{height:9px;background:#efe9da;border-radius:6px;margin-top:6px;overflow:hidden}
+  .goal-bar i{display:block;height:100%;background:var(--gold);border-radius:6px;transition:width .6s}
+  .goal.done{border-color:#3d9a5f;background:#f2faf4}
+  .goal.done .goal-bar i{background:#3d9a5f}
+  .goal.done .goal-top b{color:#3d9a5f}
   /* 整頁頁籤（2026-11-08）：黏在頂端，點了整頁切換 */
   .ptabs{position:sticky;top:0;z-index:30;display:flex;gap:6px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);max-width:500px;margin:0 auto}
   .ptab{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:12px;padding:10px 4px;font-size:15px;font-weight:800;font-family:inherit;color:var(--muted);white-space:nowrap}
@@ -380,6 +391,7 @@
   <div class="hd-day" id="dayCount"></div>
 </div>
 <div class="deadline-bar">⏰ 每日最晚 22:00 填寫回報</div>
+<div class="goal-panel" id="goalPanel" style="display:none"></div>   <!-- 目標完成率（2026-11-08） -->
 <div class="ptabs" id="pageTabs" style="display:none"></div>   <!-- 整頁頁籤（2026-11-08） -->
 
 <div id="actionPane">
@@ -630,6 +642,40 @@ function copyHW(no) {
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
   else fallback();
 }
+// ══ 目標完成率（2026-11-08 Randoph：「強化該組別要完成的事情」）══════════════
+//   直推＝本期「締結成功」推薦新人 001（同一人一次、上線退回不算、自己分店不算）——與 29 期「直推一律算 001」同規則
+//   學習進度＝教練回覆為主：教練標「已交」那天的單元＋逐題勾完的單元
+const GOALS = { learn: 1, basic: 2, advanced: 2, lifetime: 8 };
+async function loadGoals() {
+  const box = document.getElementById('goalPanel');
+  if (!box || !studentId) return;
+  const [{ data: cls }, { data: eng }, { data: hw }, { data: me }] = await Promise.all([
+    sb.from('closing_records').select('target_code, target_sub, is_new, verified').eq('member_id', memberId).eq('batch_id', BATCH_ID),
+    myTrack === 'learn' ? sb.from('coach_engagement').select('log_date').eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('homework', true) : Promise.resolve({ data: [] }),
+    myTrack === 'learn' ? sb.from('homework_checks').select('unit_no, done, total').eq('batch_id', BATCH_ID).eq('student_id', studentId) : Promise.resolve({ data: [] }),
+    myTrack === 'advanced' ? sb.from('batch_students').select('extend_count').eq('id', studentId).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const direct = new Set((cls || []).filter(c => c.is_new === true && c.verified !== false && c.target_code && (c.target_sub || '001') === '001')
+                                    .map(c => c.target_code)).size;
+  const bar = (icon, label, n, goal, note) => {
+    const pct = goal ? Math.min(100, Math.round(n * 100 / goal)) : 0, ok = n >= goal;
+    return `<div class="goal${ok ? ' done' : ''}"><div class="goal-top"><span>${icon} ${label}${note ? `<small>${note}</small>` : ''}</span>`
+      + `<b>${ok ? '✅ ' : ''}${n} / ${goal}</b></div><div class="goal-bar"><i style="width:${pct}%"></i></div></div>`;
+  };
+  let h = '';
+  if (myTrack === 'learn') {
+    const units = new Set();
+    (eng || []).forEach(r => ((SCHEDULE || {})[r.log_date] || []).forEach(u => units.add(u)));
+    (hw || []).forEach(r => { if ((r.total || 0) > 0 && (r.done || 0) >= r.total) units.add(r.unit_no); });
+    h += bar('📖', '學習進度', units.size, UNITS.length, '教練確認的單元');
+  }
+  const g = GOALS[myTrack];
+  if (g) h += bar('🎯', '締結目標・直推', direct, g, '推薦新人 001');
+  // 進階組「組織延伸 4 位」：等「組織締結」做好再加（實戰班下線自動算＋自己填組織締結、上線審核）——2026-11-08 Randoph
+  box.innerHTML = h;
+  box.style.display = h ? '' : 'none';
+}
+
 // ══ 整頁頁籤（2026-11-08 Randoph 選「整頁最上方的大頁籤」）══════════════
 //   不用一路往下滑找名單本；學習組有排課的日子預設停在「課程」，其他停在「今日回報」
 let pageTab = null;
@@ -1335,6 +1381,7 @@ async function init() {
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
     setupPageTabs();     // 整頁頁籤（要在 myTrack 確定之後）
+    loadGoals();         // 目標完成率（背景載入）
     memberName = member.name;
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
     document.getElementById('userName').textContent = member.name;   // 🔴 9/10 移除天神視角時漏刪這裡的 _isGodView → ReferenceError，整頁「載入失敗」（9/13 開班日才發現）
@@ -1666,6 +1713,7 @@ async function submit() {
   }
 
   loadBook();   // 剛送出的行動算進名單本
+  loadGoals();  // 剛送出的締結算進直推
   showResult();
 }
 
