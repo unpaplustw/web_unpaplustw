@@ -359,6 +359,7 @@
   .my-close-who .w-dash{color:var(--muted);font-weight:700}
   .my-close-who .w-sub{flex:0 0 52px;text-align:center}
   .my-close-who .w-subtag{flex-shrink:0;font-size:12px;font-weight:700;color:var(--gold);background:var(--gold-lt);border-radius:10px;padding:4px 8px;white-space:nowrap}   /* 2026-11-08 推薦新人不填分號 */
+  .my-org{display:block;margin-top:10px;font-size:13.5px;line-height:1.6;color:#2f6f45}  .my-org input{width:18px;height:18px;vertical-align:-3px;margin-right:6px}  .my-org-lbl{margin-top:8px;font-size:12.5px;font-weight:700;color:#2f6f45}  .my-goal{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:#fffaf0;border:1.5px solid var(--gold)}  .my-goal>div:first-child{display:flex;justify-content:space-between;font-size:14.5px;font-weight:800}  .my-goal small{font-size:11.5px;color:var(--muted);margin-left:6px;font-weight:600}  .my-goal b{color:var(--gold)}  .my-goal-bar{height:8px;background:#efe9da;border-radius:6px;margin-top:6px;overflow:hidden}  .my-goal-bar i{display:block;height:100%;background:var(--gold)}  .my-goal.ok{border-color:#3d9a5f;background:#f2faf4}  .my-goal.ok b{color:#2f6f45}  .my-goal.ok .my-goal-bar i{background:#3d9a5f}
   .my-close-who .w-name{flex:1}
   .my-close-verdict{margin-bottom:8px;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:8px;display:inline-block}
   .my-close-verdict.new{background:var(--green-bg);color:var(--green)}
@@ -1116,10 +1117,11 @@ async function init() {
     myCode = (member.member_code || '').replace(/\D/g,'').slice(0,7) || null;
 
     // 查本期教練身份
-    const { data: coach } = await sb.from('batch_coaches').select('id, status, group_name, track')
+    const { data: coach } = await sb.from('batch_coaches').select('id, status, group_name, track, goal_close')
       .eq('batch_id', BATCH_ID).eq('member_id', coachMemberId).single();
     myGroupName = coach?.group_name || '';   // 戰報標題用，同一個查詢帶回不多一次往返
     myTrack = coach?.track || null;          // 這一組的班別：null／learn＝要上課發作業
+    myGoalClose = coach?.goal_close || 0;      // 🎯 教練自己的締結目標（報名時填）
     if (!coach || coach.status !== 'approved') {
       document.getElementById('coachName').textContent = member.name;
       toast('非本期已批准教練'); return;
@@ -1153,6 +1155,7 @@ async function init() {
       myCloseData.yesterday = (myCloses||[]).filter(c => c.close_date === yesterdayStr);
     }
 
+    if (myGoalClose) loadMyDirect();   // 🎯 教練自己的締結目標（載好會重畫我的頁）
     studentsLoaded = false;
     // 查配對學員（只撈已批准）
     // ⚠️ batch_id 一定要帶（wiki 硬規定）——coach_id 雖然每期獨立，但少帶就是隱患
@@ -2141,6 +2144,7 @@ function rerollQuote() {
 // ══════════════════════════════════════════════════════════
 let actStatLoaded = false;
 let myGroupName = '';        // 教練自己的組別（第X組），init 帶回
+let myGoalClose = 0, myDirectCount = null;   // 🎯 教練自己的締結目標與目前推薦新人數（2026-11-08）
 
 function inActionWeek() {
   // 行動組／精英組整期都是行動週——他們不上課，沒有學習階段可言
@@ -2433,6 +2437,12 @@ function copyGuide(id, btn) {
 // ── My Report ──
 function getMyDayData() { return currentDay === 'today' ? myData.today : myData.yesterday; }
 
+async function loadMyDirect() {   // 教練自己的推薦新人數（本期、001、同一人一次、退回不算、組織締結不算）
+  myDirectCount = 0;
+  const { data } = await sb.from('closing_records').select('target_code, target_sub, is_new, verified').eq('member_id', coachMemberId).eq('batch_id', BATCH_ID);
+  myDirectCount = new Set((data || []).filter(c => c.is_new === true && c.verified !== false && c.target_code && (c.target_sub || '001') === '001').map(c => c.target_code)).size;
+  renderMyReport();
+}
 function renderMyReport() {
   const d = getMyDayData();
   const dateStr = formatDate(getDateStr(currentDay));
@@ -2442,6 +2452,12 @@ function renderMyReport() {
     statusHtml = `<div class="my-status saved">✅ ${dateStr} 已填寫</div>`;
   } else {
     statusHtml = `<div class="my-status unsaved">📝 ${dateStr} 尚未填寫</div>`;
+  }
+  if (myGoalClose) {
+    if (myDirectCount === null) loadMyDirect();
+    const n = myDirectCount || 0, ok = n >= myGoalClose, pct = Math.min(100, Math.round(n * 100 / myGoalClose));
+    statusHtml = `<div class="my-goal${ok ? ' ok' : ''}"><div><span>🎯 我的締結目標<small>推薦新人</small></span><b>${ok ? '✅ ' : ''}${n} / ${myGoalClose} 件</b></div>`
+      + `<div class="my-goal-bar"><i style="width:${pct}%"></i></div></div>` + statusHtml;
   }
   document.getElementById('myStatusArea').innerHTML = statusHtml;
 
@@ -2482,7 +2498,7 @@ function renderMyReport() {
   const dayCloses = currentDay === 'today' ? myCloseData.today : myCloseData.yesterday;
   // 帶回 plan／size（2026-08-12 起有存），舊資料仍是 null，教練重選即可
   myCloseEntries = dayCloses.map(c => ({ plan: c.plan || null, size: c.size || null, badge: c.badge || null, pts: c.points, saved: true,
-    tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '' }));
+    tcode: c.target_code || '', tsub: c.target_sub || '', tname: c.target_name || '', org: !!c.is_org, via: c.org_via || '' }));
   h += renderMyCloseSection();
 
   document.getElementById('myDataArea').innerHTML = h;
@@ -2509,6 +2525,11 @@ function adjMy(key, delta) {
 // ── My Close Entries ──
 // 締結對象判定（與 daily 同步，2026-08-14）：主編號≠自己→推薦新人／＝自己→分店
 function verdictOfMy(e) {
+  if (e.org) {   // 🌱 組織締結（2026-11-08）
+    const oc = (e.tcode || '').replace(/\D/g, '');
+    if (oc.length < 7 || !(e.tname || '').trim() || !(e.via || '').trim()) return { k:'pending', t:'請填新人編號 7 碼＋姓名＋推薦他的夥伴' };
+    return { k:'new', t:`🌱 組織締結（經 ${e.via.trim()}）· 推薦新人一半分數` };
+  }
   const code = (e.tcode || '').replace(/\D/g, '');
   if (code.length < 7 || !(e.tname || '').trim()) return { k:'pending', t:'請填對方主編號 7 碼＋姓名' };
   if (!myCode) return { k:'pending', t:'（無法判定：你的會員編號未登錄）' };
@@ -2518,6 +2539,7 @@ function verdictOfMy(e) {
         ? { k:'new', t:'🌱 推薦新人 001（推薦人數 +1）' }
         : { k:'new', t:'🌱 同一位新人加開的單位（推薦人數不重複算）' });
 }
+function setMyOrg(i, on) { myCloseEntries[i].org = on; if (!on) myCloseEntries[i].via = ''; myCloseEntries[i].saved = false; refreshMyClose(); }
 function setMyWho(i, field, val) {
   myCloseEntries[i][field] = val; myCloseEntries[i].saved = false;
   const el = document.getElementById('my-verdict-' + i);
@@ -2529,7 +2551,8 @@ function getMyEntryPts(e) {
   const p = PLANS.find(p => p.key === e.plan);
   if (!p) return 0;
   // 2026-09-18：小金／大金拿掉（一個單位報一筆）；badge 只剩舊紀錄
-  return (p[e.size] || 0) * (e.size === 'full' && e.badge ? badgeMult(e.badge) : 1);
+  const base = (p[e.size] || 0) * (e.size === 'full' && e.badge ? badgeMult(e.badge) : 1);
+  return e.org ? Math.round(base / 2) : base;   // 🌱 組織締結＝推薦新人一半
 }
 
 function renderMyCloseSection() {
@@ -2545,7 +2568,7 @@ function renderMyCloseSection() {
     if (e.saved) {
       h += `<div class="my-close-entry">
         <button class="btn-del-my-close" onclick="delMyClose(${i})">✕</button>
-        <div class="my-close-entry-num">第 ${i+1} 筆（已儲存）${e.tname ? '　' + (e.tcode||'') + '-' + (e.tsub||'') + ' ' + e.tname : ''}</div>
+        <div class="my-close-entry-num">第 ${i+1} 筆（已儲存）${e.org ? '　🌱組織締結' : ''}${e.tname ? '　' + (e.tcode||'') + ' ' + e.tname : ''}${e.org && e.via ? '（經 ' + e.via + '）' : ''}</div>
         <div class="my-close-pts">＋${e.pts} 分</div>
       </div>`;
     } else {
@@ -2558,6 +2581,8 @@ function renderMyCloseSection() {
           ${((e.tsub || '').replace(/\D/g, '') || '1') * 1 > 1 ? `<span class="w-subtag">第 ${((e.tsub || '').replace(/\D/g, '')) * 1} 個單位</span>` : ''}
           <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setMyWho(${i},'tname',this.value)">
         </div>
+        <label class="my-org"><input type="checkbox" ${e.org ? 'checked' : ''} onchange="setMyOrg(${i}, this.checked)"> 🌱 這是<b>組織締結</b>（組織裡沒參加實戰班的夥伴推薦的）</label>
+        ${e.org ? `<div class="my-org-lbl">推薦這位新人的夥伴（你組織裡的人）</div><div class="my-close-who"><input class="w-name" placeholder="推薦這位新人的夥伴（姓名）" value="${e.via||''}" oninput="setMyWho(${i},'via',this.value)"></div>` : ''}
         <div class="my-close-verdict ${verdictOfMy(e).k}" id="my-verdict-${i}">${verdictOfMy(e).t}</div>
         <div class="my-close-row">
           ${PLANS.map(p => `<div class="my-close-pill ${e.plan===p.key?'sel':''}" onclick="setMyPlan(${i},'${p.key}')">${p.label}</div>`).join('')}
@@ -2674,7 +2699,8 @@ async function submitMyReport() {
           member_id: coachMemberId, batch_id: BATCH_ID, close_date: dateStr,
           plan: e.plan, size: e.size, badge: e.size === 'full' ? (e.badge || null) : null,
           target_code: code || null, target_sub: code ? sub : null, target_name: (e.tname || '').trim() || null,
-          is_new: code ? code !== myCode : null,
+          is_new: e.org ? null : (code ? code !== myCode : null),   // 組織締結不算推薦人數也不算分店
+          is_org: !!e.org, org_via: e.org ? (e.via || '').trim() || null : null,
           points: e.saved ? e.pts : getMyEntryPts(e), source: 'daily',
           // 🔴 教練締結免審（Randoph 2026-08-23：「教練締結不用審核，出錯機會比較低」）
           //    寫入時就標 true，不必每次查詢再判斷「這個下線是不是教練」。
@@ -2692,6 +2718,7 @@ async function submitMyReport() {
     // 更新本地
     const dayKey = currentDay === 'today' ? 'today' : 'yesterday';
     myData[dayKey] = { ...myVals };
+    myDirectCount = null;   // 締結可能變了 → 重算我的締結目標
     toast('回報已儲存 ✓');
     renderMyReport();
   } catch (e) {
