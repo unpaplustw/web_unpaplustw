@@ -86,6 +86,7 @@
   .act{flex-wrap:wrap}
   .act-names{flex-basis:100%;width:100%;max-width:100%;min-width:0;box-sizing:border-box;display:none;margin-top:8px}   /* min-width:0：iPhone 上輸入框原生寬度會把整列撐出卡片 */
   .act-names.on{display:block}
+  .act-names.slim .nm-tabs,.act-names.slim .nm-chips,.act-names.slim small{display:none}   /* 平常只佔一行 */
   .nm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;min-width:0}
   .nm-tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}   /* 2026-11-08 改換行：橫滑時最右邊被切一半，看起來像破框 */
   .nm-tabs::-webkit-scrollbar{display:none}
@@ -797,15 +798,22 @@ function setupNameRows() {
     if (!card || card.querySelector('.act-names')) return;
     card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
       + `<div class="nm-tabs"></div><div class="nm-chips"></div>`
-      + `<div class="nm-add"><input type="text" placeholder="${f.key === 'meet' ? '新朋友的名字' : '打名字找人，或新增一位'}" enterkeyhint="done" maxlength="20">`
+      + `<div class="nm-add"><input type="text" placeholder="${f.key === 'meet' ? '新朋友的名字' : '記下是誰？點我選人'}" enterkeyhint="done" maxlength="20">`
       + `<button type="button">＋ 加入</button></div>`
       + `<small>${f.key === 'meet' ? '選填・打新朋友的名字按加入' : '選填・點名字加入，再點一次取消'}。會記進你的📒名單本，課程結束後清除</small></div>`);
     const row = card.querySelector('.act-names');
     const inp = row.querySelector('input');
     inp.addEventListener('input', () => renderNameRow(f.key));
+    inp.addEventListener('focus', () => { rowOpen.add(f.key); renderNameRow(f.key); });
     inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); addName(f.key); } });
     row.querySelector('.nm-add button').addEventListener('click', () => addName(f.key));
   });
+}
+const rowOpen = new Set();   // 點過輸入框的行動 → 展開名單本
+// 選了人數字自動跟上（2026-11-08）：選 2 人而數字還是 0 → 補到 2；取消不自動減（可能同一人算兩次、或有人沒記名字）
+function syncCountToNames(key) {
+  const n = (names[key] || []).length, v = vals[key] || 0;
+  if (n > v) adj(key, n - v);
 }
 async function addName(key) {
   const inp = document.querySelector(`#nm-${key} input`);
@@ -813,11 +821,13 @@ async function addName(key) {
   if (!id) return;
   names[key] = [...new Set([...(names[key] || []), id])];
   inp.value = '';
+  rowOpen.add(key); syncCountToNames(key);
   COUNT_FIELDS.forEach(f => renderNameRow(f.key));   // 新加的人，其他行動也點得到
 }
 function toggleName(key, id) {
   const cur = names[key] || [];
   names[key] = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  syncCountToNames(key);
   renderNameRow(key);
 }
 // 每個行動優先推薦哪幾組人（組名同 BOOK_GROUPS）；contactGrp 由 renderBook 依已存的紀錄算出
@@ -832,7 +842,9 @@ function renderNameRow(key) {
   const row = document.getElementById('nm-' + key);
   if (!row) return;
   const sel = names[key] || [];
-  row.classList.toggle('on', vals[key] > 0 || sel.length > 0);
+  row.classList.toggle('on', !actionsLocked());   // 一直都在（2026-11-08），只有行動還沒開放時藏
+  const expand = vals[key] > 0 || sel.length > 0 || rowOpen.has(key);
+  row.classList.toggle('slim', !expand);          // 平常只留一行輸入框，點了才展開名單本
   const q = row.querySelector('input').value.trim();
   const grpOf = c => contactGrp[c.id] || 'meet';
   const cnt = g => contacts.filter(c => grpOf(c) === g).length;
