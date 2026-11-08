@@ -1783,7 +1783,7 @@ function showResult() {
       const pts = getEntryPts(e);
       closePts += pts;
       const sizeLabel = (SIZES.find(s => s.key === e.size) || {}).label || '';
-      const badgeLabel = e.kind === 'new' ? ` ${e.tname || ''} ${subOf(e)}` : '';
+      const badgeLabel = e.kind === 'new' ? ` ${e.tname || ''}` : e.kind === 'org' ? ` 🌱組織締結 ${e.tname || ''}（經 ${e.via || '—'}）` : e.kind === 'branch' ? ` 🏪分店 ${e.tname || ''}` : '';   // 2026-11-08 推薦新人不再顯示 001；組織締結／分店標出來
       details.push(`${p.label} ${sizeLabel}${badgeLabel} → ${pts}分`);
     });
     totalPts += closePts;
