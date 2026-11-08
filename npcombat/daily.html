@@ -169,6 +169,7 @@
   .close-kind-btn.sel{border-color:var(--gold);background:var(--gold-lt);color:var(--gold)}
   .close-kind-btn small{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.8}
   .org-note{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f2faf4;border:1px solid #bfe3cb;font-size:12.5px;line-height:1.6;color:#2f6f45}   /* 🌱 組織締結說明 */
+  .org-lbl{margin-top:10px;font-size:12.5px;font-weight:700;color:#2f6f45}   /* 組織締結欄位小標：填了字後提示字會消失，要固定標題 */
   .close-kind-btn{padding:10px 3px;font-size:13.5px;white-space:nowrap;letter-spacing:-.3px}   /* 三種並排（2026-11-08 加組織締結）：不讓「推薦新人」折成兩行 */
   .close-who{display:flex;gap:6px;margin-top:8px;align-items:center}
   .close-who input{border:2px solid var(--border);border-radius:10px;padding:10px 8px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);min-width:0;-webkit-appearance:none}
@@ -1301,10 +1302,11 @@ function renderCloseEntries() {
         <input class="w-name" placeholder="對方姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>${closePickHtml(i)}` : ''}
       ${e.kind === 'org' ? `<div class="org-note">🌱 你組織裡<b>沒參加實戰班</b>的夥伴推薦的新人才填這裡；有參加實戰班的夥伴自己會報，系統自動算進你的組織延伸。由你的負責上線審核。</div>
+      <div class="org-lbl">① 新人的編號、姓名</div>
       <div class="close-who">
         <input class="w-code" inputmode="numeric" maxlength="7" placeholder="新人編號" value="${e.tcode||''}" oninput="setWho(${i},'tcode',this.value)">
         <input class="w-name" placeholder="新人姓名" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
-      </div><div class="close-who"><input class="w-name" placeholder="是哪位夥伴推薦的（姓名）" value="${e.via||''}" oninput="setWho(${i},'via',this.value)"></div>` : ''}
+      </div><div class="org-lbl">② 推薦這位新人的夥伴（你組織裡的人）</div><div class="close-who"><input class="w-name" placeholder="是哪位夥伴推薦的（姓名）" value="${e.via||''}" oninput="setWho(${i},'via',this.value)"></div>` : ''}
       ${e.kind === 'branch' ? `<div class="close-who">
         <input class="w-name" placeholder="分店名稱" value="${e.tname||''}" oninput="setWho(${i},'tname',this.value)">
       </div>` : ''}
