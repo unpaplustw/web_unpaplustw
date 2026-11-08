@@ -312,6 +312,16 @@ const LIFF_ID = '2009692859-wevHkClh';
 const SB_URL  = 'https://nsgqsopqlkhayuefdout.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
+// 會員閘道：學院的 6 支查詢一律交給伺服器，由伺服器拿 LIFF access token 問 LINE 驗明正身後代查（前端傳的 LINE 編號不算）
+const GATE = SB_URL + '/functions/v1/member-gate';
+async function gate(fn, args){
+  try{
+    const r = await fetch(GATE, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({access_token: liff.getAccessToken(), action:'academy', fn, args})});
+    const d = await r.json();
+    return d.ok ? {data: d.data, error: null} : {data: null, error: d.error || 'gate'};
+  }catch(e){ return {data: null, error: e}; }
+}
 
 let lineUserId = null, ctx = null, curCourse = null;
 
@@ -357,7 +367,7 @@ async function init(){
 }
 
 async function loadContext(){
-  const {data, error} = await sb.rpc('get_academy_context', {p_line_user_id: lineUserId});
+  const {data, error} = await gate('get_academy_context', {p_line_user_id: lineUserId});
   if(error){ console.error(error); toast('連線失敗，請稍後再試'); return; }
   ctx = data;
   route();
@@ -419,7 +429,7 @@ async function recheckMember(silent){
   const msg = document.getElementById('recheck-msg');
   if(!silent && msg) msg.textContent = '檢查中…';
   try{
-    const {data} = await sb.rpc('get_academy_context', {p_line_user_id: lineUserId});
+    const {data} = await gate('get_academy_context', {p_line_user_id: lineUserId});
     if(data && data.state !== 'no_member'){ ctx = data; route(); return; }
     if(!silent && msg) msg.textContent = '還沒偵測到，加好友後再按一次';
   } finally { recheckBusy = false; }
@@ -482,7 +492,7 @@ async function submitApply(){
 
   const btn = document.getElementById('apply-btn');
   btn.disabled = true; btn.textContent = '送出中…';
-  const {data, error} = await sb.rpc('apply_academy', {
+  const {data, error} = await gate('apply_academy', {
     p_line_user_id: lineUserId, p_np_member_code: code,
     p_name: name, p_phone: phone, p_cfc_leader: cfc, p_reason: reason });
   btn.disabled = false; btn.textContent = '送出申請';
@@ -577,7 +587,7 @@ async function openLesson(id){
   document.getElementById('homework').innerHTML = '';
   go('lesson');
 
-  const {data, error} = await sb.rpc('get_academy_lesson', {p_line_user_id: lineUserId, p_lesson_id: id});
+  const {data, error} = await gate('get_academy_lesson', {p_line_user_id: lineUserId, p_lesson_id: id});
   if(error || !data?.ok){
     const msg = data?.error === 'course_locked' ? '這門課尚未開放'
               : data?.error === 'no_access'     ? '你的入場資格尚未生效'
@@ -614,7 +624,7 @@ async function loadAdmin(status){
     document.getElementById('tab-'+s).classList.toggle('on', s===status));
   document.getElementById('admin-list').innerHTML = '<div class="card">載入中…</div>';
 
-  const {data, error} = await sb.rpc('list_academy_enrollments',
+  const {data, error} = await gate('list_academy_enrollments',
     {p_admin_line_id: lineUserId, p_status: status});
   if(error || !data?.ok){ document.getElementById('admin-list').innerHTML = '<div class="card">讀取失敗</div>'; return; }
 
@@ -635,14 +645,14 @@ async function loadAdmin(status){
 }
 
 async function doApprove(memberId){
-  const {data, error} = await sb.rpc('approve_academy',
+  const {data, error} = await gate('approve_academy',
     {p_admin_line_id: lineUserId, p_member_id: memberId, p_plan: 'comp', p_expires_at: null});
   if(error || !data?.ok){ toast('核准失敗'); return; }
   toast('已核准入場'); loadAdmin('pending');
 }
 async function doRevoke(memberId){
   const why = prompt('停權原因（會顯示給對方，可留空）') ?? null;
-  const {data, error} = await sb.rpc('revoke_academy',
+  const {data, error} = await gate('revoke_academy',
     {p_admin_line_id: lineUserId, p_member_id: memberId, p_reason: why || null});
   if(error || !data?.ok){ toast('停權失敗'); return; }
   toast('已停權'); loadAdmin('pending');
