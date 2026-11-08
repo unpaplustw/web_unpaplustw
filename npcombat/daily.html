@@ -82,6 +82,14 @@
   .act-label{font-size:20px;font-weight:700;color:var(--text)}
   .act-desc{font-size:12px;color:var(--muted);margin-top:3px}
   .act-cheer{color:var(--gold);font-style:italic}
+  /* 2026-11-08 選填姓名：數字 >0 才出現在卡片下方；結業時一鍵匯出成戰績名單（names 欄，課程結束清除） */
+  .act{flex-wrap:wrap}
+  .act-names{flex-basis:100%;display:none;margin-top:8px}
+  .act-names.on{display:block}
+  .act-names input{width:100%;box-sizing:border-box;border:1.5px dashed var(--border);border-radius:10px;padding:9px 12px;
+    font-size:15px;font-family:inherit;background:#fffdf6;color:var(--text)}
+  .act-names input:focus{outline:none;border-style:solid;border-color:var(--gold)}
+  .act-names small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
   .act-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
   .act-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:20px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
   .act-btn:active{background:var(--gold-lt);border-color:var(--gold)}
@@ -358,25 +366,10 @@
 
 <div id="formArea">
 
-  <!-- ── 準備區 ── -->
+  <!-- ── 開拓區（2026-11-08 拿掉「狂列名單」：只鼓勵真正的行動；28 期名單佔總分 43%）── -->
   <div class="sec">
-    <div class="sec-hd">📋 準備</div>
+    <div class="sec-hd">🤝 開拓</div>
     <div class="act-list">
-      <div class="act" data-key="name_list">
-        <div class="act-left">
-          <div class="act-emoji">📋</div>
-          <div class="act-info">
-            <div class="act-label">狂列名單</div>
-            <div class="act-desc">📷 名單簿</div>
-            <div class="act-desc act-cheer">想到就寫，機會就越大</div>
-          </div>
-        </div>
-        <div class="act-ctrl">
-          <button class="act-btn" onclick="adj('name_list',-1)">−</button>
-          <div class="act-num zero" id="n-name_list">0</div>
-          <button class="act-btn" onclick="adj('name_list',1)">＋</button>
-        </div>
-      </div>
       <div class="act" data-key="meet">
         <div class="act-left">
           <div class="act-emoji">🤝</div>
@@ -663,7 +656,6 @@ let myCode = null;   // 自己的主編號 7 碼（判定締結對象是新人�
 
 // ── Counter fields ──
 const COUNT_FIELDS = [
-  { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1 },
   { key:'meet',      emoji:'🤝', label:'認識新友',     pts:1 },
   { key:'invite',    emoji:'💬', label:'邀約見面',     pts:2 },
   { key:'present',   emoji:'🗣️', label:'邀請溝通本',   pts:5 },
@@ -693,6 +685,23 @@ const BADGES = [
 const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
+// 2026-11-08 選填姓名：{ meet:['王小明'], invite:[...] }。可寫可不寫、跟數字不必對齊；結業一鍵匯出戰績用
+let names = {};
+const parseNames = s => [...new Set(String(s || '').split(/[、,，;；\s]+/).map(x => x.trim().slice(0, 20)).filter(Boolean))].slice(0, 30);
+function setupNameRows() {
+  COUNT_FIELDS.forEach(f => {
+    const card = document.querySelector(`.act[data-key="${f.key}"]`);
+    if (!card || card.querySelector('.act-names')) return;
+    card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
+      + `<input type="text" placeholder="記下是誰（選填）例：王小明、李大華" enterkeyhint="done">`
+      + `<small>結業時可一鍵匯出成你的戰績名單，課程結束後清除</small></div>`);
+    card.querySelector('.act-names input').addEventListener('input', ev => { names[f.key] = parseNames(ev.target.value); });
+  });
+}
+function syncNameRow(key) {
+  const row = document.getElementById('nm-' + key);
+  if (row) row.classList.toggle('on', vals[key] > 0 || (names[key] || []).length > 0);
+}
 let closeEntries = []; // [{plan:'20k',size:'full',badge:null}]
 let declRead = false;
 
@@ -766,6 +775,7 @@ function adj(key, delta) {
   el.classList.toggle('zero', vals[key] === 0);
   const card = el.closest('.act');
   card.classList.toggle('has-value', vals[key] > 0);
+  syncNameRow(key);
 }
 
 // ── Subscription ──
@@ -971,6 +981,7 @@ async function init() {
       const { data: grp } = await sb.from('batch_coaches').select('track').eq('id', stu.coach_id).maybeSingle();
       if (grp?.track) myTrack = grp.track;
     }
+    setupNameRows();     // 選填姓名列（要在帶回今天已填之前建好）
     applyActionLock();   // 確認是本期學員後才套用鎖定（被擋的人不該看到班內資訊）
     renderTodayCard();   // 學習組有排課的日子才畫；行動／精英組目前不出卡
     memberName = member.name;
@@ -981,12 +992,18 @@ async function init() {
 
     // 檢查今天是否已填
     const { data: existing } = await sb.from('action_logs')
-      .select('id, name_list, meet, invite, present, seminar, ghosted, rejected')
+      .select('id, names, meet, invite, present, seminar, ghosted, rejected')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('log_date', d).single();
     if (existing) {
       existingId = existing.id;
       // 帶回今天已填的行動數值
       COUNT_FIELDS.forEach(f => { vals[f.key] = existing[f.key] || 0; document.getElementById('n-'+f.key).textContent = vals[f.key]; });
+      names = (existing.names && typeof existing.names === 'object') ? existing.names : {};
+      COUNT_FIELDS.forEach(f => {
+        const inp = document.querySelector(`#nm-${f.key} input`);
+        if (inp) inp.value = (names[f.key] || []).join('、');
+        syncNameRow(f.key);
+      });
       toast('今天已回報過，可修改重送');
     }
 
@@ -1239,10 +1256,11 @@ async function submit() {
       // 寫 action_logs（upsert，今天重複送就覆蓋）
       const logRow = {
         batch_id: BATCH_ID, student_id: studentId, log_date: today(),
-        name_list: vals.name_list, meet: vals.meet, invite: vals.invite,
+        name_list: 0, meet: vals.meet, invite: vals.invite,
         present: vals.present, seminar: vals.seminar,
         ghosted: vals.ghosted, rejected: vals.rejected,
         decl_read: declRead,
+        names: Object.fromEntries(COUNT_FIELDS.map(f => [f.key, names[f.key] || []]).filter(([, v]) => v.length)),
       };
       if (existingId) {
         const { error: updErr } = await sb.from('action_logs').update(logRow).eq('id', existingId);

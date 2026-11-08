@@ -209,6 +209,7 @@
   .eng-ditem{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
   .eng-ditem span:last-child{font-weight:900;color:var(--gold)}
   .eng-ditem.z span:last-child{color:#c9c2b4}
+  .eng-ditem small{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}   /* 2026-11-08 對象姓名 */
   .eng-dclose{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;font-size:14px;font-weight:700}
   .eng-dclose span:last-child{color:var(--green)}
   .eng-nofill{font-size:15px;font-weight:700;color:var(--muted);padding:4px 0 2px}
@@ -836,7 +837,7 @@ let coachMemberId = null;
 let myCode = null;   // 自己的主編號 7 碼（判定締結對象是新人還是自己分店）
 
 const STU_FIELDS = [
-  { key:'name_list', emoji:'📋', label:'狂列名單',     pts:1, check:'請檢查名單簿是否發群組' },
+  // 2026-11-08 拿掉「狂列名單」（Randoph：鼓勵去行動；28 期名單佔總分 43%）。舊期資料仍有 name_list，計分處都用 ||0
   { key:'meet',      emoji:'🤝', label:'認識新友',     pts:1, check:'請檢查合照是否發群組' },
   { key:'invite',    emoji:'💬', label:'邀約見面',     pts:2, check:'請檢查合照是否發群組' },
   { key:'present',   emoji:'🗣️', label:'邀請溝通本',   pts:5, check:'請檢查合照+溝通本畫面是否發群組' },
@@ -1196,6 +1197,7 @@ async function init() {
           ghosted: log.ghosted || 0, rejected: log.rejected || 0,
           checkin_at: log.checkin_at || null, checkout_at: log.checkout_at || null,
           buddy_left: log.buddy_left || 0, buddy_right: log.buddy_right || 0,
+          names: log.names || {},   // 2026-11-08 學員選填的對象姓名（展開明細顯示）
           proof_checks: log.proof_checks || {},
           coach_checks: log.coach_checks || {},
           // 帶上 plan／size，教練才看得出是一套／半套／訂閱（2026-08-12）
@@ -2735,7 +2737,8 @@ function fillDetailHtml(stu) {
   }
   const items = STU_FIELDS.filter(f => !f.special).map(f => {
     const v = d[f.key] || 0;
-    return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}</span><span>${v}</span></div>`;
+    const nm = (d.names && d.names[f.key]) || [];
+    return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}${nm.length ? `<small>${nm.map(x => String(x).replace(/[<>&]/g, '')).join('、')}</small>` : ''}</span><span>${v}</span></div>`;
   }).join('');
   // 締結列出內容與分數（原本只有筆數）——教練要「知道組員報了什麼」；
   // 審核是上線的事，見 renderVerifyBlock()
