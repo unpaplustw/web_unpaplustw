@@ -123,6 +123,7 @@
   .eng-item{border-bottom:1px solid var(--border)}
   .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px}
   .gchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px 44px;margin-top:-6px}  .gchip{font-size:12px;font-weight:700;color:var(--muted);background:#f3eee2;border-radius:10px;padding:2px 8px}  .gchip.ok{color:#2f6f45;background:#e6f4ea}  .ggoal{margin:10px 12px 12px;padding:12px 14px;border-radius:12px;background:#fffaf0;border:1.5px solid var(--gold)}  .ggoal-t{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:800;color:var(--gold)}  .ggoal-t span{font-size:12.5px;color:var(--muted);font-weight:700}  .ggoal-row{display:flex;justify-content:space-between;font-size:13.5px;margin-top:6px}  .ggoal-row b{color:var(--gold)}  .ggoal-bar{height:8px;background:#efe9da;border-radius:6px;margin-top:4px;overflow:hidden}  .ggoal-bar i{display:block;height:100%;background:var(--gold)}
+  .org-intro{margin:12px;padding:12px 14px;border-radius:12px;background:#f2faf4;border:1.5px solid #bfe3cb;font-size:13.5px;line-height:1.7;color:#2f6f45}  .org-row{margin:0 12px 10px;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--border)}  .org-top{display:flex;align-items:center;gap:6px;font-size:15px}  .org-top small{margin-left:auto;color:var(--muted);font-size:12px}
   /* 🔴 min-width:0 是手機版面爆掉的根因（2026-09-23）：flex 子項預設 min-width:auto＝
      不縮到比內容窄，姓名那格撐爆整行 → 右邊「已回」被切、中文逐字直排。窄螢幕另見下方 @media。 */
   .eng-name{flex:1;min-width:0;font-size:16px;font-weight:600;color:var(--text)}
@@ -421,6 +422,7 @@
 <div class="mode-tabs">
   <button class="mode-tab on" id="tabRec" onclick="setMode('rec')">📝 紀錄<span id="recBadge" class="tab-badge"></span></button>
   <button class="mode-tab" id="tabChk" onclick="setMode('chk')">🔍 審查<span id="chkBadge" class="tab-badge"></span></button>
+  <button class="mode-tab" id="tabOrg" onclick="setMode('org')">🌱 組織<span id="orgBadge" class="tab-badge"></span></button>
   <button class="mode-tab" id="tabGuide" onclick="setMode('guide')">📖 指南</button>
 </div>
 
@@ -486,6 +488,9 @@
   <div id="hwDetail" style="display:none"></div>
   <div id="hwMissing"></div>
 </div>
+
+<!-- 🌱 我的組織（2026-11-08）：審核＋我引路的學員 -->
+<div id="orgView" style="display:none"><div id="orgArea"></div></div>
 
 <div id="guideView" style="display:none">
   <div class="guide-wrap">
@@ -786,7 +791,7 @@ https://ppt.cc/fJAcix
             <div class="g-todo"><div class="g-todo-ic">2️⃣</div><div><div class="g-todo-t">看名單本：下一步做什麼</div>
               <div class="g-todo-d">點組員名字 →「📒 看名單本」：<br>📅 <b>該約</b>：提醒他約見面｜📣 <b>該邀請</b>：陪他邀請溝通本／說明會（<b>💪 未果的也在這裡，陪他再邀請一次</b>）｜⏳ <b>等締結</b>：幫他收尾。</div></div></div>
             <div class="g-todo"><div class="g-todo-ic">3️⃣</div><div><div class="g-todo-t">審締結：只有你知道真假</div>
-              <div class="g-todo-d">「🔍 審查 → ✅ 締結核對」：推薦新人、🏪 分店、<b>🌱 組織締結（經 某某）</b>都要確認或退回。<br>🌱 組織締結＝組員組織裡<b>沒參加實戰班</b>的夥伴推薦的新人（推薦新人一半分數）——<b>問清楚是哪位夥伴推薦的</b>再確認。<br>👑 終身組由<b>該組教練</b>審。</div></div></div>
+              <div class="g-todo-d">「<b>🌱 組織</b>」頁籤最上面是待你審核的締結：<b>報名時選你當負責上線的學員</b>（不一定是你帶的組員）報的推薦新人、🏪 分店、<b>🌱 組織締結（經 某某）</b>都要確認或退回。<br>🌱 組織締結＝組員組織裡<b>沒參加實戰班</b>的夥伴推薦的新人（推薦新人一半分數）——<b>問清楚是哪位夥伴推薦的</b>再確認。<br>👑 終身組由<b>該組教練</b>審。</div></div></div>
           </div>
         </div>
 
@@ -949,13 +954,15 @@ const REJECT_REASONS = [
 ];
 
 let downlineCloses = [];      // 我的下線的締結（含已審）
+let myDownline = [];          // 🌱 我組織裡的學員（引路人＝我；終身組＝我這組）
 let rejectArm = null;         // 正在填退回原因的那一筆 id
 
 async function loadDownlineCloses() {
   downlineCloses = [];
+  myDownline = [];
   if (!coachId) return;
   const { data: ds, error: e1 } = await sb.from('batch_students')
-    .select('member_id, members_master(name)')
+    .select('id, member_id, track, group_name, coach_id, members_master(name, member_code)')
     .eq('batch_id', BATCH_ID).eq('status', 'approved')
     // 審核人＝引路人；終身組沒有引路人 → 由該組教練審（2026-11-08 Randoph）
     .or(`sponsor_id.eq.${coachId},and(track.eq.lifetime,coach_id.eq.${coachId})`);
@@ -964,6 +971,8 @@ async function loadDownlineCloses() {
   const { data: cos } = await sb.from('batch_coaches')
     .select('member_id').eq('batch_id', BATCH_ID).eq('status', 'approved');
   const coachMids = new Set((cos || []).map(c => c.member_id));
+  myDownline = (ds || []).filter(d => !coachMids.has(d.member_id)).map(d => ({ id: d.id, member_id: d.member_id, track: d.track, group: d.group_name,
+    name: (d.members_master || {}).name || '—', code: (d.members_master || {}).member_code || '' }));
   if (!ds || !ds.length) return;
   const nameOf = {};
   ds.forEach(d => { if (!coachMids.has(d.member_id)) nameOf[d.member_id] = (d.members_master || {}).name || '—'; });
@@ -1001,25 +1010,50 @@ function renderVerifyBlock() {
         <div class="vf-btns">
           ${armed
             ? `<button class="vf-b no" onclick="doVerify('${c.id}',false)">確定退回</button>
-               <button class="vf-b" onclick="rejectArm=null;renderEngagement()">取消</button>`
+               <button class="vf-b" onclick="rejectArm=null;rerenderVerify()">取消</button>`
             : `<button class="vf-b ok" onclick="doVerify('${c.id}',true)">✅ 確認</button>
-               <button class="vf-b no" onclick="rejectArm='${c.id}';renderEngagement()">↩️ 退回</button>`}
+               <button class="vf-b no" onclick="rejectArm='${c.id}';rerenderVerify()">↩️ 退回</button>`}
         </div>
       </div>`;
     }).join('')}
   </div>`;
 }
 
+function rerenderVerify() { if (currentMode === 'org') renderOrg(); else renderEngagement(); renderChkBadge(); }
+// ══ 🌱 我的組織（2026-11-08 Randoph）══════════════════════════════
+//   帶組＝陪跑，不是上下線；學員的締結由「負責上線」（報名選的引路人）審，終身組由該組教練審。
+//   這一頁就是教練自己組織的成績：誰在我組織裡、報了什麼、直推到哪、組織締結幾筆。
+function renderOrg() {
+  const el = document.getElementById('orgArea'); if (!el) return;
+  const chip = (txt, ok) => `<span class="gchip${ok ? ' ok' : ''}">${ok ? '✅ ' : ''}${txt}</span>`;
+  const rows = myDownline.map(s => {
+    const cs = downlineCloses.filter(c => c.member_id === s.member_id && c.verified !== false);
+    const direct = new Set(cs.filter(c => c.is_new === true && c.target_code).map(c => c.target_code)).size;
+    return { s, direct, org: cs.filter(c => c.is_org).length, goal: TRACK_GOAL[s.track] || 1 };
+  }).sort((a, b) => (b.direct >= b.goal) - (a.direct >= a.goal) || b.direct - a.direct);
+  const sum = rows.reduce((a, r) => a + r.direct, 0), orgN = rows.reduce((a, r) => a + r.org, 0);
+  el.innerHTML = `<div class="org-intro">🌱 <b>我的組織</b>＝報名時選<b>你</b>當負責上線的學員（👑 終身組＝你這組的學員）。<br>`
+    + `不管他在哪一組、誰帶他，<b>他的締結都由你審</b>，他的成績也是你組織的成績。</div>`
+    + renderVerifyBlock()
+    + (rows.length ? `<div class="ggoal"><div class="ggoal-t">🌱 我組織的成績<span>${rows.length} 位學員</span></div>`
+      + `<div class="ggoal-row"><span>🎯 推薦新人（直推）合計</span><b>${sum} 位</b></div>`
+      + `<div class="ggoal-row"><span>🌱 組織締結（非實戰班夥伴）</span><b>${orgN} 筆</b></div></div>`
+      + rows.map(r => `<div class="org-row"><div class="org-top"><b>${r.s.name}</b>${trackTag(r.s)}<small>${r.s.group || '未分組'}</small></div>`
+        + `<div class="gchips" style="padding:4px 0 0">${chip(`🎯 直推 ${r.direct}/${r.goal}`, r.direct >= r.goal)}${r.org ? chip(`🌱 組織締結 ${r.org}`, false) : ''}</div>`
+        + `<button class="eng-book" onclick="showStuBook('${r.s.id}', this)">📒 看名單本</button><div></div></div>`).join('')
+      : `<div class="hw-hint">目前沒有學員選你當負責上線。</div>`);
+}
 async function doVerify(id, ok) {
   const note = ok ? null : (document.getElementById('vfR-' + id) || {}).value || 'other';
   const row = downlineCloses.find(c => c.id === id);
   if (row) { row.verified = ok; row.verify_note = note; }      // 樂觀更新
   rejectArm = null;
-  renderEngagement();
+  rerenderVerify();
   const { error } = await sb.from('closing_records').update({
     verified: ok, verified_by: coachId, verified_at: new Date().toISOString(), verify_note: note
   }).eq('id', id);
-  if (error) { await loadDownlineCloses(); renderEngagement(); toast('儲存失敗：' + error.message); return; }
+  if (error) { await loadDownlineCloses(); rerenderVerify(); toast('儲存失敗：' + error.message); return; }
+  await loadDownlineCloses(); rerenderVerify();   // 存好再撈一次：切頁籤時背景載入可能晚到、蓋掉剛審的狀態（2026-11-08 實測）
   toast(ok ? '已確認 ✅' : '已退回，該筆不計分');
 }
 
@@ -1256,6 +1290,7 @@ async function init() {
     });
 
     loadGroupGoals();   // 🎯 組員目標進度（背景載入，好了重畫組員頁）
+    loadDownlineCloses().then(renderChkBadge).catch(() => {});   // 🌱 組織：待審徽章一打開就亮
     // 簡單模式：載入今天/昨天的「作業／回應」紀錄
     if (coachMode === 'simple' && coachId) {
       const { data: engRows } = await sb.from('coach_engagement')
@@ -1330,12 +1365,14 @@ function setMode(mode) {
   document.getElementById('tabRec').classList.toggle('on', mode === 'rec');
   document.getElementById('tabChk').classList.toggle('on', mode === 'chk');
   document.getElementById('tabGuide').classList.toggle('on', mode === 'guide');
+  document.getElementById('tabOrg').classList.toggle('on', mode === 'org');
   const inMy = mode === 'rec' && recScope === 'my';
   const inGroup = mode === 'rec' && recScope === 'group';
   document.getElementById('myReportView').style.display = inMy ? '' : 'none';
   document.getElementById('summaryView').style.display = inGroup ? '' : 'none';
   document.getElementById('guideView').style.display = mode === 'guide' ? '' : 'none';
   document.getElementById('hwView').style.display = mode === 'chk' ? '' : 'none';
+  document.getElementById('orgView').style.display = mode === 'org' ? '' : 'none';
   document.getElementById('detailView').style.display = 'none';
   renderRecScopeBar();
   refreshTodo();
@@ -1346,6 +1383,11 @@ function setMode(mode) {
     subArm = false; rejectArm = null;
     loadSubmits().then(() => { syncDay(); renderReview(); refreshTodo(); })
       .catch(e => { toast('載入失敗：' + e.message); renderReview(); });
+  } else if (mode === 'org') {
+    const a = document.getElementById('orgArea');
+    if (a && !a.innerHTML) a.innerHTML = '<div class="hw-hint">載入中…</div>';
+    loadDownlineCloses().then(() => { renderOrg(); renderChkBadge(); })
+      .catch(e => { if (a) a.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴總教練</div>`; });
   } else if (mode === 'guide') {
     fillDropStu();                                                  // 退班下拉：切進來才填，學員清單此時已載入
     renderActGuide();                                               // 行動週才有戰報與心得接龍
@@ -1359,7 +1401,7 @@ function setMode(mode) {
     // 4G 下三個查詢要好幾秒，全空的畫面會被當成故障（錢威達 8/20 就是這樣）
     if (Object.keys(hwMap).length) { try { renderHw(); } catch (e) {} }
     else if (g) g.innerHTML = '<div class="hw-hint">載入中…</div>';
-    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits(), loadDownlineCloses()])
+    Promise.all([loadHwChecks(), loadEngAll(), loadSubmits()])   // 締結核對已搬到 🌱組織，審查不再撈
       .then(() => { try { renderHw(); }
         catch (e) { if (g) g.innerHTML = `<div class="hw-hint">畫面產生失敗：${e.message}<br>請截圖告訴總教練</div>`; } })
       .catch(e => { if (g) g.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴總教練</div>`; });
@@ -1470,13 +1512,13 @@ let hwScope = null;                       // null＝跟著階段走；使用者�
 // 🔴 2026-11-08 Randoph：作業表與行動表合併成「回應一覽表」——教練每天只標一件事（學員有沒有在小組貼），
 //    學習週貼的是作業、行動週貼的是心得，一張表就夠。scope 只剩 resp（回應）／verify（締結核對）
 function defaultScope() { return 'resp'; }
-function curScope() { return hwScope === 'verify' ? 'verify' : 'resp'; }   // 'resp' | 'verify'
+function curScope() { return 'resp'; }   // 2026-11-08 締結核對搬到 🌱組織，審查只剩回應一覽表
 function setHwScope(k) { hwScope = k; hwOpen = null; renderHw(); }
 const pendingVerifyCount = () =>
   downlineCloses.filter(c => c.verified === null || c.verified === undefined).length;
 // 徽章：位置可以放深，但提示要淺——否則低頻頁的待辦一定被漏看
 function renderChkBadge() {
-  const el = document.getElementById('chkBadge');
+  const el = document.getElementById('orgBadge');   // 2026-11-08 締結核對搬到 🌱組織
   if (!el) return;
   const n = pendingVerifyCount();
   el.textContent = n ? String(n) : '';
@@ -1715,8 +1757,6 @@ function renderHw() {
   const pv = pendingVerifyCount();
   const scopeBar = `<div class="hw-scope">
     <button class="hw-sc ${sc0 === 'resp' ? 'on' : ''}" onclick="setHwScope('resp')">📋 回應一覽表</button>
-    <button class="hw-sc ${sc0 === 'verify' ? 'on' : ''}" onclick="setHwScope('verify')">✅ 締結核對${
-      pv ? `<span class="sc-badge">${pv}</span>` : ''}</button>
   </div>`;
   renderChkBadge();
   if (sc0 === 'verify') {
@@ -2777,11 +2817,11 @@ const nmOf = x => contactName[x] || (/^[0-9a-f-]{36}$/.test(String(x)) ? '' : St
 const SB_GROUPS = [['meet','📅 認識了，下一步約見面'],['invite','📣 約到了／未果，下一步邀請'],
                    ['invited','⏳ 邀請過，等締結'],['done','🎉 已締結']];
 async function showStuBook(sid, btn) {
-  const box = document.getElementById('sb-' + sid);
+  const box = (btn && btn.nextElementSibling && !btn.nextElementSibling.classList.length) ? btn.nextElementSibling : document.getElementById('sb-' + sid);
   if (!box) return;
   if (box.innerHTML) { box.innerHTML = ''; btn.textContent = '📒 看名單本'; return; }
   box.innerHTML = '<div class="sb">載入中…</div>';
-  const stu = studentList.find(s => s.id === sid) || {};
+  const stu = studentList.find(s => s.id === sid) || myDownline.find(s => s.id === sid) || {};
   const [{ data: cts }, { data: logs }, { data: cls }] = await Promise.all([
     sb.from('contacts').select('id, name').eq('student_id', sid),
     sb.from('action_logs').select('log_date, names').eq('batch_id', BATCH_ID).eq('student_id', sid),
