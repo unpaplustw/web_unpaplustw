@@ -644,8 +644,10 @@ function copyHW(no) {
 let pageTab = null;
 function setupPageTabs() {
   const tabs = [];
+  // 學習組課程放第一（主任務）；行動三組放最後（複習用）——2026-11-08 Randoph
   if (myTrack === 'learn') tabs.push(['course', '📖 課程']);
-  tabs.push(['report', '📝 今日回報'], ['book', '📒 名單本']);
+  tabs.push(['report', '📝 行動回報'], ['book', '📒 名單本']);
+  if (myTrack !== 'learn') tabs.push(['course', '📖 課程']);
   const bar = document.getElementById('pageTabs');
   if (!bar) return;
   bar.innerHTML = tabs.map(([k, t]) => `<button type="button" class="ptab" data-k="${k}" onclick="setPageTab('${k}')">${t}<span class="ptab-n" id="ptn-${k}"></span></button>`).join('');
@@ -664,8 +666,9 @@ function setPageTab(k, quiet) {
 
 function renderTodayCard() {
   const el = document.getElementById('todayCard');
-  if (!el || myTrack !== 'learn') return;          // 行動組的鼓勵卡：金句清單待定
-  const d = today(), us = unitsOfDay(d);
+  if (!el) return;
+  const review = myTrack !== 'learn';   // 行動三組：複習用（2026-11-08 Randoph「課程放最後頁籤，也可以複習」）
+  const d = today(), us = review ? [] : unitsOfDay(d);
   const [, m, dd] = d.split('-');
   const wd = '日一二三四五六'[new Date(d + 'T12:00:00').getDay()];
   // 每個單元排在哪一天（補看清單標日期用）
@@ -674,8 +677,11 @@ function renderTodayCard() {
   const md = ds => { const [, mm, d2] = ds.split('-'); return `${+mm}/${+d2}`; };
   const todayNos = us.map(u => u.no);
   const all = UNITS.map(u => `<details class="tp-u${todayNos.includes(u.no) ? ' is-today' : ''}" data-no="${u.no}">`
-    + `<summary><span>第 ${u.no} 單元　${esc(u.n)}</span><small>${dayOf[u.no] ? md(dayOf[u.no]) : ''}</small></summary></details>`).join('');
-  el.innerHTML = `<div class="today-plan">`
+    + `<summary><span>第 ${u.no} 單元　${esc(u.n)}</span><small>${!review && dayOf[u.no] ? md(dayOf[u.no]) : ''}</small></summary></details>`).join('');
+  el.innerHTML = review
+    ? `<div class="today-plan"><div class="tp-title">📖 課程複習・17 單元</div>`
+      + `<div class="tp-none">點單元看影片和作業題目，想複習哪一課就點哪一課 👇</div>${all}</div>`
+    : `<div class="today-plan">`
     + `<div class="tp-title">📖 ${+m}/${+dd}（${wd}）今天的課程</div>`
     + (us.length ? us.map(unitBlock).join('') + `<div class="tp-note">⏰ 22:00 前把作業交到小組群</div>`
                  : `<div class="tp-none">今天沒有排新課，可以補看前面的單元 👇</div>`)
@@ -802,9 +808,9 @@ function setupNameRows() {
     if (!card || card.querySelector('.act-names')) return;
     card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
       + `<div class="nm-tabs"></div><div class="nm-chips"></div>`
-      + `<div class="nm-add"><input type="text" placeholder="打名字找人，或新增一位" enterkeyhint="done" maxlength="20">`
+      + `<div class="nm-add"><input type="text" placeholder="${f.key === 'meet' ? '新朋友的名字' : '打名字找人，或新增一位'}" enterkeyhint="done" maxlength="20">`
       + `<button type="button">＋ 加入</button></div>`
-      + `<small>選填・點名字加入，再點一次取消。會記進你的📒名單本，課程結束後清除</small></div>`);
+      + `<small>${f.key === 'meet' ? '選填・打新朋友的名字按加入' : '選填・點名字加入，再點一次取消'}。會記進你的📒名單本，課程結束後清除</small></div>`);
     const row = card.querySelector('.act-names');
     const inp = row.querySelector('input');
     inp.addEventListener('input', () => renderNameRow(f.key));
@@ -844,15 +850,17 @@ function renderNameRow(key) {
   const chosen = contacts.filter(c => sel.includes(c.id));
   let tab = pickTab[key];
   if (!tab || !cnt(tab)) tab = [...(PICK_FIRST[key] || []), ...BOOK_GROUPS.map(g => g.key)].find(g => cnt(g)) || 'meet';
-  const pool = q ? contacts.filter(c => c.name.includes(q)) : contacts.filter(c => grpOf(c) === tab);
+  // 認識新友：今天才認識的人不會在名單本裡 → 不列舊名單、不給分頁，只能打名字新增（2026-11-08 Randoph）
+  const onlyNew = key === 'meet';
+  const pool = onlyNew ? [] : q ? contacts.filter(c => c.name.includes(q)) : contacts.filter(c => grpOf(c) === tab);
   const others = pool.filter(c => !sel.includes(c.id)).slice(0, 30);
-  row.querySelector('.nm-tabs').innerHTML = (q || !contacts.length) ? '' : BOOK_GROUPS.filter(g => cnt(g.key)).map(g =>
+  row.querySelector('.nm-tabs').innerHTML = (onlyNew || q || !contacts.length) ? '' : BOOK_GROUPS.filter(g => cnt(g.key)).map(g =>
     `<button type="button" class="nm-tab${g.key === tab ? ' on' : ''}" onclick="setPickTab('${key}','${g.key}')">${g.e} ${g.s} ${cnt(g.key)}</button>`).join('');
   row.querySelector('.nm-chips').innerHTML =
       chosen.map(c => `<button type="button" class="nm-chip on" data-id="${c.id}">✓ ${escH(c.name)}</button>`).join('')
     + others.map(c => `<button type="button" class="nm-chip" data-id="${c.id}">${escH(c.name)}</button>`).join('')
     + (q && !contacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" data-new="1">＋ 新增「${escH(q)}」</button>` : '')
-    + (!q && !others.length && contacts.length ? `<span class="nm-empty">這一組的人都選了</span>` : '');
+    + (!onlyNew && !q && !others.length && contacts.length ? `<span class="nm-empty">這一組的人都選了</span>` : '');
   row.querySelectorAll('.nm-chip').forEach(b => { b.onclick = () => b.dataset.new ? addName(key) : toggleName(key, b.dataset.id); });
 }
 function syncNameRow(key) { renderNameRow(key); }
@@ -929,7 +937,7 @@ function renderBook() {
   contactGrp = {}; rows.forEach(r => { contactGrp[r.c.id] = r.grp; });
   const nEl = document.getElementById('ptn-book'); if (nEl) nEl.textContent = rows.length ? String(rows.length) : '';
   const body = !rows.length
-    ? `<div class="bk-empty">${open ? '' : '🔒 行動開放後就能用。'}還沒有人。到「📝 今日回報」按行動的「＋」，在卡片下面加上對方的名字，就會出現在這裡。</div>`
+    ? `<div class="bk-empty">${open ? '' : '🔒 行動開放後就能用。'}還沒有人。到「📝 行動回報」按行動的「＋」，在卡片下面加上對方的名字，就會出現在這裡。</div>`
     : (() => {
         const cnt = k => rows.filter(r => r.grp === k).length;
         if (!bookTab || !cnt(bookTab)) bookTab = (BOOK_GROUPS.find(g => cnt(g.key)) || BOOK_GROUPS[0]).key;
