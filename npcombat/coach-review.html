@@ -1935,7 +1935,9 @@ async function setDayPost(sid, ds, val) {
 function currentGuidePhase() {
   const today = getDateStr('today');
   if (!batchDates.start) return 'before';
-  if (today < batchDates.start) return 'before';   // 開班日之前
+  // 🔴 2026-11-08 Randoph：開班日當天（典禮在晚上）還是「開班前」——教練當天要做的是步驟 5、轉傳典禮連結、
+  //    第 0 次定聚，都在開班前那一頁；隔天（study_start）才切開班中。原本用 < 讓開班當天一早就跳開班中
+  if (today <= batchDates.start) return 'before';  // 開班日（含）之前
   if (today > batchDates.end)   return 'after';    // 結業之後
   return 'during';                                  // 開班期間
 }
