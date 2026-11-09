@@ -723,7 +723,7 @@ https://ppt.cc/fJAcix
             <div class="g-todo-ic">2️⃣</div>
             <div>
               <div class="g-todo-t">告知作業與心得的繳交規則</div>
-              <div class="g-todo-d">學習作業、行動心得請在<b>當天 22:00 前</b>回覆到小組群組。<br>⚠️ <b>教練隔日才能回覆作業</b>，不要當天回。</div>
+              <div class="g-todo-d">學習作業、行動心得請在<b>當天 22:00 前</b>回覆到小組群組。<br>⚠️ <b>教練隔天 05:00 起才能標記、回覆</b>（系統當天鎖住）。</div>
             </div>
           </div>
           <div class="g-todo">
@@ -1459,6 +1459,7 @@ let subArm = false;
 async function submitDay() {
   const dateStr = getDateStr(currentDay);
   if (dateClosed(dateStr)) { toast('這一天已經結案了'); return; }
+  if (notOpenYet(dateStr)) { toast(openMsg(dateStr)); return; }
   const M = engModeFor(dateStr);
   const map = engMapFor(currentDay);
   const pend = activeStudents().filter(stu => {
@@ -1583,7 +1584,7 @@ function pendingSubmitDays() {
     if (isLearnGroup() && (wd < 1 || wd > 5)) return;
     if (isSubmitted(ds)) return;
     if (overDeadline(ds)) return;                 // 已經鎖住了 → 交給一覽表補交
-    if (ds === todayStr && now.getHours() < 22) return;   // 學員還沒交完
+    if (notOpenYet(ds)) return;                   // 隔天 05:00 才開放標記（2026-11-10）
     out.push(ds);
   });
   return out;
@@ -1980,6 +1981,7 @@ async function logMakeup(sid, ds) {
 }
 
 async function saveHw(sid, unit, items, ds) {
+  if (ds && notOpenYet(ds)) { toast(openMsg(ds)); return; }
   const u = UNITS.find(x => x.no === unit);
   const total = u.hw.length;
   const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
@@ -2009,7 +2011,7 @@ function setHwAll(sid, unit, val, ds) {
 
 // 行動週的格子：改「小組心得交了沒」
 async function setDayPost(sid, ds, val) {
-  if (val === false && tooEarlyForNo(ds)) { toast('今天還沒到 22:00，學員還有時間——晚點再標'); return; }
+  if (notOpenYet(ds)) { toast(openMsg(ds)); return; }
   const { error } = await sb.from('coach_engagement').upsert({
     batch_id: BATCH_ID, coach_id: coachId, student_id: sid, log_date: ds, homework: val
   }, { onConflict: 'batch_id,student_id,log_date' });
@@ -3110,7 +3112,9 @@ function renderEngagement() {
   const map = engMapFor(currentDay);
   const closed = dayClosed(currentDay);
   let sYes = 0, cYes = 0, filledCount = 0;
-  let h = closed
+  let h = notOpenYet(getDateStr(currentDay))
+    ? `<div class="eng-hint eng-closed">🕔 <b>${openMsg(getDateStr(currentDay))}</b><br>學員當天 22:00 前交完，你隔天一次處理，不用先標一半。</div>`
+    : closed
     ? `<div class="eng-hint eng-closed">⛔ <b>${formatDate(getDateStr(currentDay))} 已於今天 12:00 結算</b>，不能再改。<br>
        沒標到的已計入教練記點。學員事後補交到「📋 一覽表」點那一格改，改動會記成補交。</div>`
     : `<div class="eng-hint">${M.hint}<br>✅ 每一格點了就存，不會掉；<b class="eng-auto">但要按最下面的「送出」，這天才算結案</b></div>`;
@@ -3183,11 +3187,14 @@ function renderEngagement() {
 }
 
 // 兩個勾各自獨立：點一下切 true/false
-// 🔴 2026-09-16：當天 22:00 前不准標「沒交」。
-//    謝譽維 11:04 在 13 秒內把四位學員今天全標沒交（作業 22:00 才到期）——多半是一路往下按的誤觸。
-function tooEarlyForNo(ds) {
-  return ds === getDateStr('today') && new Date().getHours() < 22;
-}
+// 🔴 2026-11-10 Randoph：「避免教練重複工作，一律改為早上五點才可以回覆」
+//    某一天的作業／行動心得，隔天 05:00 起才能標記（已交、已回、逐題勾、送出都一樣）。
+//    取代原本「當天 22:00 前不准標沒交」——學員交完、教練隔天一次處理，不會當天標一半隔天又重看。
+function openAt(ds) { const d = new Date(ds + 'T05:00:00'); d.setDate(d.getDate() + 1); return d; }
+function notOpenYet(ds) { return new Date() < openAt(ds); }
+function openMsg(ds) { const d = openAt(ds), wd = ['日','一','二','三','四','五','六'][d.getDay()];
+  return `${formatDate(ds)} 的回報要到 ${d.getMonth()+1}/${d.getDate()}（${wd}）05:00 才能標記、回覆`; }
+
 
 async function toggleEngage(studentId, field) {
   if (dayClosed(currentDay)) { toast('這一天已在 12:00 結算，不能再改'); return; }
@@ -3195,8 +3202,7 @@ async function toggleEngage(studentId, field) {
   const map = engMapFor(currentDay);
   const prev = map[studentId] ? { ...map[studentId] } : undefined;
   const val = !(map[studentId] || {})[field];      // 沒標記或 false → true；true → false
-  if (field === 'homework' && val === false && tooEarlyForNo(dateStr)) {
-    toast('今天還沒到 22:00，學員還有時間——晚點再標'); return; }
+  if (notOpenYet(dateStr)) { toast(openMsg(dateStr)); return; }
   // 把「已交」取消時，「已回」必須一起清掉——否則會留下「沒交卻已回」的假資料，
   // 而那正是唯一能分辨「教練真的沒回」的訊號（2026-08-17）
   const extra = (field === 'homework' && val === false) ? { homework_replied: null } : {};
