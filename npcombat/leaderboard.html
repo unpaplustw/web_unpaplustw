@@ -267,7 +267,7 @@ const AWARDS = [
   // 2026-11-11 Randoph：排行榜要凸顯「行動的品質」和「願意填」——三張都只表揚、不影響分數
   //   說到做到＝赴約見面（邀約選了人＋約定日，那天回答見到了）；推進王＝同一位朋友往下一關走（看 action_logs.names）；天天報到＝有填回報的天數
   { key:'attended',  emoji:'🤝', name:'說到做到',  desc:'約了、真的見到面的次數最多', unit:'次', fun:false },
-  { key:'advance',   emoji:'🚀', name:'推進王',    desc:'把朋友往下一關帶最多（認識→邀約→邀請，每進一關算 1 次）', unit:'次', fun:false },
+  { key:'advance',   emoji:'🚀', name:'推進王',    desc:'把朋友往下一關帶最多（認識→邀約→邀請→締結，每進一關算 1 次）', unit:'次', fun:false },
   { key:'fill_days', emoji:'📅', name:'天天報到',  desc:'填寫回報的天數最多', unit:'天', fun:false, grouped:true },
   // 2026-11-08 拿掉「🕊️ 和平鴿王」：29 期起不再記被放鴿子（BASE_PTS 的 ghosted 留給舊期資料）
   { key:'rejected',  emoji:'🍋', name:'檸檬勇士', desc:'締結未果最多，越挫越勇',   unit:'次', fun:true },
@@ -285,6 +285,7 @@ let coachGroups = {};
 let coachInfo = {};
 let allLogs = [];
 let allCloses = [];
+let closedContacts = [];   // 推進王用：{ student_id, contact_id, close_date }——只有 id，沒有名字
 let memberToStu = {};
 
 // ── 蓋牌：週日 00:00 → 週日 22:00 ──
@@ -446,6 +447,9 @@ async function reloadData() {
     .select('member_id, points, close_date, source, is_new, target_code, target_sub, size, badge, verified, is_org')
     .in('member_id', memberIds).not('verified', 'is', false);
   allCloses = closeData || [];
+  // 推進王的締結那一關：名字在資料庫裡對好（lb_closed_contacts），這頁只拿到 id。讀不到就當沒有，不擋排行榜
+  const { data: ccData } = await sb.rpc('lb_closed_contacts', { p_batch_id: currentBatch.id });
+  closedContacts = ccData || [];
 }
 
 function renderWeekBar() {
@@ -591,10 +595,10 @@ function calcStats(startDate, endDate) {
     s.total = s.action_pts + s.close_pts + s.branch_pts + (s.org_pts || 0);   // ＋組織締結（2026-11-08）   // 獎勵活動：新人＋分店全算
   });
   // 🚀 推進王（2026-11-11）：同一位朋友走到更後面的一關，每進一關算 1 次；第一次出現那一關不算（那是起點）
-  //   關卡：認識 1 → 邀約 2 → 邀請（溝通本／說明會）3。要看這位朋友之前走到哪，所以從全期 log 依日期掃，只把落在這段期間的算進來
-  //   🔴 這裡只用 names 裡的名單 id，不載 contacts（朋友的名字不能出現在公開的排行榜）→ 締結那一關不算（締結另有締結王／推薦王）
-  const STAGE = { meet:1, invite:2, present:3, seminar:3 }, reach = {};
-  [...allLogs].sort((x, y) => x.log_date < y.log_date ? -1 : x.log_date > y.log_date ? 1 : 0).forEach(log => {
+  //   關卡：認識 1 → 邀約 2 → 邀請（溝通本／說明會）3 → 締結 4。要看這位朋友之前走到哪，所以從全期依日期掃，只把落在這段期間的算進來
+  //   🔴 這頁是公開的，不載 contacts（朋友的名字不能出現）：前三關看 names 裡的 id；締結由 lb_closed_contacts 對好名字只回 id（對法同名單本：target_name＝名單上的名字）
+  const STAGE = { meet:1, invite:2, present:3, seminar:3, close:4 }, reach = {};
+  [...allLogs, ...closedContacts.map(c => ({ student_id: c.student_id, log_date: c.close_date, names: { close: [c.contact_id] } }))].sort((x, y) => x.log_date < y.log_date ? -1 : x.log_date > y.log_date ? 1 : 0).forEach(log => {
     const s = students[log.student_id], n = log.names;
     if (!s || !n) return;
     const inRange = (!startDate || log.log_date >= startDate) && (!endDate || log.log_date <= endDate);
