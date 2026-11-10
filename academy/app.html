@@ -2,7 +2,7 @@
 <!--
   環球致富學院 — 學院本體（LIFF + Supabase）
   ⚠️ LIFF_ID 需在 LINE Developers Console 新建一支，Endpoint = https://unpaplus.com.tw/academy/app.html
-  資料一律走 RPC（academy schema RLS 全開、零 policy，anon 直查全擋）
+  資料一律走會員閘道 member-gate（伺服器驗 LINE 身分）；能不能進由 academy.has_access 判斷：VIP1 以上或中央特批，且沒被停權
   預覽（免 LINE 登入）：app.html#preview
 -->
 <html lang="zh-TW">
@@ -11,7 +11,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>環球致富學院</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://player.vimeo.com/api/player.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif}
@@ -36,11 +35,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .hd-icon{font-size:38px}
 .hd-title{font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--gold3),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hd-sub{font-size:16px;color:var(--txt2);margin-top:4px}
-.chip{display:inline-block;font-size:14px;padding:5px 13px;border-radius:14px;margin-top:9px;font-weight:800}
-.chip.ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(22,163,74,.25)}
-.chip.wait{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(217,119,6,.25)}
-.chip.stop{background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,.22)}
-.chip.admin{background:var(--gold-lt);color:var(--gold3);border:1px solid rgba(184,150,12,.28)}
 
 .screen{display:none}.screen.active{display:block}
 .center{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:75vh;text-align:center;padding:30px 20px}
@@ -62,24 +56,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .c-ct{font-size:16px;color:var(--gold3);font-weight:800;white-space:nowrap}
 .c-ds{font-size:16px;color:var(--txt2);margin-top:6px}
 
-/* 學院廣場 */
-.plaza{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 16px;
-  text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;min-height:132px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-.tile:active{transform:scale(.98)}
-.tile:hover{border-color:rgba(184,150,12,.3);box-shadow:0 6px 18px rgba(0,0,0,.09)}
-.tile .ic{font-size:34px;line-height:1}
-.tile .nm{font-size:19px;font-weight:900}
-.tile .sub{font-size:14px;color:var(--txt2);line-height:1.4}
-.tile.soon{opacity:.55;cursor:default;background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
-.tile.soon:hover{border-color:var(--border);box-shadow:var(--shadow)}
-.tile.wide{grid-column:1 / -1;min-height:auto;flex-direction:row;gap:14px;justify-content:flex-start;text-align:left;padding:18px}
-.tile.wide .ic{font-size:30px}
-.tile.wide .nm{font-size:20px}
-.tile.hero{background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);
-  box-shadow:0 4px 18px rgba(184,150,12,.20)}
-.tile.admin-t{border-color:rgba(184,150,12,.35)}
 /* 新手村：進度條＋講師封面牆（封面＝Vimeo 縮圖，滑到才載） */
 .vprog{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
 .vprog .t{display:flex;justify-content:space-between;align-items:baseline;font-size:17px;font-weight:900}
@@ -134,21 +110,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .btn.danger{background:var(--red-bg);border:1px solid rgba(220,38,38,.28);color:var(--red);box-shadow:none;font-size:17px}
 .btn:disabled{opacity:.5}
 
-textarea{width:100%;min-height:110px;padding:14px;border-radius:14px;border:1px solid var(--border-hl);background:var(--card);color:var(--txt);font-size:18px;resize:vertical;box-shadow:var(--shadow)}
-textarea:focus{outline:none;border-color:var(--gold2)}
 
-.field{margin-bottom:16px}
-.field label{display:block;font-size:17px;font-weight:800;margin-bottom:8px}
-.field label .req{color:var(--red);font-size:15px}
-.field input[type=text],.field input[type=tel]{width:100%;padding:15px;border-radius:14px;border:1px solid var(--border-hl);background:var(--card);color:var(--txt);font-size:19px;box-shadow:var(--shadow)}
-.field input:focus{outline:none;border-color:var(--gold2)}
-.field .hint{font-size:15px;color:var(--txt2);margin-top:6px}
-.cfc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.cfc-opt{padding:14px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-size:16px;font-weight:700;text-align:center;cursor:pointer;box-shadow:var(--shadow);line-height:1.35}
-.cfc-opt.on{background:linear-gradient(135deg,#fff8e6,#fdeecb);border-color:var(--gold2);color:var(--gold3)}
-.err{display:none;background:var(--red-bg);border:1px solid rgba(220,38,38,.28);color:var(--red);border-radius:12px;padding:13px 15px;font-size:16px;font-weight:700;margin-bottom:14px;line-height:1.7}
-.err.show{display:block}
-.badge-alum{display:inline-block;font-size:14px;font-weight:800;padding:3px 10px;border-radius:10px;background:var(--green-bg);color:var(--green);border:1px solid rgba(22,163,74,.25);margin-left:6px}
 .back{display:inline-flex;align-items:center;gap:7px;font-size:17px;color:var(--gold3);font-weight:800;padding:8px 0;cursor:pointer}
 
 /* 播放器 + 浮水印 */
@@ -163,22 +125,6 @@ textarea:focus{outline:none;border-color:var(--gold2)}
 .hw li{font-size:18px;color:var(--txt);margin-bottom:12px;line-height:1.65}
 .hw .none{font-size:17px;color:var(--txt2)}
 
-/* 管理 */
-.arow{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:10px;box-shadow:var(--shadow)}
-.arow .nm{font-size:19px;font-weight:800}
-.arow .meta{font-size:15px;color:var(--txt2);margin-top:3px}
-.arow .why{font-size:16px;color:var(--txt);margin-top:8px;padding:10px;background:#faf8f2;border:1px solid var(--border);border-radius:10px}
-.arow .acts{display:flex;gap:9px;margin-top:11px}
-.arow .acts button{flex:1;padding:13px;border-radius:11px;border:none;font-size:16px;font-weight:800;cursor:pointer}
-.ap{background:var(--green);color:#fff}
-.rj{background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,.28)!important}
-.tabs{display:flex;gap:8px;margin-bottom:14px}
-.tabs button{flex:1;padding:11px;border-radius:11px;border:1px solid var(--border);background:var(--card);color:var(--txt2);font-size:16px;font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
-.tabs button.on{background:linear-gradient(135deg,#fff8e6,#fdeecb);border-color:var(--gold2);color:var(--gold3)}
-
-.fab{position:fixed;right:16px;bottom:20px;z-index:20;padding:13px 18px;border-radius:26px;border:1px solid var(--gold2);background:#fff;color:var(--gold3);font-size:16px;font-weight:900;cursor:pointer;display:none;box-shadow:0 4px 16px rgba(184,150,12,.25)}
-.fab.on{display:block}
-
 #toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:13px 20px;border-radius:12px;font-size:16px;z-index:99;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 #toast.show{opacity:1}
 .spin{width:44px;height:44px;border:4px solid rgba(0,0,0,.08);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite}
@@ -191,79 +137,19 @@ textarea:focus{outline:none;border-color:var(--gold2)}
 
 <div class="wrap">
 
-  <!-- 不在會員名單：加好友 → 自動偵測 → 續接申請 -->
-  <div id="screen-nomember" class="center">
-    <div class="big">👋</div>
-    <h2>差一步就好</h2>
-    <p id="nomember-hint">先加入下方的 LINE 官方帳號，<b>加完直接滑回來</b>，這一頁會自動接上。</p>
-    <div id="oa-list" style="width:100%;max-width:400px;margin-top:18px"></div>
-    <button class="btn sec" id="recheck-btn" style="max-width:400px" onclick="recheckMember()">✅ 我加好了，繼續申請</button>
-    <div id="recheck-msg" style="font-size:16px;color:var(--txt2);margin-top:10px;min-height:24px"></div>
-  </div>
-
-  <!-- 申請入場 -->
-  <div id="screen-apply" class="screen">
-    <div class="hd">
-      <div class="hd-icon">🎓</div>
-      <div class="hd-title">環球致富學院</div>
-      <div class="hd-sub">46 堂課，等你進來</div>
-    </div>
-    <div class="card">
-      <div class="c-nm">申請入場</div>
-      <div class="c-ds" style="margin-top:8px">課程影片是團隊自己拍的教材，需要審核才能觀看。<br>填好送出，通常 1～2 天回覆。</div>
-    </div>
-
-    <div class="err" id="apply-err"></div>
-
-    <div class="field">
-      <label>會員編號 <span class="req">*</span></label>
-      <input type="text" id="f-code" inputmode="numeric" maxlength="7" placeholder="7 位數字，不含英文或空白">
-      <p class="hint">綠佳利的會員編號。一個編號只能綁一個 LINE 帳號。</p>
-    </div>
-
-    <div class="field">
-      <label>姓名 <span class="req">*</span></label>
-      <input type="text" id="f-name" maxlength="20" placeholder="請填真實姓名">
-    </div>
-
-    <div class="field">
-      <label>手機 <span class="req">*</span></label>
-      <input type="tel" id="f-phone" inputmode="tel" maxlength="20" placeholder="09xxxxxxxx">
-    </div>
-
-    <div class="field">
-      <label>直屬 CFC 領袖 <span class="req">*</span></label>
-      <div class="cfc-grid" id="cfc-grid"></div>
-      <input type="text" id="f-cfc-other" placeholder="請填直屬 CFC 姓名" style="display:none;margin-top:10px">
-    </div>
-
-    <div class="field">
-      <label>想學什麼？<span style="font-size:15px;color:var(--txt2);font-weight:400">（選填）</span></label>
-      <textarea id="apply-reason" placeholder="例：想把自我定位練熟、想學怎麼邀約不尷尬…"></textarea>
-    </div>
-
-    <button class="btn" id="apply-btn" onclick="submitApply()">送出申請</button>
-  </div>
-
-  <!-- 審核中 -->
-  <div id="screen-pending" class="center">
-    <div class="big">⏳</div>
-    <h2>申請審核中</h2>
-    <p id="pending-when">我們收到你的申請了，通常 1～2 天內完成審核。<br>通過後這頁就會直接開課。</p>
+  <!-- 不是會員：查不到、VIP0、審核中、被退回都一樣，細節由會員中心講（2026-11-10） -->
+  <div id="screen-notmember" class="center">
+    <div class="big">🏡</div>
+    <h2>新手村開放給綠佳利會員</h2>
+    <p>到會員中心完成註冊，<b>通過後這一頁就會直接打開</b>。</p>
+    <a class="btn" id="hub-btn" style="max-width:400px;margin-top:20px;text-decoration:none;text-align:center" href="https://liff.line.me/2009692859-9mE2Ymmb">前往會員中心</a>
   </div>
 
   <!-- 停權 -->
-  <div id="screen-revoked" class="center">
+  <div id="screen-suspended" class="center">
     <div class="big">🔒</div>
-    <h2>目前無法觀看</h2>
-    <p id="revoked-why">你的學院權限已被暫停。若有疑問請聯繫你的推薦人或團隊負責人。</p>
-  </div>
-
-  <!-- 到期 -->
-  <div id="screen-expired" class="center">
-    <div class="big">📅</div>
-    <h2>觀看期限已到</h2>
-    <p>你的學習紀錄和集點<b>全部保留著</b>，續期後就會接回原本的進度。<br>請聯繫團隊負責人辦理續期。</p>
+    <h2>學院權限已暫停</h2>
+    <p>請洽你的領袖。</p>
   </div>
 
   <!-- 學院首頁：課程列表 -->
@@ -272,11 +158,9 @@ textarea:focus{outline:none;border-color:var(--gold2)}
       <div class="hd-icon">🏡</div>
       <div class="hd-title">新手村</div>
       <div class="hd-sub" id="home-sub">歡迎回來</div>
-      <div><span class="chip admin" id="admin-chip" style="display:none">🛡️ 學院管理員</span></div>
     </div>
     <div class="vprog" id="vprog"></div>
     <div class="village" id="village"><div class="card">載入中…</div></div>
-    <div class="plaza" id="plaza" style="margin-top:18px"></div>
   </div>
 
   <!-- 課程（廣場 → 課程） -->
@@ -314,32 +198,16 @@ textarea:focus{outline:none;border-color:var(--gold2)}
     <div id="lesson-next"></div>
   </div>
 
-  <!-- 管理員 -->
-  <div id="screen-admin" class="screen">
-    <div class="back" onclick="loadContext()">← 回學院</div>
-    <div class="hd" style="padding-top:6px">
-      <div class="hd-title" style="font-size:23px">入場審核</div>
-    </div>
-    <div class="tabs">
-      <button class="on" id="tab-pending" onclick="loadAdmin('pending')">⏳ 待審</button>
-      <button id="tab-active" onclick="loadAdmin('active')">✅ 已入場</button>
-      <button id="tab-revoked" onclick="loadAdmin('revoked')">🔒 已停權</button>
-    </div>
-    <div id="admin-list"></div>
-  </div>
-
 </div>
 
-<button class="fab" id="fab-admin" onclick="go('admin');loadAdmin('pending')">🛡️ 審核</button>
 <div id="toast"></div>
 
 <script>
 // ⚠️ 換成 LINE Developers Console 新建的 LIFF ID（Endpoint = /academy/app.html）
 const LIFF_ID = '2009692859-wevHkClh';
 const SB_URL  = 'https://nsgqsopqlkhayuefdout.supabase.co';
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3Fzb3BxbGtoYXl1ZWZkb3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzgzMjgsImV4cCI6MjA4ODMxNDMyOH0.FCMF_WaWjmtuWUKO2vqQBM4cFVGrdqt9fdmxYwUii0Y';
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
-// 會員閘道：學院的 6 支查詢一律交給伺服器，由伺服器拿 LIFF access token 問 LINE 驗明正身後代查（前端傳的 LINE 編號不算）
+const HUB_URL = 'https://liff.line.me/2009692859-9mE2Ymmb';   // 會員中心（註冊、審核進度都在那邊）
+// 會員閘道：學院的查詢一律交給伺服器，由伺服器拿 LIFF access token 問 LINE 驗明正身後代查（前端傳的 LINE 編號不算）
 const GATE = SB_URL + '/functions/v1/member-gate';
 async function gate(fn, args){
   try{
@@ -360,19 +228,10 @@ function toast(m){const e=document.getElementById('toast');e.textContent=m;e.cla
 function show(id){
   document.querySelectorAll('.screen,.center').forEach(el=>el.classList.remove('active'));
   const el=document.getElementById(id); if(el) el.classList.add('active');
-  syncFab();
   window.scrollTo(0,0);
 }
-let fabWanted = false;
-function showFab(on){ fabWanted = on; syncFab(); }
-function syncFab(){
-  const home = document.getElementById('screen-home').classList.contains('active');
-  const admin = document.getElementById('screen-admin').classList.contains('active');
-  document.getElementById('fab-admin').classList.toggle('on', fabWanted && !home && !admin);
-}
-
 function go(name){
-  const map={home:'screen-home',courses:'screen-courses',course:'screen-course',lesson:'screen-lesson',admin:'screen-admin'};
+  const map={home:'screen-home',courses:'screen-courses',course:'screen-course',lesson:'screen-lesson'};
   if(name==='courses') renderCourses();
   show(map[name]||name);
 }
@@ -387,9 +246,10 @@ async function init(){
     await loadContext();
   }catch(e){
     console.error('init error:', e);
-    show('screen-nomember');
-    document.querySelector('#screen-nomember h2').textContent='開啟失敗';
-    document.querySelector('#screen-nomember p').textContent='請從 LINE 開啟這個頁面。若持續失敗，請聯繫團隊負責人。';
+    show('screen-notmember');
+    document.querySelector('#screen-notmember h2').textContent='開啟失敗';
+    document.querySelector('#screen-notmember p').textContent='請從 LINE 開啟這個頁面。若持續失敗，請聯繫團隊負責人。';
+    document.getElementById('hub-btn').style.display='none';
   }
 }
 
@@ -401,160 +261,24 @@ async function loadContext(){
 }
 
 function route(){
-  const st = ctx.state;
-  // 🔴 學院管理員的審核鈕必須在「任何狀態」都看得到。
-  //    否則第一個管理員自己還是 pending 時，看不到審核台 → 誰也審不了，包括他自己（死鎖）
-  //    ⚠️ 廣場本身已有「審核」格，那一頁隱藏浮動鈕，避免同畫面兩個入口（見 showFab）
-  showFab(!!ctx.is_admin);
-  if(st === 'no_member'){ show('screen-nomember'); loadOaList(); return; }
   if(ctx.access){ renderHome(); return; }
-  if(st === 'pending'){
-    const at = ctx.enrollment?.applied_at;
-    let html = at ? '送出時間：<b>'+fmt(at)+'</b><br>通常 1～2 天內完成審核，通過後這頁就會直接開課。'
-                  : '我們收到你的申請了，通常 1～2 天內完成審核。';
-    if(ctx.is_admin) html += '<br><br><b>你是學院管理員</b>：可從右下角 🛡️ 審核直接處理（含你自己這筆）。';
-    document.getElementById('pending-when').innerHTML = html;
-    show('screen-pending'); return;
-  }
-  if(st === 'revoked'){
-    const why = ctx.enrollment?.revoke_reason;
-    if(why) document.getElementById('revoked-why').textContent = why;
-    show('screen-revoked'); return;
-  }
-  if(st === 'expired'){ show('screen-expired'); return; }
-  show('screen-apply'); prefillApply();   // state = none
+  if(ctx.state === 'suspended'){ show('screen-suspended'); return; }
+  // 不是會員：學院不分「查不到／VIP0／審核中／被退回」，一律請他去會員中心（帶 ?oa= 進來的一起帶過去）
+  const oa = new URLSearchParams(location.search).get('oa');
+  if(oa) document.getElementById('hub-btn').href = HUB_URL + '?oa=' + encodeURIComponent(oa);
+  show('screen-notmember');
 }
 
-function fmt(iso){ if(!iso) return '-'; const d=new Date(iso); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
-
-// 沒有會員資料 → 列出可加入的團隊 OA（帶 ?oa= 時只列那一個，變成一鍵）
-async function loadOaList(){
-  const want = new URLSearchParams(location.search).get('oa');
-  // ⚠️ 不可直接 select tenants：該表 RLS 只開給 authenticated，anon 會撈到空的（2026-08-14 踩過）
-  let {data} = await sb.rpc('list_join_oas', {p_handle: want});
-  if((!data || !data.length) && want){
-    ({data} = await sb.rpc('list_join_oas', {p_handle: null}));
-  }
-  if(!data || !data.length){
-    document.getElementById('oa-list').innerHTML =
-      '<div class="card" style="font-size:17px">目前查不到可加入的官方帳號，請聯繫你的推薦人索取連結。</div>';
-    return;
-  }
-  if(data.length === 1){
-    document.getElementById('nomember-hint').innerHTML =
-      '先加入 <b>' + esc(data[0].owner_name) + '</b> 的 LINE 官方帳號，<b>加完直接滑回來</b>，這一頁會自動接上。';
-  }
-  document.getElementById('oa-list').innerHTML = data.map(t =>
-    `<a class="btn sec" style="margin-top:9px" href="https://line.me/R/ti/p/${encodeURIComponent(t.line_handle)}" target="_blank">➕ ${esc(t.owner_name)}　<span style="font-size:15px;color:var(--txt2)">${esc(t.line_handle)}</span></a>`
-  ).join('');
-}
-
-// 加完好友滑回來 → 自動重查，不用他自己想要按哪裡
-let recheckBusy = false;
-async function recheckMember(silent){
-  if(recheckBusy) return; recheckBusy = true;
-  const msg = document.getElementById('recheck-msg');
-  if(!silent && msg) msg.textContent = '檢查中…';
-  try{
-    const {data} = await gate('get_academy_context', {p_line_user_id: lineUserId});
-    if(data && data.state !== 'no_member'){ ctx = data; route(); return; }
-    if(!silent && msg) msg.textContent = '還沒偵測到，加好友後再按一次';
-  } finally { recheckBusy = false; }
-}
+// 從會員中心辦完滑回來 → 自動重查
 document.addEventListener('visibilitychange', () => {
-  if(!document.hidden && lineUserId &&
-     document.getElementById('screen-nomember').classList.contains('active')){
-    recheckMember(true);
-  }
+  if(!document.hidden && lineUserId && document.getElementById('screen-notmember').classList.contains('active')) loadContext();
 });
-
-// ========== 申請 ==========
-const CFC_LIST = ['李美潤','顏麗玉、游天貴','李芊嬅','張隆熙',
-                  '林甘霖、楊牧潔','蔡依儒、尤竣億','林姍嬅、凌翊迅','楊敬豪、林珊合','其他'];
-let cfcPicked = null;
-
-function renderCfc(){
-  const g = document.getElementById('cfc-grid');
-  if(!g || g.dataset.done) return;
-  g.innerHTML = CFC_LIST.map(n => `<div class="cfc-opt" onclick="pickCfc(this,'${n}')">${n}</div>`).join('');
-  g.dataset.done = '1';
-}
-function pickCfc(el, name){
-  document.querySelectorAll('.cfc-opt').forEach(x => x.classList.remove('on'));
-  el.classList.add('on');
-  cfcPicked = name;
-  document.getElementById('f-cfc-other').style.display = (name === '其他') ? 'block' : 'none';
-}
-function prefillApply(){
-  renderCfc();
-  const m = ctx.member || {};
-  if(m.np_member_code) document.getElementById('f-code').value  = m.np_member_code;
-  if(m.name)           document.getElementById('f-name').value  = m.name;
-  if(m.phone)          document.getElementById('f-phone').value = m.phone;
-}
-
-const toHalf = s => String(s||'').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0));
-
-async function submitApply(){
-  const errEl = document.getElementById('apply-err');
-  const code  = toHalf(document.getElementById('f-code').value).replace(/[^0-9]/g,'');
-  const name  = document.getElementById('f-name').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
-  const other = document.getElementById('f-cfc-other').value.trim();
-  const cfc   = (cfcPicked === '其他') ? other : cfcPicked;
-  const reason= document.getElementById('apply-reason').value.trim() || null;
-
-  const errs = [];
-  if(!/^[0-9]{7}$/.test(code)) errs.push('會員編號必須是 7 位數字');
-  if(!name)  errs.push('請填姓名');
-  if(!phone) errs.push('請填手機');
-  if(!cfcPicked) errs.push('請選直屬 CFC 領袖');
-  if(cfcPicked === '其他' && !other) errs.push('請填寫直屬 CFC 姓名');
-  if(errs.length){
-    errEl.innerHTML = errs.join('<br>'); errEl.classList.add('show');
-    errEl.scrollIntoView({behavior:'smooth', block:'center'});
-    return;
-  }
-  errEl.classList.remove('show');
-
-  const btn = document.getElementById('apply-btn');
-  btn.disabled = true; btn.textContent = '送出中…';
-  const {data, error} = await gate('apply_academy', {
-    p_line_user_id: lineUserId, p_np_member_code: code,
-    p_name: name, p_phone: phone, p_cfc_leader: cfc, p_reason: reason });
-  btn.disabled = false; btn.textContent = '送出申請';
-
-  if(error || !data?.ok){
-    const msg = { bad_code:'會員編號格式不對，請填 7 位數字',
-                  code_taken:'這個會員編號已經綁定其他 LINE 帳號。若是誤填請重填；確定是你本人請聯繫團隊負責人。',
-                  no_member:'找不到你的資料，請重新開啟頁面' }[data?.error] || '送出失敗，請稍後再試';
-    errEl.innerHTML = msg; errEl.classList.add('show');
-    errEl.scrollIntoView({behavior:'smooth', block:'center'});
-    return;
-  }
-  toast('已送出，等候審核');
-  await loadContext();
-}
 
 // ========== 學院首頁 ==========
 function allCredits(){ return (ctx.categories||[]).flatMap(c => c.credits||[]); }
 
 function renderHome(){
   document.getElementById('home-sub').textContent = ctx.member?.name ? ctx.member.name + '，歡迎回來' : '歡迎回來';
-  const isAdmin = !!ctx.is_admin;
-  document.getElementById('admin-chip').style.display = isAdmin ? '' : 'none';
-  showFab(isAdmin);
-
-  // 2026-11-08 廣場 → 新手村：只剩管理員的審核格，「準備中」的格子全部拿掉
-  const tiles = [];
-  if (isAdmin) tiles.push({ic:'🛡️', nm:'審核', sub:'入場申請', act:"go('admin');loadAdmin('pending')", admin:true, wide:true});
-
-  document.getElementById('plaza').innerHTML = tiles.map(x => `
-    <div class="tile ${x.soon?'soon':''} ${x.wide?'wide':''} ${x.admin?'admin-t':''}"
-      ${x.soon?'':`onclick="${x.act || `go('${x.go}')`}"`}>
-      <div class="ic">${x.ic}</div>
-      <div><div class="nm">${x.nm}</div><div class="sub">${x.soon?'準備中':x.sub}</div></div>
-    </div>`).join('');
   go('home');
   loadStarter();
 }
@@ -675,7 +399,7 @@ async function openLesson(id){
   const {data, error} = await gate('get_academy_lesson', {p_line_user_id: lineUserId, p_lesson_id: id});
   if(error || !data?.ok){
     const msg = data?.error === 'course_locked' ? '這門課尚未開放'
-              : data?.error === 'no_access'     ? '你的入場資格尚未生效'
+              : data?.error === 'no_access'     ? '目前無法觀看，請重新開啟頁面'
               : '無法載入這一課，請重新整理';
     document.getElementById('player').innerHTML = `<div class="noplay">${msg}</div>`;
     return;
@@ -714,51 +438,11 @@ async function openLesson(id){
   renderNext(l.id);
 }
 
-// ========== 管理員 ==========
-async function loadAdmin(status){
-  ['pending','active','revoked'].forEach(s =>
-    document.getElementById('tab-'+s).classList.toggle('on', s===status));
-  document.getElementById('admin-list').innerHTML = '<div class="card">載入中…</div>';
-
-  const {data, error} = await gate('list_academy_enrollments',
-    {p_admin_line_id: lineUserId, p_status: status});
-  if(error || !data?.ok){ document.getElementById('admin-list').innerHTML = '<div class="card">讀取失敗</div>'; return; }
-
-  const rows = data.rows || [];
-  if(!rows.length){ document.getElementById('admin-list').innerHTML = '<div class="card">目前沒有資料</div>'; return; }
-
-  document.getElementById('admin-list').innerHTML = rows.map(r => `
-    <div class="arow">
-      <div class="nm">${esc(r.name || '未填姓名')}${r.combat_alumni ? '<span class="badge-alum">✅ 實戰班學員</span>' : ''}</div>
-      <div class="meta">${esc(r.np_member_code||'無編號')}　${esc(r.phone||'')}　申請 ${fmt(r.applied_at)}</div>
-      <div class="meta">CFC：${esc(r.cfc_leader||'未填')}　OA：${esc(r.tenant||'未分團隊')}</div>
-      ${r.apply_reason ? `<div class="why">${esc(r.apply_reason)}</div>` : ''}
-      <div class="acts">
-        ${status !== 'active' ? `<button class="ap" onclick="doApprove('${r.member_id}')">✅ 核准入場</button>` : ''}
-        ${status !== 'revoked' ? `<button class="rj" onclick="doRevoke('${r.member_id}')">🔒 停權</button>` : ''}
-      </div>
-    </div>`).join('');
-}
-
-async function doApprove(memberId){
-  const {data, error} = await gate('approve_academy',
-    {p_admin_line_id: lineUserId, p_member_id: memberId, p_plan: 'comp', p_expires_at: null});
-  if(error || !data?.ok){ toast('核准失敗'); return; }
-  toast('已核准入場'); loadAdmin('pending');
-}
-async function doRevoke(memberId){
-  const why = prompt('停權原因（會顯示給對方，可留空）') ?? null;
-  const {data, error} = await gate('revoke_academy',
-    {p_admin_line_id: lineUserId, p_member_id: memberId, p_reason: why || null});
-  if(error || !data?.ok){ toast('停權失敗'); return; }
-  toast('已停權'); loadAdmin('pending');
-}
-
 // ========== 預覽模式（免 LINE 登入）==========
 function isPreview(){ return location.hash === '#preview' || new URLSearchParams(location.search).has('preview'); }
 function previewInit(){
   // 預覽：免 LINE 登入，假資料（新手村前 6 堂，封面是真的 Vimeo 縮圖）
-  ctx = {state:'active', access:true, is_admin:true, member:{name:'預覽帳號', np_member_code:'NP000000'}};
+  ctx = {state:'ok', access:true, member:{name:'預覽帳號', np_member_code:'NP000000'}};
   window.gate = async () => ({data:{ok:true}, error:null});   // 預覽不寫任何東西
   window.loadStarter = () => { starter = [{"id": "l1", "no": 1, "title": "前導", "cover_url": "https://i.vimeocdn.com/video/2185881090-43b459ab39a0d8f46e4dea09be14d65a1ffb9cd73b5229415a6405b3cac28e85-d_640", "duration_sec": 352, "pct": 100, "done": true}, {"id": "l2", "no": 2, "title": "夢想版", "cover_url": "https://i.vimeocdn.com/video/2185776967-f37475ba821f45eafdcb5eb7bcd6653f2273fe4eeb4f2406cd22a2c6cfda0b93-d_640", "duration_sec": 419, "pct": 40, "done": false}, {"id": "l3", "no": 3, "title": "確信行業", "cover_url": "https://i.vimeocdn.com/video/2202401425-3b4de6b61698ec2fac47f899ca848c4feef673cc8eff0be3292e86474eea5eb0-d_640", "duration_sec": 1627, "pct": 0, "done": false}, {"id": "l4", "no": 4, "title": "確信公司", "cover_url": "https://i.vimeocdn.com/video/2185777684-9d18a55dd9aa7f4b0c45200390154a81270097bd57b80313199f603dc7baa90f-d_640", "duration_sec": 276, "pct": 0, "done": false}, {"id": "l5", "no": 5, "title": "五大商品優勢", "cover_url": "https://i.vimeocdn.com/video/2187362631-7be686d085f77d2e697f08dcd33dc55772c3736104ba36a5f12c1c44a8985cd8-d_640", "duration_sec": 1360, "pct": 0, "done": false}, {"id": "l6", "no": 6, "title": "確信制度", "cover_url": "https://i.vimeocdn.com/video/2185778479-5c76b1a441deba90bf7930e9c3f6532701f5e7fcb9e4dbc0c12abc7e5f106b21-d_640", "duration_sec": 1015, "pct": 0, "done": false}]; renderVillage(); };
   renderHome();

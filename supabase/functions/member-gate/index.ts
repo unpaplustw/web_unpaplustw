@@ -4,8 +4,9 @@
 //
 // 目前的動作：
 //   me       → 回傳自己的會員資料（名字、VIP 等級、AI 點數；不含電話 email）
-//   academy  → 環球致富學院的 8 支函式（白名單），身分欄一律換成驗證過的 userId，前端傳的不算
-//   admin    → 會員中心後台的 9 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
+//   academy  → 環球致富學院的 4 支函式（白名單），身分欄一律換成驗證過的 userId，前端傳的不算
+//              （2026-11-10 起學院不再自己收申請／審核：VIP1 以上直接進，舊的申請、審核四支已拿掉）
+//   admin    → 會員中心後台的 10 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -15,13 +16,9 @@ const sb = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABA
 
 // 學院通道：fn → 身分參數名、允許前端帶的其他參數（其餘一律丟掉）
 const ACADEMY: Record<string, { id: string; args: string[] }> = {
-  get_academy_context:      { id: 'p_line_user_id',  args: [] },
-  apply_academy:            { id: 'p_line_user_id',  args: ['p_np_member_code', 'p_name', 'p_phone', 'p_cfc_leader', 'p_reason'] },
+  get_academy_context:      { id: 'p_line_user_id',  args: [] },                        // 能不能進：ok／not_member／suspended
   get_academy_lesson:       { id: 'p_line_user_id',  args: ['p_lesson_id'] },
-  list_academy_enrollments: { id: 'p_admin_line_id', args: ['p_status'] },
-  approve_academy:          { id: 'p_admin_line_id', args: ['p_member_id', 'p_plan', 'p_expires_at'] },
-  revoke_academy:           { id: 'p_admin_line_id', args: ['p_member_id', 'p_reason'] },
-  get_academy_starter:      { id: 'p_line_user_id',  args: [] },                        // 新手村 17 堂＋自己的進度
+  get_academy_starter:     { id: 'p_line_user_id',  args: [] },                        // 新手村 17 堂＋自己的進度
   log_academy_progress:     { id: 'p_line_user_id',  args: ['p_lesson_id', 'p_pct'] },  // 看到幾成（>=90 算看過）
 };
 
@@ -36,6 +33,7 @@ const ADMIN: Record<string, { id: string; args: string[] }> = {
   admin_set_grant:    { id: 'p_caller_line_id', args: ['p_member_id', 'p_action', 'p_scope_type', 'p_scope_id', 'p_on'] },
   admin_list_lineage: { id: 'p_caller_line_id', args: ['p_filter'] },   // 族譜（中央／manage_peaks 權）
   admin_save_lineage: { id: 'p_caller_line_id', args: ['p_member_code', 'p_name', 'p_sponsor_code', 'p_sponsor_name', 'p_peak_core'] },
+  admin_set_academy:  { id: 'p_caller_line_id', args: ['p_member_id', 'p_mode'] },   // 學院特批／停權／取消（只有中央）
 };
 const CHANNELS: Record<string, Record<string, { id: string; args: string[] }>> = { academy: ACADEMY, admin: ADMIN };
 

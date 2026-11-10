@@ -4,7 +4,7 @@
   ⚠️ 課程目錄是寫死的文字，與 Supabase academy.lessons 是兩份。
      新增或改課名時，**這一頁要手動同步**（一年動不了幾次，故意不做動態渲染）。
      最後同步：2026-08-16（四大類 × 21 學分 × 46 單元；原進階 13 單元降為單元層上鎖）
-  申請入場按鈕 → LIFF：把 LIFF_ID 換成 LINE Developers Console 新建的那支。
+  進入按鈕 → LIFF（/academy/app.html）。進場規則 2026-11-10 改：綠佳利會員（VIP1 以上）直接進，不用另外申請。
 -->
 <html lang="zh-TW">
 <head>
@@ -150,18 +150,17 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
     <h2><span class="ic">🔑</span>怎麼進來</h2>
     <div class="card steps" style="padding:10px 20px">
       <div class="step"><div class="no"></div><div class="tx">用 <b>LINE</b> 點下方按鈕</div></div>
-      <div class="step"><div class="no"></div><div class="tx">填一段話，說明你想學什麼</div></div>
-      <div class="step"><div class="no"></div><div class="tx">我們審核（通常 1～2 天）</div></div>
-      <div class="step"><div class="no"></div><div class="tx">通過後，<b>學分地圖全部打開</b></div></div>
+      <div class="step"><div class="no"></div><div class="tx">已經是綠佳利會員：<b>直接打開</b>，不用另外申請</div></div>
+      <div class="step"><div class="no"></div><div class="tx">還不是會員：先到<b>會員中心</b>註冊，通過後就能看</div></div>
     </div>
-    <p style="font-size:16px;color:var(--txt2)">課程影片是團隊自己拍攝的教材，<b>需要審核才能觀看</b>，感謝理解。</p>
+    <p style="font-size:16px;color:var(--txt2)">課程影片是團隊自己拍攝的教材，<b>開放給綠佳利會員觀看</b>，感謝理解。</p>
   </section>
 
   <div class="cta-box">
     <h2>準備好了嗎</h2>
-    <p>先申請，再決定要不要學。<br>不用付費、不用押金。</p>
-    <a class="btn" id="applyBtn" href="#">用 LINE 申請入場</a>
-    <div class="note">已經入場的同學，點同一個按鈕就會直接進學院。</div>
+    <p>不用另外申請。<br>不用付費、不用押金。</p>
+    <a class="btn" id="applyBtn" href="#">用 LINE 進入學院</a>
+    <div class="note">還不是會員的話，會帶你到會員中心註冊。</div>
   </div>
 
   <footer>
@@ -173,7 +172,7 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
 <script>
 // ⚠️ 換成 LINE Developers Console 新建的 LIFF ID（Endpoint 指向 /academy/app.html）
 const LIFF_ID = '2009692859-wevHkClh';
-// 保留來源參數（?oa=@handle 決定推薦歸屬，沒帶就由學院端讓對方自己選）
+// 保留來源參數（?oa=@handle 決定歸屬哪個團隊 OA；還不是會員的人會一路帶到會員中心）
 (function () {
   const qs = window.location.search || '';
   document.getElementById('applyBtn').href = 'https://liff.line.me/' + LIFF_ID + qs;

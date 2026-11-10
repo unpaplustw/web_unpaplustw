@@ -182,6 +182,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 
   <div class="icon">📱</div>
   <h2 id="error-title">請先加入團隊 LINE</h2>
   <p id="error-msg">此頁面需透過團隊 LINE 官方帳號進入。<br>請先加入您的團隊 LINE，與 AI 顧問對話後再回來開通。</p>
+  <div id="oa-list" style="width:100%;max-width:320px;margin-top:18px"></div>
+  <button id="recheck-btn" style="display:none;width:100%;max-width:320px;margin-top:14px;padding:13px;border-radius:12px;border:1px solid var(--glass-bd);background:var(--glass);color:var(--text);font-size:15px;font-weight:600;cursor:pointer" onclick="recheckMember()">✅ 我加好了</button>
+  <div id="recheck-msg" style="font-size:13px;color:var(--muted);margin-top:10px;min-height:20px"></div>
 </div>
 
 <!-- ===== UPGRADE (level 0, no member code) ===== -->
@@ -384,7 +387,7 @@ function route() {
   const role = ctx.role;
 
   if (role === 'not_found') {
-    show('screen-error');
+    showNotFound();
     return;
   }
 
@@ -416,6 +419,43 @@ function route() {
 
   show('screen-error');
 }
+
+// ========== 查不到這個 LINE ==========
+// 還沒加過任何團隊 OA → 列出可加入的 OA（帶 ?oa= 時只列那一個），加完滑回來自動接上。
+// 2026-11-10 從學院頁搬來：學院只分「能進／不是會員／停權」，其餘狀態都由這一頁講。
+let notFoundShown = false, recheckBusy = false;
+async function showNotFound() {
+  notFoundShown = true;
+  document.getElementById('error-msg').innerHTML = '先加入下方的 LINE 官方帳號，<b>加完直接滑回來</b>，這一頁會自動接上。';
+  document.getElementById('recheck-btn').style.display = '';
+  show('screen-error');
+  const box = document.getElementById('oa-list');
+  const want = new URLSearchParams(location.search).get('oa');
+  // ⚠️ 不可直接 select tenants：該表 RLS 只開給 authenticated，anon 會撈到空的（2026-08-14 踩過）
+  let { data } = await sb.rpc('list_join_oas', { p_handle: want });
+  if ((!data || !data.length) && want) ({ data } = await sb.rpc('list_join_oas', { p_handle: null }));
+  if (!data || !data.length) {
+    box.innerHTML = '<div style="font-size:14px;color:var(--muted);line-height:1.8">目前查不到可加入的官方帳號，請聯繫你的推薦人索取連結。</div>';
+    return;
+  }
+  box.innerHTML = data.map(t =>
+    `<a class="btn-primary" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;margin-top:9px" href="https://line.me/R/ti/p/${encodeURIComponent(t.line_handle)}" target="_blank">➕ ${esc(t.owner_name)}　<span style="font-size:13px;opacity:.85">${esc(t.line_handle)}</span></a>`
+  ).join('');
+}
+async function recheckMember(silent) {
+  if (recheckBusy || !lineUserId) return;
+  recheckBusy = true;
+  const msg = document.getElementById('recheck-msg');
+  if (!silent) msg.textContent = '檢查中…';
+  try {
+    const { data } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
+    if (data && data.role !== 'not_found') { location.reload(); return; }   // 重載＝走完整的 init（含綁 OA、同步頭像）
+    if (!silent) msg.textContent = '還沒偵測到，加好友後再按一次';
+  } finally { recheckBusy = false; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && notFoundShown) recheckMember(true);
+});
 
 // ========== REJECTED ==========
 
@@ -626,7 +666,7 @@ function previewInit() {
 }
 
 function previewShow(key) {
-  if (key === 'error') { show('screen-error'); return; }
+  if (key === 'error') { showNotFound(); return; }
   ctx = JSON.parse(JSON.stringify(MOCK[key]));
   route();
 }
