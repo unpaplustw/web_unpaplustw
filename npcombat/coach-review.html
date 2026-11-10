@@ -97,9 +97,12 @@
   .my-book .bk-mglbl{margin-top:10px;font-size:14px;font-weight:800;color:var(--gold)} .my-book .bk-mglbl small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
   .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
   .appt-hint{font-size:12.5px;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:6px 10px;margin:2px 0 6px}  .appt-hint b{font-weight:800}
-  .appt-date{position:relative;display:inline-block}  .appt-date.empty input{color:transparent}  .appt-date em{position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-style:normal;font-size:13.5px;font-weight:700;color:#2f6fae}  .appt-date:not(.empty) em{display:none}   /* iPhone 空白日期會顯示今天的灰字，像已填好 */
-  .appt-pick{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:14px}  .appt-pick span{flex:1;min-width:0;font-weight:700}
-  .appt-pick input{border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  .appt-pick{margin:6px 0 10px}  .appt-who{display:flex;align-items:baseline;gap:8px;font-size:14px;margin-bottom:4px}  .appt-who b{font-weight:800}
+  .appt-who small{font-size:12px;font-weight:800}  .appt-who small.ok{color:#2f6f45}  .appt-who small.ing{color:var(--muted)}
+  .appt-days{display:flex;flex-wrap:wrap;gap:6px}  .appt-day{position:relative;overflow:hidden;border:1.5px solid var(--border);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;font-family:inherit;background:#fff;color:var(--text);cursor:pointer}
+  .appt-day.on{background:var(--gold);border-color:var(--gold);color:#fff}  .appt-day.other{color:#2f6fae;border-style:dashed}  .appt-day.other.on{color:#fff;border-style:solid}
+  .appt-day input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px}
+  .appt-note{font-size:12px;font-weight:700;color:#b5651d;background:#fff4e5;border-radius:8px;padding:5px 9px;margin-top:2px}
   .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
   .appt-hd{font-size:17px;font-weight:900;color:#2f6fae;margin-bottom:6px}
   .appt-r{background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px}  .appt-n b{font-size:16px}  .appt-n small{margin-left:8px;font-size:12px;color:var(--muted)}
@@ -2741,14 +2744,60 @@ async function deleteMyContact(id) {
 
 // ══ 📅 赴約（2026-11-10，與學員回報頁同一套）════════════════════════
 let myApptDraft = {};
+const MY_PAGE_DAY = getDateStr('today');   // 🔴 2026-11-10 過午夜擋下（與學員頁同）
+function myDayChanged() {
+  if (getDateStr('today') === MY_PAGE_DAY) return false;
+  alert('已經過午夜了，這個畫面是昨天開的。\n請重新整理頁面，再填今天的回報。');
+  return true;
+}
 const myApptTag = c => !c.appt_date ? '' : c.appt_date <= getDateStr('today')
   ? `<small class="bk-appt due">⚠️ ${mdM(c.appt_date)} 見到了嗎？</small>` : `<small class="bk-appt">📅 ${mdM(c.appt_date)} 見面</small>`;
+// 🔴 2026-11-10 Randoph：「日期西元縮掉，變成按鈕；選日期就送出（旁邊出現已送出），最下面送出只管＋－數值」
+//   明天起 7 天各一顆＋「其他日期」；按了立刻寫 contacts.appt_date／appt_set_on，再按同一顆＝取消
+//   「見到了嗎」的回答仍要按送出才存（它會加分，要跟數字一起算）
+let myApptBusy = {};
+function myApptDays(base) {
+  const W = '日一二三四五六', out = [];
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(base + 'T00:00:00'); d.setDate(d.getDate() + i);
+    out.push({ ds: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+               lb: (i === 1 ? '明天 ' : '') + `${d.getMonth() + 1}/${d.getDate()}` + (i === 1 ? '' : `（${W[d.getDay()]}）`) });
+  }
+  return out;
+}
 function renderMyApptPick(row, chosen) {
   const box = row.querySelector('.nm-appts'); if (!box) return;
-  const t = new Date(getDateStr(currentDay) + 'T00:00:00'); t.setDate(t.getDate() + 1);
-  const min = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-  box.innerHTML = chosen.length ? `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・填了那天會問你「見到了嗎」，見到了再 +2</small></div>`
-    + chosen.map(c => `<label class="appt-pick"><span>${escM(c.name)}</span><span class="appt-date${myApptDraft[c.id] ? '' : ' empty'}"><input type="date" min="${min}" value="${myApptDraft[c.id] || ''}" onchange="myApptDraft['${c.id}']=this.value;this.parentElement.classList.toggle('empty',!this.value)"><em>點我選日期</em></span></label>`).join('') : `<div class="appt-hint">📅 打名字或點選人 → 就能填<b>約哪天見面</b>，見到了再 +2</div>`;   // 2026-11-10 Randoph：沒選人時也提示有這個功能
+  const days = myApptDays(getDateStr(currentDay)), min = days[0].ds;
+  chosen.forEach(c => { if (!myApptDraft[c.id] && c.appt_set_on === getDateStr(currentDay) && c.appt_date) myApptDraft[c.id] = c.appt_date; });   // 沒送出就關掉再回來，今天存的日期要帶回
+  if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，見到了再 +2</div>`; return; }
+  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・按日期就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
+    + chosen.map(c => {
+      const cur = myApptDraft[c.id] || '', inWeek = days.some(d => d.ds === cur), far = cur && !inWeek;
+      return `<div class="appt-pick"><div class="appt-who"><b>${escM(c.name)}</b>`
+        + (myApptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">✓ 已送出・${mdM(cur)} 見面</small>` : '') + `</div><div class="appt-days">`
+        + days.map(d => `<button type="button" class="appt-day${d.ds === cur ? ' on' : ''}" onclick="setMyAppt('${c.id}','${d.ds}')">${d.lb}</button>`).join('')
+        + `<label class="appt-day other${far ? ' on' : ''}">${far ? mdM(cur) : '其他日期'}<input type="date" min="${min}" value="${far ? cur : ''}" onchange="setMyAppt('${c.id}',this.value,true)"></label></div></div>`;
+    }).join('')
+    + (chosen.some(c => myApptDraft[c.id]) ? `<div class="appt-note">日期存好了 ✅　邀約次數記得按最下面「儲存我的回報」</div>` : '');
+}
+async function setMyAppt(id, ds, fromPicker) {
+  if (isActionLocked() || myApptBusy[id] || myDayChanged()) return;
+  const c = myContacts.find(x => x.id === id); if (!c) return;
+  const t = getDateStr(currentDay);
+  if (ds && ds <= t) { toast('要選明天以後的日期'); renderMyNameRow('invite'); return; }
+  const next = (!ds || (!fromPicker && myApptDraft[id] === ds)) ? null : ds;   // 再按同一顆／月曆按清除＝取消
+  if (!next && !myApptDraft[id]) { renderMyNameRow('invite'); return; }
+  myApptBusy[id] = 1; renderMyNameRow('invite');
+  const { error } = await sb.from('contacts').update(next ? { appt_date: next, appt_set_on: t } : { appt_date: null, appt_set_on: null }).eq('id', id);
+  delete myApptBusy[id];
+  if (error) toast('日期沒存到，請再按一次（' + error.message + '）');
+  else {
+    if (next) myApptDraft[id] = next; else delete myApptDraft[id];
+    c.appt_date = next; c.appt_set_on = next ? t : null;
+    toast(next ? `已送出：${mdM(next)} 見面 ✅` : '已取消約定日');
+    renderMyBook();
+  }
+  renderMyNameRow('invite');
 }
 function renderMyAppt() {
   const box = document.getElementById('myApptArea'); if (!box) return;
@@ -2784,7 +2833,7 @@ async function saveMyAppts(t) {
   myContacts.forEach(c => {
     const want = inv.includes(c.id) && myApptDraft[c.id] && myApptDraft[c.id] > t ? myApptDraft[c.id] : null;
     if (want && (c.appt_date !== want || c.appt_set_on !== t)) jobs.push(sb.from('contacts').update({ appt_date: want, appt_set_on: t }).eq('id', c.id));
-    else if (!want && c.appt_set_on === t && c.appt_date > t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));
+    // （2026-11-10 日期改成按了就存：送出時不再因為「這次沒選到人」清日期，只有取消選人或再按同一顆才取消）
     else if (ans.includes(c.id) && c.appt_date && c.appt_date <= t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));
   });
   const rs = await Promise.all(jobs);
@@ -2833,6 +2882,7 @@ async function myAddName(key) {
 function myToggleName(key, id) {
   const cur = myNames[key] || [];
   myNames[key] = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  if (key === 'invite' && cur.includes(id) && myApptDraft[id]) setMyAppt(id, '');   // 取消選人＝連約定日一起取消
   syncMyCount(key); renderMyNameRow(key);
 }
 function renderMyNameRow(key) {
@@ -2996,6 +3046,7 @@ function toggleMyBadge(i, badge) {
 }
 
 async function submitMyReport() {
+  if (myDayChanged()) return;
   if (!myStudentId) { toast('找不到學員記錄'); return; }
 
   // 驗證未完成的締結

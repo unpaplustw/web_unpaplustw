@@ -95,9 +95,12 @@
   .nm-empty{font-size:12.5px;color:var(--muted);padding:2px 2px 6px}
   .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
   .appt-hint{font-size:12.5px;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:6px 10px;margin:2px 0 6px}  .appt-hint b{font-weight:800}
-  .appt-date{position:relative;display:inline-block}  .appt-date.empty input{color:transparent}  .appt-date em{position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-style:normal;font-size:13.5px;font-weight:700;color:#2f6fae}  .appt-date:not(.empty) em{display:none}   /* iPhone 空白日期會顯示今天的灰字，像已填好 */
-  .appt-pick{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:14px}  .appt-pick span{flex:1;min-width:0;font-weight:700}
-  .appt-pick input{border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  .appt-pick{margin:6px 0 10px}  .appt-who{display:flex;align-items:baseline;gap:8px;font-size:14px;margin-bottom:4px}  .appt-who b{font-weight:800}
+  .appt-who small{font-size:12px;font-weight:800}  .appt-who small.ok{color:#2f6f45}  .appt-who small.ing{color:var(--muted)}
+  .appt-days{display:flex;flex-wrap:wrap;gap:6px}  .appt-day{position:relative;overflow:hidden;border:1.5px solid var(--border);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;font-family:inherit;background:#fff;color:var(--text);cursor:pointer}
+  .appt-day.on{background:var(--gold);border-color:var(--gold);color:#fff}  .appt-day.other{color:#2f6fae;border-style:dashed}  .appt-day.other.on{color:#fff;border-style:solid}
+  .appt-day input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px}
+  .appt-note{font-size:12px;font-weight:700;color:#b5651d;background:#fff4e5;border-radius:8px;padding:5px 9px;margin-top:2px}
   .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
   .appt-hd{font-size:17px;font-weight:900;color:#2f6fae;margin-bottom:6px}
   .appt-r{background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px}  .appt-n b{font-size:16px}  .appt-n small{margin-left:8px;font-size:12px;color:var(--muted)}
@@ -906,6 +909,7 @@ async function addName(key) {
 function toggleName(key, id) {
   const cur = names[key] || [];
   names[key] = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  if (key === 'invite' && cur.includes(id) && apptDraft[id]) setAppt(id, '');   // 取消選人＝連約定日一起取消
   syncCountToNames(key);
   renderNameRow(key);
 }
@@ -949,12 +953,52 @@ function renderNameRow(key) {
 //   到那天起 → 最上面問「見到了嗎？」：見到了＝赴約 +2（可順手記溝通本／說明會）；沒見到＝回到「該約」、不加不扣
 //   一次邀約只問一次：回答＋送出後清掉約定日。存在 contacts.appt_date／appt_set_on；回答存 names.attended／names.missed
 let apptDraft = {};   // 今天邀約選的人 → 約哪天
+// 🔴 2026-11-10 Randoph：「日期西元縮掉，變成按鈕；選日期就送出（旁邊出現已送出），最下面送出只管＋－數值」
+//   明天起 7 天各一顆＋「其他日期」；按了立刻寫 contacts.appt_date／appt_set_on，再按同一顆＝取消
+//   「見到了嗎」的回答仍要按送出才存（它會加分，要跟數字一起算）
+let apptBusy = {};
+function apptDays(base) {
+  const W = '日一二三四五六', out = [];
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(base + 'T00:00:00'); d.setDate(d.getDate() + i);
+    out.push({ ds: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+               lb: (i === 1 ? '明天 ' : '') + `${d.getMonth() + 1}/${d.getDate()}` + (i === 1 ? '' : `（${W[d.getDay()]}）`) });
+  }
+  return out;
+}
 function renderApptPick(row, chosen) {
   const box = row.querySelector('.nm-appts'); if (!box) return;
-  const t = new Date(today() + 'T00:00:00'); t.setDate(t.getDate() + 1);
-  const min = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-  box.innerHTML = chosen.length ? `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・填了那天會問你「見到了嗎」，見到了再 +2</small></div>`
-    + chosen.map(c => `<label class="appt-pick"><span>${escH(c.name)}</span><span class="appt-date${apptDraft[c.id] ? '' : ' empty'}"><input type="date" min="${min}" value="${apptDraft[c.id] || ''}" onchange="apptDraft['${c.id}']=this.value;this.parentElement.classList.toggle('empty',!this.value)"><em>點我選日期</em></span></label>`).join('') : `<div class="appt-hint">📅 打名字或點選人 → 就能填<b>約哪天見面</b>，見到了再 +2</div>`;   // 2026-11-10 Randoph：沒選人時也提示有這個功能
+  const days = apptDays(today()), min = days[0].ds;
+  chosen.forEach(c => { if (!apptDraft[c.id] && c.appt_set_on === today() && c.appt_date) apptDraft[c.id] = c.appt_date; });   // 沒送出就關掉再回來，今天存的日期要帶回
+  if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，見到了再 +2</div>`; return; }
+  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・按日期就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
+    + chosen.map(c => {
+      const cur = apptDraft[c.id] || '', inWeek = days.some(d => d.ds === cur), far = cur && !inWeek;
+      return `<div class="appt-pick"><div class="appt-who"><b>${escH(c.name)}</b>`
+        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">✓ 已送出・${mdOf(cur)} 見面</small>` : '') + `</div><div class="appt-days">`
+        + days.map(d => `<button type="button" class="appt-day${d.ds === cur ? ' on' : ''}" onclick="setAppt('${c.id}','${d.ds}')">${d.lb}</button>`).join('')
+        + `<label class="appt-day other${far ? ' on' : ''}">${far ? mdOf(cur) : '其他日期'}<input type="date" min="${min}" value="${far ? cur : ''}" onchange="setAppt('${c.id}',this.value,true)"></label></div></div>`;
+    }).join('')
+    + (chosen.some(c => apptDraft[c.id]) ? `<div class="appt-note">日期存好了 ✅　邀約次數記得按最下面「送出」</div>` : '');
+}
+async function setAppt(id, ds, fromPicker) {
+  if (actionsLocked() || apptBusy[id] || dayChanged()) return;
+  const c = contacts.find(x => x.id === id); if (!c) return;
+  const t = today();
+  if (ds && ds <= t) { toast('要選明天以後的日期'); renderNameRow('invite'); return; }
+  const next = (!ds || (!fromPicker && apptDraft[id] === ds)) ? null : ds;   // 再按同一顆／月曆按清除＝取消
+  if (!next && !apptDraft[id]) { renderNameRow('invite'); return; }
+  apptBusy[id] = 1; renderNameRow('invite');
+  const { error } = await sb.from('contacts').update(next ? { appt_date: next, appt_set_on: t } : { appt_date: null, appt_set_on: null }).eq('id', id);
+  delete apptBusy[id];
+  if (error) toast('日期沒存到，請再按一次（' + error.message + '）');
+  else {
+    if (next) apptDraft[id] = next; else delete apptDraft[id];
+    c.appt_date = next; c.appt_set_on = next ? t : null;
+    toast(next ? `已送出：${mdOf(next)} 見面 ✅` : '已取消約定日');
+    renderBook();
+  }
+  renderNameRow('invite');
 }
 function apptCards() {   // 到期（含過期沒回答）＋今天已回答的
   const t = today(), ans = new Set([...(names.attended || []), ...(names.missed || [])]);
@@ -1000,7 +1044,7 @@ async function saveAppts() {   // 送出成功後：設定今天約的日期、�
   contacts.forEach(c => {
     const want = inv.includes(c.id) && apptDraft[c.id] && apptDraft[c.id] > t ? apptDraft[c.id] : null;
     if (want && (c.appt_date !== want || c.appt_set_on !== t)) jobs.push(sb.from('contacts').update({ appt_date: want, appt_set_on: t }).eq('id', c.id));
-    else if (!want && c.appt_set_on === t && c.appt_date > t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));   // 今天約的又取消了
+    // （2026-11-10 日期改成按了就存：送出時不再因為「這次沒選到人」清日期，只有取消選人或再按同一顆才取消）
     else if (ans.includes(c.id) && c.appt_date && c.appt_date <= t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));
   });
   const rs = await Promise.all(jobs);
@@ -1240,6 +1284,15 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// 🔴 2026-11-10 過午夜擋下：頁面開著跨日再送出，existingId 還指著昨天那筆 → 昨天的紀錄會被改成今天的日期（等於消失）
+let PAGE_DAY = null;   // 頁面載入當下的日期
+function dayChanged() {
+  if (!PAGE_DAY || today() === PAGE_DAY) return false;
+  showBlock('已經過午夜了，這個畫面是昨天開的。<br><b>請關掉重新開，填今天的回報</b>；昨天的請找教練補交。',
+    { emoji: '🌙', title: '🌙 已經換日', sub: '回 LINE 聊天室重新點連結就可以' });
+  return true;
+}
+
 function today() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -1444,7 +1497,7 @@ function reloginClean() {
 
 // ── Init ──
 async function init() {
-  const d = today();
+  const d = today();   PAGE_DAY = d;
   document.getElementById('dateText').textContent = formatDate(d);
 
   if (DEMO_MODE) {
@@ -1754,6 +1807,7 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
 
 // ── Submit ──
 async function submit() {
+  if (dayChanged()) return;
   // validate close entries
   for (let i = 0; i < closeEntries.length; i++) {
     const e = closeEntries[i];
