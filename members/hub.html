@@ -289,70 +289,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 
       <div class="card-row"><span class="label">AI 點數</span><span class="value" id="mb-credits">-</span></div>
       <div class="card-row"><span class="label">加入日期</span><span class="value" id="mb-joined">-</span></div>
     </div>
-  </div>
-</div>
-
-<!-- ===== OA ADMIN ===== -->
-<div class="screen" id="screen-oa-admin">
-  <div class="wrap">
-    <div class="hd">
-      <div class="hd-icon">🛡️</div>
-      <div class="hd-title" id="oa-title">團隊管理</div>
-      <div class="hd-role admin">OA 管理員</div>
+    <div class="card" id="mb-admin-moved" style="display:none">
+      <div class="card-title">🛠️ 管理功能搬家了</div>
+      <div style="font-size:13px;line-height:1.7;color:var(--muted);margin-bottom:14px">審核、名單、授權都改到「會員中心後台」，這一頁只剩自己的會員資料。</div>
+      <a class="btn-primary" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box" href="https://liff.line.me/2009692859-K26oPBlC">開啟會員中心後台</a>
     </div>
-    <div class="sec-title">⏳ 待審核 <span class="sec-count" id="oa-pending-count"></span></div>
-    <div id="oa-pending-list"></div>
-    <div class="sec-title">✅ 已通過 <span class="sec-count" id="oa-approved-count"></span></div>
-    <div id="oa-approved-list"></div>
-  </div>
-</div>
-
-<!-- ===== SUPER ADMIN ===== -->
-<div class="screen" id="screen-super-admin">
-  <div class="wrap">
-    <div class="hd">
-      <div class="hd-icon">👑</div>
-      <div class="hd-title">主控台</div>
-      <div class="hd-sub" id="sa-name"></div>
-      <div class="hd-role super">Super Admin</div>
-    </div>
-    <div class="tabs">
-      <button class="tab on" onclick="saTab('tenants')">🏢 團隊管理</button>
-      <button class="tab" onclick="saTab('members')">👥 全部會員</button>
-    </div>
-
-    <!-- Tab: Tenants -->
-    <div class="sa-panel" id="panel-tenants">
-      <div id="sa-tenant-list"></div>
-    </div>
-
-    <!-- Tab: Members -->
-    <div class="sa-panel" id="panel-members" style="display:none">
-      <input type="text" class="search" id="sa-search" placeholder="搜尋姓名、編號、手機..." oninput="renderSaMembers()">
-      <div class="filter-row">
-        <select class="oa-select" id="sa-oa-filter" onchange="renderSaMembers()">
-          <option value="">所有團隊</option>
-        </select>
-      </div>
-      <div class="filter-row">
-        <button class="filter-chip on" data-filter="all" onclick="setSaFilter('all')">全部</button>
-        <button class="filter-chip" data-filter="pending" onclick="setSaFilter('pending')">待審核</button>
-        <button class="filter-chip" data-filter="approved" onclick="setSaFilter('approved')">已通過</button>
-        <button class="filter-chip" data-filter="visitor" onclick="setSaFilter('visitor')">訪客</button>
-      </div>
-      <div id="sa-member-list"></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Assign Admin -->
-<div class="modal-bg" id="modal-assign">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">&times;</button>
-    <h3 id="modal-title">指定管理員</h3>
-    <input type="text" class="search" id="modal-search" placeholder="搜尋會員..." oninput="renderModalPicks()">
-    <div id="modal-picks"></div>
-    <button class="btn-primary" id="modal-confirm" style="margin-top:12px" onclick="confirmAssign()" disabled>確認指定</button>
   </div>
 </div>
 
@@ -368,10 +309,6 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 let lineUserId = null;
 let lineProfile = null;
 let ctx = null; // hub context from RPC
-let allMembers = []; // for super admin
-let saFilter = 'all';
-let assignTenantId = null;
-let assignPickedLineId = null;
 
 // ========== UTILS ==========
 
@@ -398,12 +335,6 @@ function fmtDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
   return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-}
-
-function closeModal() {
-  document.getElementById('modal-assign').classList.remove('open');
-  assignTenantId = null;
-  assignPickedLineId = null;
 }
 
 // ========== INIT ==========
@@ -457,13 +388,9 @@ function route() {
     return;
   }
 
-  if (role === 'super_admin') {
-    showSuperAdmin();
-    return;
-  }
-
-  if (role === 'oa_admin') {
-    showOaAdmin();
+  // 管理功能已搬到 /members/admin/（2026-11-10）：管理者在這頁只看自己的會員卡＋搬家提示
+  if (role === 'super_admin' || role === 'oa_admin') {
+    showMember(true);
     return;
   }
 
@@ -593,7 +520,7 @@ function showPending() {
 
 // ========== MEMBER ==========
 
-function showMember() {
+function showMember(isAdmin) {
   const m = ctx.member;
   const pic = m.picture_url || (typeof lineProfile !== 'undefined' && lineProfile?.pictureUrl);
   const avatarEl = document.getElementById('mb-avatar');
@@ -613,282 +540,11 @@ function showMember() {
   document.getElementById('mb-birthday').textContent = m.birthday ? fmtDate(m.birthday) : '-';
   document.getElementById('mb-credits').textContent = m.ai_credits ?? '-';
   document.getElementById('mb-joined').textContent = fmtDate(m.joined_at);
+  document.getElementById('mb-admin-moved').style.display = isAdmin ? '' : 'none';
   show('screen-member');
 }
 
-// ========== OA ADMIN ==========
-
-async function showOaAdmin() {
-  const tenants = ctx.admin_tenants || [];
-  const tenantNames = tenants.map(t => t.owner_name).join('、');
-  document.getElementById('oa-title').textContent = tenantNames + ' 管理';
-  show('screen-oa-admin');
-
-  const { data: members, error } = await sb
-    .rpc('list_admin_members', { p_caller_line_id: lineUserId });
-
-  if (error) { toast('載入失敗：' + error.message); return; }
-
-  const pending = (members || []).filter(m => m.level === 0 && m.np_member_code);
-  const approved = (members || []).filter(m => m.level >= 1);
-
-  document.getElementById('oa-pending-count').textContent = pending.length + ' 筆';
-  document.getElementById('oa-approved-count').textContent = approved.length + ' 筆';
-
-  renderMemberList('oa-pending-list', pending, true);
-  renderMemberList('oa-approved-list', approved, false);
-}
-
-function renderMemberList(containerId, members, showActions) {
-  const el = document.getElementById(containerId);
-  if (!members.length) {
-    el.innerHTML = '<div class="empty">暫無資料</div>';
-    return;
-  }
-  el.innerHTML = members.map(m => `
-    <div class="m-card" id="mc-${m.line_user_id}">
-      <div class="m-row">
-        ${avatarHtml(m)}
-        <div class="m-left">
-          <div class="m-name">${esc(m.name || '未填寫')} ${m.level >= 1 ? '<span class="badge b-approved">已通過</span>' : m.np_member_code ? '<span class="badge b-pending">待審核</span>' : '<span class="badge b-level0">未申請</span>'}</div>
-          <div class="m-meta">${esc(m.np_member_code || '-')} · ${esc(m.phone || '-')} · ${fmtDate(m.joined_at)}</div>
-        </div>
-      </div>
-      ${showActions ? `<div class="m-acts">
-        <button class="btn-sm btn-approve" onclick="doApprove('${m.line_user_id}','${esc(m.name)}')">通過</button>
-        <button class="btn-sm btn-reject" onclick="doReject('${m.line_user_id}','${esc(m.name)}')">退回</button>
-      </div>` : ''}
-    </div>
-  `).join('');
-}
-
-async function doApprove(lineId, name) {
-  if (!confirm('確認通過「' + name + '」的申請？')) return;
-  try {
-    const { error } = await sb.rpc('approve_member', { p_line_id: lineId });
-    if (error) throw error;
-    toast(name + ' 已通過！');
-    if (ctx.role === 'super_admin') await loadSaMembers();
-    else await showOaAdmin();
-  } catch (e) { toast('操作失敗：' + e.message); }
-}
-
-async function doReject(lineId, name) {
-  if (!confirm('確認退回「' + name + '」的申請？退回後對方可重新提交。')) return;
-  try {
-    const { error } = await sb.rpc('reject_member', { p_line_id: lineId });
-    if (error) throw error;
-    toast(name + ' 已退回');
-    if (ctx.role === 'super_admin') await loadSaMembers();
-    else await showOaAdmin();
-  } catch (e) { toast('操作失敗：' + e.message); }
-}
-
-// ========== SUPER ADMIN ==========
-
-async function showSuperAdmin() {
-  document.getElementById('sa-name').textContent = ctx.member.name;
-  show('screen-super-admin');
-  await Promise.all([renderSaTenants(), loadSaMembers()]);
-}
-
-function saTab(tab) {
-  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('on'));
-  document.querySelectorAll('.sa-panel').forEach(p => p.style.display = 'none');
-  event.target.classList.add('on');
-  document.getElementById('panel-' + tab).style.display = 'block';
-}
-
-async function renderSaTenants() {
-  const tenants = ctx.all_tenants || [];
-  const { data: ov } = await sb.rpc('sa_tenant_overview', { p_caller_line_id: lineUserId });
-  const counts = (ov && ov.counts) || {};
-  const adminNames = (ov && ov.admin_names) || {};
-
-  document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
-    const c = counts[t.id] || { total: 0, pending: 0, approved: 0 };
-    const admins = (t.admin_ids || []).filter(Boolean);
-    const adminHtml = admins.length
-      ? admins.map(aid =>
-          '<span class="t-admin-name">' + esc(adminNames[aid] || '未知') + '</span>' +
-          ' <button class="btn-sm btn-remove" onclick="removeAdmin(\'' + t.id + '\',\'' + aid + '\',\'' + esc(adminNames[aid] || '') + '\')">移除</button>'
-        ).join('&nbsp;&nbsp;')
-      : '<span style="color:var(--yellow)">未指定</span>';
-    return `
-      <div class="t-card">
-        <div class="t-top">
-          <div>
-            <div class="t-name">${esc(t.owner_name)}</div>
-            <div class="t-handle">${esc(t.line_handle)}</div>
-          </div>
-          <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">
-            新增管理員
-          </button>
-        </div>
-        <div class="t-admin">管理員：${adminHtml}</div>
-        <div class="t-stats">
-          <div class="t-stat">👥 <span class="num">${c.total}</span> 人</div>
-          <div class="t-stat">⏳ <span class="num">${c.pending}</span> 待審</div>
-          <div class="t-stat">✅ <span class="num">${c.approved}</span> 通過</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-async function removeAdmin(tenantId, adminLineId, adminName) {
-  if (!confirm('確認移除「' + adminName + '」的管理員身份？')) return;
-  const { data, error } = await sb.rpc('admin_set_tenant_admin', {
-    p_caller_line_id: lineUserId,
-    p_tenant_id: tenantId,
-    p_admin_line_id: adminLineId,
-    p_action: 'remove'
-  });
-  if (error || !data?.success) { toast('操作失敗'); return; }
-  toast(adminName + ' 已移除');
-  const { data: fresh } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
-  ctx = fresh;
-  await renderSaTenants();
-}
-
-// ========== ASSIGN MODAL ==========
-
-function openAssignModal(tenantId, tenantName) {
-  assignTenantId = tenantId;
-  assignPickedLineId = null;
-  document.getElementById('modal-title').textContent = '指定「' + tenantName + '」管理員';
-  document.getElementById('modal-search').value = '';
-  document.getElementById('modal-confirm').disabled = true;
-  renderModalPicks();
-  document.getElementById('modal-assign').classList.add('open');
-}
-
-function renderModalPicks() {
-  const q = document.getElementById('modal-search').value.trim().toLowerCase();
-  const filtered = allMembers.filter(m => {
-    if (!q) return m.level >= 1;
-    return (m.name || '').toLowerCase().includes(q) ||
-           (m.np_member_code || '').includes(q) ||
-           (m.phone || '').includes(q);
-  }).slice(0, 30);
-
-  document.getElementById('modal-picks').innerHTML = filtered.length
-    ? filtered.map(m => `
-      <div class="pick ${assignPickedLineId === m.line_user_id ? 'sel' : ''}" onclick="pickAdmin('${m.line_user_id}')">
-        <div class="pick-name">${esc(m.name || '未填寫')}</div>
-        <div class="pick-meta">${esc(m.np_member_code || '-')} · ${esc(m.phone || '-')}</div>
-      </div>`).join('')
-    : '<div class="empty">找不到符合的會員</div>';
-}
-
-function pickAdmin(lineId) {
-  assignPickedLineId = lineId;
-  document.getElementById('modal-confirm').disabled = false;
-  renderModalPicks();
-}
-
-async function confirmAssign() {
-  if (!assignTenantId || !assignPickedLineId) return;
-  const btn = document.getElementById('modal-confirm');
-  btn.disabled = true;
-  btn.textContent = '指定中...';
-
-  try {
-    const { data, error } = await sb.rpc('admin_set_tenant_admin', {
-      p_caller_line_id: lineUserId,
-      p_tenant_id: assignTenantId,
-      p_admin_line_id: assignPickedLineId,
-      p_action: 'add'
-    });
-    if (error) throw error;
-    if (!data.success) { toast(data.message); return; }
-
-    toast('管理員已指定！');
-    closeModal();
-    const { data: fresh } = await sb.rpc('get_hub_context', { p_line_user_id: lineUserId });
-    ctx = fresh;
-    await renderSaTenants();
-  } catch (e) {
-    toast('操作失敗：' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '確認指定';
-  }
-}
-
-// ========== SA MEMBERS TAB ==========
-
-async function loadSaMembers() {
-  const { data, error } = await sb
-    .rpc('sa_list_members', { p_caller_line_id: lineUserId });
-  if (error) { toast('載入會員失敗'); return; }
-  allMembers = data || [];
-  renderSaMembers();
-}
-
-function setSaFilter(f) {
-  saFilter = f;
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', c.dataset.filter === f));
-  renderSaMembers();
-}
-
-function renderSaMembers() {
-  const q = (document.getElementById('sa-search')?.value || '').trim().toLowerCase();
-  const oaFilter = document.getElementById('sa-oa-filter')?.value || '';
-  const tenantMap = {};
-  (ctx.all_tenants || []).forEach(t => { tenantMap[t.id] = t.owner_name; });
-
-  const sel = document.getElementById('sa-oa-filter');
-  if (sel && sel.options.length <= 1) {
-    (ctx.all_tenants || []).forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.id;
-      opt.textContent = t.owner_name;
-      sel.appendChild(opt);
-    });
-  }
-
-  let list = allMembers;
-  if (oaFilter) list = list.filter(m => m.tenant_id === oaFilter);
-  if (saFilter === 'pending') list = list.filter(m => m.level === 0 && m.np_member_code);
-  else if (saFilter === 'approved') list = list.filter(m => m.level >= 1);
-  else if (saFilter === 'visitor') list = list.filter(m => m.level === 0 && !m.np_member_code);
-  else list = list.filter(m => m.level >= 1 || m.np_member_code);
-  if (q) list = list.filter(m =>
-    (m.name || '').toLowerCase().includes(q) ||
-    (m.np_member_code || '').includes(q) ||
-    (m.phone || '').includes(q)
-  );
-
-  const el = document.getElementById('sa-member-list');
-  if (!list.length) { el.innerHTML = '<div class="empty">無符合資料</div>'; return; }
-
-  el.innerHTML = list.map(m => {
-    const team = tenantMap[m.tenant_id] || '';
-    const isPending = m.level === 0 && m.np_member_code;
-    return `
-    <div class="m-card">
-      <div class="m-row">
-        ${avatarHtml(m)}
-        <div class="m-left">
-          <div class="m-name">${esc(m.name || '未填寫')} ${m.level >= 1 ? '<span class="badge b-approved">正式</span>' : m.np_member_code ? '<span class="badge b-pending">待審</span>' : '<span class="badge b-level0">訪客</span>'}${team ? ' <span class="badge b-team">' + esc(team) + '</span>' : ''}</div>
-          <div class="m-meta">${esc(m.np_member_code || '-')} · ${esc(m.phone || '-')} · ${fmtDate(m.joined_at)}</div>
-        </div>
-      </div>
-      ${isPending ? `<div class="m-acts">
-        <button class="btn-sm btn-approve" onclick="doApprove('${m.line_user_id}','${esc(m.name)}')">通過</button>
-        <button class="btn-sm btn-reject" onclick="doReject('${m.line_user_id}','${esc(m.name)}')">退回</button>
-      </div>` : ''}
-    </div>`;
-  }).join('');
-}
-
 // ========== HELPERS ==========
-
-function avatarHtml(m) {
-  if (m.picture_url) return `<img class="m-avatar" src="${esc(m.picture_url)}" alt="">`;
-  const initial = (m.name || '?').charAt(0);
-  return `<div class="m-avatar-placeholder">${esc(initial)}</div>`;
-}
 
 function esc(s) {
   if (!s) return '';
@@ -903,18 +559,6 @@ const MOCK = {
   super_admin: {
     role:'super_admin',
     member:{id:'x',name:'游育杰',np_member_code:'2675630',phone:'0939804476',email:'',level:1,ai_credits:37,tenant_id:'t1',joined_at:'2026-04-22T09:53:21Z'},
-    all_tenants:[
-      {id:'t1',owner_name:'Aplus',line_handle:'@752oqdzy',admin_ids:['U_mock_admin'],is_active:true},
-      {id:'t2',owner_name:'魷魚團隊',line_handle:'@453ajvfv',admin_ids:['U_mock_admin','U1'],is_active:true},
-      {id:'t3',owner_name:'舜心團隊',line_handle:'@659pbthw',admin_ids:[],is_active:true},
-      {id:'t4',owner_name:'威達團隊',line_handle:'@802czzku',admin_ids:[],is_active:true},
-      {id:'t5',owner_name:'基紐團隊',line_handle:'@741zwxpr',admin_ids:[],is_active:true},
-      {id:'t6',owner_name:'宥妍團隊',line_handle:'@185ouwvh',admin_ids:[],is_active:true},
-      {id:'t7',owner_name:'輝岳團隊',line_handle:'@568yngtp',admin_ids:[],is_active:true},
-      {id:'t8',owner_name:'敬豪團隊',line_handle:'@809lipop',admin_ids:[],is_active:true},
-      {id:'t9',owner_name:'姍玥團隊',line_handle:'@579cpvba',admin_ids:[],is_active:true},
-      {id:'t10',owner_name:'翊迅團隊',line_handle:'@514okzir',admin_ids:[],is_active:true}
-    ]
   },
   oa_admin: {
     role:'oa_admin',
@@ -951,15 +595,6 @@ const MOCK = {
   }
 };
 
-const MOCK_MEMBERS = [
-  {id:'m1',line_user_id:'U1',name:'張麗玲',np_member_code:'2758230',phone:'0932246528',email:'',level:1,ai_credits:76,tenant_id:'t2',joined_at:'2026-04-28T04:38:35Z',picture_url:'https://i.pravatar.cc/100?u=m1',birthday:'1985-03-15',gender:'female'},
-  {id:'m2',line_user_id:'U2',name:'王小明',np_member_code:'2899999',phone:'0987654321',email:'',level:0,ai_credits:30,tenant_id:'t3',joined_at:'2026-05-18T08:00:00Z',picture_url:'https://i.pravatar.cc/100?u=m2',birthday:'1990-07-22',gender:'male'},
-  {id:'m3',line_user_id:'U3',name:'李大華',np_member_code:'2877777',phone:'0911222333',email:'',level:0,ai_credits:30,tenant_id:'t2',joined_at:'2026-05-15T06:00:00Z',picture_url:null,birthday:'1978-11-08',gender:'male'},
-  {id:'m4',line_user_id:'U4',name:'陳美麗',np_member_code:null,phone:null,email:null,level:0,ai_credits:30,tenant_id:'t1',joined_at:'2026-05-19T14:00:00Z',picture_url:null,birthday:null,gender:null},
-  {id:'m5',line_user_id:'U5',name:'林大仁',np_member_code:'2866666',phone:'0922333444',email:'',level:1,ai_credits:55,tenant_id:'t5',joined_at:'2026-05-01T09:00:00Z',picture_url:'https://i.pravatar.cc/100?u=m5',birthday:'1992-01-30',gender:'male'},
-  {id:'m6',line_user_id:'U_mock_admin',name:'游育杰',np_member_code:'2675630',phone:'0939804476',email:'',level:1,ai_credits:37,tenant_id:'t1',joined_at:'2026-04-22T09:53:21Z',picture_url:'https://i.pravatar.cc/100?u=m6',birthday:'1988-06-12',gender:'male'},
-];
-
 function isPreview() {
   return new URLSearchParams(window.location.search).has('preview') || window.location.hash === '#preview';
 }
@@ -970,8 +605,8 @@ function previewInit() {
   const nav = document.createElement('div');
   nav.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1e293b;border-bottom:1px solid rgba(255,255,255,.1);padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center';
   const screens = [
-    {k:'super_admin', label:'👑 主控台'},
-    {k:'oa_admin', label:'🛡️ OA管理'},
+    {k:'super_admin', label:'👑 中央（已搬）'},
+    {k:'oa_admin', label:'🛡️ OA 管理員（已搬）'},
     {k:'member', label:'🏆 正式會員'},
     {k:'pending', label:'📋 審核中'},
     {k:'rejected', label:'🔄 已退回'},
@@ -987,72 +622,13 @@ function previewInit() {
 
   lineProfile = { userId: 'PREVIEW', displayName: '預覽用戶', pictureUrl: '' };
   lineUserId = 'PREVIEW';
-  allMembers = MOCK_MEMBERS;
   previewShow('super_admin');
 }
 
 function previewShow(key) {
   if (key === 'error') { show('screen-error'); return; }
   ctx = JSON.parse(JSON.stringify(MOCK[key]));
-  allMembers = MOCK_MEMBERS.slice();
-  if (key === 'super_admin') {
-    document.getElementById('sa-name').textContent = ctx.member.name;
-    show('screen-super-admin');
-    previewRenderTenants();
-    document.getElementById('sa-oa-filter').innerHTML = '<option value="">所有團隊</option>';
-    renderSaMembers();
-  }
-  else if (key === 'oa_admin') { showOaAdminPreview(); }
-  else route();
-}
-
-function previewRenderTenants() {
-  const tenants = ctx.all_tenants || [];
-  const counts = {};
-  MOCK_MEMBERS.forEach(m => {
-    if (!m.tenant_id) return;
-    if (!counts[m.tenant_id]) counts[m.tenant_id] = { total:0, pending:0, approved:0 };
-    counts[m.tenant_id].total++;
-    if (m.level >= 1) counts[m.tenant_id].approved++;
-    else counts[m.tenant_id].pending++;
-  });
-  const adminNames = {};
-  MOCK_MEMBERS.forEach(m => { adminNames[m.line_user_id] = m.name; });
-
-  document.getElementById('sa-tenant-list').innerHTML = tenants.map(t => {
-    const c = counts[t.id] || { total:0, pending:0, approved:0 };
-    const admins = (t.admin_ids || []).filter(Boolean);
-    const adminHtml = admins.length
-      ? admins.map(aid => '<span class="t-admin-name">' + esc(adminNames[aid] || '未知') + '</span>').join('&nbsp;&nbsp;')
-      : '<span style="color:var(--yellow)">未指定</span>';
-    return `
-      <div class="t-card">
-        <div class="t-top">
-          <div><div class="t-name">${esc(t.owner_name)}</div><div class="t-handle">${esc(t.line_handle)}</div></div>
-          <button class="btn-sm btn-assign" onclick="openAssignModal('${t.id}','${esc(t.owner_name)}')">新增管理員</button>
-        </div>
-        <div class="t-admin">管理員：${adminHtml}</div>
-        <div class="t-stats">
-          <div class="t-stat">👥 <span class="num">${c.total}</span> 人</div>
-          <div class="t-stat">⏳ <span class="num">${c.pending}</span> 待審</div>
-          <div class="t-stat">✅ <span class="num">${c.approved}</span> 通過</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function showOaAdminPreview() {
-  const tenants = ctx.admin_tenants || [];
-  document.getElementById('oa-title').textContent = tenants.map(t => t.owner_name).join('、') + ' 管理';
-  show('screen-oa-admin');
-  const tIds = tenants.map(t => t.id);
-  const members = MOCK_MEMBERS.filter(m => tIds.includes(m.tenant_id));
-  const pending = members.filter(m => m.level === 0 && m.np_member_code);
-  const approved = members.filter(m => m.level >= 1);
-  document.getElementById('oa-pending-count').textContent = pending.length + ' 筆';
-  document.getElementById('oa-approved-count').textContent = approved.length + ' 筆';
-  renderMemberList('oa-pending-list', pending, true);
-  renderMemberList('oa-approved-list', approved, false);
+  route();
 }
 
 // ========== GO ==========
