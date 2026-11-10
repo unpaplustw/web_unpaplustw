@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
 <script src="consts.js"></script>
+<script src="score.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
   :root {
@@ -569,7 +570,7 @@ async function load() {
   yesterdayLogs = (recentLogs || []).filter(l => l.log_date === yesterday);
   // 全期 logs（追蹤分析用）
   const { data: full } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended, confirmed, proof_checks, updated_at')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended, names, confirmed, proof_checks, updated_at')
     .eq('batch_id', bid);
   allLogs = full || [];
   // 教練標記（simple 模式）：教練回報總覽用
@@ -1002,7 +1003,7 @@ function renderTrack(target) {
   const today = localDateStr(new Date());
   const yesterday = localDateStr(new Date(Date.now() - 86400000));
   const dayDiff = (d1, d2) => Math.round((new Date(d1) - new Date(d2)) / 86400000);
-  const actScore = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2;
+  const actScore = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l);
 
   const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
   const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
@@ -1699,7 +1700,7 @@ function phaseAfter() {
   const coachMids = new Set(coaches.map(c => c.member_id));
   const stu = students.filter(s => s.status === 'approved' && s.coach_id);
   const byStu = {}; allLogs.forEach(l => (byStu[l.student_id] = byStu[l.student_id] || []).push(l));
-  const act = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2;
+  const act = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l);
   const talk = l => (l.present||0)+(l.seminar||0);
 
   // 分診四群（沿用 26 期結案的漏斗判定，見 [[26期結案反思]]）
@@ -1876,7 +1877,7 @@ function renderDashboard(target, part) {
           ${r.g.students.map(s => {
             const log = yesterdayMap[s.id];
             const e = engOf(s.id);
-            const pts = log ? (log.name_list||0)+(log.meet||0)+(log.invite||0)*2+(log.present||0)*5+(log.seminar||0)*5+(log.ghosted||0)+(log.rejected||0)+(log.attended||0)*2 : 0;
+            const pts = log ? (log.name_list||0)+(log.meet||0)+(log.invite||0)*2+(log.present||0)*5+(log.seminar||0)*5+(log.ghosted||0)+(log.rejected||0)+(log.attended||0)*2+namePts(log) : 0;
             return `<div class="dash-stu-row">
               <span>${nm(s)}${mc(s)}</span>
               <div class="dash-stu-status">
@@ -1993,7 +1994,7 @@ function renderDashboard(target, part) {
         Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) taughtN += arr.length; });
       const hwPct = pct(hwFull, taughtN * total);
 
-      const stuAct = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2;
+      const stuAct = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l);
       const yFillPctC = pct(yF, awd * total), yConfPctC = pct(ySent, denom);
       const yRepPctC = pct(yRep, wdC * total);
       function lvl(p) { return p === 100 ? 'dash-perfect' : p >= 80 ? 'dash-pass' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero'; }

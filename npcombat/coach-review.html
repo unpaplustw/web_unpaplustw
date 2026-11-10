@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
 <script src="consts.js"></script>
+<script src="score.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
   :root {
@@ -1154,6 +1155,7 @@ function calcActionPts(d) {
   let pts = 0;
   if (d) STU_FIELDS.forEach(f => { if (!f.special) pts += (d[f.key]||0) * (f.pts||0); });
   if (d) pts += (d.attended || 0) * 2;   // 📅 赴約 ×2（2026-11-10）
+  pts += namePts(d);   // ✍️ 寫名字每人次 +1（2026-11-11，算式在 score.js）
   return pts;
 }
 function calcClosePts(d) {
@@ -2883,7 +2885,7 @@ async function ensureMyContact(raw) {
 }
 function myNameRowHtml(key) {
   return `<div class="act-names" id="mnm-${key}"><div class="nm-tabs"></div><div class="nm-chips"></div>${key === 'invite' ? '<div class="nm-appts"></div>' : ''}`
-    + `<div class="nm-add"><input type="text" placeholder="${key === 'meet' ? '新朋友的名字' : '記下是誰？點我選人'}" maxlength="20" `
+    + `<div class="nm-add"><input type="text" placeholder="${key === 'meet' ? '新朋友的名字・多 +1 分' : key === 'rejected' ? '記下是誰？點我選人' : '寫出是誰・多 +1 分'}" maxlength="20" `
     + `onfocus="myRowOpen.add('${key}');renderMyNameRow('${key}')" oninput="renderMyNameRow('${key}')" onkeydown="if(event.key==='Enter'){event.preventDefault();myAddName('${key}')}">`
     + `<button type="button" onclick="myAddName('${key}')">＋ 加入</button></div></div>`;
 }

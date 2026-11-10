@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🏆 實戰班排行榜</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="score.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -433,7 +434,7 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended, decl_read, proof_checks, coach_checks')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended, names, decl_read, proof_checks, coach_checks')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
@@ -521,6 +522,7 @@ function calcStats(startDate, endDate) {
     // 🎙️小組回報 +5 已於 2026-09-13 移除（學員自述勾選拿掉，現在由教練審核）
     // 📖朗讀宣言 +2（學員自己拿）
     if (log.decl_read) s.action_pts += 2;
+    s.action_pts += namePts(log);   // ✍️ 寫名字每人次 +1（2026-11-11，算式在 score.js；不套證明勾折扣）
     // 📋 有填報（任一筆 log 即算填報）
     s.filled = true;
     // ✅ 驗證率素材：填了幾項(value>0) / 其中幾項有證明勾

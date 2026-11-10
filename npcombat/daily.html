@@ -7,6 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
+<script src="score.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap');
   :root {
@@ -880,7 +881,7 @@ function setupNameRows() {
     if (!card || card.querySelector('.act-names')) return;
     card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
       + `<div class="nm-tabs"></div><div class="nm-chips"></div>${f.key === 'invite' ? '<div class="nm-appts"></div>' : ''}`
-      + `<div class="nm-add"><input type="text" placeholder="${f.key === 'meet' ? '新朋友的名字' : '記下是誰？點我選人'}" enterkeyhint="done" maxlength="20">`
+      + `<div class="nm-add"><input type="text" placeholder="${f.key === 'meet' ? '新朋友的名字・多 +1 分' : f.neg ? '記下是誰？點我選人' : '寫出是誰・多 +1 分'}" enterkeyhint="done" maxlength="20">`
       + `<button type="button">＋ 加入</button></div>`
       + `<small>${f.key === 'meet' ? '選填・打新朋友的名字按加入' : '選填・點名字加入，再點一次取消'}。會記進你的📒名單本，課程結束後清除</small></div>`);
     const row = card.querySelector('.act-names');
@@ -1612,7 +1613,7 @@ async function init() {
     }
 
     // 載入累積資料
-    const { data: logs } = await sb.from('action_logs').select('name_list, meet, invite, present, seminar, ghosted, rejected, attended, log_date, confirmed')
+    const { data: logs } = await sb.from('action_logs').select('name_list, meet, invite, present, seminar, ghosted, rejected, attended, names, log_date, confirmed')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId);
     // 🔴 2026-09-20：原本還加 .eq('confirmed', true)——那是 26 期「教練逐項審核」留下的欄位，
     //    27 期起改信任制（教練標 coach_engagement），這欄再也沒人寫 → 28 期 151 筆全是 false，
@@ -1643,7 +1644,7 @@ async function init() {
       if (logDates[i] === expected.toISOString().slice(0, 10)) { streak++; } else break;
     }
 
-    const totalActionPts = allLogs.reduce((s, l) => s + (l.name_list||0) + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2, 0);
+    const totalActionPts = allLogs.reduce((s, l) => s + (l.name_list||0) + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2 + namePts(l), 0);
 
     accumData = {
       name_list: allLogs.reduce((s, l) => s + (l.name_list||0), 0),
@@ -1733,7 +1734,7 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   const ringLabel = completedCount > 0 ? `已完成 ${completedCount} 個名額` : '挑戰進行中';
 
   // 行動分數統計
-  const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2, 0);
+  const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2 + namePts(l), 0);
   const reportDays = allLogs.length || 1;
   const avgPts = Math.round(totalActionPts / reportDays);
 
@@ -1745,7 +1746,7 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   const weekStartStr = weekStart.toISOString().slice(0, 10);
   const weekPts = allLogs
     .filter(l => l.log_date >= weekStartStr && l.log_date <= todayStr)
-    .reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2, 0);
+    .reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2 + namePts(l), 0);
 
   // ── 渲染 ──
   document.getElementById('warReport').style.display = '';
@@ -1939,6 +1940,9 @@ function showResult() {
       <span class="result-row-val ${cls}">${v} 次 → ${pts} 分</span>
     </div>`;
   });
+
+  const nameBonus = namePts({ ...vals, names });   // ✍️ 寫名字每人次 +1（2026-11-11，算式在 score.js）
+  if (nameBonus) { totalPts += nameBonus; html += `<div class="result-row"><span class="result-row-label">✍️ 有寫出是誰</span><span class="result-row-val">${nameBonus} 位 → ${nameBonus} 分</span></div>`; }
 
   // close entries
   if (closeEntries.length > 0) {
