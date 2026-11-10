@@ -2235,6 +2235,9 @@ function inActionWeek() {
   return !!batchDates.studyEnd && getDateStr('today') >= actionViewFrom();
 }
 
+// ③ 本組目標：照 29 期四個班別的定義（29期.md「四個班別」），班別掛在組上（myTrack）
+const GOAL_TXT = { learn: '直推 1 人', basic: '直推 2 人', advanced: '直推 2 人、組織延伸 4 位', lifetime: '直推 8 件' };
+
 async function renderActGuide() {
   const box = document.getElementById('actGuide');
   const s1 = document.getElementById('gStepHw1'), s2 = document.getElementById('gStepHw2');
@@ -2253,15 +2256,18 @@ async function renderActGuide() {
     roll.textContent = !studentsLoaded ? '⏳ 名單載入中，請稍等…'
       : activeStudents().length
       ? `${md} 行動心得錄音完成請打✅\n\n`
-        + `六項都要講 👇\n`
-        + `① 今天幾月幾日、第幾組、你是誰\n`
-        + `② 我＿＿＿是所有的起源\n`
-        + `③ 這期目標「直推2人」\n`
-        + `④ 今天執行項目（跟誰見面／邀請／締結／邀約 各幾人）\n`
-        + `⑤ 明天預計安排（跟誰見面／邀請／邀約 各幾人）\n`
-        + `⑥ 鼓勵自己的一句話\n\n`
+        // 🔴 2026-11-10 改成公版 7 題（與「行動心得『錄音』三分鐘」圖卡逐字一致；Randoph 定稿，LINE 上要有空氣感）
+        + `🎙️ 錄 3 分鐘，照這 7 題講 👇\n\n`
+        + `① 今天＿月＿日\n　 我是＿組＿＿＿。\n\n`
+        + `② 我＿＿＿\n　 是所有的起源。\n\n`
+        + `③ 我這期的目標是完成\n　 ${GOAL_TXT[myTrack] || GOAL_TXT.learn}。\n\n`
+        + `④ 我今天＿＿＿\n　 重點簡述行動內容：\n　 與＿＿見面\n　 成功邀請＿人、締結＿人\n　 成功邀約＿人、拓展社交＿人\n\n`
+        + `⑤ 我明天已邀約與＿＿＿見面。\n\n`
+        + `⑥ 我明天目標：\n　 成功邀請＿人、締結＿人\n　 成功邀約＿人、拓展社交＿人\n\n`
+        + `⑦ 我鼓勵自己的話是\n　 ＿＿＿＿！\n\n`
+        + `━━━━━━━━━━\n\n`
         + activeStudents().map((x, i) => `${i+1}.${x.name}`).join('\n')
-        + `\n\n⏰ 今天 22:00 前錄完貼上來\n📌 明天一樣，我們每天都要動`
+        + `\n\n━━━━━━━━━━\n\n⏰ 今天 22:00 前錄完貼上來\n📌 明天一樣，我們每天都要動`
       : '你的小組還沒有學員資料';
   }
 
