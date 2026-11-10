@@ -289,7 +289,7 @@ const RANK = ["AQA","CFC Master","CFC","高峰","12星鑽","9星鑽","7星鑽","
 /* 🔴 對外用語對照（Randoph 2026-09-23）：只改顯示 */
 const BADGE_ALIAS = { "成就": "全球分紅" };
 
-let people = [], redirect = {}, byKey = {};
+let people = [], redirect = {}, byKey = {}, byName = {};
 let activeRole = "", activePain = "", shown = PAGE, cur = null;
 
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
@@ -392,12 +392,14 @@ async function shareThis() {
   setTimeout(() => { btn.textContent = "🔗 複製這個人的連結"; btn.classList.remove("done"); }, 2200);
 }
 
-/* ── 網址：#{姓名}。舊網址 #{uuid}、舊名、別名都由 redirect 轉到現在的人 ── */
+/* ── 網址：#{永久代碼}（2026-11-10）。姓名、本業會變也會同名，代碼發了永不改，QR Code 印出去也不會失效。
+      舊網址照樣通：#{姓名}、#{別名}、同名者的 #{檔名}、舊名、舊 #{uuid} 都轉到代碼 ── */
 function keyFromHash() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (!h) return "";
   if (byKey[h]) return h;
-  if (redirect[h]) { history.replaceState({}, "", "#" + encodeURIComponent(redirect[h])); return redirect[h]; }
+  const k = redirect[h] || byName[h];
+  if (k && byKey[k]) { history.replaceState({}, "", "#" + k); return k; }
   return "";
 }
 function openDetail(k) { history.pushState({}, "", "#" + encodeURIComponent(k)); showDetail(k); }
@@ -431,7 +433,7 @@ async function showDetail(k) {
   document.getElementById("exits").innerHTML = "";
   document.getElementById("profile").innerHTML = `<p class="hint">載入中⋯</p>`;
   let d;
-  try { d = await (await fetch("data/p/" + p.f + ".json")).json(); }
+  try { d = await (await fetch("data/p/" + p.k + ".json")).json(); }
   catch (e) { document.getElementById("profile").innerHTML = `<p class="hint">載入失敗，請稍後再試</p>`; return; }
   cur = d;
   document.title = d.n + "｜優秀會員歷程｜APLUS 系統";
@@ -508,6 +510,10 @@ async function init() {
     const j = await (await fetch("data/list.json")).json();
     people = j.people; redirect = j.redirect || {};
     people.forEach(p => byKey[p.k] = p);
+    /* 姓名 → 代碼：只收唯一的姓名；同名的不猜。別名不蓋掉真名 */
+    const cnt = {}; people.forEach(p => cnt[p.n] = (cnt[p.n] || 0) + 1);
+    people.forEach(p => { if (cnt[p.n] === 1) byName[p.n] = p.k; });
+    people.forEach(p => (p.a || []).forEach(a => { if (!cnt[a] && !byName[a]) byName[a] = p.k; }));
     shuffle(people);
     if (window.innerWidth >= 768) document.getElementById("filterBox").open = true;
     drawChips(); renderGrid();
