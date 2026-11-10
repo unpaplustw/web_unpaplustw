@@ -96,6 +96,8 @@
   .my-book .bk-top{display:flex;justify-content:space-between;align-items:center}  .my-book .bk-ed{border:none;background:none;font-size:15px;padding:2px 6px;cursor:pointer}  .my-book .bk-er{display:flex;gap:6px;margin-top:6px}  .my-book .bk-er input,.my-book .bk-er select{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;font-family:inherit;background:#fff}  .my-book .bk-er button{border:none;border-radius:8px;background:var(--gold-lt);color:var(--gold);font-weight:800;padding:0 12px;font-family:inherit;font-size:14px}  .my-book .bk-er .bk-del{background:#fdecea;color:#c0392b;padding:6px 12px}
   .my-book .bk-mglbl{margin-top:10px;font-size:14px;font-weight:800;color:var(--gold)} .my-book .bk-mglbl small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
   .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+  .appt-hint{font-size:12.5px;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:6px 10px;margin:2px 0 6px}  .appt-hint b{font-weight:800}
+  .appt-date{position:relative;display:inline-block}  .appt-date.empty input{color:transparent}  .appt-date em{position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-style:normal;font-size:13.5px;font-weight:700;color:#2f6fae}  .appt-date:not(.empty) em{display:none}   /* iPhone 空白日期會顯示今天的灰字，像已填好 */
   .appt-pick{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:14px}  .appt-pick span{flex:1;min-width:0;font-weight:700}
   .appt-pick input{border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
   .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
@@ -2746,7 +2748,7 @@ function renderMyApptPick(row, chosen) {
   const t = new Date(getDateStr(currentDay) + 'T00:00:00'); t.setDate(t.getDate() + 1);
   const min = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   box.innerHTML = chosen.length ? `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・填了那天會問你「見到了嗎」，見到了再 +2</small></div>`
-    + chosen.map(c => `<label class="appt-pick"><span>${escM(c.name)}</span><input type="date" min="${min}" value="${myApptDraft[c.id] || ''}" onchange="myApptDraft['${c.id}']=this.value"></label>`).join('') : '';
+    + chosen.map(c => `<label class="appt-pick"><span>${escM(c.name)}</span><span class="appt-date${myApptDraft[c.id] ? '' : ' empty'}"><input type="date" min="${min}" value="${myApptDraft[c.id] || ''}" onchange="myApptDraft['${c.id}']=this.value;this.parentElement.classList.toggle('empty',!this.value)"><em>點我選日期</em></span></label>`).join('') : `<div class="appt-hint">📅 打名字或點選人 → 就能填<b>約哪天見面</b>，見到了再 +2</div>`;   // 2026-11-10 Randoph：沒選人時也提示有這個功能
 }
 function renderMyAppt() {
   const box = document.getElementById('myApptArea'); if (!box) return;

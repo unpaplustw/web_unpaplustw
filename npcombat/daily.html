@@ -94,6 +94,8 @@
   .nm-tab.on{background:var(--gold-lt);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
   .nm-empty{font-size:12.5px;color:var(--muted);padding:2px 2px 6px}
   .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+  .appt-hint{font-size:12.5px;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:6px 10px;margin:2px 0 6px}  .appt-hint b{font-weight:800}
+  .appt-date{position:relative;display:inline-block}  .appt-date.empty input{color:transparent}  .appt-date em{position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-style:normal;font-size:13.5px;font-weight:700;color:#2f6fae}  .appt-date:not(.empty) em{display:none}   /* iPhone 空白日期會顯示今天的灰字，像已填好 */
   .appt-pick{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:14px}  .appt-pick span{flex:1;min-width:0;font-weight:700}
   .appt-pick input{border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
   .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
@@ -952,7 +954,7 @@ function renderApptPick(row, chosen) {
   const t = new Date(today() + 'T00:00:00'); t.setDate(t.getDate() + 1);
   const min = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   box.innerHTML = chosen.length ? `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・填了那天會問你「見到了嗎」，見到了再 +2</small></div>`
-    + chosen.map(c => `<label class="appt-pick"><span>${escH(c.name)}</span><input type="date" min="${min}" value="${apptDraft[c.id] || ''}" onchange="apptDraft['${c.id}']=this.value"></label>`).join('') : '';
+    + chosen.map(c => `<label class="appt-pick"><span>${escH(c.name)}</span><span class="appt-date${apptDraft[c.id] ? '' : ' empty'}"><input type="date" min="${min}" value="${apptDraft[c.id] || ''}" onchange="apptDraft['${c.id}']=this.value;this.parentElement.classList.toggle('empty',!this.value)"><em>點我選日期</em></span></label>`).join('') : `<div class="appt-hint">📅 打名字或點選人 → 就能填<b>約哪天見面</b>，見到了再 +2</div>`;   // 2026-11-10 Randoph：沒選人時也提示有這個功能
 }
 function apptCards() {   // 到期（含過期沒回答）＋今天已回答的
   const t = today(), ans = new Set([...(names.attended || []), ...(names.missed || [])]);
