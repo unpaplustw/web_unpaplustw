@@ -422,7 +422,7 @@ function route() {
 
 // ========== 查不到這個 LINE ==========
 // 還沒加過任何團隊 OA → 列出可加入的 OA（帶 ?oa= 時只列那一個），加完滑回來自動接上。
-// 2026-11-10 從學院頁搬來：學院只分「能進／不是會員／停權」，其餘狀態都由這一頁講。
+// 2026-11-10 從學院頁搬來：學院只分「能進／不是會員」，其餘狀態都由這一頁講。
 let notFoundShown = false, recheckBusy = false;
 async function showNotFound() {
   notFoundShown = true;

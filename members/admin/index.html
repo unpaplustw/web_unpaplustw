@@ -182,8 +182,6 @@ function renderMembers(){
     + (list.length ? list.map(card).join('') : '<div class="empty">沒有資料</div>');
 }
 function lvTag(l){ return `<span class="lv ${l===0?'lv0':l===1?'lv1':l===2?'lv2':'lvx'}">VIP${l}</span>`; }
-// 學院例外：block＝停權；pass＝特批（只有 VIP0 才有意義，VIP1 以上本來就能進）
-function acTag(m){ return m.academy === 'block' ? '<span class="lv lv0">學院停權</span>' : (m.academy === 'pass' && m.level === 0) ? '<span class="lv lv2">學院特批</span>' : ''; }
 function card(m){
   const av = m.picture_url ? `<img class="av" src="${esc(m.picture_url)}" alt="">` : `<div class="av">${esc((m.name||'?').slice(0,1))}</div>`;
   const acts = [];
@@ -191,14 +189,8 @@ function card(m){
   if(m.level === 0 && m.code && !m.rejected_at && m.can_reject)  acts.push(`<button class="btn no" onclick="reject('${m.id}', this)">退回</button>`);
   if(m.can_set_level && !m.is_central) acts.push(`<select onchange="setLevel('${m.id}', this)" aria-label="調整等級">${[0,1,2].map(l =>
       `<option value="${l}" ${l===m.level?'selected':''}>${LV_NAME[l]}</option>`).join('')}${m.level > 2 ? `<option selected>VIP${m.level}</option>` : ''}</select>`);
-  if(me && me.is_central && !m.is_central){
-    if(m.academy === 'block') acts.push(`<button class="btn sec" onclick="setAcademy('${m.id}','clear',this)">恢復學院</button>`);
-    else if(m.level >= 1) acts.push(`<button class="btn no" onclick="setAcademy('${m.id}','block',this)">學院停權</button>`);
-    else if(m.academy === 'pass') acts.push(`<button class="btn sec" onclick="setAcademy('${m.id}','clear',this)">取消學院特批</button>`);
-    else if(cur !== 'pending') acts.push(`<button class="btn sec" onclick="setAcademy('${m.id}','pass',this)">學院特批</button>`);   // 待審的人按「通過」就能進，不在待審頁放特批
-  }
   return `<div class="card"><div class="m-row">${av}<div class="m-main">
-      <div class="m-name">${esc(m.name || '未填寫')} ${lvTag(m.level)} ${m.is_central ? '<span class="lv lvx">中央</span>' : ''} ${acTag(m)}</div>
+      <div class="m-name">${esc(m.name || '未填寫')} ${lvTag(m.level)} ${m.is_central ? '<span class="lv lvx">中央</span>' : ''}</div>
       <div class="m-meta">${esc(m.code || '未填編號')} · ${esc(m.phone || '-')} · ${esc(m.tenant || '未綁團隊')} · ${fmt(m.joined_at)}${m.rejected_at ? ' · 退回於 ' + fmt(m.rejected_at) : ''}</div>
     </div></div>${acts.length ? `<div class="acts">${acts.join('')}</div>` : ''}</div>`;
 }
@@ -224,18 +216,6 @@ async function setLevel(id, sel){
   const d = await gate('admin_set_level', {p_member_id: id, p_level: to});
   if(!d.ok){ toast('修改失敗'); sel.value = m.level; return; }
   toast('已修改'); go(cur);
-}
-
-// 學院例外（只有中央）：pass＝特批（不是會員也能進）、block＝停權、clear＝取消，回到「VIP1 以上才能進」
-const AC_ASK = {pass:'特批後，他還不是會員也能進學院新手村。', block:'停權後，他進學院會看到「學院權限已暫停，請洽你的領袖」。', clear:'之後照一般規則：VIP1 以上才能進學院。'};
-async function setAcademy(id, mode, btn){
-  const m = rows.find(x => x.id === id);
-  const what = mode === 'pass' ? '學院特批' : mode === 'block' ? '學院停權' : (m?.academy === 'block' ? '恢復學院' : '取消學院特批');
-  if(!confirm(`對「${m?.name || '未填寫'}」${what}？\n${AC_ASK[mode]}`)) return;
-  btn.disabled = true;
-  const d = await gate('admin_set_academy', {p_member_id: id, p_mode: mode});
-  if(!d.ok){ toast(d.error === 'central_only' ? '只有中央能改學院權限' : '操作失敗'); btn.disabled = false; return; }
-  toast('已' + what); go(cur);
 }
 
 // ========== 授權 ==========
@@ -356,14 +336,13 @@ function previewInit(){
   const M = [
     {id:'m1', name:'王小明', code:'2712345', phone:'0912-345-678', level:0, tenant:'敬豪團隊', joined_at:'2026-11-05', can_approve:true, can_reject:true, can_set_level:true},
     {id:'m2', name:'陳美玲', code:'2723456', phone:'0922-111-222', level:0, tenant:'魷魚團隊', joined_at:'2026-11-07', can_approve:true, can_reject:true, can_set_level:true},
-    {id:'m3', name:'林珊合', code:'2600001', phone:'0933-000-111', level:1, tenant:'敬豪團隊', joined_at:'2026-06-26', can_set_level:true, academy:'block'},
+    {id:'m3', name:'林珊合', code:'2600001', phone:'0933-000-111', level:1, tenant:'敬豪團隊', joined_at:'2026-06-26', can_set_level:true},
     {id:'m4', name:'游育杰', code:'2675630', phone:'-', level:1, tenant:'Aplus', joined_at:'2026-06-26', is_central:true},
-    {id:'m5', name:'訪客（特批）', code:null, phone:'-', level:0, tenant:'魷魚團隊', joined_at:'2026-11-09', can_set_level:true, academy:'pass'},
+    {id:'m5', name:'訪客', code:null, phone:'-', level:0, tenant:'魷魚團隊', joined_at:'2026-11-09', can_set_level:true},
   ];
   window.liff = {getAccessToken: () => 'preview'};
   window.gate = async (fn, args) => {
     if(fn === 'admin_whoami') return {ok:true, is_central:true, me:{name:'預覽：中央'}, grants:[], tenants:T};
-    if(fn === 'admin_set_academy'){ const t = M.find(m => m.id === args.p_member_id); if(t) t.academy = {pass:'pass', block:'block'}[args.p_mode] || null; return {ok:true}; }
     if(fn === 'admin_list_members'){
       const s = args.p_status;
       return {ok:true, members: M.filter(m => s === 'all' || (s === 'pending' ? m.level === 0 && m.code && !m.rejected_at
