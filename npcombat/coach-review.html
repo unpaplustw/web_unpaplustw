@@ -99,9 +99,9 @@
   .appt-hint{font-size:12.5px;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:6px 10px;margin:2px 0 6px}  .appt-hint b{font-weight:800}
   .appt-pick{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:14px}  .appt-pick b{font-weight:800;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .appt-pick small{font-size:12px;font-weight:800}  .appt-pick small.ok{color:#2f6f45}  .appt-pick small.ing{color:var(--muted)}  .appt-x{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:4px;font-family:inherit;cursor:pointer}
-  .appt-days{display:flex;flex-wrap:wrap;gap:6px}  .appt-day{position:relative;overflow:hidden;border:1.5px solid var(--border);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;font-family:inherit;background:#fff;color:var(--text);cursor:pointer}
-  .appt-day.on{background:var(--gold);border-color:var(--gold);color:#fff}  .appt-day.other{color:#2f6fae;border-style:dashed}  .appt-day.other.on{color:#fff;border-style:solid}
-  .appt-day input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px}
+  .appt-date{position:relative;display:inline-block;flex:none}  .appt-date input{display:block;box-sizing:border-box;width:118px;height:40px;margin:0;padding:0 8px;border:1.5px dashed #9bbfe6;border-radius:10px;background:#fff;font-size:16px;font-family:inherit;color:transparent;-webkit-text-fill-color:transparent;-webkit-appearance:none;appearance:none}
+  .appt-date.on input{border:1.5px solid var(--gold);background:var(--gold)}  .appt-date input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+  .appt-date em{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;pointer-events:none;-webkit-user-select:none;user-select:none;font-style:normal;font-size:13.5px;font-weight:700;color:#2f6fae}  .appt-date.on em{color:#fff}
   .appt-note{font-size:12px;font-weight:700;color:#b5651d;background:#fff4e5;border-radius:8px;padding:5px 9px;margin-top:2px}
   .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
   .appt-hd{font-size:17px;font-weight:900;color:#2f6fae;margin-bottom:6px}
@@ -2770,10 +2770,10 @@ function renderMyApptPick(row, chosen) {
   const days = myApptDays(getDateStr(currentDay)), min = days[0].ds;
   chosen.forEach(c => { if (!myApptDraft[c.id] && c.appt_set_on === getDateStr(currentDay) && c.appt_date) myApptDraft[c.id] = c.appt_date; });   // 沒送出就關掉再回來，今天存的日期要帶回
   if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，見到了再 +2</div>`; return; }
-  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・選了就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
+  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・要選<b>明天以後</b>，選了就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
     + chosen.map(c => {   // 每人一行（2026-11-10 Randoph：「太複雜了，不要用選按的，佔空間」）：點格子跳月曆，選完就存
       const cur = myApptDraft[c.id] || '', wd = cur ? '日一二三四五六'[new Date(cur + 'T00:00:00').getDay()] : '';
-      return `<div class="appt-pick"><b>${escM(c.name)}</b><label class="appt-day${cur ? ' on' : ' other'}">${cur ? `${mdM(cur)}（${wd}）` : '選日期'}<input type="date" min="${min}" value="${cur}" onchange="setMyAppt('${c.id}',this.value,true)"></label>`
+      return `<div class="appt-pick"><b>${escM(c.name)}</b><span class="appt-date${cur ? ' on' : ''}"><input type="date" min="${min}" value="${cur}" onchange="setMyAppt('${c.id}',this.value,true)"><em>${cur ? `${mdM(cur)}（${wd}）` : '選日期'}</em></span>`
         + (myApptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">✓ 已送出</small><button type="button" class="appt-x" onclick="setMyAppt('${c.id}','')">取消</button>` : '') + `</div>`;
     }).join('')
     + (chosen.some(c => myApptDraft[c.id]) ? `<div class="appt-note">日期存好了 ✅　邀約次數記得按最下面「儲存我的回報」</div>` : '');
@@ -2872,7 +2872,7 @@ function myNameRowHtml(key) {
 }
 function syncMyCount(key) { const n = (myNames[key] || []).length, v = myVals[key] || 0; if (n > v) adjMy(key, n - v); }
 async function myAddName(key) {
-  const inp = document.querySelector(`#mnm-${key} input`); if (!inp) return;
+  const inp = document.querySelector(`#mnm-${key} .nm-add input`); if (!inp) return;   // 🔴 2026-11-10 一定要指名 .nm-add：邀約選了人之後，列裡第一個 input 是約定日的日期欄
   const id = await ensureMyContact(inp.value); if (!id) return;
   myNames[key] = [...new Set([...(myNames[key] || []), id])]; inp.value = '';
   myRowOpen.add(key); syncMyCount(key); MY_FIELDS_KEYS().forEach(renderMyNameRow);
@@ -2888,7 +2888,7 @@ function renderMyNameRow(key) {
   const sel = myNames[key] || [];
   row.classList.toggle('on', !isActionLocked());
   row.classList.toggle('slim', !((myVals[key] || 0) > 0 || sel.length || myRowOpen.has(key)));
-  const q = row.querySelector('input').value.trim();
+  const q = row.querySelector('.nm-add input').value.trim();   // 同上，不能抓到日期欄
   const grpOf = c => myContactGrp[c.id] || 'meet';
   const cnt = g => myContacts.filter(c => grpOf(c) === g).length;
   const onlyNew = key === 'meet';
