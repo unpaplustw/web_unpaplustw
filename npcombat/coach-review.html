@@ -147,6 +147,7 @@
 
   /* ── 簡單模式：小組關懷「有回應」 ── */
   .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
+  .eng-lock{margin:14px 12px 18px;padding:22px 18px;border-radius:16px;font-size:15px;line-height:1.85;text-align:center;border:1.5px solid}  .eng-lock.done{background:#f2faf4;border-color:#bfe3cb;color:#2f6f45}  .eng-lock.wait,.eng-lock.rest{background:#fffaf0;border-color:#ecd9a0;color:#7a6420}  .eng-lock.late{background:#fdf0ee;border-color:#f0c4bd;color:#9b2c1f}  .eng-lock b{font-size:16.5px}  .lk-t{font-size:17px;font-weight:900;margin-bottom:6px;line-height:1.6}  .lk-next{margin-top:16px;padding-top:14px;border-top:1px dashed currentColor}  .lk-note{margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.7);font-size:13.5px;color:var(--muted)}
   .eng-item{border-bottom:1px solid var(--border)}
   .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px}
   .gchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px 44px;margin-top:-6px}  .gchip{font-size:12px;font-weight:700;color:var(--muted);background:#f3eee2;border-radius:10px;padding:2px 8px}  .gchip.ok{color:#2f6f45;background:#e6f4ea}  .ggoal{margin:10px 12px 12px;padding:12px 14px;border-radius:12px;background:#fffaf0;border:1.5px solid var(--gold)}  .ggoal-t{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:800;color:var(--gold)}  .ggoal-t span{font-size:12.5px;color:var(--muted);font-weight:700}  .ggoal-row{display:flex;justify-content:space-between;font-size:13.5px;margin-top:6px}  .ggoal-row b{color:var(--gold)}  .ggoal-bar{height:8px;background:#efe9da;border-radius:6px;margin-top:4px;overflow:hidden}  .ggoal-bar i{display:block;height:100%;background:var(--gold)}
@@ -1667,11 +1668,8 @@ const droppedStudents = () => studentList.filter(s => s.dropped_at);
 //    中午過後就是跳轉下一個」）。教練不用想「我現在該標哪天」——
 //    12:00 前＝昨天（今天要送出的那天）、12:00 後或昨天已送出＝今天。
 //    要看已結案的日子就到「🔍 審查」的一覽表，那裡本來就能回頭改（記成補交）。
-function defaultDay() {
-  const p = pendingSubmitDays()[0];
-  if (!p) return 'today';
-  return p === getDateStr('today') ? 'today' : 'yesterday';
-}
+// 🔴 2026-11-10 Randoph：組員頁只處理「昨天」——當天永遠不開（不讓教練養成學員當天交就開始回的壞習慣）
+function defaultDay() { return 'yesterday'; }
 function syncDay() { currentDay = defaultDay(); }
 
 // 橫幅要一鍵到位：切到 👥 組員 ＋ 跳到該送出的那一天。少一步都會有人卡住。
@@ -3097,6 +3095,28 @@ function groupGoalHtml() {
     + `</div>`;
 }
 
+// ── 組員頁上鎖卡（2026-11-10 Randoph）────────────────────────────
+//   教練隔天 05:00～12:00 處理昨天；送出後整頁上鎖＋感謝詞。補交／遲交一律到一覽表。
+function engLockOf(ds) {
+  const wdOf = d => ['日','一','二','三','四','五','六'][new Date(d + 'T00:00:00').getDay()];
+  const lbl = d => `${formatDate(d)}（${wdOf(d)}）`;
+  const today = getDateStr('today');
+  const next = `<div class="lk-next">🕔 下一次<br><b>${lbl(today)}的回報</b><br>明天 05:00 開放</div>`;
+  const makeup = `<div class="lk-note">📋 學員<b>補交、遲交</b><br>請到「🔍 審查 → 📋 回應一覽表」<br>點那一格填寫（會記成補交）</div>`;
+  const card = (cls, body) => `<div class="eng-lock ${cls}">${body}</div>`;
+  const from = batchDates.submitFrom || batchDates.start;
+  const wd = new Date(ds + 'T00:00:00').getDay();
+  if ((from && ds < from) || (batchDates.end && ds > batchDates.end) || (isLearnGroup() && (wd < 1 || wd > 5)))
+    return card('rest', `<div class="lk-t">😌 ${lbl(ds)}沒有要標的回報</div>${(batchDates.end && today > batchDates.end) ? '本期回報已全部結束' : next}`);
+  if (notOpenYet(ds))
+    return card('wait', `<div class="lk-t">🕔 ${lbl(ds)}的回報<br>今天 05:00 開放</div>學員當天 22:00 前交完<br>你隔天早上一次處理`);
+  if (isSubmitted(ds))
+    return card('done', `<div class="lk-t">🙏 謝謝您 ${lbl(ds)}的回饋！</div>這一天已送出結案<br>今天的回報工作完成了 💪${next}${makeup}`);
+  if (overDeadline(ds))
+    return card('late', `<div class="lk-t">⛔ ${lbl(ds)}已過 12:00<br>自動結案</div>沒標到的已計入教練記點${next}${makeup}`);
+  return '';
+}
+
 function renderEngagement() {
   if (!studentsLoaded) {
     const b = document.getElementById('summaryBody');
@@ -3114,6 +3134,10 @@ function renderEngagement() {
   document.getElementById('summaryDate').textContent = dateClosed(dateStr) ? '🔒 已結案' : '';
   const hd = document.querySelector('#summaryView .summary-hd span');
   if (hd) hd.textContent = `${formatDate(dateStr)}（${_wd}）${_what}`;
+
+  // 🔴 2026-11-10 Randoph：還沒開放／已送出／已過 12:00／沒有要標的日子 → 整頁上鎖，不顯示任何按鈕
+  const lock = engLockOf(dateStr);
+  if (lock) { document.getElementById('summaryBody').innerHTML = groupGoalHtml() + lock; refreshTodo(); return; }
 
   const map = engMapFor(currentDay);
   const closed = dayClosed(currentDay);
