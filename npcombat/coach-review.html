@@ -93,6 +93,7 @@
   .my-book .bk-st{color:#b8b0a0;border:1px solid #e6dfd0;border-radius:10px;padding:1px 7px}  .my-book .bk-st.ok{color:#fff;background:var(--gold);border-color:var(--gold);font-weight:700}
   .my-book .bk-st.yuan{background:#8a7a5a;border-color:#8a7a5a;color:#fff;font-weight:700}  .my-book .bk-st.no{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700}
   .my-book .bk-copy{display:block;width:100%;margin:10px 0 2px;padding:12px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:15px;font-weight:800;font-family:inherit}
+  .my-book .bk-top{display:flex;justify-content:space-between;align-items:center}  .my-book .bk-ed{border:none;background:none;font-size:15px;padding:2px 6px;cursor:pointer}  .my-book .bk-er{display:flex;gap:6px;margin-top:6px}  .my-book .bk-er input,.my-book .bk-er select{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;font-family:inherit;background:#fff}  .my-book .bk-er button{border:none;border-radius:8px;background:var(--gold-lt);color:var(--gold);font-weight:800;padding:0 12px;font-family:inherit;font-size:14px}  .my-book .bk-er .bk-del{background:#fdecea;color:#c0392b;padding:6px 12px}
   .stu-row:last-child{border:none}
   /* 雙勾：證明 + 督導 */
   .stu-act-row{padding:10px 0;border-bottom:1px solid var(--border)}
@@ -2620,7 +2621,7 @@ async function loadMyBook() {
   if (!myStudentId) return;
   const [{ data: cts }, { data: logs }, { data: cls }] = await Promise.all([
     sb.from('contacts').select('id, name, created_at').eq('batch_id', BATCH_ID).eq('student_id', myStudentId).order('created_at', { ascending: false }),
-    sb.from('action_logs').select('log_date, names').eq('batch_id', BATCH_ID).eq('student_id', myStudentId),
+    sb.from('action_logs').select('id, log_date, names').eq('batch_id', BATCH_ID).eq('student_id', myStudentId),
     sb.from('closing_records').select('target_name, close_date, verified').eq('member_id', coachMemberId).eq('batch_id', BATCH_ID),
   ]);
   myContacts = cts || []; myBookLogs = logs || []; myBookCloses = (cls || []).filter(c => c.verified !== false);
@@ -2661,11 +2662,60 @@ function renderMyBook() {
     + `<summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
     + (rows.length ? `<div class="bk-tabs">` + MY_GROUPS.map(x => `<button type="button" class="bk-tab${x.key === myBookTab ? ' on' : ''}${cnt(x.key) ? '' : ' z'}" onclick="myBookTab='${x.key}';renderMyBook()">${x.e} ${x.s}<b>${cnt(x.key)}</b></button>`).join('') + `</div>`
       + `<div class="bk-pt">${g.e} ${g.t}</div>`
-      + (rs.length ? rs.map(r => `<div class="bk-r"><div class="bk-n">${escM(r.c.name)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</div><div class="bk-line">${line(r)}</div></div>`).join('') : `<div class="bk-empty">這一組目前沒有人</div>`)
+      + (rs.length ? rs.map(r => `<div class="bk-r" id="mbk-${r.c.id}"><div class="bk-top"><div class="bk-n">${escM(r.c.name)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</div><button type="button" class="bk-ed" onclick="toggleMyBookEdit('${r.c.id}')">✏️</button></div><div class="bk-line">${line(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('') : `<div class="bk-empty">這一組目前沒有人</div>`)
       + `<button type="button" class="bk-copy" onclick="copyMyBook()">📋 一鍵複製我的名單本</button>`
       : `<div class="bk-empty">還沒有人。在上面的行動下面「記下是誰」，就會出現在這裡。</div>`)
     + `</details>`;
 }
+// ✏️ 改名／合併／刪除（2026-11-10 補：與學員回報頁同一套規則；Randoph 看到同一人被記成「國標老師 Katy」「Katy」兩筆）
+function toggleMyBookEdit(id) {
+  const ed = document.querySelector(`#mbk-${id} .bk-edit`);
+  if (!ed) return;
+  if (ed.style.display !== 'none') { ed.style.display = 'none'; return; }
+  const used = myBookLogs.some(l => Object.values(l.names || {}).some(ids => (ids || []).includes(id)))
+    || Object.values(myNames).some(ids => (ids || []).includes(id));
+  const opts = myContacts.filter(c => c.id !== id).map(c => `<option value="${c.id}">${escM(c.name)}</option>`).join('');
+  ed.innerHTML = `<div class="bk-er"><input id="mbk-rn-${id}" value="${escM(myCName(id))}" maxlength="20"><button type="button" onclick="renameMyContact('${id}')">改名</button></div>`
+    + (opts ? `<div class="bk-er"><select id="mbk-mg-${id}"><option value="">和誰是同一個人？</option>${opts}</select><button type="button" onclick="mergeMyContact('${id}', document.getElementById('mbk-mg-${id}').value)">合併</button></div>` : '')
+    + (used ? '' : `<div class="bk-er"><button type="button" class="bk-del" onclick="deleteMyContact('${id}')">刪除這個人</button></div>`);
+  ed.style.display = '';
+}
+async function renameMyContact(id) {
+  const nv = (document.getElementById('mbk-rn-' + id)?.value || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  if (!nv || nv === myCName(id)) return;
+  const dup = myContacts.find(c => c.name === nv);
+  if (dup) return mergeMyContact(id, dup.id);   // 改成已有的名字＝同一個人
+  const { error } = await sb.from('contacts').update({ name: nv }).eq('id', id);
+  if (error) return toast('改名失敗：' + error.message);
+  toast('已改名'); await loadMyBook();
+}
+function swapMyIds(obj, fromId, toId) {   // 畫面上還沒存的選人＋已載入的當天紀錄也要一起換
+  for (const k of Object.keys(obj || {})) obj[k] = [...new Set((obj[k] || []).map(x => x === fromId ? toId : x).filter(Boolean))];
+}
+async function mergeMyContact(fromId, toId) {
+  if (!fromId || !toId || fromId === toId) return toast('請選要合併到哪一位');
+  if (!confirm(`「${myCName(fromId)}」和「${myCName(toId)}」是同一個人？\n合併後所有紀錄都算在「${myCName(toId)}」。`)) return;
+  for (const l of myBookLogs) {
+    let hit = false; const nn = {};
+    for (const [k, ids] of Object.entries(l.names || {})) nn[k] = [...new Set((ids || []).map(x => { if (x === fromId) { hit = true; return toId; } return x; }))];
+    if (!hit) continue;
+    const { error } = await sb.from('action_logs').update({ names: nn }).eq('id', l.id);   // 只動 names，不碰次數
+    if (error) return toast('合併失敗：' + error.message);
+  }
+  swapMyIds(myNames, fromId, toId);
+  ['today', 'yesterday'].forEach(d => { if (myData[d] && myData[d].names) swapMyIds(myData[d].names, fromId, toId); });
+  const { error } = await sb.from('contacts').delete().eq('id', fromId);
+  if (error) return toast('合併失敗：' + error.message);
+  toast('已合併'); await loadMyBook();
+}
+async function deleteMyContact(id) {
+  if (!confirm(`刪除「${myCName(id)}」？`)) return;
+  for (const k of Object.keys(myNames)) myNames[k] = myNames[k].filter(x => x !== id);
+  const { error } = await sb.from('contacts').delete().eq('id', id);
+  if (error) return toast('刪除失敗：' + error.message);
+  toast('已刪除'); await loadMyBook();
+}
+
 function copyMyBook() {
   const rows = myBookRows();
   const ln = r => {
