@@ -114,6 +114,7 @@ const CERT_FIELDS = [
   { key:'seminar',   label:'邀請說明會', w:5 },
   { key:'ghosted',   label:'被放鴿子', w:1 },
   { key:'rejected',  label:'締結未果', w:1 },
+  { key:'attended',  label:'赴約見面', w:2 },  // 2026-11-10 ＋赴約 attended ×2
 ];
 const cActPts = o => CERT_FIELDS.reduce((a, f) => a + (o[f.key] || 0) * f.w, 0);
 
@@ -129,7 +130,7 @@ function showMsg(msg) {
 async function loadCertData() {
   // 本人全期 logs（不限 confirmed，慶祝看努力全貌）
   const { data: logs } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, checkin_at, buddy_left, buddy_right')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended, checkin_at, buddy_left, buddy_right')
     .eq('batch_id', BATCH_ID);
   const all = logs || [];
   const mine = all.filter(l => l.student_id === studentId);

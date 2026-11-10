@@ -93,6 +93,19 @@
   .nm-tab{border:none;background:#f3eee2;border-radius:14px;padding:4px 10px;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--muted);white-space:nowrap}
   .nm-tab.on{background:var(--gold-lt);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
   .nm-empty{font-size:12.5px;color:var(--muted);padding:2px 2px 6px}
+  .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+  .appt-pick{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:14px}  .appt-pick span{flex:1;min-width:0;font-weight:700}
+  .appt-pick input{border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
+  .appt-hd{font-size:17px;font-weight:900;color:#2f6fae;margin-bottom:6px}
+  .appt-r{background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px}  .appt-n b{font-size:16px}  .appt-n small{margin-left:8px;font-size:12px;color:var(--muted)}
+  .appt-q{font-size:14px;font-weight:800;margin:6px 0}  .appt-b{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .appt-b button{border:1.5px solid #9cc5ee;background:#f5faff;border-radius:10px;padding:8px 6px;font-size:13.5px;font-weight:800;font-family:inherit;color:#2f6fae;line-height:1.35}
+  .appt-b button.no{border-color:#e8b4ad;background:#fdf3f1;color:#b3473a}
+  .appt-ok{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:14px;font-weight:800;color:#2f8f55}  .appt-ok.missed{color:#b3473a}
+  .appt-ok button{border:none;background:#f3eee2;border-radius:8px;padding:4px 10px;font-size:13px;font-family:inherit;color:var(--muted)}
+  .appt-tip{font-size:12px;color:var(--muted);text-align:center}
+  .bk-appt{margin-left:8px;font-size:12px;font-weight:700;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:2px 8px;vertical-align:middle}  .bk-appt.due{color:#b3473a;background:#fdecea}
   .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
   .nm-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
   .nm-chip.new{border-style:dashed;color:var(--gold);font-weight:700}
@@ -434,6 +447,7 @@
 </div>
 
 <div id="formArea">
+  <div id="apptArea"></div>   <!-- 📅 約好的見面：見到了嗎？（2026-11-10） -->
 
   <!-- ── 開拓區（2026-11-08 拿掉「狂列名單」：只鼓勵真正的行動；28 期名單佔總分 43%）── -->
   <div class="sec">
@@ -820,6 +834,7 @@ const badgeMult = key => (BADGES.find(b => b.key === key) || {}).mult || 1;
 
 let vals = {}; COUNT_FIELDS.forEach(f => vals[f.key] = 0);
 vals.ghosted = 0;   // 2026-11-08 拿掉放鴿子：欄位還在（舊期資料、結果頁累計），29 期起一律 0
+vals.attended = 0;  // 2026-11-10 赴約：由「見到了嗎？」回答產生，不是計數器（＝names.attended 人數）
 // ══ 名單本（2026-11-08 Randoph）══════════════════════════════════════════
 //  人＝contacts（一人一筆）｜事＝action_logs.names {行動欄位:[contact id]}｜進度＝用算的，不存。
 //  可選填、不影響計分；課程結束 purge 一併清除，結案匯出不帶姓名。
@@ -832,7 +847,7 @@ const mdOf = ds => { const [, m, d] = String(ds).split('-'); return `${+m}/${+d}
 
 async function loadContacts() {
   if (!studentId) return;
-  const { data } = await sb.from('contacts').select('id, name, created_at')
+  const { data } = await sb.from('contacts').select('id, name, created_at, appt_date, appt_set_on')
     .eq('batch_id', BATCH_ID).eq('student_id', studentId).order('created_at', { ascending: false });
   contacts = data || [];
 }
@@ -859,7 +874,7 @@ function setupNameRows() {
     const card = document.querySelector(`.act[data-key="${f.key}"]`);
     if (!card || card.querySelector('.act-names')) return;
     card.insertAdjacentHTML('beforeend', `<div class="act-names" id="nm-${f.key}">`
-      + `<div class="nm-tabs"></div><div class="nm-chips"></div>`
+      + `<div class="nm-tabs"></div><div class="nm-chips"></div>${f.key === 'invite' ? '<div class="nm-appts"></div>' : ''}`
       + `<div class="nm-add"><input type="text" placeholder="${f.key === 'meet' ? '新朋友的名字' : '記下是誰？點我選人'}" enterkeyhint="done" maxlength="20">`
       + `<button type="button">＋ 加入</button></div>`
       + `<small>${f.key === 'meet' ? '選填・打新朋友的名字按加入' : '選填・點名字加入，再點一次取消'}。會記進你的📒名單本，課程結束後清除</small></div>`);
@@ -925,7 +940,71 @@ function renderNameRow(key) {
     + (q && !contacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" data-new="1">＋ 新增「${escH(q)}」</button>` : '')
     + (!onlyNew && !q && !others.length && contacts.length ? `<span class="nm-empty">這一組的人都選了</span>` : '');
   row.querySelectorAll('.nm-chip').forEach(b => { b.onclick = () => b.dataset.new ? addName(key) : toggleName(key, b.dataset.id); });
+  if (key === 'invite') renderApptPick(row, chosen);
 }
+// ══ 📅 赴約（2026-11-10 Randoph：「11/10 打電話邀約 11/13 見面，13 日要問最後有見面嗎」）════════
+//   邀約選了人 → 可選填「約哪天」（要晚於今天；今天約今天見＝直接記邀請，不算赴約）
+//   到那天起 → 最上面問「見到了嗎？」：見到了＝赴約 +2（可順手記溝通本／說明會）；沒見到＝回到「該約」、不加不扣
+//   一次邀約只問一次：回答＋送出後清掉約定日。存在 contacts.appt_date／appt_set_on；回答存 names.attended／names.missed
+let apptDraft = {};   // 今天邀約選的人 → 約哪天
+function renderApptPick(row, chosen) {
+  const box = row.querySelector('.nm-appts'); if (!box) return;
+  const t = new Date(today() + 'T00:00:00'); t.setDate(t.getDate() + 1);
+  const min = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  box.innerHTML = chosen.length ? `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・填了那天會問你「見到了嗎」，見到了再 +2</small></div>`
+    + chosen.map(c => `<label class="appt-pick"><span>${escH(c.name)}</span><input type="date" min="${min}" value="${apptDraft[c.id] || ''}" onchange="apptDraft['${c.id}']=this.value"></label>`).join('') : '';
+}
+function apptCards() {   // 到期（含過期沒回答）＋今天已回答的
+  const t = today(), ans = new Set([...(names.attended || []), ...(names.missed || [])]);
+  return contacts.filter(c => ans.has(c.id) || (c.appt_date && c.appt_set_on && c.appt_set_on < c.appt_date && c.appt_date <= t));
+}
+function renderAppt() {
+  const box = document.getElementById('apptArea'); if (!box) return;
+  const cs = actionsLocked() ? [] : apptCards();
+  if (!cs.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="appt"><div class="appt-hd">📅 約好的見面</div>` + cs.map(c => {
+    const a = (names.attended || []).includes(c.id) ? 'met' : (names.missed || []).includes(c.id) ? 'missed' : '';
+    const when = !c.appt_date ? '' : c.appt_date === today() ? '今天見面' : `${mdOf(c.appt_date)} 見面（已過）`;
+    return `<div class="appt-r"><div class="appt-n"><b>${escH(c.name)}</b><small>${when}${c.appt_set_on ? `・${mdOf(c.appt_set_on)} 約的` : ''}</small></div>`
+      + (a ? `<div class="appt-ok ${a}">${a === 'met' ? '✅ 見到了　赴約 +2' : '😢 沒見到，回到「該約」可以再約'}<button type="button" onclick="undoAppt('${c.id}')">改</button></div>`
+           : `<div class="appt-q">見到了嗎？</div><div class="appt-b">`
+             + `<button type="button" onclick="answerAppt('${c.id}','present')">🗣️ 見到了<br>講了溝通本</button>`
+             + `<button type="button" onclick="answerAppt('${c.id}','seminar')">🏛️ 見到了<br>帶去說明會</button>`
+             + `<button type="button" onclick="answerAppt('${c.id}','met')">☕ 見到了<br>還沒講</button>`
+             + `<button type="button" class="no" onclick="answerAppt('${c.id}','missed')">😢 沒見到</button></div>`) + `</div>`;
+  }).join('') + `<div class="appt-tip">回答完記得按最下面「送出」才會存 ✅</div></div>`;
+}
+const addNm = (k, id) => { names[k] = [...new Set([...(names[k] || []), id])]; };
+const dropNm = (k, id) => { names[k] = (names[k] || []).filter(x => x !== id); };
+function answerAppt(id, how) {
+  if (actionsLocked()) return;
+  if (how === 'missed') addNm('missed', id);
+  else {
+    addNm('attended', id);
+    if (how === 'present' || how === 'seminar') { addNm(how, id); syncCountToNames(how); renderNameRow(how); }
+  }
+  vals.attended = (names.attended || []).length;
+  renderAppt();
+  toast(how === 'missed' ? '已記下，記得按送出' : '赴約 +2 🎉 記得按送出');
+}
+function undoAppt(id) {   // 只取消「見到了／沒見到」；順手記的溝通本／說明會留著，要取消到那一列點掉
+  dropNm('attended', id); dropNm('missed', id);
+  vals.attended = (names.attended || []).length;
+  renderAppt();
+}
+async function saveAppts() {   // 送出成功後：設定今天約的日期、清掉已回答的
+  const t = today(), inv = names.invite || [], ans = [...(names.attended || []), ...(names.missed || [])];
+  const jobs = [];
+  contacts.forEach(c => {
+    const want = inv.includes(c.id) && apptDraft[c.id] && apptDraft[c.id] > t ? apptDraft[c.id] : null;
+    if (want && (c.appt_date !== want || c.appt_set_on !== t)) jobs.push(sb.from('contacts').update({ appt_date: want, appt_set_on: t }).eq('id', c.id));
+    else if (!want && c.appt_set_on === t && c.appt_date > t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));   // 今天約的又取消了
+    else if (ans.includes(c.id) && c.appt_date && c.appt_date <= t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));
+  });
+  const rs = await Promise.all(jobs);
+  const bad = rs.find(r => r.error); if (bad) toast('約定日儲存失敗：' + bad.error.message);
+}
+
 function syncNameRow(key) { renderNameRow(key); }
 // 帶回今天已填的：11/8 前一版存的是名字字串 → 轉成名單本的人
 async function restoreNames(saved) {
@@ -938,6 +1017,8 @@ async function restoreNames(saved) {
     }
     if (ids.length) names[k] = [...new Set(ids)];
   }
+  contacts.forEach(c => { if (c.appt_set_on === today() && c.appt_date) apptDraft[c.id] = c.appt_date; });   // 今天約的日期帶回
+  renderAppt();
   COUNT_FIELDS.forEach(f => renderNameRow(f.key));
 }
 
@@ -959,6 +1040,7 @@ async function loadBook() {
   bookLogs = logs || [];
   bookCloses = (cls || []).filter(c => c.verified !== false);
   await loadContacts();
+  renderAppt();
   renderBook();
   COUNT_FIELDS.forEach(f => renderNameRow(f.key));
 }
@@ -976,11 +1058,14 @@ function bookRows() {
     // 流程（2026-11-08 Randoph 定案）：邀約→邀請（溝通本／說明會）→締結成功（填締結資料）；未果→回到「該邀請」再邀請
     const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
     const backToInvite = !!last.rejected && (!lastInv || last.rejected >= lastInv);   // 最近一次是未果
+    const missedLast = !!last.missed && (!last.invite || last.missed >= last.invite) && !lastInv;   // 📅 約了沒見到 → 回到該約
     const grp = closed ? 'done' : (lastInv && !backToInvite) ? 'invited'
-              : (backToInvite || last.invite) ? 'invite' : 'meet';
+              : backToInvite ? 'invite' : (last.invite && !missedLast) ? 'invite' : 'meet';
     return { c, first, last, times, closed, invited, grp, backToInvite };
   });
 }
+const apptTag = c => !c.appt_date ? '' : c.appt_date <= today()
+  ? `<small class="bk-appt due">⚠️ ${mdOf(c.appt_date)} 見到了嗎？</small>` : `<small class="bk-appt">📅 ${mdOf(c.appt_date)} 見面</small>`;
 function stageLine(r) {
   const st = (lab, ds) => `<span class="bk-st ${ds ? 'ok' : ''}">${lab}${ds ? ' ' + mdOf(ds) : ''}</span>`;
   const extra = r.times.rejected > 1 ? `<span class="bk-x">💪×${r.times.rejected}</span>` : '';
@@ -1010,7 +1095,7 @@ function renderBook() {
         return `<div class="bk-tabs">` + BOOK_GROUPS.map(x => `<button type="button" class="bk-tab${x.key === bookTab ? ' on' : ''}${cnt(x.key) ? '' : ' z'}"`
             + ` onclick="setBookTab('${x.key}')">${x.e} ${x.s}<b>${cnt(x.key)}</b></button>`).join('') + `</div>`
           + `<div class="bk-pt">${g.e} ${g.t}</div>`
-          + (rs.length ? rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</span>`
+          + (rs.length ? rs.map(r => `<div class="bk-r" id="bk-${r.c.id}"><div class="bk-top"><span class="bk-n">${escH(r.c.name)}${apptTag(r.c)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</span>`
             + `<button type="button" class="bk-ed" onclick="toggleBookEdit('${r.c.id}')">✏️</button></div>`
             + `<div class="bk-line">${stageLine(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('')
             : `<div class="bk-empty">這一組目前沒有人</div>`);
@@ -1421,13 +1506,14 @@ async function init() {
 
     // 檢查今天是否已填
     const { data: existing } = await sb.from('action_logs')
-      .select('id, names, meet, invite, present, seminar, ghosted, rejected')
+      .select('id, names, meet, invite, present, seminar, ghosted, rejected, attended')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId).eq('log_date', d).single();
     if (existing) {
       existingId = existing.id;
       // 帶回今天已填的行動數值
       COUNT_FIELDS.forEach(f => { vals[f.key] = existing[f.key] || 0; document.getElementById('n-'+f.key).textContent = vals[f.key]; });
       await restoreNames(existing.names);
+      vals.attended = existing.attended || 0;
       toast('今天已回報過，可修改重送');
     }
 
@@ -1456,7 +1542,7 @@ async function init() {
     }
 
     // 載入累積資料
-    const { data: logs } = await sb.from('action_logs').select('name_list, meet, invite, present, seminar, ghosted, rejected, log_date, confirmed')
+    const { data: logs } = await sb.from('action_logs').select('name_list, meet, invite, present, seminar, ghosted, rejected, attended, log_date, confirmed')
       .eq('batch_id', BATCH_ID).eq('student_id', studentId);
     // 🔴 2026-09-20：原本還加 .eq('confirmed', true)——那是 26 期「教練逐項審核」留下的欄位，
     //    27 期起改信任制（教練標 coach_engagement），這欄再也沒人寫 → 28 期 151 筆全是 false，
@@ -1487,7 +1573,7 @@ async function init() {
       if (logDates[i] === expected.toISOString().slice(0, 10)) { streak++; } else break;
     }
 
-    const totalActionPts = allLogs.reduce((s, l) => s + (l.name_list||0) + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
+    const totalActionPts = allLogs.reduce((s, l) => s + (l.name_list||0) + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2, 0);
 
     accumData = {
       name_list: allLogs.reduce((s, l) => s + (l.name_list||0), 0),
@@ -1577,7 +1663,7 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   const ringLabel = completedCount > 0 ? `已完成 ${completedCount} 個名額` : '挑戰進行中';
 
   // 行動分數統計
-  const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
+  const totalActionPts = allLogs.reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2, 0);
   const reportDays = allLogs.length || 1;
   const avgPts = Math.round(totalActionPts / reportDays);
 
@@ -1589,7 +1675,7 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
   const weekStartStr = weekStart.toISOString().slice(0, 10);
   const weekPts = allLogs
     .filter(l => l.log_date >= weekStartStr && l.log_date <= todayStr)
-    .reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected, 0);
+    .reduce((s, l) => s + l.meet + l.invite * 2 + l.present * 5 + l.seminar * 5 + l.ghosted + l.rejected + (l.attended||0) * 2, 0);
 
   // ── 渲染 ──
   document.getElementById('warReport').style.display = '';
@@ -1683,9 +1769,9 @@ async function submit() {
         batch_id: BATCH_ID, student_id: studentId, log_date: today(),
         name_list: 0, meet: vals.meet, invite: vals.invite,
         present: vals.present, seminar: vals.seminar,
-        ghosted: vals.ghosted, rejected: vals.rejected,
+        ghosted: vals.ghosted, rejected: vals.rejected, attended: (names.attended || []).length,
         decl_read: declRead,
-        names: Object.fromEntries(COUNT_FIELDS.map(f => [f.key, names[f.key] || []]).filter(([, v]) => v.length)),
+        names: Object.fromEntries([...COUNT_FIELDS.map(f => f.key), 'attended', 'missed'].map(k => [k, names[k] || []]).filter(([, v]) => v.length)),
       };
       if (existingId) {
         const { error: updErr } = await sb.from('action_logs').update(logRow).eq('id', existingId);
@@ -1700,6 +1786,7 @@ async function submit() {
         if (data) existingId = data.id;
       }
 
+      await saveAppts();   // 📅 約定日／赴約回答
       // 寫 closing_records（先刪今天的舊紀錄再重建，避免重複送時疊加）
       const { error: delCloseErr } = await sb.from('closing_records').delete()
         .eq('member_id', memberId).eq('close_date', today()).eq('source', 'daily');
@@ -1767,6 +1854,10 @@ function showResult() {
   }
 
   // counter fields
+  if (vals.attended) {   // 📅 赴約（2026-11-10）
+    totalPts += vals.attended * 2;
+    html += `<div class="result-row"><span class="result-row-label">✅ 赴約見面</span><span class="result-row-val">${vals.attended} 位 → ${vals.attended * 2} 分</span></div>`;
+  }
   COUNT_FIELDS.forEach(f => {
     const v = vals[f.key];
     const pts = v * f.pts;

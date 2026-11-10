@@ -433,7 +433,7 @@ async function reloadData() {
   batchStudents.forEach(s => memberToStu[s.member_id] = s.id);
 
   const { data: logData } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, decl_read, proof_checks, coach_checks')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended, decl_read, proof_checks, coach_checks')
     .eq('batch_id', currentBatch.id);
   allLogs = logData || [];
 
@@ -483,14 +483,14 @@ function closeCounts(c) {
 
 // 根據日期範圍過濾並彙總
 function calcStats(startDate, endDate) {
-  const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected'];
-  const BASE_PTS = { name_list:1, meet:1, invite:2, present:5, seminar:5, ghosted:1, rejected:1 };
+  const fields = ['name_list','meet','invite','present','seminar','ghosted','rejected','attended'];
+  const BASE_PTS = { name_list:1, meet:1, invite:2, present:5, seminar:5, ghosted:1, rejected:1, attended:2 };  // 2026-11-10 ＋赴約 attended ×2
   const students = {};
   batchStudents.forEach(s => {
     students[s.id] = {
       sid: s.id, name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
-      ghosted:0, rejected:0, name_list:0,
+      ghosted:0, rejected:0, name_list:0, attended:0,
       close_pts:0, action_pts:0, total:0, slots:0, referrals:0, branch_pts:0, badge_units:0, upline_unit_pts:0, _refCodes:new Set(),
       supervise:0,
       filled:false, filledItems:0, verifiedItems:0,

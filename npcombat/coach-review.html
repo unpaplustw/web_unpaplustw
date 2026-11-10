@@ -95,6 +95,19 @@
   .my-book .bk-copy{display:block;width:100%;margin:10px 0 2px;padding:12px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:15px;font-weight:800;font-family:inherit}
   .my-book .bk-top{display:flex;justify-content:space-between;align-items:center}  .my-book .bk-ed{border:none;background:none;font-size:15px;padding:2px 6px;cursor:pointer}  .my-book .bk-er{display:flex;gap:6px;margin-top:6px}  .my-book .bk-er input,.my-book .bk-er select{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;font-family:inherit;background:#fff}  .my-book .bk-er button{border:none;border-radius:8px;background:var(--gold-lt);color:var(--gold);font-weight:800;padding:0 12px;font-family:inherit;font-size:14px}  .my-book .bk-er .bk-del{background:#fdecea;color:#c0392b;padding:6px 12px}
   .my-book .bk-mglbl{margin-top:10px;font-size:14px;font-weight:800;color:var(--gold)} .my-book .bk-mglbl small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+  .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+  .appt-pick{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:14px}  .appt-pick span{flex:1;min-width:0;font-weight:700}
+  .appt-pick input{border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  .appt{margin:0 0 14px;padding:14px 14px 10px;border-radius:16px;background:#eef6ff;border:2px solid #9cc5ee}
+  .appt-hd{font-size:17px;font-weight:900;color:#2f6fae;margin-bottom:6px}
+  .appt-r{background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px}  .appt-n b{font-size:16px}  .appt-n small{margin-left:8px;font-size:12px;color:var(--muted)}
+  .appt-q{font-size:14px;font-weight:800;margin:6px 0}  .appt-b{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .appt-b button{border:1.5px solid #9cc5ee;background:#f5faff;border-radius:10px;padding:8px 6px;font-size:13.5px;font-weight:800;font-family:inherit;color:#2f6fae;line-height:1.35}
+  .appt-b button.no{border-color:#e8b4ad;background:#fdf3f1;color:#b3473a}
+  .appt-ok{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:14px;font-weight:800;color:#2f8f55}  .appt-ok.missed{color:#b3473a}
+  .appt-ok button{border:none;background:#f3eee2;border-radius:8px;padding:4px 10px;font-size:13px;font-family:inherit;color:var(--muted)}
+  .appt-tip{font-size:12px;color:var(--muted);text-align:center}
+  .bk-appt{margin-left:8px;font-size:12px;font-weight:700;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:2px 8px;vertical-align:middle}  .bk-appt.due{color:#b3473a;background:#fdecea}
   .stu-row:last-child{border:none}
   /* 雙勾：證明 + 督導 */
   .stu-act-row{padding:10px 0;border-bottom:1px solid var(--border)}
@@ -1135,6 +1148,7 @@ function getCoachData(stu) { return currentDay === 'today' ? stu.coach_today : s
 function calcActionPts(d) {
   let pts = 0;
   if (d) STU_FIELDS.forEach(f => { if (!f.special) pts += (d[f.key]||0) * (f.pts||0); });
+  if (d) pts += (d.attended || 0) * 2;   // 📅 赴約 ×2（2026-11-10）
   return pts;
 }
 function calcClosePts(d) {
@@ -1288,7 +1302,7 @@ async function init() {
         return {
           name_list: log.name_list || 0, meet: log.meet || 0, invite: log.invite || 0,
           present: log.present || 0, seminar: log.seminar || 0,
-          ghosted: log.ghosted || 0, rejected: log.rejected || 0,
+          ghosted: log.ghosted || 0, rejected: log.rejected || 0, attended: log.attended || 0,
           checkin_at: log.checkin_at || null, checkout_at: log.checkout_at || null,
           buddy_left: log.buddy_left || 0, buddy_right: log.buddy_right || 0,
           names: log.names || {},   // 2026-11-08 學員選填的對象姓名（展開明細顯示）
@@ -2282,7 +2296,7 @@ async function renderActGuide() {
     // 全期一次撈完（27 期至今 1369 筆，一次查比每天查省事），昨天的從裡面篩
     const [{ data: allLogs }, { data: cls }, { data: roster }, { data: allCoaches }] = await Promise.all([
       sb.from('action_logs')
-        .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
+        .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended')
         .eq('batch_id', BATCH_ID),
       sb.from('closing_records')
         .select('member_id, close_date').eq('batch_id', BATCH_ID).not('verified', 'is', false),
@@ -2568,6 +2582,7 @@ function renderMyReport() {
     h += `<div class="my-lock-note">🔒 行動項目 <b>${+lm}/${+ld} 開放</b><br>
           與學員同步，先專心把影片和作業完成！<br>👉 <b>締結成功隨時都可以填</b></div>`;
   }
+  h += '<div id="myApptArea"></div>';   // 📅 約好的見面（2026-11-10）
   h += '<div class="stu-data-card">';
   MY_FIELDS.forEach(f => {
     const v = myVals[f.key];
@@ -2595,7 +2610,8 @@ function renderMyReport() {
   h += '<div id="myBookArea"></div>';
 
   document.getElementById('myDataArea').innerHTML = h;
-  renderMyBook(); MY_FIELDS.forEach(f => renderMyNameRow(f.key));
+  myContacts.forEach(c => { if (c.appt_set_on === getDateStr(currentDay) && c.appt_date) myApptDraft[c.id] = c.appt_date; });
+  renderMyBook(); MY_FIELDS.forEach(f => renderMyNameRow(f.key)); renderMyAppt();
 
   const btn = document.getElementById('btnMySubmit');
   btn.textContent = d ? '更新我的回報' : '儲存我的回報';
@@ -2622,12 +2638,13 @@ const myCName = id => (myContacts.find(c => c.id === id) || {}).name || '';
 async function loadMyBook() {
   if (!myStudentId) return;
   const [{ data: cts }, { data: logs }, { data: cls }] = await Promise.all([
-    sb.from('contacts').select('id, name, created_at').eq('batch_id', BATCH_ID).eq('student_id', myStudentId).order('created_at', { ascending: false }),
+    sb.from('contacts').select('id, name, created_at, appt_date, appt_set_on').eq('batch_id', BATCH_ID).eq('student_id', myStudentId).order('created_at', { ascending: false }),
     sb.from('action_logs').select('id, log_date, names').eq('batch_id', BATCH_ID).eq('student_id', myStudentId),
     sb.from('closing_records').select('target_name, close_date, verified').eq('member_id', coachMemberId).eq('batch_id', BATCH_ID),
   ]);
   myContacts = cts || []; myBookLogs = logs || []; myBookCloses = (cls || []).filter(c => c.verified !== false);
   renderMyBook(); MY_FIELDS_KEYS().forEach(renderMyNameRow);   // 元素不在畫面上時兩個函式自己會略過
+  renderMyAppt();
 }
 const MY_FIELDS_KEYS = () => STU_FIELDS.filter(f => !f.special).map(f => f.key);
 function myBookRows() {
@@ -2642,7 +2659,8 @@ function myBookRows() {
     const closed = myBookCloses.filter(x => (x.target_name || '').trim() === c.name).map(x => x.close_date).sort()[0] || null;
     const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
     const back = !!last.rejected && (!lastInv || last.rejected >= lastInv);
-    const grp = closed ? 'done' : (lastInv && !back) ? 'invited' : (back || last.invite) ? 'invite' : 'meet';
+    const missedLast = !!last.missed && (!last.invite || last.missed >= last.invite) && !lastInv;   // 📅 約了沒見到 → 回到該約
+    const grp = closed ? 'done' : (lastInv && !back) ? 'invited' : back ? 'invite' : (last.invite && !missedLast) ? 'invite' : 'meet';
     return { c, first, last, times, closed, grp, back, invited: [first.present, first.seminar].filter(Boolean).sort()[0] || null };
   });
 }
@@ -2664,7 +2682,7 @@ function renderMyBook() {
     + `<summary>📒 我的名單本<span>${rows.length} 人</span></summary>`
     + (rows.length ? `<div class="bk-tabs">` + MY_GROUPS.map(x => `<button type="button" class="bk-tab${x.key === myBookTab ? ' on' : ''}${cnt(x.key) ? '' : ' z'}" onclick="myBookTab='${x.key}';renderMyBook()">${x.e} ${x.s}<b>${cnt(x.key)}</b></button>`).join('') + `</div>`
       + `<div class="bk-pt">${g.e} ${g.t}</div>`
-      + (rs.length ? rs.map(r => `<div class="bk-r" id="mbk-${r.c.id}"><div class="bk-top"><div class="bk-n">${escM(r.c.name)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</div><button type="button" class="bk-ed" onclick="toggleMyBookEdit('${r.c.id}')">✏️</button></div><div class="bk-line">${line(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('') : `<div class="bk-empty">這一組目前沒有人</div>`)
+      + (rs.length ? rs.map(r => `<div class="bk-r" id="mbk-${r.c.id}"><div class="bk-top"><div class="bk-n">${escM(r.c.name)}${myApptTag(r.c)}${r.times.rejected ? `<small class="bk-tag">💪 未果×${r.times.rejected}</small>` : ''}</div><button type="button" class="bk-ed" onclick="toggleMyBookEdit('${r.c.id}')">✏️</button></div><div class="bk-line">${line(r)}</div><div class="bk-edit" style="display:none"></div></div>`).join('') : `<div class="bk-empty">這一組目前沒有人</div>`)
       + `<button type="button" class="bk-copy" onclick="copyMyBook()">📋 一鍵複製我的名單本</button>`
       : `<div class="bk-empty">還沒有人。在上面的行動下面「記下是誰」，就會出現在這裡。</div>`)
     + `</details>`;
@@ -2719,6 +2737,58 @@ async function deleteMyContact(id) {
   toast('已刪除'); await loadMyBook();
 }
 
+// ══ 📅 赴約（2026-11-10，與學員回報頁同一套）════════════════════════
+let myApptDraft = {};
+const myApptTag = c => !c.appt_date ? '' : c.appt_date <= getDateStr('today')
+  ? `<small class="bk-appt due">⚠️ ${mdM(c.appt_date)} 見到了嗎？</small>` : `<small class="bk-appt">📅 ${mdM(c.appt_date)} 見面</small>`;
+function renderMyApptPick(row, chosen) {
+  const box = row.querySelector('.nm-appts'); if (!box) return;
+  const t = new Date(getDateStr(currentDay) + 'T00:00:00'); t.setDate(t.getDate() + 1);
+  const min = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  box.innerHTML = chosen.length ? `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・填了那天會問你「見到了嗎」，見到了再 +2</small></div>`
+    + chosen.map(c => `<label class="appt-pick"><span>${escM(c.name)}</span><input type="date" min="${min}" value="${myApptDraft[c.id] || ''}" onchange="myApptDraft['${c.id}']=this.value"></label>`).join('') : '';
+}
+function renderMyAppt() {
+  const box = document.getElementById('myApptArea'); if (!box) return;
+  const t = getDateStr(currentDay), ans = new Set([...(myNames.attended || []), ...(myNames.missed || [])]);
+  const cs = isActionLocked() ? [] : myContacts.filter(c => ans.has(c.id) || (c.appt_date && c.appt_set_on && c.appt_set_on < c.appt_date && c.appt_date <= t));
+  if (!cs.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="appt"><div class="appt-hd">📅 約好的見面</div>` + cs.map(c => {
+    const a = (myNames.attended || []).includes(c.id) ? 'met' : (myNames.missed || []).includes(c.id) ? 'missed' : '';
+    const when = !c.appt_date ? '' : c.appt_date === t ? '今天見面' : `${mdM(c.appt_date)} 見面（已過）`;
+    return `<div class="appt-r"><div class="appt-n"><b>${escM(c.name)}</b><small>${when}${c.appt_set_on ? `・${mdM(c.appt_set_on)} 約的` : ''}</small></div>`
+      + (a ? `<div class="appt-ok ${a}">${a === 'met' ? '✅ 見到了　赴約 +2' : '😢 沒見到，回到「該約」可以再約'}<button type="button" onclick="undoMyAppt('${c.id}')">改</button></div>`
+           : `<div class="appt-q">見到了嗎？</div><div class="appt-b">`
+             + `<button type="button" onclick="answerMyAppt('${c.id}','present')">🗣️ 見到了<br>講了溝通本</button>`
+             + `<button type="button" onclick="answerMyAppt('${c.id}','seminar')">🏛️ 見到了<br>帶去說明會</button>`
+             + `<button type="button" onclick="answerMyAppt('${c.id}','met')">☕ 見到了<br>還沒講</button>`
+             + `<button type="button" class="no" onclick="answerMyAppt('${c.id}','missed')">😢 沒見到</button></div>`) + `</div>`;
+  }).join('') + `<div class="appt-tip">回答完記得按「儲存我的回報」才會存 ✅</div></div>`;
+}
+const addMyNm = (k, id) => { myNames[k] = [...new Set([...(myNames[k] || []), id])]; };
+function answerMyAppt(id, how) {
+  if (isActionLocked()) return;
+  if (how === 'missed') addMyNm('missed', id);
+  else { addMyNm('attended', id); if (how === 'present' || how === 'seminar') { addMyNm(how, id); syncMyCount(how); renderMyNameRow(how); } }
+  renderMyAppt();
+  toast(how === 'missed' ? '已記下，記得儲存' : '赴約 +2 🎉 記得儲存');
+}
+function undoMyAppt(id) {
+  myNames.attended = (myNames.attended || []).filter(x => x !== id); myNames.missed = (myNames.missed || []).filter(x => x !== id);
+  renderMyAppt();
+}
+async function saveMyAppts(t) {
+  const inv = myNames.invite || [], ans = [...(myNames.attended || []), ...(myNames.missed || [])], jobs = [];
+  myContacts.forEach(c => {
+    const want = inv.includes(c.id) && myApptDraft[c.id] && myApptDraft[c.id] > t ? myApptDraft[c.id] : null;
+    if (want && (c.appt_date !== want || c.appt_set_on !== t)) jobs.push(sb.from('contacts').update({ appt_date: want, appt_set_on: t }).eq('id', c.id));
+    else if (!want && c.appt_set_on === t && c.appt_date > t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));
+    else if (ans.includes(c.id) && c.appt_date && c.appt_date <= t) jobs.push(sb.from('contacts').update({ appt_date: null, appt_set_on: null }).eq('id', c.id));
+  });
+  const rs = await Promise.all(jobs);
+  const bad = rs.find(r => r.error); if (bad) toast('約定日儲存失敗：' + bad.error.message);
+}
+
 function copyMyBook() {
   const rows = myBookRows();
   const ln = r => {
@@ -2746,7 +2816,7 @@ async function ensureMyContact(raw) {
   myContacts.unshift(data); return data.id;
 }
 function myNameRowHtml(key) {
-  return `<div class="act-names" id="mnm-${key}"><div class="nm-tabs"></div><div class="nm-chips"></div>`
+  return `<div class="act-names" id="mnm-${key}"><div class="nm-tabs"></div><div class="nm-chips"></div>${key === 'invite' ? '<div class="nm-appts"></div>' : ''}`
     + `<div class="nm-add"><input type="text" placeholder="${key === 'meet' ? '新朋友的名字' : '記下是誰？點我選人'}" maxlength="20" `
     + `onfocus="myRowOpen.add('${key}');renderMyNameRow('${key}')" oninput="renderMyNameRow('${key}')" onkeydown="if(event.key==='Enter'){event.preventDefault();myAddName('${key}')}">`
     + `<button type="button" onclick="myAddName('${key}')">＋ 加入</button></div></div>`;
@@ -2783,6 +2853,7 @@ function renderMyNameRow(key) {
       chosen.map(c => `<button type="button" class="nm-chip on" onclick="myToggleName('${key}','${c.id}')">✓ ${escM(c.name)}</button>`).join('')
     + others.map(c => `<button type="button" class="nm-chip" onclick="myToggleName('${key}','${c.id}')">${escM(c.name)}</button>`).join('')
     + (q && !myContacts.some(c => c.name === q) ? `<button type="button" class="nm-chip new" onclick="myAddName('${key}')">＋ 新增「${escM(q)}」</button>` : '');
+  if (key === 'invite') renderMyApptPick(row, chosen);
 }
 
 // 教練的七大行動與學員端共用同一個開放日（DB batches.action_open_date）
@@ -2943,6 +3014,7 @@ async function submitMyReport() {
       name_list: myVals.name_list, meet: myVals.meet, invite: myVals.invite,
       present: myVals.present, seminar: myVals.seminar,
       ghosted: myVals.ghosted, rejected: myVals.rejected,
+      attended: (myNames.attended || []).length,
       names: Object.fromEntries(Object.entries(myNames).filter(([, v]) => (v || []).length))   // 📒 記下是誰
     };
 
@@ -2959,6 +3031,7 @@ async function submitMyReport() {
       myData[logIdKey] = data.id;
     }
 
+    await saveMyAppts(getDateStr(currentDay));   // 📅 約定日／赴約回答
     // 寫締結紀錄（先刪當天舊紀錄再重建）
     const hasCloseEntries = myCloseEntries.length > 0;
     // 先刪掉當天 source=daily 的舊紀錄
@@ -3064,8 +3137,9 @@ async function showStuBook(sid, btn) {
     // 流程（2026-11-08 Randoph 定案）：邀約→邀請（溝通本／說明會）→締結成功（填締結資料）；未果→回到「該邀請」再邀請
     const lastInv = [last.present, last.seminar].filter(Boolean).sort().pop() || null;
     const backToInvite = !!last.rejected && (!lastInv || last.rejected >= lastInv);   // 最近一次是未果
+    const missedLast = !!last.missed && (!last.invite || last.missed >= last.invite) && !lastInv;   // 📅 約了沒見到 → 回到該約
     const grp = closed ? 'done' : (lastInv && !backToInvite) ? 'invited'
-              : (backToInvite || last.invite) ? 'invite' : 'meet';
+              : backToInvite ? 'invite' : (last.invite && !missedLast) ? 'invite' : 'meet';
     const p = [first.meet && `認識 ${md(first.meet)}`, first.invite && `邀約 ${md(first.invite)}`, first.present && `溝通本 ${md(first.present)}`,
                first.seminar && `說明會 ${md(first.seminar)}`, closed && `締結 ${md(closed)}`, !closed && backToInvite && `💪未果 ${md(last.rejected)}→再邀請`].filter(Boolean);
     return { name: c.name, grp, p };
@@ -3089,6 +3163,7 @@ function fillDetailHtml(stu) {
     const nm = ((d.names && d.names[f.key]) || []).map(nmOf).filter(Boolean);
     return `<div class="eng-ditem ${v ? '' : 'z'}"><span>${f.emoji} ${f.label}${nm.length ? `<small>${nm.map(x => x.replace(/[<>&]/g, '')).join('、')}</small>` : ''}</span><span>${v}</span></div>`;
   }).join('');
+  const attHtml = d.attended ? `<div class="eng-ditem"><span>✅ 赴約見面${((d.names && d.names.attended) || []).map(nmOf).filter(Boolean).length ? `<small>${d.names.attended.map(nmOf).filter(Boolean).join('、')}</small>` : ''}</span><span>${d.attended}</span></div>` : '';
   // 締結列出內容與分數（原本只有筆數）——教練要「知道組員報了什麼」；
   // 審核是上線的事，見 renderVerifyBlock()
   const ce = d.close_entries || [];
@@ -3099,7 +3174,7 @@ function fillDetailHtml(stu) {
         c.verified === false ? '（已退回）' : c.verified === true ? ' ✔' : '（待上線審）'}</span></div>`).join('')
     : `<div class="eng-dclose"><span>✅ 締結成功</span><span>0 筆</span></div>`;
   return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))} 填的內容</div>
-    <div class="eng-dgrid">${items}</div>${closeHtml}${bookBtn(stu)}`;
+    <div class="eng-dgrid">${items}${attHtml}</div>${closeHtml}${bookBtn(stu)}`;
 }
 
 function toggleEngDetail(studentId) {

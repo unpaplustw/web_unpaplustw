@@ -524,14 +524,14 @@ async function init() {
 
   // 全期行動（總量）＋ 本週填報（誰有動）
   const { data: logs } = await sb.from('action_logs')
-    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected')
+    .select('student_id, log_date, name_list, meet, invite, present, seminar, ghosted, rejected, attended')
     .eq('batch_id', BID);
 
   let allActions = 0;
   const weekFilled = new Set();
   (logs || []).forEach(l => {
     allActions += (l.name_list||0) + (l.meet||0) + (l.invite||0) + (l.present||0)
-                + (l.seminar||0) + (l.ghosted||0) + (l.rejected||0);
+                + (l.seminar||0) + (l.ghosted||0) + (l.rejected||0) + (l.attended||0);
     if (l.log_date >= range.start && l.log_date <= range.end) weekFilled.add(l.student_id);
   });
 
