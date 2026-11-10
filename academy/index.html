@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!--
   環球致富學院 — 公開簡介頁（純靜態，無 LIFF、無資料庫）
-  ⚠️ 課程目錄是寫死的文字，與 Supabase academy.lessons 是兩份。
+  ⚠️ 17 堂課名是寫死的文字，與 Supabase academy.lessons（starter_no 1～17）是兩份。
      新增或改課名時，**這一頁要手動同步**（一年動不了幾次，故意不做動態渲染）。
-     最後同步：2026-08-16（四大類 × 21 學分 × 46 單元；原進階 13 單元降為單元層上鎖）
+     最後同步：2026-11-10（只講新手村 17 堂；原本的四大類 × 21 學分目錄拿掉）
   進入按鈕 → LIFF（/academy/app.html）。進場規則 2026-11-10 改：綠佳利會員（VIP1 以上）直接進，不用另外申請。
 -->
 <html lang="zh-TW">
@@ -11,7 +11,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>環球致富學院 — A Plus 系統培訓中心</title>
-<meta name="description" content="環球致富學院：21 個學分、46 個單元，從確信、邀約到締結，一步一步走完。">
+<meta name="description" content="環球致富學院新手村：新人第一站，17 堂課帶你從零走一遍。綠佳利會員用 LINE 登入就能看。">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif}
 :root{
@@ -58,9 +58,7 @@ p{font-size:18px;color:var(--txt2);margin-bottom:13px}
 .course ol{list-style:none;padding:8px 20px 18px}
 .course li{font-size:17px;color:var(--txt2);padding:8px 0;border-bottom:1px dashed rgba(0,0,0,.06)}
 .course li:last-child{border-bottom:none}
-.course .soon{padding:18px 20px;font-size:17px;color:var(--txt2)}
-.course.lock{opacity:.72}
-.course.lock .course-hd{background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
+.course li .n{display:inline-block;min-width:40px;color:var(--gold3);font-weight:800}
 
 /* CTA */
 .cta-box{margin-top:42px;background:linear-gradient(135deg,#fff8e6,#fdeecb);border:1.5px solid var(--gold2);border-radius:20px;padding:28px 22px;text-align:center;box-shadow:0 4px 18px rgba(184,150,12,.18)}
@@ -86,13 +84,13 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
   <div class="hero">
     <div class="badge">A Plus 系統 · 培訓中心</div>
     <h1>環球致富學院</h1>
-    <p class="lead">把「不知道下一步該做什麼」<br>變成 <b>21 個照著修就會的學分</b></p>
+    <p class="lead">新人第一站<br><b>17 堂課，帶你從零走一遍</b></p>
   </div>
 
   <section>
     <h2><span class="ic">🎯</span>這是什麼</h2>
     <div class="card">
-      <p>A Plus 系統把二十年的實戰經驗，整理成一套<b>從頭到尾照著走</b>的線上課程。每一堂都有影片、有作業，看完就知道今天要做什麼。</p>
+      <p>A Plus 系統把二十年的實戰經驗，整理成一套<b>從頭到尾照著走</b>的線上課程。每一堂都有影片、有練習題，看完就知道今天要做什麼。</p>
     </div>
     <div class="card">
       <h3>沒有進度壓力</h3>
@@ -111,37 +109,29 @@ footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);text-
   </section>
 
   <section>
-    <h2><span class="ic">📖</span>課程目錄</h2>
-    <p style="font-size:17px;color:var(--txt2)"><b>21 個學分</b>、46 個單元，分成四大類。每個學分從基礎開始，更深的內容陸續開放。</p>
+    <h2><span class="ic">📖</span>新手村 17 堂</h2>
+    <p style="font-size:17px;color:var(--txt2)">一共 <b>17 堂課</b>，照 01 到 17 的順序看就可以。</p>
 
     <div class="course">
-      <div class="course-hd"><span class="nm">🧠 觀念確信</span><span class="ct">6 學分</span></div>
+      <div class="course-hd"><span class="nm">🏡 新手村</span><span class="ct">17 堂</span></div>
       <ol>
-        <li>前導</li><li>認識行業</li><li>認識公司</li>
-        <li>認識商品</li><li>認識制度</li><li>認識系統</li>
-      </ol>
-    </div>
-
-    <div class="course">
-      <div class="course-hd"><span class="nm">🎒 行前準備</span><span class="ct">7 學分</span></div>
-      <ol>
-        <li>自我定位</li><li>夢想版</li><li>目標設定</li><li>列名單</li>
-        <li>邀約演練</li><li>邀約</li><li>專業形象</li>
-      </ol>
-    </div>
-
-    <div class="course">
-      <div class="course-hd"><span class="nm">🎤 會場運作</span><span class="ct">5 學分</span></div>
-      <ol>
-        <li>會場運作</li><li>KC 檢測儀</li><li>疑慮處理</li><li>締結</li>
-        <li>溝通本（16 段話術）</li>
-      </ol>
-    </div>
-
-    <div class="course">
-      <div class="course-hd"><span class="nm">🌱 組織運作</span><span class="ct">3 學分</span></div>
-      <ol>
-        <li>跟進</li><li>週計畫與配 A</li><li>實現夢想的開始</li>
+        <li><span class="n">01</span>前導</li>
+        <li><span class="n">02</span>夢想版</li>
+        <li><span class="n">03</span>確信行業</li>
+        <li><span class="n">04</span>確信公司</li>
+        <li><span class="n">05</span>五大商品優勢</li>
+        <li><span class="n">06</span>確信制度</li>
+        <li><span class="n">07</span>確信系統</li>
+        <li><span class="n">08</span>設定目標</li>
+        <li><span class="n">09</span>列名單與第一次作戰會議</li>
+        <li><span class="n">10</span>邀約</li>
+        <li><span class="n">11</span>自我定位</li>
+        <li><span class="n">12</span>會場運作</li>
+        <li><span class="n">13</span>疑慮處理</li>
+        <li><span class="n">14</span>見面＆邀請</li>
+        <li><span class="n">15</span>跟進</li>
+        <li><span class="n">16</span>專業形象</li>
+        <li><span class="n">17</span>實現夢想的開始</li>
       </ol>
     </div>
   </section>

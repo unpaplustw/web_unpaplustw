@@ -45,16 +45,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .center p b{color:var(--gold3)}
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:13px;box-shadow:var(--shadow)}
-.card.tap{cursor:pointer;transition:all .2s}
-.card.tap:active{transform:scale(.99)}
-.card.tap:hover{border-color:rgba(184,150,12,.25);box-shadow:0 4px 16px rgba(0,0,0,.08)}
-.card.locked{opacity:.6;background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
-.card.locked .c-nm{color:var(--txt2)}
-.card.locked .c-ct{color:var(--txt2)}
-.c-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.c-nm{font-size:21px;font-weight:900}
-.c-ct{font-size:16px;color:var(--gold3);font-weight:800;white-space:nowrap}
-.c-ds{font-size:16px;color:var(--txt2);margin-top:6px}
 
 /* 新手村：進度條＋講師封面牆（封面＝Vimeo 縮圖，滑到才載） */
 .vprog{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
@@ -78,36 +68,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .vcard .st.half{background:var(--gold3)}
 .hw-intro{font-size:16px;color:var(--txt2);line-height:1.7;margin:-2px 0 10px}
 #lesson-next{margin-top:18px}
-/* 四大類 → 學分 */
-.cat{margin:22px 0 10px;display:flex;align-items:center;gap:9px}
-.cat .n{font-size:20px;font-weight:900}
-.cat .d{font-size:14px;color:var(--txt2)}
-.cat .bar{flex:1;height:2px;background:linear-gradient(90deg,var(--gold2),transparent)}
-.credit{display:flex;align-items:center;gap:12px;padding:15px 16px;background:var(--card);
-  border:1px solid var(--border);border-radius:14px;margin-bottom:9px;box-shadow:var(--shadow);
-  cursor:pointer;transition:all .2s}
-.credit:hover{border-color:rgba(184,150,12,.28);transform:translateX(3px)}
-.credit:active{transform:scale(.99)}
-.credit .nm{flex:1;font-size:18px;font-weight:800}
-.credit .ct{font-size:15px;font-weight:800;color:var(--gold3);white-space:nowrap}
-.credit .ct .lk{color:var(--txt2);font-weight:700}
-.credit.alllock{opacity:.6;background:repeating-linear-gradient(135deg,#fff,#fff 10px,#faf8f2 10px,#faf8f2 20px)}
-.unit-lock{opacity:.55}
-.unit-lock .no{background:rgba(0,0,0,.04);border-color:var(--border);color:var(--txt2)}
-.sec-title{font-size:16px;color:var(--txt2);font-weight:700;margin:22px 0 10px}
 
-.lrow{display:flex;align-items:center;gap:13px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow);transition:all .2s}
-.lrow:active{transform:scale(.99)}
-.lrow:hover{border-color:rgba(184,150,12,.25);transform:translateX(3px)}
-.lrow .no{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--gold-lt);border:1px solid rgba(184,150,12,.28);color:var(--gold3);font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center}
-.lrow .tx{flex:1;font-size:18px;font-weight:700;line-height:1.45}
-.lrow .go{font-size:20px;color:var(--txt2)}
-.lrow.novideo .no{background:rgba(0,0,0,.04);border-color:var(--border);color:var(--txt2)}
 
 .btn{display:block;width:100%;padding:18px;margin-top:14px;border-radius:15px;border:none;background:linear-gradient(135deg,var(--gold3),var(--gold2));color:#fff;font-size:20px;font-weight:900;cursor:pointer;text-align:center;text-decoration:none;box-shadow:0 6px 18px rgba(184,150,12,.30)}
 .btn:active{transform:scale(.98)}
 .btn.sec{background:var(--card);border:1px solid var(--border-hl);color:var(--txt);box-shadow:var(--shadow);font-size:18px;font-weight:800}
-.btn.danger{background:var(--red-bg);border:1px solid rgba(220,38,38,.28);color:var(--red);box-shadow:none;font-size:17px}
 .btn:disabled{opacity:.5}
 
 
@@ -145,7 +110,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <a class="btn" id="hub-btn" style="max-width:400px;margin-top:20px;text-decoration:none;text-align:center" href="https://liff.line.me/2009692859-9mE2Ymmb">前往會員中心</a>
   </div>
 
-  <!-- 學院首頁：課程列表 -->
+  <!-- 學院首頁：新手村 17 堂 -->
   <div id="screen-home" class="screen">
     <div class="hd">
       <div class="hd-icon">🏡</div>
@@ -156,29 +121,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="village" id="village"><div class="card">載入中…</div></div>
   </div>
 
-  <!-- 課程（廣場 → 課程） -->
-  <div id="screen-courses" class="screen">
-    <div class="back" onclick="go('home')">← 回廣場</div>
-    <div class="hd" style="padding-top:6px">
-      <div class="hd-title" style="font-size:23px">📖 學分地圖</div>
-      <div class="hd-sub" id="courses-sub"></div>
-    </div>
-    <div id="course-list"></div>
-  </div>
-
-  <!-- 課程 → 課列表 -->
-  <div id="screen-course" class="screen">
-    <div class="back" onclick="go('courses')">← 回學分地圖</div>
-    <div class="hd" style="padding-top:6px">
-      <div class="hd-title" id="course-name" style="font-size:23px"></div>
-      <div class="hd-sub" id="course-count"></div>
-    </div>
-    <div id="lesson-list"></div>
-  </div>
-
   <!-- 單課 -->
   <div id="screen-lesson" class="screen">
-    <div class="back" id="lesson-back">← 回新手村</div>
+    <div class="back" id="lesson-back" onclick="goVillage()">← 回新手村</div>
     <div class="hd" style="padding:8px 0 14px">
       <div class="hd-title" id="lesson-title" style="font-size:21px;line-height:1.4"></div>
     </div>
@@ -211,10 +156,9 @@ async function gate(fn, args){
   }catch(e){ return {data: null, error: e}; }
 }
 
-let lineUserId = null, ctx = null, curCourse = null;
+let lineUserId = null, ctx = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const mmss = s => s ? Math.round(s/60) + ' 分' : '';
 
 function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2600);}
 
@@ -224,8 +168,7 @@ function show(id){
   window.scrollTo(0,0);
 }
 function go(name){
-  const map={home:'screen-home',courses:'screen-courses',course:'screen-course',lesson:'screen-lesson'};
-  if(name==='courses') renderCourses();
+  const map={home:'screen-home',lesson:'screen-lesson'};
   show(map[name]||name);
 }
 
@@ -267,7 +210,6 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ========== 學院首頁 ==========
-function allCredits(){ return (ctx.categories||[]).flatMap(c => c.credits||[]); }
 
 function renderHome(){
   document.getElementById('home-sub').textContent = ctx.member?.name ? ctx.member.name + '，歡迎回來' : '歡迎回來';
@@ -337,52 +279,11 @@ function renderNext(lessonId){
 }
 function goVillage(){ renderVillage(); go('home'); }
 
-// 四大類＝時間軸：底層觀念／見人前／見人時／見人後
-const CAT_DESC = {'觀念確信':'我為什麼相信','行前準備':'見人之前','會場運作':'人在面前時','組織運作':'他進來之後'};
-
-function renderCourses(){
-  const cr = allCredits();
-  document.getElementById('courses-sub').textContent =
-    `${cr.length} 個學分 · 開放 ${cr.reduce((s,c)=>s+(c.open_count||0),0)} 單元`;
-  document.getElementById('course-list').innerHTML = (ctx.categories||[]).map(cat => {
-    const rows = (cat.credits||[]).map(c => {
-      const 全鎖 = (c.open_count||0) === 0;
-      const 部分 = !全鎖 && (c.unit_count||0) > (c.open_count||0);
-      const 右 = 全鎖 ? '<span class="lk">🔒 尚未開放</span>'
-                     : `${c.open_count} 單元${部分 ? ` <span class="lk">＋${c.unit_count-c.open_count} 🔒</span>` : ''}`;
-      return `<div class="credit ${全鎖?'alllock':''}" onclick="openCourse('${c.id}')">
-        <div class="nm">${esc(c.title)}</div><div class="ct">${右}</div></div>`;
-    }).join('');
-    return `<div class="cat"><span class="n">${esc(cat.name)}</span>
-      <span class="d">${CAT_DESC[cat.name]||''}</span><span class="bar"></span></div>${rows}`;
-  }).join('') || '<div class="card">課程準備中</div>';
-}
-
-function openCourse(id){
-  const c = allCredits().find(x => x.id === id);
-  if(!c) return;
-  curCourse = c;
-  document.getElementById('course-name').textContent = c.title;
-  document.getElementById('course-count').textContent =
-    `${c.open_count} / ${c.unit_count} 單元已開放`;
-  document.getElementById('lesson-list').innerHTML = (c.units||[]).map(u =>
-    `<div class="lrow ${u.has_video?'':'novideo'} ${u.is_locked?'unit-lock':''}"
-       ${u.is_locked?'':`onclick="openLesson('${u.id}')"`}>
-       <div class="no">${u.is_locked?'🔒':String(u.seq).padStart(2,'0')}</div>
-       <div class="tx">${esc(u.title)}${u.is_locked?'<br><span style="font-size:14px;color:var(--txt2)">尚未開放</span>':''}</div>
-       <div class="go">${u.is_locked?'':'›'}</div>
-     </div>`).join('');
-  go('course');
-}
-
-// 課名前面已有編號，左側圓圈也顯示編號 → 去掉重複的 "09."
+// 練習題原文開頭有編號（"09."），清單自己會編號 → 去掉重複的
 function stripNo(t){ return String(t).replace(/^\d+\.\s*/, ''); }
 
 // ========== 單課（video_id 只有這裡拿得到）==========
 async function openLesson(id){
-  const inVillage = starter.some(x => x.id === id);
-  document.getElementById('lesson-back').textContent = inVillage ? '← 回新手村' : '← 回課列表';
-  document.getElementById('lesson-back').onclick = () => inVillage ? goVillage() : openCourse(curCourse.id);
   document.getElementById('lesson-next').innerHTML = '';
   document.getElementById('player').innerHTML = '<div class="noplay">載入中…</div>';
   document.getElementById('homework').innerHTML = '';
@@ -440,8 +341,6 @@ function previewInit(){
   renderHome();
   window.openLesson = (id) => {
     const sv = starter.find(x => x.id === id);
-    document.getElementById('lesson-back').textContent = '← 回新手村';
-    document.getElementById('lesson-back').onclick = goVillage;
     document.getElementById('lesson-title').textContent = pad2(sv.no) + ' ' + sv.title;
     document.getElementById('player').innerHTML =
       '<div class="noplay">預覽模式不載入影片</div><div class="mark">NP000000</div>';
