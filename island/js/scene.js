@@ -352,6 +352,30 @@ function buildClinic(k, x, gy, z, rot) {
   k.shadowAt(x, z, 2.8, gy);
   return 4.4;
 }
+// ── 活動廣場：木舞台＋紅藍兩面背板＋金色棚頂＋台上一顆搶答鈕 ──
+function buildStage(k, x, gy, z, rot) {
+  const { P, L } = B(k, x, gy, z, rot);
+  const RED = '#c9784f', BLUE = PAL.navy;
+  P(G.cyl16, PAL.stoneShade, 0, 0.12, 0, 0, 5.4, 0.24, 5.4);
+  P(G.box, PAL.wood, 0, 0.44, -0.5, 0, 3.4, 0.4, 2.0);
+  P(G.box, RED, -0.85, 1.54, -1.44, 0, 1.7, 1.8, 0.12);
+  P(G.box, BLUE, 0.85, 1.54, -1.44, 0, 1.7, 1.8, 0.12);
+  for (const s of [-1, 1]) for (const d of [-1.4, 0.4]) P(G.cyl8, PAL.white, s * 1.6, 1.64, d, 0, 0.14, 2.0, 0.14);
+  P(G.box, PAL.goldSoft, 0, 2.7, -0.5, 0, 3.8, 0.12, 2.4);
+  P(G.cone16, PAL.goldSoft, 0, 3.3, -0.5, 0, 4.2, 1.1, 2.8);
+  P(G.sph, PAL.goldBright, 0, 3.92, -0.5, 0, 0.3, 0.3, 0.3);
+  // 台上的搶答鈕
+  P(G.cyl8, PAL.white, 0, 0.94, -0.2, 0, 0.5, 0.6, 0.5);
+  P(G.sph, PAL.goldBright, 0, 1.3, -0.2, 0, 0.62, 0.36, 0.62);
+  L(0, 1.4, -0.2, 2.2);
+  // 台前兩面隊旗
+  [[-2.1, RED], [2.1, BLUE]].forEach(([fx, c]) => {
+    P(G.cyl8, '#5a5348', fx, 1.54, 1.3, 0, 0.08, 2.6, 0.08);
+    P(G.box, c, fx + (fx < 0 ? 0.38 : -0.38), 2.5, 1.3, 0, 0.7, 0.46, 0.04);
+  });
+  k.shadowAt(x, z, 2.8, gy);
+  return 4.2;
+}
 // ── 雷達站：控制室＋鐵架塔＋會轉的大碟型天線 ──
 function buildRadar(k, x, gy, z, rot, mats) {
   const { P, L } = B(k, x, gy, z, rot);
@@ -877,6 +901,7 @@ function buildCity(mats) {
     const [x, z] = polar(t.angle, PLOT_IN), rot = faceIn(x, z);
     let h;
     if (t.landmark === 'radar') { radar = buildRadar(k, x, G1, z, rot, mats); city.add(radar.holder); h = radar.h; }
+    else if (t.landmark === 'stage') h = buildStage(k, x, G1, z, rot);
     else h = buildClinic(k, x, G1, z, rot);
     placed.push({ x, z, r: 3.4 });
     plotSpots[t.id] = { x, z, gy: G1, h, focusY: 2, focusR: 8.5, hit: [3.4, 8], viewAz: Math.atan2(-x, -z) }; // 鏡頭從城中央往外看

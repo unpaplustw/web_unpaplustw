@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>疑慮處理對抗賽</title>
+<!-- 2026-11-11 活動廣場第一個遊戲：講課現場用。題目＝LINEAI 異議庫現役 62 題的題目原文（只有題目，沒有答案）。
+     題目是寫死的，LINEAI 那邊改了題庫，這裡要手動同步。 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap">
+<style>
+html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<style>
+/* 版面：一個畫面看完。上＝兩隊比分，中＝題目（全場最大的字），下＝一顆抽題大按鈕。 */
+:root{
+  --bg:#edf1f5; --panel:#ffffff; --ink:#0f1f2d; --muted:#5d6f80; --line:#cdd7e0;
+  --red:#d2362c; --blue:#1c68cc; --on-team:#ffffff; --team-soft:rgba(255,255,255,.22);
+  --buzz:#ffc61a; --buzz-edge:#c99400; --on-buzz:#1c1500;
+  --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b131b; --panel:#15212d; --ink:#f2f6fa; --muted:#93a5b6; --line:#293a4a;
+    --red:#e04a40; --blue:#3f86e6; --on-team:#ffffff; --team-soft:rgba(255,255,255,.2);
+    --buzz:#ffcc2e; --buzz-edge:#a67c00; --on-buzz:#1c1500; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b131b; --panel:#15212d; --ink:#f2f6fa; --muted:#93a5b6; --line:#293a4a;
+  --red:#e04a40; --blue:#3f86e6; --on-team:#ffffff; --team-soft:rgba(255,255,255,.2);
+  --buzz:#ffcc2e; --buzz-edge:#a67c00; --on-buzz:#1c1500; color-scheme:dark;
+}
+html,body{height:100%}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.4}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:4px solid var(--ink);outline-offset:3px}
+
+.app{height:100%;display:flex;flex-direction:column;gap:14px;max-width:1400px;margin:0 auto;
+  padding-block:14px 18px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top h1{margin:0;font-size:1.25rem;font-weight:900;letter-spacing:.06em}
+.reset{font-size:1rem;font-weight:700;color:var(--muted);padding:8px 14px;border:2px solid var(--line);border-radius:999px;background:var(--panel)}
+.reset.sure{color:var(--on-team);background:var(--red);border-color:var(--red)}
+
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.team{min-width:0;border-radius:18px;color:var(--on-team);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.team.red{background:var(--red)} .team.blue{background:var(--blue)}
+.team .who{display:flex;align-items:baseline;gap:12px;min-width:0}
+.team .name{font-size:1.35rem;font-weight:900;letter-spacing:.08em}
+.team .score{font-size:clamp(3rem,8vw,5.5rem);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.team .btns{display:flex;gap:8px;align-items:center}
+.team .plus{font-size:1.6rem;font-weight:900;color:var(--on-team);background:var(--team-soft);border:3px solid var(--on-team);border-radius:14px;min-width:84px;min-height:60px;padding:4px 14px}
+.team .minus{font-size:1.1rem;font-weight:700;color:var(--on-team);background:transparent;border:2px solid var(--team-soft);border-radius:12px;min-width:52px;min-height:48px}
+.team .plus:active,.team .minus:active{transform:scale(.94)}
+.team button:focus-visible{outline-color:var(--on-team)}
+.score.bump{animation:bump .35s ease-out}
+@keyframes bump{from{transform:scale(1.35)}to{transform:scale(1)}}
+
+.stage{flex:1;min-height:0;background:var(--panel);border:2px solid var(--line);border-radius:22px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;overflow:hidden}
+.count{font-size:1.1rem;font-weight:700;color:var(--muted);letter-spacing:.08em;min-height:1.5em}
+.q{margin:0;max-width:13em;font-size:clamp(2rem,6.4vw,5.6rem);font-weight:900;line-height:1.25;text-wrap:balance;overflow-wrap:anywhere}
+.q.idle{font-size:clamp(1.5rem,4vw,2.6rem);font-weight:700;color:var(--muted)}
+.q.rolling{color:var(--muted)}
+.q.land{animation:land .32s cubic-bezier(.2,1.5,.4,1)}
+@keyframes land{from{transform:scale(.8)}to{transform:scale(1)}}
+
+.draw{width:100%;min-height:92px;border-radius:22px;background:var(--buzz);color:var(--on-buzz);
+  font-size:clamp(2rem,5vw,3rem);font-weight:900;letter-spacing:.3em;text-indent:.3em;
+  box-shadow:0 8px 0 var(--buzz-edge);transition:transform .08s, box-shadow .08s}
+.draw:active{transform:translateY(6px);box-shadow:0 2px 0 var(--buzz-edge)}
+.draw:disabled{opacity:.6;cursor:default}
+.draw-wrap{padding-bottom:8px}
+
+@media (max-width:520px){
+  .team{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px}
+  .team .who{justify-content:space-between}
+  .team .btns{justify-content:space-between}
+  .team .plus{flex:1}
+  .draw{min-height:80px}
+}
+@media (prefers-reduced-motion: reduce){
+  .score.bump,.q.land{animation:none}
+  .draw{transition:none}
+}
+</style>
+
+<div class="app">
+  <div class="top">
+    <h1>疑慮處理對抗賽</h1>
+    <button class="reset" id="resetBtn" type="button">歸零重來</button>
+  </div>
+
+  <div class="teams">
+    <div class="team red">
+      <div class="who"><span class="name">紅隊</span><span class="score" id="scoreRed">0</span></div>
+      <div class="btns">
+        <button class="minus" id="redMinus" type="button" aria-label="紅隊扣一分">−1</button>
+        <button class="plus" id="redPlus" type="button" aria-label="紅隊加一分">＋1</button>
+      </div>
+    </div>
+    <div class="team blue">
+      <div class="who"><span class="name">藍隊</span><span class="score" id="scoreBlue">0</span></div>
+      <div class="btns">
+        <button class="minus" id="blueMinus" type="button" aria-label="藍隊扣一分">−1</button>
+        <button class="plus" id="bluePlus" type="button" aria-label="藍隊加一分">＋1</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="count" id="count"></div>
+    <p class="q idle" id="q" aria-live="polite">按下面的按鈕，抽第一題</p>
+  </div>
+
+  <div class="draw-wrap">
+    <button class="draw" id="drawBtn" type="button">抽題</button>
+  </div>
+</div>
+
+<script>
+// 題目：LINEAI 異議庫現役 62 題的標題（2026-11-11 抄錄，之後異議庫改了這裡不會跟著變）
+const Q = [
+  "這是不是老鼠會？","產品為什麼這麼貴？","產品有效為什麼醫生不開處方？","網路上說這是詐騙？","現在進去是幫人抬轎？",
+  "做了很久只領一點點，存活率高嗎？","公司會不會倒？","經營權可以傳承給孩子嗎？","商品怎麼這麼少？","被動收入是真的不用做嗎？",
+  "雙軌制大象腿會領不到錢嗎？","推薦幾個人才能免費吃？","獎金領多會被稅金吃掉嗎？","現在加入還來得及嗎？","公務人員可以做嗎？",
+  "制度是全球連線的嗎？","公司對搶線削價競爭嚴格嗎？","為什麼入會要綁定扣款？","日結週領為什麼四週後才拿到錢？","為什麼不在一般通路賣？",
+  "需不需要每個月重消？","海外市場怎麼做？","公司會不會隨便改制度？","需要貼錢囤貨衝業績嗎？","單月72萬上限是不是太低？",
+  "是不是只有上線賺錢？","要花錢上課嗎？","下線比我強收入會超過我嗎？","無限代領取數學合理嗎？","不重消獎金資格會取消嗎？",
+  "出國休息業績會歸零嗎？","自媒體分享會違規嗎？","下線解約位置不能遞補會斷層嗎？",
+  "我目前沒有錢加入","我口才不好不會推銷","產品要吃一輩子嗎？","我需要再考慮看看","我沒有人脈怎麼辦？",
+  "我沒辦法做業務性質的工作","等我以後有需要的時候再說","我沒有吃營養品的習慣","我還年輕不用吃/年紀太大不用吃","吃了幾天沒感覺是不是對我沒效？",
+  "這份事業一定要拉人嗎？","不想找親友系統能幫我找陌生客戶嗎？","我沒時間經營怎麼辦？","我有在運動身體很健康","家裡還有很多其他牌子的庫存",
+  "制度適合兼職嗎？","我只想當消費者可以不入會嗎？","數位工具太複雜學不會怎麼辦？","氫水喝起來跟水一樣怎麼證明有氫氣？","正確的產品食用建議是什麼？",
+  "我是I人不喜歡頻繁社交","我回去問問老公/老婆","我不缺錢了","我的小孩都會買給我吃了","我每天吃很多蔬菜營養夠了",
+  "我不在乎健康","時間很少能碎片化學習嗎？","可以只吃商品不吃蔬菜水果嗎？","氫水可以加熱或倒出來泡茶嗎？"
+];
+
+const KEY = 'objection-party-v1';
+const $ = id => document.getElementById(id);
+const elQ = $('q'), elCount = $('count'), drawBtn = $('drawBtn'), resetBtn = $('resetBtn');
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let S = { deck: [], cur: null, n: 0, red: 0, blue: 0 };
+let rolling = false, resetTimer = null;
+
+function shuffled(skip) {
+  const a = Q.map((_, i) => i);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  // 洗牌後下一張（陣列最後一個）不要跟剛剛那題一樣
+  if (skip !== null && a.length > 1 && a[a.length - 1] === skip) { const t = a[0]; a[0] = a[a.length - 1]; a[a.length - 1] = t; }
+  return a;
+}
+
+function load() {
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (!o || !Array.isArray(o.deck)) return;
+    const okIdx = i => Number.isInteger(i) && i >= 0 && i < Q.length;
+    if (!o.deck.every(okIdx)) return;
+    S.deck = o.deck;
+    S.cur = okIdx(o.cur) ? o.cur : null;
+    S.n = Number.isInteger(o.n) && o.n >= 0 ? o.n : 0;
+    S.red = Number.isInteger(o.red) && o.red >= 0 ? o.red : 0;
+    S.blue = Number.isInteger(o.blue) && o.blue >= 0 ? o.blue : 0;
+  } catch (e) { /* 存不了就算了，不影響玩 */ }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+function paint() {
+  $('scoreRed').textContent = S.red;
+  $('scoreBlue').textContent = S.blue;
+  if (S.cur === null) {
+    elQ.className = 'q idle';
+    elQ.textContent = '按下面的按鈕，抽第一題';
+    elCount.textContent = '共 ' + Q.length + ' 題';
+  } else {
+    elQ.className = 'q';
+    elQ.textContent = Q[S.cur];
+    elCount.textContent = '第 ' + S.n + ' 題・這一輪還剩 ' + S.deck.length + ' 題';
+  }
+}
+
+function settle(pick) {
+  S.cur = pick; S.n += 1;
+  rolling = false; drawBtn.disabled = false;
+  paint();
+  if (!reduceMotion) { void elQ.offsetWidth; elQ.classList.add('land'); }
+  save();
+}
+
+function draw() {
+  if (rolling) return;
+  if (S.deck.length === 0) S.deck = shuffled(S.cur);
+  const pick = S.deck.pop();
+  if (reduceMotion) { settle(pick); return; }
+  rolling = true; drawBtn.disabled = true;
+  elQ.className = 'q rolling';
+  let ticks = 0;
+  const timer = setInterval(() => {
+    elQ.textContent = Q[Math.floor(Math.random() * Q.length)];
+    if (++ticks >= 14) { clearInterval(timer); settle(pick); }
+  }, 75);
+}
+
+function score(team, d) {
+  S[team] = Math.max(0, S[team] + d);
+  const el = team === 'red' ? $('scoreRed') : $('scoreBlue');
+  el.textContent = S[team];
+  if (!reduceMotion) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  save();
+}
+
+function disarmReset() {
+  clearTimeout(resetTimer); resetTimer = null;
+  resetBtn.classList.remove('sure'); resetBtn.textContent = '歸零重來';
+}
+function reset() {
+  if (rolling) return;
+  if (!resetTimer) {           // 第一下只是問，3 秒內再按一次才真的歸零
+    resetBtn.classList.add('sure'); resetBtn.textContent = '再按一次確定';
+    resetTimer = setTimeout(disarmReset, 3000);
+    return;
+  }
+  disarmReset();
+  S = { deck: [], cur: null, n: 0, red: 0, blue: 0 };
+  paint(); save();
+}
+
+drawBtn.addEventListener('click', draw);
+resetBtn.addEventListener('click', reset);
+$('redPlus').addEventListener('click', () => score('red', 1));
+$('redMinus').addEventListener('click', () => score('red', -1));
+$('bluePlus').addEventListener('click', () => score('blue', 1));
+$('blueMinus').addEventListener('click', () => score('blue', -1));
+// 筆電投影時，按空白鍵也能抽題（焦點在按鈕上時交給按鈕自己處理）
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.repeat) return;
+  if (e.target && e.target.tagName === 'BUTTON') return;
+  e.preventDefault(); draw();
+});
+
+load();
+paint();
+</script>
+</body>
+</html>
