@@ -95,8 +95,8 @@
   .nm-empty{font-size:12.5px;color:var(--muted);padding:2px 2px 6px}
   .nm-appts{margin:2px 0 8px}  .appt-pick-hd{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:4px}  .appt-pick-hd small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
   .appt-hint{font-size:12.5px;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:6px 10px;margin:2px 0 6px}  .appt-hint b{font-weight:800}
-  .appt-pick{margin:6px 0 10px}  .appt-who{display:flex;align-items:baseline;gap:8px;font-size:14px;margin-bottom:4px}  .appt-who b{font-weight:800}
-  .appt-who small{font-size:12px;font-weight:800}  .appt-who small.ok{color:#2f6f45}  .appt-who small.ing{color:var(--muted)}
+  .appt-pick{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:14px}  .appt-pick b{font-weight:800;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .appt-pick small{font-size:12px;font-weight:800}  .appt-pick small.ok{color:#2f6f45}  .appt-pick small.ing{color:var(--muted)}  .appt-x{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:4px;font-family:inherit;cursor:pointer}
   .appt-days{display:flex;flex-wrap:wrap;gap:6px}  .appt-day{position:relative;overflow:hidden;border:1.5px solid var(--border);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;font-family:inherit;background:#fff;color:var(--text);cursor:pointer}
   .appt-day.on{background:var(--gold);border-color:var(--gold);color:#fff}  .appt-day.other{color:#2f6fae;border-style:dashed}  .appt-day.other.on{color:#fff;border-style:solid}
   .appt-day input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px}
@@ -971,13 +971,11 @@ function renderApptPick(row, chosen) {
   const days = apptDays(today()), min = days[0].ds;
   chosen.forEach(c => { if (!apptDraft[c.id] && c.appt_set_on === today() && c.appt_date) apptDraft[c.id] = c.appt_date; });   // 沒送出就關掉再回來，今天存的日期要帶回
   if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，見到了再 +2</div>`; return; }
-  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・按日期就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
-    + chosen.map(c => {
-      const cur = apptDraft[c.id] || '', inWeek = days.some(d => d.ds === cur), far = cur && !inWeek;
-      return `<div class="appt-pick"><div class="appt-who"><b>${escH(c.name)}</b>`
-        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">✓ 已送出・${mdOf(cur)} 見面</small>` : '') + `</div><div class="appt-days">`
-        + days.map(d => `<button type="button" class="appt-day${d.ds === cur ? ' on' : ''}" onclick="setAppt('${c.id}','${d.ds}')">${d.lb}</button>`).join('')
-        + `<label class="appt-day other${far ? ' on' : ''}">${far ? mdOf(cur) : '其他日期'}<input type="date" min="${min}" value="${far ? cur : ''}" onchange="setAppt('${c.id}',this.value,true)"></label></div></div>`;
+  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・選了就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
+    + chosen.map(c => {   // 每人一行（2026-11-10 Randoph：「太複雜了，不要用選按的，佔空間」）：點格子跳月曆，選完就存
+      const cur = apptDraft[c.id] || '', wd = cur ? '日一二三四五六'[new Date(cur + 'T00:00:00').getDay()] : '';
+      return `<div class="appt-pick"><b>${escH(c.name)}</b><label class="appt-day${cur ? ' on' : ' other'}">${cur ? `${mdOf(cur)}（${wd}）` : '選日期'}<input type="date" min="${min}" value="${cur}" onchange="setAppt('${c.id}',this.value,true)"></label>`
+        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">✓ 已送出</small><button type="button" class="appt-x" onclick="setAppt('${c.id}','')">取消</button>` : '') + `</div>`;
     }).join('')
     + (chosen.some(c => apptDraft[c.id]) ? `<div class="appt-note">日期存好了 ✅　邀約次數記得按最下面「送出」</div>` : '');
 }
