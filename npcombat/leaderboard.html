@@ -264,6 +264,11 @@ const AWARDS = [
   { key:'invite',    emoji:'🔗', name:'引路達人',  desc:'邀約見面次數最多（約好時間地點）', unit:'次', fun:false },
   { key:'present',   emoji:'🗣️', name:'親自出馬',  desc:'邀請·自己拿溝通本講次數最多', unit:'次', fun:false },
   { key:'seminar',   emoji:'🏛️', name:'請神助陣',  desc:'邀請·帶到說明會次數最多',  unit:'次', fun:false },
+  // 2026-11-11 Randoph：排行榜要凸顯「行動的品質」和「願意填」——三張都只表揚、不影響分數
+  //   說到做到＝赴約見面（邀約選了人＋約定日，那天回答見到了）；推進王＝同一位朋友往下一關走（看 action_logs.names）；天天報到＝有填回報的天數
+  { key:'attended',  emoji:'🤝', name:'說到做到',  desc:'約了、真的見到面的次數最多', unit:'次', fun:false },
+  { key:'advance',   emoji:'🚀', name:'推進王',    desc:'把朋友往下一關帶最多（認識→邀約→邀請，每進一關算 1 次）', unit:'次', fun:false },
+  { key:'fill_days', emoji:'📅', name:'天天報到',  desc:'填寫回報的天數最多', unit:'天', fun:false, grouped:true },
   // 2026-11-08 拿掉「🕊️ 和平鴿王」：29 期起不再記被放鴿子（BASE_PTS 的 ghosted 留給舊期資料）
   { key:'rejected',  emoji:'🍋', name:'檸檬勇士', desc:'締結未果最多，越挫越勇',   unit:'次', fun:true },
 ];
@@ -271,7 +276,7 @@ const AWARDS = [
 let currentBatch = null;
 let weeks = [];
 let currentWeek = 0;
-let currentCat = 'personal'; // personal / team / leader
+let currentCat = 'personal'; // personal / team（領袖榜 2026-11-11 刪）
 const VERIFY_FROM = '2026-06-08'; // 證明勾折扣生效日（第三週起）；之前寬限全額
 // 教練簡單模式（信任制）：不逐項審核 → 不套 ×0.5 折扣、審核型獎項隱藏
 const isSimpleMode = () => currentBatch?.coach_mode === 'simple';
@@ -359,13 +364,12 @@ async function init() {
 
   // 預載學員＋教練（都算參與者）
   const { data: stuData } = await sb.from('batch_students')
-    .select('id, member_id, coach_id, sponsor_id, members_master(name, member_code, picture_url)')
+    .select('id, member_id, coach_id, members_master(name, member_code, picture_url)')
     .eq('batch_id', currentBatch.id).eq('status', 'approved');
   batchStudents = (stuData || []).map(s => ({
     id: s.id,
     member_id: s.member_id,
     coach_id: s.coach_id,
-    sponsor_id: s.sponsor_id,
     group: coachGroups[s.coach_id] || '未分組',
     name: s.members_master?.name || '未知',
     code: s.members_master?.member_code || '',
@@ -378,7 +382,6 @@ async function init() {
       id: c.id,
       member_id: c.member_id,
       coach_id: null,
-      sponsor_id: null,
       group: c.group_name || '未分組',
       name: c.members_master?.name || '未知',
       code: '',
@@ -460,7 +463,6 @@ function renderWeekBar() {
 const CATEGORIES = [
   { key:'personal', label:'👤 個人' },
   { key:'team',     label:'🏰 團隊' },
-  { key:'leader',   label:'🏅 領袖' },
 ];
 function renderCatBar() {
   const bar = document.getElementById('catSelector');
@@ -491,11 +493,10 @@ function calcStats(startDate, endDate) {
     students[s.id] = {
       sid: s.id, name: s.name, code: s.code, group: s.group, pic: s.pic,
       meet:0, invite:0, present:0, seminar:0,
-      ghosted:0, rejected:0, name_list:0, attended:0,
+      ghosted:0, rejected:0, name_list:0, attended:0, advance:0, fill_days:0,
       close_pts:0, action_pts:0, total:0, slots:0, referrals:0, branch_pts:0, badge_units:0, upline_unit_pts:0, _refCodes:new Set(),
       supervise:0,
       filled:false, filledItems:0, verifiedItems:0,
-      downlinePts:0, downlineCount:0, downlineAvg:0, downlineNames:[]
     };
   });
   const logs = allLogs.filter(l => {
@@ -525,6 +526,7 @@ function calcStats(startDate, endDate) {
     s.action_pts += namePts(log);   // ✍️ 寫名字每人次 +1（2026-11-11，算式在 score.js；不套證明勾折扣）
     // 📋 有填報（任一筆 log 即算填報）
     s.filled = true;
+    s.fill_days += 1;   // 📅 天天報到：一天一筆 log
     // ✅ 驗證率素材：填了幾項(value>0) / 其中幾項有證明勾
     fields.forEach(f => {
       if ((log[f] || 0) > 0) { s.filledItems++; if (proof[f]) s.verifiedItems++; }
@@ -588,19 +590,23 @@ function calcStats(startDate, endDate) {
     s.action_pts = Math.round(s.action_pts); // 折扣可能產生 .5，四捨五入
     s.total = s.action_pts + s.close_pts + s.branch_pts + (s.org_pts || 0);   // ＋組織締結（2026-11-08）   // 獎勵活動：新人＋分店全算
   });
-  // 👑 領袖王：下線(sponsor)實戰班總分平均，歸給該上線教練 + 收集下線名字
-  const sidToSponsor = {};
-  batchStudents.forEach(p => { if (p.sponsor_id) sidToSponsor[p.id] = p.sponsor_id; });
-  arr.forEach(s => {
-    const sponsorId = sidToSponsor[s.sid];
-    if (sponsorId && students[sponsorId]) {
-      students[sponsorId].downlinePts += s.total;
-      students[sponsorId].downlineCount += 1;
-      students[sponsorId].downlineNames.push(s.name);
-    }
-  });
-  arr.forEach(s => {
-    s.downlineAvg = s.downlineCount ? Math.round(s.downlinePts / s.downlineCount) : 0;
+  // 🚀 推進王（2026-11-11）：同一位朋友走到更後面的一關，每進一關算 1 次；第一次出現那一關不算（那是起點）
+  //   關卡：認識 1 → 邀約 2 → 邀請（溝通本／說明會）3。要看這位朋友之前走到哪，所以從全期 log 依日期掃，只把落在這段期間的算進來
+  //   🔴 這裡只用 names 裡的名單 id，不載 contacts（朋友的名字不能出現在公開的排行榜）→ 締結那一關不算（締結另有締結王／推薦王）
+  const STAGE = { meet:1, invite:2, present:3, seminar:3 }, reach = {};
+  [...allLogs].sort((x, y) => x.log_date < y.log_date ? -1 : x.log_date > y.log_date ? 1 : 0).forEach(log => {
+    const s = students[log.student_id], n = log.names;
+    if (!s || !n) return;
+    const inRange = (!startDate || log.log_date >= startDate) && (!endDate || log.log_date <= endDate);
+    const day = {};   // 這一天：朋友 id → 做到哪幾關
+    Object.keys(STAGE).forEach(f => (Array.isArray(n[f]) ? n[f] : []).forEach(cid => { (day[cid] = day[cid] || new Set()).add(STAGE[f]); }));
+    Object.entries(day).forEach(([cid, set]) => {
+      const key = log.student_id + '|' + cid;
+      let cur = reach[key] || 0, adv = 0;
+      [...set].sort().forEach(st => { if (st > cur) { if (cur > 0) adv++; cur = st; } });
+      reach[key] = cur;
+      if (inRange) s.advance += adv;
+    });
   });
   return { students, arr };
 }
@@ -715,6 +721,7 @@ function loadWeek(idx) {
     closePct: Math.round(g.hasClose / g.count * 100),
     slotPct: Math.round(g.hasSlot / g.count * 100),
     fillRate: Math.round(g.filledCount / g.count * 100),
+    filledCount: g.filledCount,
     proofRate: g.filledItems ? Math.round(g.verifiedItems / g.filledItems * 100) : 0,
   }));
 
@@ -728,7 +735,8 @@ function loadWeek(idx) {
     html += '<div class="awards-grid">';
     // 累積型獎項（獎勵達人）只在「全期」顯示，且該期要有獎勵活動才存在
     AWARDS.filter(a => !a.fun && (!a.cumulative || isAllPeriod) && (a.key !== 'slots' || hasEvent))
-      .forEach(a => { html += renderAwardCard(a, rank(a.key)); });
+      .forEach(a => { html += a.grouped ? renderGroupedCard(a, rank(a.key)) : renderAwardCard(a, rank(a.key)); });
+    if (!isSimpleMode()) html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));   // 原在領袖榜；簡單模式不審核 → 隱藏
     html += '</div>';
 
     html += `<div class="section-title">😂 ${periodLabel}越挫越勇</div>`;
@@ -745,16 +753,9 @@ function loadWeek(idx) {
     } else {
       html += renderTeamMetric('💰', '成交軍團', idx === -1 ? '組內成交比例' : '組內本週成交比例', groupArr, 'closePct', '%');
     }
-    html += renderTeamMetric('📋', '全員到齊', '組內填報率最高', groupArr, 'fillRate', '%');
+    html += renderTeamAll(groupArr, periodLabel);   // 2026-11-11 每一組都列出來，不只前三
     // 嚴謹軍團靠證明照驗證率，簡單模式不審核 → 隱藏
     if (!isSimpleMode()) html += renderTeamMetric('✅', '嚴謹軍團', '組內證明照驗證率最高', groupArr, 'proofRate', '%');
-    html += '</div>';
-  } else if (currentCat === 'leader') {
-    html += `<div class="section-title">🏅 ${periodLabel}領袖榜（上下線）</div>`;
-    html += '<div class="awards-grid">';
-    html += renderLeaderKing(rank('downlineAvg'));
-    // 督導王靠逐項審核，簡單模式不審核 → 隱藏
-    if (!isSimpleMode()) html += renderAwardCard({ key:'supervise', emoji:'🎖️', name:'督導王', desc:'逐項審核學員回報最多', unit:'項' }, rank('supervise'));
     html += '</div>';
   }
 
@@ -822,29 +823,53 @@ function renderTeamMetric(emoji, name, desc, groups, key, unit) {
     </div>`;
 }
 
-function renderLeaderKing(top3) {
-  let podium;
-  if (top3.length === 0) {
-    podium = '<div class="empty-state">虛位以待，等你來搶！</div>';
-  } else {
-    podium = '<div class="podium">' + top3.map(s => `
-      <div class="podium-row rank-${s.rank}">
-        <div class="rank-badge">${s.rank}</div>
-        ${s.pic ? `<img class="podium-avatar" src="${s.pic}" alt="">` : ''}
-        <div class="podium-name">${s.name}<div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:2px">組織夥伴：${s.downlineNames.join('、') || '—'}</div></div>
-        <div class="podium-score">${s.downlineAvg}<span class="podium-unit">分</span></div>
+// 同名次的人排在同一列（天天報到常常很多人並列，一人一列會太長）
+function renderGroupedCard(award, top3) {
+  const by = {}; top3.forEach(s => (by[s.rank] = by[s.rank] || []).push(s));
+  const podium = !top3.length ? '<div class="empty-state">虛位以待，等你來搶！</div>'
+    : '<div class="podium">' + Object.keys(by).map(r => `
+      <div class="podium-row rank-${r}">
+        <div class="rank-badge">${r}</div>
+        <div class="podium-name" style="font-size:13px;line-height:1.6">${by[r].map(s => s.name).join('、')}</div>
+        <div class="podium-score">${by[r][0][award.key]}<span class="podium-unit">${award.unit}</span></div>
       </div>`).join('') + '</div>';
-  }
   return `
     <div class="award-card">
       <div class="award-header">
-        <div class="award-emoji">👑</div>
+        <div class="award-emoji">${award.emoji}</div>
         <div class="award-info">
-          <div class="award-name">領袖王<span class="team-tag">領袖獎</span></div>
-          <div class="award-desc">下線參與實戰班總分平均最高</div>
+          <div class="award-name">${award.name}</div>
+          <div class="award-desc">${award.desc}</div>
         </div>
       </div>
       ${podium}
+    </div>`;
+}
+
+// 📋 全員到齊：每一組都列（有填的人數／全組人數），由高到低
+function renderTeamAll(groups, periodLabel) {
+  const sorted = [...groups].sort((a, b) => b.fillRate - a.fillRate || a.name.localeCompare(b.name, 'zh-Hant'));
+  let rk = 0, last = null;
+  const rows = sorted.map(t => {
+    if (t.fillRate !== last) { rk++; last = t.fillRate; }
+    return `
+      <div class="podium-row${t.fillRate > 0 && rk <= 3 ? ' rank-' + rk : ''}">
+        <div class="rank-badge">${rk}</div>
+        ${t.coachPic ? `<img class="podium-avatar" src="${t.coachPic}" alt="">` : ''}
+        <div class="podium-name">${t.coachName} 教練 ${t.name}</div>
+        <div class="podium-score">${t.filledCount}<span class="podium-unit">／${t.count} 人・${t.fillRate}%</span></div>
+      </div>`;
+  }).join('');
+  return `
+    <div class="award-card">
+      <div class="award-header">
+        <div class="award-emoji">📋</div>
+        <div class="award-info">
+          <div class="award-name">全員到齊<span class="team-tag">團隊獎</span></div>
+          <div class="award-desc">${periodLabel}有填回報的人數／全組人數（每一組都列）</div>
+        </div>
+      </div>
+      ${rows ? '<div class="podium">' + rows + '</div>' : '<div class="empty-state">還沒有分組</div>'}
     </div>`;
 }
 
