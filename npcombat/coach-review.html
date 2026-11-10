@@ -150,6 +150,7 @@
   /* ── 簡單模式：小組關懷「有回應」 ── */
   .eng-hint{font-size:13px;color:var(--muted);padding:10px 16px 4px;line-height:1.6}
   .eng-lock{margin:14px 12px 18px;padding:22px 18px;border-radius:16px;font-size:15px;line-height:1.85;text-align:center;border:1.5px solid}  .eng-lock.done{background:#f2faf4;border-color:#bfe3cb;color:#2f6f45}  .eng-lock.wait,.eng-lock.rest{background:#fffaf0;border-color:#ecd9a0;color:#7a6420}  .eng-lock.late{background:#fdf0ee;border-color:#f0c4bd;color:#9b2c1f}  .eng-lock b{font-size:16.5px}  .lk-t{font-size:17px;font-weight:900;margin-bottom:6px;line-height:1.6}  .lk-next{margin-top:16px;padding-top:14px;border-top:1px dashed currentColor}  .lk-note{margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.7);font-size:13.5px;color:var(--muted)}
+  .ro-hd{margin:6px 16px 4px;font-size:16px;font-weight:900;color:var(--gold)}  .ro-hd small{display:block;font-size:12.5px;color:var(--muted);font-weight:600}  .eng-item.ro .eng-row{padding:12px 16px 6px}  .ro-book{padding:0 16px 12px}
   .eng-item{border-bottom:1px solid var(--border)}
   .eng-row{display:flex;align-items:center;gap:10px;padding:13px 16px}
   .gchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px 44px;margin-top:-6px}  .gchip{font-size:12px;font-weight:700;color:var(--muted);background:#f3eee2;border-radius:10px;padding:2px 8px}  .gchip.ok{color:#2f6f45;background:#e6f4ea}  .ggoal{margin:10px 12px 12px;padding:12px 14px;border-radius:12px;background:#fffaf0;border:1.5px solid var(--gold)}  .ggoal-t{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:800;color:var(--gold)}  .ggoal-t span{font-size:12.5px;color:var(--muted);font-weight:700}  .ggoal-row{display:flex;justify-content:space-between;font-size:13.5px;margin-top:6px}  .ggoal-row b{color:var(--gold)}  .ggoal-bar{height:8px;background:#efe9da;border-radius:6px;margin-top:4px;overflow:hidden}  .ggoal-bar i{display:block;height:100%;background:var(--gold)}
@@ -3081,7 +3082,7 @@ function fillDetailHtml(stu) {
   const d = getStuData(stu);
   if (!d) {
     return `<div class="eng-det-t">${stu.name} · ${formatDate(getDateStr(currentDay))}</div>
-      <div class="eng-nofill">今天還沒填</div>${bookBtn(stu)}`;
+      <div class="eng-nofill">這天還沒填網頁回報</div>${bookBtn(stu)}`;
   }
   const items = STU_FIELDS.filter(f => !f.special).map(f => {
     const v = d[f.key] || 0;
@@ -3189,7 +3190,13 @@ function renderEngagement() {
 
   // 🔴 2026-11-10 Randoph：還沒開放／已送出／已過 12:00／沒有要標的日子 → 整頁上鎖，不顯示任何按鈕
   const lock = engLockOf(dateStr);
-  if (lock) { document.getElementById('summaryBody').innerHTML = groupGoalHtml() + lock; refreshTodo(); return; }
+  if (lock) {   // 上鎖後仍看得到每位組員的進度與名單本（2026-11-10 Randoph：回報完教練還是要能看名單本）
+    const ro = activeStudents().map(stu => `<div class="eng-item ro"><div class="eng-row"><span class="eng-name">${stu.name}${trackTag(stu)}</span></div>`
+      + `${goalChips(stu)}<div class="ro-book">${bookBtn(stu)}</div></div>`).join('');
+    document.getElementById('summaryBody').innerHTML = groupGoalHtml() + lock
+      + (ro ? `<div class="ro-hd">📒 組員的名單本<small>點開看每個人跟進到哪一步</small></div>${ro}` : '');
+    refreshTodo(); return;
+  }
 
   const map = engMapFor(currentDay);
   const closed = dayClosed(currentDay);
