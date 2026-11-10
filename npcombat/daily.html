@@ -130,6 +130,7 @@
   .bk-st.ok{color:#fff;background:var(--gold);border-color:var(--gold);font-weight:700}
   .bk-x{margin-left:4px;color:var(--muted)}
   .bk-er{display:flex;gap:6px;margin-top:6px}
+  .bk-mglbl{margin-top:10px;font-size:14px;font-weight:800;color:var(--gold)} .bk-mglbl small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
   .bk-er input,.bk-er select{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;font-family:inherit;background:#fff}
   .bk-er button{border:none;border-radius:8px;background:var(--gold-lt);color:var(--gold);font-weight:800;padding:0 12px;font-family:inherit;font-size:14px}
   .bk-er .bk-del{background:#fdecea;color:#c0392b;padding:6px 12px}
@@ -1025,7 +1026,7 @@ function toggleBookEdit(id) {
   const used = bookLogs.some(l => Object.values(l.names || {}).some(ids => (ids || []).includes(id)));
   const opts = contacts.filter(c => c.id !== id).map(c => `<option value="${c.id}">${escH(c.name)}</option>`).join('');
   ed.innerHTML = `<div class="bk-er"><input id="bk-rn-${id}" value="${escH(cName(id))}" maxlength="20"><button type="button" onclick="renameContact('${id}')">改名</button></div>`
-    + (opts ? `<div class="bk-er"><select id="bk-mg-${id}"><option value="">和誰是同一個人？</option>${opts}</select><button type="button" onclick="mergeContact('${id}', document.getElementById('bk-mg-${id}').value)">合併</button></div>` : '')
+    + (opts ? `<div class="bk-mglbl">把「${escH(cName(id))}」併到 ↓<small>名字留對方，兩邊的紀錄都保留</small></div>` + `<div class="bk-er"><select id="bk-mg-${id}"><option value="">選要保留的那一位</option>${opts}</select><button type="button" onclick="mergeContact('${id}', document.getElementById('bk-mg-${id}').value)">併過去</button></div>` : '')
     + (used ? '' : `<div class="bk-er"><button type="button" class="bk-del" onclick="deleteContact('${id}')">刪除這個人</button></div>`);
   ed.style.display = '';
 }
@@ -1040,7 +1041,8 @@ async function renameContact(id) {
 }
 async function mergeContact(fromId, toId) {
   if (!fromId || !toId || fromId === toId) return toast('請選要合併到哪一位');
-  if (!confirm(`「${cName(fromId)}」和「${cName(toId)}」是同一個人？\n合併後所有紀錄都算在「${cName(toId)}」。`)) return;
+  if (!confirm(`把「${cName(fromId)}」併到「${cName(toId)}」？\n兩邊的紀錄都會保留，名字留「${cName(toId)}」。`)) return;
+  const keepName = cName(toId);
   for (const l of bookLogs) {
     let hit = false;
     const nn = {};
@@ -1054,7 +1056,7 @@ async function mergeContact(fromId, toId) {
   for (const k of Object.keys(names)) names[k] = [...new Set(names[k].map(x => x === fromId ? toId : x))];
   const { error } = await sb.from('contacts').delete().eq('id', fromId);
   if (error) return toast('合併失敗：' + error.message);
-  toast('已合併'); await loadBook();
+  toast(`已併到「${keepName}」`); await loadBook();
 }
 async function deleteContact(id) {
   if (!confirm(`刪除「${cName(id)}」？`)) return;

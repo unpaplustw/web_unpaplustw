@@ -94,6 +94,7 @@
   .my-book .bk-st.yuan{background:#8a7a5a;border-color:#8a7a5a;color:#fff;font-weight:700}  .my-book .bk-st.no{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700}
   .my-book .bk-copy{display:block;width:100%;margin:10px 0 2px;padding:12px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:15px;font-weight:800;font-family:inherit}
   .my-book .bk-top{display:flex;justify-content:space-between;align-items:center}  .my-book .bk-ed{border:none;background:none;font-size:15px;padding:2px 6px;cursor:pointer}  .my-book .bk-er{display:flex;gap:6px;margin-top:6px}  .my-book .bk-er input,.my-book .bk-er select{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;font-family:inherit;background:#fff}  .my-book .bk-er button{border:none;border-radius:8px;background:var(--gold-lt);color:var(--gold);font-weight:800;padding:0 12px;font-family:inherit;font-size:14px}  .my-book .bk-er .bk-del{background:#fdecea;color:#c0392b;padding:6px 12px}
+  .my-book .bk-mglbl{margin-top:10px;font-size:14px;font-weight:800;color:var(--gold)} .my-book .bk-mglbl small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
   .stu-row:last-child{border:none}
   /* 雙勾：證明 + 督導 */
   .stu-act-row{padding:10px 0;border-bottom:1px solid var(--border)}
@@ -2676,7 +2677,7 @@ function toggleMyBookEdit(id) {
     || Object.values(myNames).some(ids => (ids || []).includes(id));
   const opts = myContacts.filter(c => c.id !== id).map(c => `<option value="${c.id}">${escM(c.name)}</option>`).join('');
   ed.innerHTML = `<div class="bk-er"><input id="mbk-rn-${id}" value="${escM(myCName(id))}" maxlength="20"><button type="button" onclick="renameMyContact('${id}')">改名</button></div>`
-    + (opts ? `<div class="bk-er"><select id="mbk-mg-${id}"><option value="">和誰是同一個人？</option>${opts}</select><button type="button" onclick="mergeMyContact('${id}', document.getElementById('mbk-mg-${id}').value)">合併</button></div>` : '')
+    + (opts ? `<div class="bk-mglbl">把「${escM(myCName(id))}」併到 ↓<small>名字留對方，兩邊的紀錄都保留</small></div>` + `<div class="bk-er"><select id="mbk-mg-${id}"><option value="">選要保留的那一位</option>${opts}</select><button type="button" onclick="mergeMyContact('${id}', document.getElementById('mbk-mg-${id}').value)">併過去</button></div>` : '')
     + (used ? '' : `<div class="bk-er"><button type="button" class="bk-del" onclick="deleteMyContact('${id}')">刪除這個人</button></div>`);
   ed.style.display = '';
 }
@@ -2694,7 +2695,8 @@ function swapMyIds(obj, fromId, toId) {   // 畫面上還沒存的選人＋已�
 }
 async function mergeMyContact(fromId, toId) {
   if (!fromId || !toId || fromId === toId) return toast('請選要合併到哪一位');
-  if (!confirm(`「${myCName(fromId)}」和「${myCName(toId)}」是同一個人？\n合併後所有紀錄都算在「${myCName(toId)}」。`)) return;
+  if (!confirm(`把「${myCName(fromId)}」併到「${myCName(toId)}」？\n兩邊的紀錄都會保留，名字留「${myCName(toId)}」。`)) return;
+  const keepName = myCName(toId);
   for (const l of myBookLogs) {
     let hit = false; const nn = {};
     for (const [k, ids] of Object.entries(l.names || {})) nn[k] = [...new Set((ids || []).map(x => { if (x === fromId) { hit = true; return toId; } return x; }))];
@@ -2706,7 +2708,7 @@ async function mergeMyContact(fromId, toId) {
   ['today', 'yesterday'].forEach(d => { if (myData[d] && myData[d].names) swapMyIds(myData[d].names, fromId, toId); });
   const { error } = await sb.from('contacts').delete().eq('id', fromId);
   if (error) return toast('合併失敗：' + error.message);
-  toast('已合併'); await loadMyBook();
+  toast(`已併到「${keepName}」`); await loadMyBook();
 }
 async function deleteMyContact(id) {
   if (!confirm(`刪除「${myCName(id)}」？`)) return;
