@@ -5,68 +5,65 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>疑慮處理對抗賽</title>
-<!-- 2026-11-11 活動廣場第一個遊戲：講課現場用。題目＝知識庫「生涯庫/環貫綠佳利百科/疑慮處理/題目清單.md」的 86 題（只有題目，沒有答案）。
+<!-- 2026-11-11 活動廣場第一個遊戲：講課現場用。題目＝知識庫「生涯庫/環貫綠佳利百科/疑慮處理/題目清單.md」（只有題目，沒有答案）。
      題目是寫死的，題目清單改了，這裡要手動同步（照抄，不改字）。 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap">
 <style>
-html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
-body{margin:0}
-[hidden]{display:none!important}
-</style>
-</head>
-<body>
-<style>
-/* 版面：一個畫面看完。上＝兩隊比分，中＝題目（全場最大的字），下＝一顆抽題大按鈕。 */
+/* 版面：進來先選（幾隊、抽哪些題）。玩的時候由上到下＝題目（全場最大的字）→ 抽題大按鈕 → 各隊比分。
+   投影幕越下面後排越看不到，所以題目放最上面、比分放最下面。 */
 :root{
   --bg:#edf1f5; --panel:#ffffff; --ink:#0f1f2d; --muted:#5d6f80; --line:#cdd7e0;
-  --red:#d2362c; --blue:#1c68cc; --on-team:#ffffff; --team-soft:rgba(255,255,255,.22);
+  --t1:#d2362c; --t2:#1c68cc; --t3:#23833b; --t4:#c96a00; --t5:#7a3fc0; --t6:#cc3d86; --t7:#0c8585; --t8:#855a30;
+  --on-team:#ffffff; --team-soft:rgba(255,255,255,.22);
   --buzz:#ffc61a; --buzz-edge:#c99400; --on-buzz:#1c1500;
   --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0b131b; --panel:#15212d; --ink:#f2f6fa; --muted:#93a5b6; --line:#293a4a;
-    --red:#e04a40; --blue:#3f86e6; --on-team:#ffffff; --team-soft:rgba(255,255,255,.2);
-    --buzz:#ffcc2e; --buzz-edge:#a67c00; --on-buzz:#1c1500; color-scheme:dark;
+    --buzz:#ffcc2e; --buzz-edge:#a67c00; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0b131b; --panel:#15212d; --ink:#f2f6fa; --muted:#93a5b6; --line:#293a4a;
-  --red:#e04a40; --blue:#3f86e6; --on-team:#ffffff; --team-soft:rgba(255,255,255,.2);
-  --buzz:#ffcc2e; --buzz-edge:#a67c00; --on-buzz:#1c1500; color-scheme:dark;
+  --buzz:#ffcc2e; --buzz-edge:#a67c00; color-scheme:dark;
 }
-html,body{height:100%}
+html{height:100%;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.4}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.4}
+[hidden]{display:none!important}
 button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:4px solid var(--ink);outline-offset:3px}
 
-.app{height:100%;display:flex;flex-direction:column;gap:14px;max-width:1400px;margin:0 auto;
-  padding-block:14px 18px;
+.app{min-height:100%;display:flex;flex-direction:column;gap:14px;max-width:1400px;margin:0 auto;
+  padding-block:14px 16px;
   padding-left:max(16px, env(safe-area-inset-left, 0px));
   padding-right:max(16px, env(safe-area-inset-right, 0px))}
 
+/* ── 進場選項 ── */
+.setup{max-width:720px;justify-content:center;gap:22px}
+.setup h1{margin:0;font-size:clamp(1.8rem,5vw,2.6rem);font-weight:900;letter-spacing:.06em;text-align:center}
+.setup h2{margin:0 0 10px;font-size:1.3rem;font-weight:900}
+.opts{display:grid;gap:10px}
+.opts.nums{grid-template-columns:repeat(7,minmax(0,1fr))}
+.opt{min-width:0;min-height:62px;border:3px solid var(--line);border-radius:14px;background:var(--panel);font-size:1.6rem;font-weight:900}
+.opt.wide{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;text-align:left;font-size:1.3rem;line-height:1.3}
+.opt.wide small{display:block;font-size:1rem;font-weight:500;color:var(--muted)}
+.opt.wide .cnt{flex:0 0 auto;font-size:1.15rem;white-space:nowrap}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.opt[aria-pressed="true"] small{color:inherit;opacity:.8}
+.preview{margin:10px 0 0;font-size:1.05rem;font-weight:700;color:var(--muted);min-height:1.5em}
+
+/* ── 玩的畫面 ── */
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.top h1{margin:0;font-size:1.25rem;font-weight:900;letter-spacing:.06em}
+.top .ttl{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;min-width:0}
+.top h1{margin:0;font-size:1.2rem;font-weight:900;letter-spacing:.06em}
+.top .tag{font-size:1rem;font-weight:700;color:var(--muted)}
 .reset{font-size:1rem;font-weight:700;color:var(--muted);padding:8px 14px;border:2px solid var(--line);border-radius:999px;background:var(--panel)}
-.reset.sure{color:var(--on-team);background:var(--red);border-color:var(--red)}
+.reset.sure{color:var(--on-team);background:var(--t1);border-color:var(--t1)}
 
-.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.team{min-width:0;border-radius:18px;color:var(--on-team);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.team.red{background:var(--red)} .team.blue{background:var(--blue)}
-.team .who{display:flex;align-items:baseline;gap:12px;min-width:0}
-.team .name{font-size:1.35rem;font-weight:900;letter-spacing:.08em}
-.team .score{font-size:clamp(3rem,8vw,5.5rem);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
-.team .btns{display:flex;gap:8px;align-items:center}
-.team .plus{font-size:1.6rem;font-weight:900;color:var(--on-team);background:var(--team-soft);border:3px solid var(--on-team);border-radius:14px;min-width:84px;min-height:60px;padding:4px 14px}
-.team .minus{font-size:1.1rem;font-weight:700;color:var(--on-team);background:transparent;border:2px solid var(--team-soft);border-radius:12px;min-width:52px;min-height:48px}
-.team .plus:active,.team .minus:active{transform:scale(.94)}
-.team button:focus-visible{outline-color:var(--on-team)}
-.score.bump{animation:bump .35s ease-out}
-@keyframes bump{from{transform:scale(1.35)}to{transform:scale(1)}}
-
-.stage{flex:1;min-height:0;background:var(--panel);border:2px solid var(--line);border-radius:22px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;overflow:hidden}
+.stage{flex:1;min-height:220px;background:var(--panel);border:2px solid var(--line);border-radius:22px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center}
 .count{font-size:1.1rem;font-weight:700;color:var(--muted);letter-spacing:.08em;min-height:1.5em}
 .q{margin:0;max-width:13em;font-size:clamp(2rem,6.4vw,5.6rem);font-weight:900;line-height:1.25;text-wrap:balance;overflow-wrap:anywhere}
 .q.idle{font-size:clamp(1.5rem,4vw,2.6rem);font-weight:700;color:var(--muted)}
@@ -74,47 +71,79 @@ button:focus-visible{outline:4px solid var(--ink);outline-offset:3px}
 .q.land{animation:land .32s cubic-bezier(.2,1.5,.4,1)}
 @keyframes land{from{transform:scale(.8)}to{transform:scale(1)}}
 
-.draw{width:100%;min-height:92px;border-radius:22px;background:var(--buzz);color:var(--on-buzz);
+.draw{width:100%;min-height:84px;border-radius:22px;background:var(--buzz);color:var(--on-buzz);
   font-size:clamp(2rem,5vw,3rem);font-weight:900;letter-spacing:.3em;text-indent:.3em;
   box-shadow:0 8px 0 var(--buzz-edge);transition:transform .08s, box-shadow .08s}
 .draw:active{transform:translateY(6px);box-shadow:0 2px 0 var(--buzz-edge)}
 .draw:disabled{opacity:.6;cursor:default}
 .draw-wrap{padding-bottom:8px}
 
+/* 各隊比分：寬螢幕一排排完；手機最多兩排 */
+.teams{display:grid;gap:10px;grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
+.teams[data-n="2"],.teams[data-n="4"]{--cols:2}
+.teams[data-n="3"],.teams[data-n="5"],.teams[data-n="6"]{--cols:3}
+.teams[data-n="7"],.teams[data-n="8"]{--cols:4}
+.team{min-width:0;border-radius:16px;color:var(--on-team);padding:10px;display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.team .who{display:flex;align-items:baseline;justify-content:center;gap:2px 10px;flex-wrap:wrap}
+.team .name{font-size:1.15rem;font-weight:900;letter-spacing:.06em;white-space:nowrap}
+.team .score{font-size:clamp(2.2rem,4.6vw,3.6rem);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.team .btns{display:flex;gap:6px}
+.team .plus{flex:1;min-width:0;min-height:52px;font-size:1.4rem;font-weight:900;color:var(--on-team);background:var(--team-soft);border:3px solid var(--on-team);border-radius:12px;padding:2px 4px}
+.team .minus{flex:0 0 auto;min-width:40px;min-height:44px;align-self:center;font-size:1rem;font-weight:700;color:var(--on-team);background:transparent;border:2px solid var(--team-soft);border-radius:10px;padding:2px 4px}
+.team .plus:active,.team .minus:active{transform:scale(.94)}
+.team button:focus-visible{outline-color:var(--on-team)}
+.score.bump{animation:bump .35s ease-out}
+@keyframes bump{from{transform:scale(1.35)}to{transform:scale(1)}}
+/* 兩隊：隊名分數在左、按鈕在右，比分條矮一點 */
+.teams[data-n="2"] .team{flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 14px}
+.teams[data-n="2"] .who{flex:1 1 auto;justify-content:flex-start}
+.teams[data-n="2"] .btns{flex:1 1 130px;max-width:210px;margin-left:auto}
+.teams[data-n="2"] .score{font-size:clamp(2.6rem,6vw,4.4rem)}
+
+@media (min-width:700px){
+  .teams[data-n="4"]{--cols:4} .teams[data-n="5"]{--cols:5} .teams[data-n="6"]{--cols:6}
+  .teams[data-n="7"]{--cols:7} .teams[data-n="8"]{--cols:8}
+}
+@media (max-width:699px){
+  /* 手機七、八隊一排四格太窄：＋1 在上、−1 在下 */
+  .teams[data-n="7"] .btns,.teams[data-n="8"] .btns{flex-direction:column-reverse}
+  .teams[data-n="7"] .minus,.teams[data-n="8"] .minus{align-self:stretch;min-height:34px}
+  .teams[data-n="7"] .plus,.teams[data-n="8"] .plus{flex:0 0 auto;min-height:46px}
+}
 @media (max-width:520px){
-  .team{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px}
-  .team .who{justify-content:space-between}
-  .team .btns{justify-content:space-between}
-  .team .plus{flex:1}
-  .draw{min-height:80px}
+  .opts.nums{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .draw{min-height:76px}
 }
 @media (prefers-reduced-motion: reduce){
   .score.bump,.q.land{animation:none}
   .draw{transition:none}
 }
 </style>
+</head>
+<body>
 
-<div class="app">
-  <div class="top">
-    <h1>疑慮處理對抗賽</h1>
-    <button class="reset" id="resetBtn" type="button">歸零重來</button>
+<!-- 進場：先選幾隊、抽哪些題 -->
+<div class="app setup" id="setup" hidden>
+  <h1>疑慮處理對抗賽</h1>
+  <section>
+    <h2>分幾隊？</h2>
+    <div class="opts nums" id="optTeams"></div>
+    <p class="preview" id="teamPreview"></p>
+  </section>
+  <section>
+    <h2>抽哪些題目？</h2>
+    <div class="opts" id="optScope"></div>
+  </section>
+  <div class="draw-wrap">
+    <button class="draw" id="startBtn" type="button">開始</button>
   </div>
+</div>
 
-  <div class="teams">
-    <div class="team red">
-      <div class="who"><span class="name">紅隊</span><span class="score" id="scoreRed">0</span></div>
-      <div class="btns">
-        <button class="minus" id="redMinus" type="button" aria-label="紅隊扣一分">−1</button>
-        <button class="plus" id="redPlus" type="button" aria-label="紅隊加一分">＋1</button>
-      </div>
-    </div>
-    <div class="team blue">
-      <div class="who"><span class="name">藍隊</span><span class="score" id="scoreBlue">0</span></div>
-      <div class="btns">
-        <button class="minus" id="blueMinus" type="button" aria-label="藍隊扣一分">−1</button>
-        <button class="plus" id="bluePlus" type="button" aria-label="藍隊加一分">＋1</button>
-      </div>
-    </div>
+<!-- 玩：題目在上、比分在下 -->
+<div class="app" id="game" hidden>
+  <div class="top">
+    <div class="ttl"><h1>疑慮處理對抗賽</h1><span class="tag" id="scopeTag"></span></div>
+    <button class="reset" id="resetBtn" type="button">重新設定</button>
   </div>
 
   <div class="stage">
@@ -125,10 +154,12 @@ button:focus-visible{outline:4px solid var(--ink);outline-offset:3px}
   <div class="draw-wrap">
     <button class="draw" id="drawBtn" type="button">抽題</button>
   </div>
+
+  <div class="teams" id="teams"></div>
 </div>
 
 <script>
-// 題目：知識庫 疑慮處理/題目清單.md 的 86 題，照編號順序照抄（2026-11-11 同步；清單改了這裡不會跟著變）
+// ▼題目（由 party_sync 從題目清單同步，不要手改）
 const Q = [
   "這是不是老鼠會？","網路上說這是詐騙？","公司會不會倒？","公司會不會隨便改制度？","現在加入還來得及嗎？",
   "為什麼不在一般通路賣？","商品怎麼這麼少？","要花錢上課嗎？","我沒聽過這家公司","你是不是想賺我的錢？",
@@ -149,17 +180,36 @@ const Q = [
   "這個月為什麼沒領到獎金？","我介紹的人不買了會怎樣？","被拒絕之後就不敢再開口","做一陣子沒成績，是不是我不適合？","不知道要找誰講",
   "朋友問我做哪一家，我不敢講"
 ];
+// 每題的階段，跟 Q 同順序：0＝新朋友、1＝會員
+const QS = "00000000000000000000000000000000000000000000000000000000000111111111111111111111111111";
+// ▲題目
 
-const KEY = 'objection-party-v1';
+const TEAM_NAMES = ['紅隊', '藍隊', '綠隊', '橘隊', '紫隊', '粉隊', '青隊', '棕隊'];
+const SCOPES = [
+  { id: 'new', name: '新朋友', sub: '還沒加入的人會問的' },
+  { id: 'member', name: '會員', sub: '加入以後會問的' },
+  { id: 'all', name: '全部', sub: '新朋友和會員的題目混著抽' },
+];
+const KEY = 'objection-party-v2', OLD_KEY = 'objection-party-v1';
 const $ = id => document.getElementById(id);
-const elQ = $('q'), elCount = $('count'), drawBtn = $('drawBtn'), resetBtn = $('resetBtn');
+const elQ = $('q'), elCount = $('count'), drawBtn = $('drawBtn'), resetBtn = $('resetBtn'), elTeams = $('teams');
 const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-let S = { deck: [], cur: null, n: 0, red: 0, blue: 0 };
+function fresh() { return { on: false, teams: 2, scope: 'all', scores: [0, 0], deck: [], cur: null, n: 0 }; }
+let S = fresh();
+let pick = { teams: 2, scope: 'all' };      // 進場畫面上目前選的
 let rolling = false, resetTimer = null;
 
+const scopeDef = id => SCOPES.find(s => s.id === id);
+// 這個範圍有哪些題（QS：0＝新朋友、1＝會員）
+function pool(scope) {
+  const a = [];
+  for (let i = 0; i < Q.length; i++) if (scope === 'all' || (scope === 'new') === (QS[i] === '0')) a.push(i);
+  return a;
+}
+
 function shuffled(skip) {
-  const a = Q.map((_, i) => i);
+  const a = pool(S.scope);
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     const t = a[i]; a[i] = a[j]; a[j] = t;
@@ -171,96 +221,171 @@ function shuffled(skip) {
 
 function load() {
   try {
+    const int = v => Number.isInteger(v) && v >= 0;
     const o = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (!o) return;
-    S.red = Number.isInteger(o.red) && o.red >= 0 ? o.red : 0;
-    S.blue = Number.isInteger(o.blue) && o.blue >= 0 ? o.blue : 0;
+    if (!o) {
+      // 舊版（固定兩隊）玩到一半的：比分帶過來，直接接著玩
+      const v1 = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
+      localStorage.removeItem(OLD_KEY);
+      if (v1 && (int(v1.red) ? v1.red : 0) + (int(v1.blue) ? v1.blue : 0) > 0) {
+        S.on = true; S.scores = [int(v1.red) ? v1.red : 0, int(v1.blue) ? v1.blue : 0]; save();
+      }
+      return;
+    }
+    if (!(Number.isInteger(o.teams) && o.teams >= 2 && o.teams <= TEAM_NAMES.length) || !scopeDef(o.scope)) return;
+    S.teams = o.teams; S.scope = o.scope; S.on = o.on === true;
+    S.scores = Array.from({ length: o.teams }, (_, i) => Array.isArray(o.scores) && int(o.scores[i]) ? o.scores[i] : 0);
     // 題庫換過（題數不同）→ 比分留著，牌重新洗
     if (o.total !== Q.length || !Array.isArray(o.deck)) return;
-    const okIdx = i => Number.isInteger(i) && i >= 0 && i < Q.length;
+    const ok = new Set(pool(S.scope)), okIdx = i => ok.has(i);
     if (!o.deck.every(okIdx)) return;
     S.deck = o.deck;
     S.cur = okIdx(o.cur) ? o.cur : null;
-    S.n = Number.isInteger(o.n) && o.n >= 0 ? o.n : 0;
+    S.n = int(o.n) ? o.n : 0;
   } catch (e) { /* 存不了就算了，不影響玩 */ }
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(Object.assign({ total: Q.length }, S))); } catch (e) {} }
 
+function make(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+// ── 進場選項 ──
+function buildSetup() {
+  for (let n = 2; n <= TEAM_NAMES.length; n++) {
+    const b = make('button', 'opt', String(n));
+    b.type = 'button'; b.dataset.teams = n; b.setAttribute('aria-label', n + ' 隊');
+    b.addEventListener('click', () => { pick.teams = n; paintSetup(); });
+    $('optTeams').append(b);
+  }
+  SCOPES.forEach(s => {
+    const b = make('button', 'opt wide');
+    b.type = 'button'; b.dataset.scope = s.id;
+    const left = make('span', '', s.name);
+    left.append(make('small', '', s.sub));
+    b.append(left, make('span', 'cnt', pool(s.id).length + ' 題'));
+    b.addEventListener('click', () => { pick.scope = s.id; paintSetup(); });
+    $('optScope').append(b);
+  });
+  $('startBtn').addEventListener('click', start);
+}
+function paintSetup() {
+  document.querySelectorAll('#optTeams .opt').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.teams) === pick.teams)));
+  document.querySelectorAll('#optScope .opt').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scope === pick.scope)));
+  $('teamPreview').textContent = TEAM_NAMES.slice(0, pick.teams).join('、');
+}
+function start() {
+  S = fresh();
+  S.on = true; S.teams = pick.teams; S.scope = pick.scope;
+  S.scores = Array.from({ length: pick.teams }, () => 0);
+  buildTeams(); paint(); show(); save();
+}
+function show() { $('setup').hidden = S.on; $('game').hidden = !S.on; }
+
+// ── 比分 ──
+function buildTeams() {
+  elTeams.textContent = '';
+  elTeams.dataset.n = S.teams;
+  for (let i = 0; i < S.teams; i++) {
+    const name = TEAM_NAMES[i];
+    const team = make('div', 'team');
+    team.style.background = 'var(--t' + (i + 1) + ')';
+    const who = make('div', 'who');
+    const sc = make('span', 'score', String(S.scores[i])); sc.id = 'score' + i;
+    who.append(make('span', 'name', name), sc);
+    const btns = make('div', 'btns');
+    const minus = make('button', 'minus', '−1'); minus.type = 'button'; minus.dataset.minus = i; minus.setAttribute('aria-label', name + '扣一分');
+    const plus = make('button', 'plus', '＋1'); plus.type = 'button'; plus.dataset.plus = i; plus.setAttribute('aria-label', name + '加一分');
+    btns.append(minus, plus);
+    team.append(who, btns);
+    elTeams.append(team);
+  }
+}
+function score(i, d) {
+  S.scores[i] = Math.max(0, S.scores[i] + d);
+  const el = $('score' + i);
+  el.textContent = S.scores[i];
+  if (!reduceMotion) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  save();
+}
+
+// ── 題目 ──
 function paint() {
-  $('scoreRed').textContent = S.red;
-  $('scoreBlue').textContent = S.blue;
+  const total = pool(S.scope).length;
+  $('scopeTag').textContent = scopeDef(S.scope).name + '・' + total + ' 題';
+  S.scores.forEach((v, i) => { const el = $('score' + i); if (el) el.textContent = v; });
   if (S.cur === null) {
     elQ.className = 'q idle';
     elQ.textContent = '按下面的按鈕，抽第一題';
-    elCount.textContent = '共 ' + Q.length + ' 題';
+    elCount.textContent = '共 ' + total + ' 題';
   } else {
     elQ.className = 'q';
     elQ.textContent = Q[S.cur];
     elCount.textContent = '第 ' + S.n + ' 題・這一輪還剩 ' + S.deck.length + ' 題';
   }
 }
-
-function settle(pick) {
-  S.cur = pick; S.n += 1;
+function settle(p) {
+  S.cur = p; S.n += 1;
   rolling = false; drawBtn.disabled = false;
   paint();
   if (!reduceMotion) { void elQ.offsetWidth; elQ.classList.add('land'); }
   save();
 }
-
 function draw() {
-  if (rolling) return;
+  if (rolling || !S.on) return;
   if (S.deck.length === 0) S.deck = shuffled(S.cur);
-  const pick = S.deck.pop();
-  if (reduceMotion) { settle(pick); return; }
+  const p = S.deck.pop();
+  if (reduceMotion) { settle(p); return; }
   rolling = true; drawBtn.disabled = true;
   elQ.className = 'q rolling';
+  const from = pool(S.scope);
   let ticks = 0;
   const timer = setInterval(() => {
-    elQ.textContent = Q[Math.floor(Math.random() * Q.length)];
-    if (++ticks >= 14) { clearInterval(timer); settle(pick); }
+    elQ.textContent = Q[from[Math.floor(Math.random() * from.length)]];
+    if (++ticks >= 14) { clearInterval(timer); settle(p); }
   }, 75);
 }
 
-function score(team, d) {
-  S[team] = Math.max(0, S[team] + d);
-  const el = team === 'red' ? $('scoreRed') : $('scoreBlue');
-  el.textContent = S[team];
-  if (!reduceMotion) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
-  save();
-}
-
+// ── 重新設定：回到進場選項（按了「開始」才會清比分）──
 function disarmReset() {
   clearTimeout(resetTimer); resetTimer = null;
-  resetBtn.classList.remove('sure'); resetBtn.textContent = '歸零重來';
+  resetBtn.classList.remove('sure'); resetBtn.textContent = '重新設定';
 }
 function reset() {
   if (rolling) return;
-  if (!resetTimer) {           // 第一下只是問，3 秒內再按一次才真的歸零
+  if (!resetTimer) {           // 第一下只是問，3 秒內再按一次才真的回去
     resetBtn.classList.add('sure'); resetBtn.textContent = '再按一次確定';
     resetTimer = setTimeout(disarmReset, 3000);
     return;
   }
   disarmReset();
-  S = { deck: [], cur: null, n: 0, red: 0, blue: 0 };
-  paint(); save();
+  S.on = false;
+  pick = { teams: S.teams, scope: S.scope };
+  save(); paintSetup(); show();
 }
 
 drawBtn.addEventListener('click', draw);
 resetBtn.addEventListener('click', reset);
-$('redPlus').addEventListener('click', () => score('red', 1));
-$('redMinus').addEventListener('click', () => score('red', -1));
-$('bluePlus').addEventListener('click', () => score('blue', 1));
-$('blueMinus').addEventListener('click', () => score('blue', -1));
+elTeams.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.plus !== undefined) score(Number(b.dataset.plus), 1);
+  else if (b.dataset.minus !== undefined) score(Number(b.dataset.minus), -1);
+});
 // 筆電投影時，按空白鍵也能抽題（焦點在按鈕上時交給按鈕自己處理）
 document.addEventListener('keydown', e => {
-  if (e.code !== 'Space' || e.repeat) return;
+  if (e.code !== 'Space' || e.repeat || !S.on) return;
   if (e.target && e.target.tagName === 'BUTTON') return;
   e.preventDefault(); draw();
 });
 
 load();
-paint();
+pick = { teams: S.teams, scope: S.scope };
+buildSetup(); paintSetup();
+buildTeams(); paint(); show();
 </script>
 </body>
 </html>

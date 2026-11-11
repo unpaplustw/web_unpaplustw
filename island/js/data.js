@@ -35,7 +35,7 @@ export const TILES = [
 
   { id: 'party',   name: '活動廣場',     status: 'empty', spot: 'plot', landmark: 'stage', angle: 72,
     hook: '上課一起玩的對抗賽。',
-    line: '按一下，抽一題新人最常問的問題。紅藍兩隊搶著回答，答得好就加分。',
+    line: '按一下，抽一題最常被問到的問題。各隊搶著回答，答得好就加分。',
     cta: '開始對抗賽', link: '/party/' },
 
   { id: 'plot-w', status: 'reserved', angle: -72 },   // 2026-11-06 雷達站拿掉（自媒體有內容再放回：spot: 'plot', landmark: 'radar', link: '/radar/'）
