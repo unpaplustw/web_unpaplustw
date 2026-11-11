@@ -246,6 +246,37 @@ function load() {
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(Object.assign({ total: Q.length }, S))); } catch (e) {} }
 
+// ── 音效：瀏覽器自己合成，不用音檔。出不了聲（沒喇叭、被擋）就安靜地玩 ──
+let AC = null;
+function audio() {
+  try {
+    if (!AC) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; AC = new C(); }
+    if (AC.state === 'suspended') AC.resume();
+    return AC;
+  } catch (e) { return null; }
+}
+// 一個音：頻率、幾秒後開始、多長、音色、音量
+function tone(freq, at, dur, type, vol) {
+  const c = audio();
+  if (!c) return;
+  try {
+    const t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  } catch (e) {}
+}
+const SFX = {
+  tick(k) { tone(500 + k * 30, 0, 0.05, 'square', 0.07); },                              // 抽題滾動：答答答越來越高
+  land() { tone(784, 0, 0.14, 'triangle', 0.3); tone(1047, 0.1, 0.16, 'triangle', 0.3); tone(1568, 0.2, 0.6, 'triangle', 0.3); },  // 題目落定：叮咚叮
+  plus() { tone(659, 0, 0.1, 'triangle', 0.3); tone(988, 0.09, 0.3, 'triangle', 0.3); },  // 加分：往上
+  minus() { tone(330, 0, 0.12, 'sawtooth', 0.14); tone(220, 0.1, 0.28, 'sawtooth', 0.14); }, // 扣分：往下
+  start() { [523, 659, 784, 1047].forEach((f, k) => tone(f, k * 0.1, k === 3 ? 0.5 : 0.12, 'triangle', 0.3)); }, // 開始：小號角
+};
+
 function make(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -282,6 +313,7 @@ function start() {
   S.on = true; S.teams = pick.teams; S.scope = pick.scope;
   S.scores = Array.from({ length: pick.teams }, () => 0);
   buildTeams(); paint(); show(); save();
+  SFX.start();
 }
 function show() { $('setup').hidden = S.on; $('game').hidden = !S.on; }
 
@@ -306,6 +338,7 @@ function buildTeams() {
 }
 function score(i, d) {
   S.scores[i] = Math.max(0, S.scores[i] + d);
+  if (d > 0) SFX.plus(); else SFX.minus();
   const el = $('score' + i);
   el.textContent = S.scores[i];
   if (!reduceMotion) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -331,6 +364,7 @@ function settle(p) {
   S.cur = p; S.n += 1;
   rolling = false; drawBtn.disabled = false;
   paint();
+  SFX.land();
   if (!reduceMotion) { void elQ.offsetWidth; elQ.classList.add('land'); }
   save();
 }
@@ -343,8 +377,10 @@ function draw() {
   elQ.className = 'q rolling';
   const from = pool(S.scope);
   let ticks = 0;
+  SFX.tick(0);
   const timer = setInterval(() => {
     elQ.textContent = Q[from[Math.floor(Math.random() * from.length)]];
+    SFX.tick(ticks + 1);
     if (++ticks >= 14) { clearInterval(timer); settle(p); }
   }, 75);
 }
