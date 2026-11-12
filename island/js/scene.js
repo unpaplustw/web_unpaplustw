@@ -608,17 +608,32 @@ const COMPANY_KIT = {
     return 2.9;
   },
 };
-// ─────────────── 獎勵旅遊島：機場（跑道、塔台、航廈、地球儀、一架起飛的飛機）───────────────
+// ─────────────── 獎勵旅遊島：機場＋去過的地方（北邊富士山與森林、東岸地標、南邊沙灘淺海）───────────────
 const RUNWAY_X = -4.3, RUNWAY_LEN = 21; // 跑道在島的西側、南北向
+const SAND_Y = 0.8, SEA_Y = 0.64;       // 沙灘比草地（G1）低一階，淺海再低一點
 function buildTravel(mats) {
   const r = rng(909);
   const g = new THREE.Group(); g.position.copy(TRAVEL_POS);
   const k = new Kit();
   const pts = organic(12.5, 37, 0.05).map((p) => new THREE.Vector2(p.x * 0.8, p.y * 1.22)); // 南北長的橢圓，放得下跑道
   const around = (f, ox = 0, oz = 0) => pts.map((p) => new THREE.Vector2(p.x * f + ox, p.y * f - oz));
+  // 南端分三層：草地到 coast 為止 → 沙灘到 shore 為止 → 再往外是淺海（伸出島外）
+  const coast = (x) => 10.4 - Math.tanh((x + 1.5) / 1.2) + 0.35 * Math.sin(x * 0.9); // 跑道那一側草地留長一點
+  const shore = (x) => 12.7 + 0.4 * Math.sin(x * 1.1);
+  const clampZ = (list, f, d = 0) => list.map((p) => new THREE.Vector2(p.x, -Math.min(-p.y, f(p.x) + d)));
+  const CAP_Z = 8.6;
+  const cap = (sx, sz) => { // 島的南端那一塊（西岸 → 南端 → 東岸），可以往外放大
+    const N = pts.length, list = [];
+    for (let i = -N / 2; i < N / 2; i++) { const p = pts[(i + N) % N]; if (-p.y > CAP_Z) list.push(new THREE.Vector2(p.x * sx, -(CAP_Z + (-p.y - CAP_Z) * sz))); }
+    return list;
+  };
   k.add(slab(around(1.06), -1.2, 1.1, 0.3), PAL.rimDark);
   k.add(slab(around(1.03), -0.9, 0.95, 0.28), PAL.rim);
-  k.add(slab(pts, -0.2, 0.55, 0.3), PAL.grass);
+  k.add(slab(clampZ(pts, coast), -0.2, 0.55, 0.3), PAL.grass);
+  k.add(slab(cap(1.05, 1.2), -1.0, 0.9, 0.15), '#dcc391');             // 海底的沙
+  k.add(slab(cap(1.065, 1.22), 0.08, 0.4, 0.08), '#63c7d6');           // 淺海
+  k.add(slab(clampZ(cap(1, 1), shore, 0.28), 0.3, 0.3, 0.05), '#f4fbff'); // 浪花
+  k.add(slab(clampZ(cap(1, 1), shore), 0.2, 0.4, 0.1), '#f3e2b3');     // 沙灘
   [[0.92, PAL.earth], [0.8, PAL.rock[0]], [0.64, PAL.rock[1]], [0.46, PAL.rock[2]], [0.28, PAL.rock[3]]]
     .forEach(([f, col], i) => k.add(slab(around(f, (r() - 0.5) * 0.8, (r() - 0.5) * 0.8), -1.2 - (i + 1) * 1.4, 1.3, 0.3), col));
   k.add(new THREE.ConeGeometry(2.6, 6, 7), PAL.rock[1], mat(0, -11, 0, 0.3, 1, 1, 1, Math.PI));
@@ -649,10 +664,36 @@ function buildTravel(mats) {
   buildPlane(k, RUNWAY_X, G1 + 3.3, 7.6, 0, 0.26, 0.8);       // 剛離地，機頭朝正前方
   k.shadowAt(RUNWAY_X, 6.6, 1.5, G1 + 0.07);
 
+  // 地標（只放伙伴真的去過的地方）：北邊富士山＋鳥居（日本）、東岸艾菲爾鐵塔（巴黎）與帆船飯店（杜拜）
+  const FUJI = { x: 1.6, z: -10.9, rad: 3.2, h: 5.6 };
+  TRAVEL_DECO.fuji(k, FUJI.x, FUJI.z, FUJI.rad, FUJI.h); placed.push({ x: FUJI.x, z: FUJI.z, r: FUJI.rad });
+  TRAVEL_DECO.torii(k, 1.9, -6.5, 0); placed.push({ x: 1.9, z: -6.5, r: 1.2 });
+  TRAVEL_DECO.eiffel(k, 7.9, -2.1); placed.push({ x: 7.9, z: -2.1, r: 1.3 });
+  TRAVEL_DECO.burj(k, 7.4, 3.6, -0.9); placed.push({ x: 7.4, z: 3.6, r: 1.5 });
+
+  // 動物：森林裡的鹿和熊；沙灘的海龜、淺海的紅鶴和海豚
+  [[-6.7, 9.3, 0.5], [4.7, 0.9, -0.5]].forEach(([x, z, rot]) => { TRAVEL_DECO.deer(k, x, G1, z, rot); placed.push({ x, z, r: 1.0 }); });
+  TRAVEL_DECO.bear(k, -0.5, G1, -5.4, 0.5); placed.push({ x: -0.5, z: -5.4, r: 1.0 });
+  TRAVEL_DECO.turtle(k, 1.4, SAND_Y, 12.3, 0.3);
+  TRAVEL_DECO.flamingo(k, -1.9, SEA_Y, 13.3, 0.5); TRAVEL_DECO.flamingo(k, -1.1, SEA_Y, 13.8, -1.0);
+  TRAVEL_DECO.dolphin(k, 2.4, SEA_Y, 15.1, -0.7);
+  // 沙灘：椰子樹和陽傘
+  [[-1.6, 11.6, 0.4], [1.2, 10.6, -0.3], [3.9, 10.3, 0.8], [5.6, 9.9, -0.6], [-0.2, 12.0, 1.4]].forEach(([x, z, lean]) => TRAVEL_DECO.palm(k, x, SAND_Y, z, lean, r));
+  TRAVEL_DECO.parasol(k, 2.8, SAND_Y, 11.7, '#e8584a'); TRAVEL_DECO.parasol(k, 4.6, SAND_Y, 11.3, '#f2b53a');
+
+  // 森林：跑道西側一整排＋富士山腳下，樹比別處高、種得密
+  const forest = (x, z) => (x < -6.3 && z < 9) || (z < -8.2 && Math.hypot(x - FUJI.x, z - FUJI.z) < FUJI.rad + 3.4);
+  const free = (x, z, rad) => inside(pts, x * 1.07, z * 1.07) && z < coast(x) - 0.7 && placed.every((q) => Math.hypot(q.x - x, q.z - z) > q.r + rad);
   let n = 0, tries = 0;
-  while (n < 26 && tries++ < 1200) {
+  while (n < 60 && tries++ < 4000) {
+    const p = pts[Math.floor(r() * pts.length)], f = 0.3 + r() * 0.66, x = p.x * f, z = -p.y * f;
+    if (!forest(x, z) || !free(x, z, 0.4)) continue;
+    TRAVEL_DECO.pine(k, x, G1, z, 0.9 + r() * 0.8, r); placed.push({ x, z, r: 0.45 }); n++;
+  }
+  n = 0; tries = 0;
+  while (n < 12 && tries++ < 1200) { // 其他地方零星幾棵小樹
     const p = pts[Math.floor(r() * pts.length)], f = r() * 0.86, x = p.x * f, z = -p.y * f;
-    if (!inside(pts, x, z) || !placed.every((q) => Math.hypot(q.x - x, q.z - z) > q.r + 0.5)) continue;
+    if (forest(x, z) || !free(x, z, 0.5)) continue;
     const s0 = 0.55 + r() * 0.3; k.add(G.cyl6, PAL.trunk, mat(x, G1 + 0.2 * s0, z, 0, 0.14 * s0, 0.4 * s0, 0.14 * s0));
     k.add(G.ico, pick(PAL.leaf, r), mat(x, G1 + 0.75 * s0, z, r() * 3, 0.9 * s0, 0.8 * s0, 0.9 * s0));
     placed.push({ x, z, r: 0.35 }); n++;
@@ -705,6 +746,132 @@ const TRAVEL_KIT = {
     P(G.sph, '#ff5a4a', 0, 6.45, 0, 0, 0.22, 0.22, 0.22);
     L(0, 6.45, 0, 1.2);
     return [6.6, 1.2];
+  },
+};
+// 獎勵旅遊島的景物（都不能按）：去過的地方的地標、森林的樹、沙灘的椰子樹、動物
+const yx = (x, y, z, ry, rx, sx = 1, sy = 1, sz = 1) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0, 'YXZ')), new THREE.Vector3(sx, sy, sz));
+const TRAVEL_DECO = {
+  fuji(k, x, z, rad, h) { // 富士山：平頂、雪蓋、山腳一圈綠
+    const snow = 0.36, top = 0.42, rs = top + (rad - top) * snow;
+    k.add(new THREE.CylinderGeometry(top, rad, h, 9), '#6d84a6', mat(x, G1 + h / 2 - 0.1, z, 0.3));
+    k.add(new THREE.CylinderGeometry(rad * 0.62, rad * 1.12, h * 0.34, 9), '#6f9f4f', mat(x, G1 + h * 0.17 - 0.1, z, 0.3));
+    k.add(new THREE.CylinderGeometry(top + 0.03, rs * 1.05, h * snow, 9), '#ffffff', mat(x, G1 + h * (1 - snow / 2) - 0.08, z, 0.3));
+  },
+  torii(k, x, z, rot) { // 鳥居
+    const { P } = B(k, x, G1, z, rot, 1.35), red = '#d8402f';
+    for (const s of [-1, 1]) P(G.cyl8, red, s * 0.62, 0.8, 0, 0, 0.16, 1.6, 0.16);
+    P(G.box, red, 0, 1.2, 0, 0, 1.6, 0.11, 0.12);
+    P(G.box, red, 0, 1.6, 0, 0, 1.9, 0.14, 0.2);
+    P(G.box, '#3a3230', 0, 1.74, 0, 0, 2.15, 0.12, 0.26);
+    k.shadowAt(x, z + 0.1, 1.0, G1);
+  },
+  eiffel(k, x, z) { // 艾菲爾鐵塔
+    const { P, L } = B(k, x, G1, z, 0.6), c = '#9a7a52', d = '#7d6242';
+    P(G.box, PAL.stoneShade, 0, 0.06, 0, 0, 2.0, 0.12, 2.0);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      P(G.box, c, sx * 0.56, 0.87, sz * 0.56, 0, 0.22, 1.62, 0.22, -sz * 0.28, sx * 0.28);
+      P(G.box, c, sx * 0.25, 2.25, sz * 0.25, 0, 0.14, 1.22, 0.14, -sz * 0.15, sx * 0.15);
+    }
+    for (const s of [-1, 1]) { P(G.box, d, 0, 1.1, s * 0.62, 0, 0.9, 0.12, 0.08); P(G.box, d, s * 0.62, 1.1, 0, 0, 0.08, 0.12, 0.9); }
+    P(G.box, d, 0, 1.64, 0, 0, 1.0, 0.14, 1.0);
+    P(G.box, d, 0, 2.88, 0, 0, 0.52, 0.12, 0.52);
+    P(new THREE.CylinderGeometry(0.04, 0.2, 1.9, 4), c, 0, 3.87, 0, Math.PI / 4);
+    P(G.box, d, 0, 4.25, 0, 0, 0.24, 0.08, 0.24);
+    P(G.cyl6, d, 0, 5.05, 0, 0, 0.03, 0.5, 0.03);
+    L(0, 5.3, 0, 1.0);
+    k.shadowAt(x + 0.2, z + 0.15, 1.3, G1);
+  },
+  burj(k, x, z, rot) { // 帆船飯店：一片白帆＋藍色玻璃橫帶＋桅杆
+    const { P, L } = B(k, x, G1, z, rot);
+    const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(1.35, 0); s.quadraticCurveTo(1.55, 2.2, 0, 3.6); s.lineTo(0, 0);
+    const sail = new THREE.ExtrudeGeometry(s, { depth: 0.6, bevelEnabled: false, curveSegments: 8 }); sail.translate(0, 0, -0.3);
+    P(G.cyl16, '#f3e2b3', 0.5, 0.08, 0, 0, 2.7, 0.16, 2.7);
+    P(sail, '#f7f9fc', 0, 0.16, 0);
+    for (let i = 0; i < 6; i++) { const y = 0.45 + i * 0.5, w = 1.45 * (1 - (y / 3.6) ** 2.6); P(G.box, '#7fb6e6', w / 2, 0.16 + y, 0, 0, w, 0.17, 0.64); }
+    P(G.box, '#dfe6ee', -0.06, 2.15, 0, 0, 0.14, 4.2, 0.2);
+    P(G.box, '#dfe6ee', 0.25, 4.0, 0, 0, 0.7, 0.07, 0.1);
+    P(G.cyl16, '#dfe6ee', -0.45, 3.0, 0, 0, 0.7, 0.06, 0.7);
+    L(0, 4.4, 0, 1.0);
+    k.shadowAt(x + 0.2, z + 0.15, 1.4, G1);
+  },
+  pine(k, x, gy, z, s, r) { // 森林的樹：多半是三層的針葉樹，偶爾一棵闊葉
+    k.add(G.cyl6, PAL.trunk, mat(x, gy + 0.3 * s, z, 0, 0.16 * s, 0.6 * s, 0.16 * s));
+    if (r() < 0.7) {
+      const c = pick(['#3f7a3c', '#4f8c44', '#356b38', '#5f9a4a'], r);
+      [[0.95, 1.2, 1.0], [1.5, 0.95, 0.9], [2.0, 0.65, 0.8]].forEach(([y, w, h]) => k.add(G.cone6, c, mat(x, gy + y * s, z, r() * 3, w * s, h * s, w * s)));
+    } else k.add(G.ico, pick(PAL.leaf, r), mat(x, gy + 1.1 * s, z, r() * 3, 1.3 * s, 1.15 * s, 1.3 * s));
+    k.shadowAt(x + 0.15, z + 0.1, 0.5 * s, gy);
+  },
+  palm(k, x, gy, z, lean, r) { // 椰子樹：彎彎的樹幹＋七片下垂的葉子
+    const { P, base } = B(k, x, gy, z, lean, 1.05 + r() * 0.3);
+    [[0, 0.3, 0.08], [0.08, 0.85, 0.2], [0.22, 1.4, 0.3], [0.42, 1.9, 0.4]].forEach(([lx, ly, t]) => P(G.cyl6, '#b08a5a', lx, ly, 0, 0, 0.14, 0.64, 0.14, 0, -t));
+    const tx = 0.55, ty = 2.2, t = 0.5;
+    for (let i = 0; i < 7; i++) {
+      const a = i / 7 * Math.PI * 2 + 0.3, d = 0.55;
+      k.add(G.box, i % 2 ? '#4fa058' : '#62b468', base.clone().multiply(yx(tx + Math.sin(a) * Math.cos(t) * d, ty - Math.sin(t) * d, Math.cos(a) * Math.cos(t) * d, a, t, 0.3, 0.05, 1.2)));
+    }
+    P(G.ico, '#4fa058', tx, ty + 0.05, 0, 0, 0.4, 0.3, 0.4);
+    for (const s of [-1, 1]) P(G.sph, '#6e5236', tx + s * 0.1, ty - 0.14, 0.08, 0, 0.16, 0.16, 0.16);
+    k.shadowAt(x, z, 0.7, gy);
+  },
+  parasol(k, x, gy, z, col) { // 陽傘＋兩條海灘巾
+    const { P } = B(k, x, gy, z, 0.4);
+    P(G.cyl6, PAL.white, 0, 0.65, 0, 0, 0.05, 1.3, 0.05);
+    P(G.cone16, col, 0, 1.38, 0, 0, 1.6, 0.42, 1.6);
+    P(G.sph, PAL.white, 0, 1.62, 0, 0, 0.14, 0.14, 0.14);
+    P(G.box, '#6fb7e6', 0.5, 0.02, 0.25, 0.2, 0.4, 0.03, 0.9);
+    P(G.box, PAL.white, -0.5, 0.02, 0.25, -0.2, 0.4, 0.03, 0.9);
+    k.shadowAt(x, z, 0.8, gy);
+  },
+  deer(k, x, gy, z, rot) { // 鹿（臉朝局部 +z）
+    const { P } = B(k, x, gy, z, rot, 1.3), c = '#b9834f', dk = '#6e5236';
+    P(G.box, c, 0, 0.62, 0, 0, 0.3, 0.32, 0.78);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) P(G.box, c, sx * 0.1, 0.24, sz * 0.3, 0, 0.07, 0.48, 0.07);
+    P(G.box, c, 0, 0.92, 0.42, 0, 0.14, 0.5, 0.14, 0.5);
+    P(G.box, c, 0, 1.18, 0.6, 0, 0.18, 0.17, 0.3);
+    P(G.box, '#3a3230', 0, 1.16, 0.76, 0, 0.08, 0.07, 0.04);
+    for (const s of [-1, 1]) { P(G.box, dk, s * 0.1, 1.42, 0.52, 0, 0.04, 0.36, 0.04, 0, -s * 0.35); P(G.box, dk, s * 0.21, 1.52, 0.56, 0, 0.04, 0.2, 0.04, 0.6, -s * 0.2); }
+    P(G.box, '#fbf7ee', 0, 0.7, -0.41, 0, 0.1, 0.12, 0.06);
+    for (const lz of [-0.22, 0, 0.22]) P(G.box, '#f4e6c8', 0, 0.785, lz, 0, 0.18, 0.012, 0.08);
+    k.shadowAt(x, z, 0.6, gy);
+  },
+  bear(k, x, gy, z, rot) { // 熊
+    const { P } = B(k, x, gy, z, rot, 1.3), c = '#6b4a32';
+    P(G.box, c, 0, 0.5, 0, 0, 0.52, 0.5, 0.9);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) P(G.box, c, sx * 0.17, 0.15, sz * 0.3, 0, 0.17, 0.3, 0.17);
+    P(G.box, c, 0, 0.72, 0.56, 0, 0.4, 0.36, 0.34);
+    P(G.box, '#c9a57a', 0, 0.66, 0.77, 0, 0.2, 0.15, 0.12);
+    P(G.box, '#2e2a2a', 0, 0.7, 0.84, 0, 0.08, 0.06, 0.03);
+    for (const s of [-1, 1]) P(G.box, c, s * 0.15, 0.94, 0.5, 0, 0.1, 0.1, 0.08);
+    k.shadowAt(x, z, 0.7, gy);
+  },
+  turtle(k, x, gy, z, rot) { // 海龜
+    const { P } = B(k, x, gy, z, rot, 1.3), skin = '#9bc47a';
+    P(G.sph, '#4f8f5a', 0, 0.16, 0, 0, 0.72, 0.34, 0.86);
+    P(G.dode, '#3f7a4a', 0, 0.27, 0, 0, 0.46, 0.2, 0.56);
+    P(G.sph, skin, 0, 0.14, 0.52, 0, 0.22, 0.2, 0.24);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) P(G.box, skin, sx * 0.42, 0.05, sz * 0.28, sx * sz * 0.5, 0.32, 0.05, 0.16);
+  },
+  flamingo(k, x, gy, z, rot) { // 紅鶴
+    const { P } = B(k, x, gy, z, rot, 1.3), pink = '#f48aa0';
+    for (const s of [-1, 1]) P(G.cyl6, '#e06a84', s * 0.05, 0.35, 0, 0, 0.03, 0.7, 0.03);
+    P(G.sph, pink, 0, 0.82, 0, 0, 0.3, 0.27, 0.46);
+    P(G.box, pink, 0, 1.12, 0.22, 0, 0.07, 0.52, 0.07, 0.25);
+    P(G.sph, pink, 0, 1.4, 0.31, 0, 0.16, 0.15, 0.17);
+    P(G.cone6, '#2e2a2a', 0, 1.34, 0.43, 0, 0.08, 0.17, 0.08, 2.2);
+  },
+  dolphin(k, x, gy, z, rot) { // 海豚：跳出水面，底下一圈水花
+    const { P, base } = B(k, x, gy, z, rot, 1.35), body = '#5f86a8', H = Math.PI / 2;
+    const D = base.clone().multiply(yx(0, 0.75, 0, 0, -0.8));
+    const Q = (geo, col, lx, ly, lz, sx, sy, sz, rx = 0) => k.add(geo, col, D.clone().multiply(mat(lx, ly, lz, 0, sx, sy, sz, rx)));
+    Q(G.sph, body, 0, 0, 0, 0.36, 0.36, 1.3);
+    Q(G.sph, '#dfe9f2', 0, -0.07, 0.03, 0.3, 0.27, 1.1);
+    Q(G.cone6, body, 0, -0.02, 0.72, 0.14, 0.3, 0.14, H);
+    Q(G.cone6, body, 0, 0.25, -0.05, 0.1, 0.3, 0.26, -0.4);
+    Q(G.cone6, body, 0, 0, -0.62, 0.2, 0.4, 0.2, -H);
+    Q(G.box, body, 0, 0, -0.82, 0.5, 0.04, 0.2);
+    for (const s of [-1, 1]) Q(G.box, body, s * 0.22, -0.1, 0.25, 0.26, 0.04, 0.14);
+    [[0, -0.45, 0.42], [0.3, -0.25, 0.3], [-0.3, -0.3, 0.32], [0.1, -0.75, 0.26]].forEach(([lx, lz, s]) => P(G.sph, '#f4fbff', lx, 0.06, lz, 0, s, s * 0.7, s));
   },
 };
 // 飛機：機頭朝 +z；heading＝水平轉向、pitch＝機頭抬起的角度
