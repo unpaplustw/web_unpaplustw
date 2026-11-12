@@ -13,6 +13,7 @@
   /* 藏經閣：首頁 APLUS 城西邊那棟樓點進來。要 LINE 登入、VIP1 以上才看得到內容。
      內容不在這個檔案裡：登入後由會員閘道 member-gate → DB 的 get_sutra() 給（sutra_items 表）。
      兩類：recite＝必背（要念的）、quote＝講師金句。金句還沒有內容時，上面的兩顆切換鈕不出現。
+     單篇頁有「默背」：整篇蓋起來，點一句掀一句，再按一次回到全文；不計分、不留紀錄（2026-11-12）。
      原文裡的「❤❤❤」和一串底線是留給自己名字的位置，頁面會換成登入會員的姓名（2026-11-12 Randoph 確認）。
      版面預覽（不用登入、假字）：網址加 #preview；#preview-quotes＝連金句一起看；#preview-none＝不是會員的畫面 */
   :root { --bg: #f7f5f0; --card: #fff; --cream: #f6f1e1; --line: #e6e0d2; --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c; --board: #171c26; --amber: #ffc93c; --pass-ink: #f4f1e6; --pass-sub: #9aa3b5; }
@@ -57,7 +58,15 @@
   .piece ol li { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 23px; line-height: 1.6; counter-increment: n; overflow-wrap: anywhere; }
   .piece ol li:first-child { border-top: 0; }
   .piece ol li::before { content: counter(n); flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin-top: 1px; border-radius: 50%; background: var(--cream); color: var(--gold); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .piece p { margin: 18px 0 0; font-size: 23px; line-height: 1.8; white-space: pre-line; overflow-wrap: anywhere; }
+  .piece p { margin: 18px 0 0; font-size: 23px; line-height: 1.8; overflow-wrap: anywhere; }
+  /* 默背：一句一塊，蓋起來的時候字看不到，點一下掀開 */
+  .recite-btn { display: block; width: 100%; min-height: 56px; margin: 12px 0 0; padding: 8px; border: 0; border-radius: 12px; background: var(--board); color: var(--amber); font: inherit; font-size: 21px; font-weight: 700; cursor: pointer; }
+  .recite-btn[aria-pressed="true"] { background: var(--btn); color: var(--ink); }
+  .piece .recite-hint { margin: 10px 0 0; color: var(--sub); font-size: 17px; line-height: 1.6; }
+  .ln { display: block; border-radius: 8px; }
+  .piece ol li .ln { flex: 1; min-width: 0; }
+  .piece p .ln + .ln { margin-top: 6px; }
+  .ln.veil { background: var(--cream); color: transparent; box-shadow: inset 0 0 0 2px var(--line); cursor: pointer; user-select: none; -webkit-user-select: none; }
   .piece-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
   .piece-foot button { min-height: 56px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
   .piece-foot button:disabled { visibility: hidden; }
@@ -174,14 +183,36 @@
   /* ---------- 單篇 ---------- */
   function paintPiece(i) {
     const it = data.recite[i], box = $('piece');
-    box.replaceChildren(el('h1', '', it.title));
+    const lines = [];                                   // 每一句（一行）一個元素；默背時一句一句蓋
+    const ln = (text) => { const sp = el('span', 'ln', text); lines.push(sp); return sp; };
+    const btn = el('button', 'recite-btn', '默背'); btn.type = 'button'; btn.id = 'recite-btn';
+    const hint = el('p', 'recite-hint', '字都蓋起來了。背一句，點一句對答案。'); hint.id = 'recite-hint'; hint.hidden = true;
+    box.replaceChildren(el('h1', '', it.title), btn, hint);
     if (it.numbered) {
       const ol = el('ol');
-      for (const line of it.body.split('\n')) ol.append(el('li', '', line));
+      for (const line of it.body.split('\n')) { const li = el('li'); li.append(ln(line)); ol.append(li); }
       box.append(ol);
-    } else {
-      for (const para of it.body.split(/\n\s*\n/)) box.append(el('p', '', para));   // 空行分段；段內照原本的換行
+    } else {                                             // 空行分段；段內一行一句
+      for (const para of it.body.split(/\n\s*\n/)) { const p = el('p'); for (const line of para.split('\n')) p.append(ln(line)); box.append(p); }
     }
+    // 默背：整篇蓋起來，點一句掀一句；再按一次按鈕回到全文。不計分、不留紀錄
+    let on = false;
+    const cover = (sp, yes) => {
+      sp.classList.toggle('veil', yes);
+      if (yes) { sp.setAttribute('role', 'button'); sp.tabIndex = 0; sp.setAttribute('aria-label', '點一下看這一句'); }
+      else { sp.removeAttribute('role'); sp.removeAttribute('tabindex'); sp.removeAttribute('aria-label'); }
+    };
+    for (const sp of lines) {
+      sp.addEventListener('click', () => { if (sp.classList.contains('veil')) cover(sp, false); });
+      sp.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && sp.classList.contains('veil')) { e.preventDefault(); cover(sp, false); } });
+    }
+    btn.addEventListener('click', () => {
+      on = !on;
+      btn.textContent = on ? '看全文' : '默背';
+      btn.setAttribute('aria-pressed', String(on));
+      hint.hidden = !on;
+      for (const sp of lines) cover(sp, on);
+    });
     const prev = data.recite[i - 1], next = data.recite[i + 1];
     $('piece-prev').disabled = !prev; $('piece-next').disabled = !next;
     $('piece-prev').onclick = () => { location.hash = prev.id; };
