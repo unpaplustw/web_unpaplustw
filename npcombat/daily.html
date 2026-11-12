@@ -1858,6 +1858,9 @@ function renderWarReport(allLogs, allCloses, batch, todayStr) {
 
 // ── Submit ──
 async function submit() {
+  // 🔴 2026-11-12 學員手機實拍：LINE 登入還沒完成（名字還是「載入中…」）就按送出 → 跳英文「null value in column student_id…」。
+  //    表單一開頁就看得到，登入慢的手機會先填完。這裡擋下來講人話；已填的數字留在畫面上，等名字出來再按一次。
+  if (!DEMO_MODE && !studentId) { toast('還在登入中，請等最上面出現你的名字，再按一次送出 🙏　等很久都沒出現，請關掉重新開'); return; }
   if (dayChanged()) return;
   // validate close entries
   for (let i = 0; i < closeEntries.length; i++) {
