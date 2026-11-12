@@ -182,6 +182,41 @@
   .tally dd { white-space: nowrap; }
   h3.sub { margin: 24px 0 0; font-size: 21px; }
   @media (prefers-reduced-motion: reduce) { .slot.on, .float, .tally-total b.bump { animation: none; } .float { opacity: 0; } }
+  /* 4. 帶夥伴一起去（2026-11-13）：下方一顆大按鈕，按一下多一位「也達成直推 3 位」的夥伴。
+     上半給朋友看（幾個人一起去、這一團省多少），下半給帶頭的人看（自己一年的日循環，小資／小金／大金）。
+     算法：只算新進來的業績；每位夥伴 3 套、一套一年 7,500；夥伴左右輪流排，每個自己的位置取左右少的那一邊 */
+  .fr-trip { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 16px; margin-top: 12px; padding: 12px 18px; border-radius: 14px; background: var(--board); color: var(--pass-ink); }
+  .fr-trip-label { grid-column: 1 / -1; color: var(--pass-sub); font-size: 15px; }
+  .fr-trip-n { display: block; font-size: 60px; font-weight: 900; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fr-trip-n i { margin-left: 4px; font-size: 22px; font-style: normal; font-weight: 700; }
+  .fr-trip-save { color: var(--pass-sub); font-size: 16px; line-height: 1.4; text-align: right; }
+  .fr-trip-save b { display: block; color: var(--amber); font-size: 30px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fr-trip-save b i { font-size: 17px; font-style: normal; font-weight: 700; }
+  .fr-bump { animation: fr-bump .3s ease-out; }
+  @keyframes fr-bump { 40% { transform: scale(1.09); } }
+  /* 座位：中間走道（中線），左線、右線各 4 個位子，最前面是你 */
+  .fr-cabin { margin-top: 10px; padding: 12px 12px 14px; border-radius: 14px; background: var(--cream); }
+  .fr-me { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 6px; border-radius: 14px; background: var(--board); color: var(--amber); font-size: 22px; font-weight: 900; }
+  .fr-rows { display: grid; grid-template-columns: 1fr 14px 1fr; gap: 0 10px; }
+  .fr-aisle { grid-row: 1 / span 2; grid-column: 2; justify-self: center; width: 2px; border-radius: 1px; background: var(--sub); }
+  .fr-side { padding-bottom: 6px; color: var(--sub); font-size: 15px; text-align: center; }
+  .fr-seats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fr-seat { display: grid; place-items: center; height: 48px; border: 2px dashed var(--note-line); border-radius: 12px; color: var(--note-line); font-size: 17px; font-weight: 700; }
+  .fr-seat.on { border: 0; background: var(--s-cycle); color: #fff; animation: fr-pop .4s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes fr-pop { from { opacity: 0; transform: translateY(26px) scale(.8); } to { opacity: 1; transform: none; } }
+  .fr-mile { margin-top: 12px; padding: 8px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-size: 17px; font-weight: 700; text-align: center; }
+  .fr-fine { margin-top: 10px; color: var(--sub); font-size: 15px; line-height: 1.6; }
+  .fr-lead { margin-top: 10px; padding: 10px 16px 12px; border: 2px solid var(--board); border-radius: 12px; }
+  .fr-lead-label { display: block; font-size: 18px; font-weight: 700; }
+  .fr-lead-n { display: block; font-size: 40px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .fr-lead-n i { font-size: 18px; font-style: normal; font-weight: 700; }
+  table.fr-tbl { font-size: 16px; }
+  table.fr-tbl th, table.fr-tbl td { padding: 8px 4px; }
+  /* 按鈕黏在螢幕下方：只有這一段在畫面上的時候才出現 */
+  .fr-dock { position: sticky; bottom: 0; z-index: 2; margin-top: 8px; padding: 14px 0 calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--card) 26%); }
+  .fr-go { display: block; width: 100%; min-height: 72px; border: 0; border-radius: 18px; background: var(--amber); color: var(--board); font: inherit; font-size: 26px; font-weight: 900; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-shadow: 0 6px 18px rgba(23, 28, 38, .18); }
+  .fr-go:active { transform: scale(.98); }
+  @media (prefers-reduced-motion: reduce) { .fr-seat.on, .fr-bump { animation: none; } }
 </style>
 </head>
 <body>
@@ -274,8 +309,53 @@
       </div>
     </section>
 
+    <section id="friends">
+      <h2><span class="no">4</span>帶夥伴一起去</h2>
+      <p class="lead">多帶一位，看這一團怎麼變</p>
+      <div class="fr-trip" aria-live="polite">
+        <span class="fr-trip-label">一起去釜山</span>
+        <span class="fr-trip-n" id="fr-n-box"><span id="fr-n">1</span><i>人</i></span>
+        <p class="fr-trip-save">這一團一共省<b><span id="fr-save">12,300</span> <i>元</i></b></p>
+      </div>
+      <div class="fr-cabin">
+        <div class="fr-me">你</div>
+        <div class="fr-rows">
+          <div class="fr-side">左線</div>
+          <div class="fr-aisle"></div>
+          <div class="fr-side">右線</div>
+          <div class="fr-seats" id="fr-seats-l"></div>
+          <div class="fr-seats" id="fr-seats-r"></div>
+        </div>
+        <p class="fr-mile" id="fr-mile" hidden></p>
+      </div>
+      <p class="fr-fine">每一格是一位「也達成直推 3 位」的夥伴。他達成，他的團費也是半價。</p>
+
+      <h3 class="sub">帶頭的人看這裡</h3>
+      <div class="tabs" id="fr-tabs">
+        <button type="button" data-k="1" aria-pressed="true">小資<small>1 單位</small></button>
+        <button type="button" data-k="2" aria-pressed="false">小金<small>3 單位</small></button>
+        <button type="button" data-k="3" aria-pressed="false">大金<small>7 單位</small></button>
+      </div>
+      <div class="fr-lead" aria-live="polite">
+        <span class="fr-lead-label">你的日循環獎金<small class="yr">一年</small></span>
+        <span class="fr-lead-n" id="fr-lead-box"><span id="fr-lead">0</span> <i>元</i></span>
+      </div>
+      <p class="fr-fine">夥伴左右輪流排。同一邊要湊到對面也有人，才對碰得起來，所以有時多帶一位數字不會動。</p>
+      <div class="tbl-wrap">
+        <table class="fr-tbl">
+          <thead><tr><th>夥伴</th><th>小資</th><th>小金</th><th>大金</th></tr></thead>
+          <tbody>
+            <tr><td>左右各 2</td><td><b>45,000</b></td><td><b>90,000</b></td><td><b>90,000</b></td></tr>
+            <tr><td>左右各 4</td><td><b>90,000</b></td><td><b>180,000</b></td><td><b>270,000</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fr-fine">日循環是一年的數字，只算新進來的業績：每位夥伴直推 3 位「1+11・15,000P」，一套放在收入邊一年 7,500。半價招待要夥伴各自達成 600 分。</p>
+      <div class="fr-dock"><button type="button" class="fr-go" id="fr-go">再帶一位夥伴</button></div>
+    </section>
+
     <section>
-      <h2><span class="no">4</span>什麼時候要做完</h2>
+      <h2><span class="no">5</span>什麼時候要做完</h2>
       <ol class="steps">
         <li>
           <span class="dot">1</span>
@@ -300,7 +380,7 @@
     </section>
 
     <section>
-      <h2><span class="no">5</span>要先知道</h2>
+      <h2><span class="no">6</span>要先知道</h2>
       <ul class="know">
         <li>分數不含互助分數。</li>
         <li>以名義計，一個名義只補助一個名額。</li>
@@ -477,6 +557,82 @@
   });
   btn.addEventListener('click', place);
   reset();
+})();
+</script>
+<script>
+(() => {
+  // 4. 帶夥伴一起去：按一下多一位「也達成直推 3 位」的夥伴
+  const HALF = 12300, SET = 7500, SETS_EACH = 3, MAX = 8;   // 半價省的團費、一套一年的日循環、每位夥伴 3 套、最多帶 8 位
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Math.round(n).toLocaleString('en-US');
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let n = 0, k = 1;                         // n＝帶了幾位夥伴；k＝自己的位置有幾層（小資 1、小金 2、大金 3）
+  const shown = { save: HALF, lead: 0 };
+
+  // 夥伴排到哪一條腿：左右輪流，而且每一層都盡量平均（位元反轉順序）
+  function legOf(i, legs) {
+    const bits = Math.log2(legs); let v = i % legs, r = 0;
+    for (let b = 0; b < bits; b++) { r = (r << 1) | (v & 1); v >>= 1; }
+    return r;
+  }
+  // 一年的日循環：每個自己的位置，左右兩邊取少的那邊，一套 7,500
+  function leadYear(count, levels) {
+    const legs = 2 ** levels, sets = new Array(legs).fill(0);
+    for (let i = 0; i < count; i++) sets[legOf(i, legs)] += SETS_EACH;
+    const sum = (a, b) => sets.slice(a, b).reduce((x, y) => x + y, 0);
+    let total = 0;
+    for (let size = legs; size >= 2; size /= 2) {
+      for (let start = 0; start < legs; start += size) {
+        total += Math.min(sum(start, start + size / 2), sum(start + size / 2, start + size)) * SET;
+      }
+    }
+    return total;
+  }
+
+  function roll(key, el, to) {
+    const from = shown[key], t0 = performance.now();
+    if (calm) { shown[key] = to; el.textContent = fmt(to); return; }
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / 360);
+      shown[key] = from + (to - from) * p; el.textContent = fmt(shown[key]);
+      if (p < 1) requestAnimationFrame(tick); else shown[key] = to;
+    };
+    requestAnimationFrame(tick);
+  }
+  const bump = (el) => { el.classList.remove('fr-bump'); void el.offsetWidth; el.classList.add('fr-bump'); };
+
+  const seats = { l: [], r: [] };
+  for (const side of ['l', 'r']) for (let i = 0; i < MAX / 2; i++) {
+    const s = document.createElement('div'); s.className = 'fr-seat'; s.textContent = '空位';
+    $('fr-seats-' + side).append(s); seats[side].push(s);
+  }
+
+  let target = 0;                            // 日循環現在該停在哪個數字（數字還在滾的時候也看這個）
+  function paint(moved) {
+    $('fr-n').textContent = String(1 + n);
+    roll('save', $('fr-save'), HALF * (1 + n));
+    const lead = leadYear(n, k), changed = lead !== target;
+    target = lead;
+    roll('lead', $('fr-lead'), lead);
+    if (moved) bump($('fr-n-box'));
+    if (changed) bump($('fr-lead-box'));
+    for (const side of ['l', 'r']) seats[side].forEach((s, i) => {
+      const on = i < (side === 'l' ? Math.ceil(n / 2) : Math.floor(n / 2));
+      if (on && !s.classList.contains('on')) { s.classList.add('on'); s.textContent = '夥伴'; }
+      if (!on && s.classList.contains('on')) { s.classList.remove('on'); s.textContent = '空位'; }
+    });
+    const mile = n === 4 ? '左右各 2 位，5 個人一起去' : n === 8 ? '左右各 4 位，9 個人一起去' : '';
+    $('fr-mile').hidden = !mile; $('fr-mile').textContent = mile;
+    $('fr-go').textContent = n >= MAX ? '重來一次' : '再帶一位夥伴';
+  }
+
+  $('fr-go').addEventListener('click', () => { n = n >= MAX ? 0 : n + 1; paint(true); });
+  for (const b of $('fr-tabs').querySelectorAll('button')) b.addEventListener('click', () => {
+    k = Number(b.dataset.k);
+    for (const o of $('fr-tabs').querySelectorAll('button')) o.setAttribute('aria-pressed', String(o === b));
+    paint(false);
+  });
+  paint(false);
 })();
 </script>
 </body>
