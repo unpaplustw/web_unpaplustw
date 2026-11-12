@@ -53,6 +53,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(at 0% 
 .lv1{background:var(--green-bg);color:var(--green)}
 .lv2{background:var(--yellow-bg);color:var(--yellow)}
 .lvx{background:rgba(138,43,226,.2);color:#c084fc}
+.lvc{background:rgba(251,191,36,.16);color:#fbbf24}
 .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
 .btn{padding:9px 16px;border-radius:10px;border:1px solid transparent;font-size:14px;font-weight:800;cursor:pointer;color:#fff}
 .btn:disabled{opacity:.45;cursor:default}
@@ -175,13 +176,29 @@ async function go(k){
 function renderMembers(){
   const pane = document.getElementById('pane');
   const kw = q.trim();
-  const list = kw ? rows.filter(m => [m.name, m.code, m.phone, m.tenant].some(x => String(x || '').includes(kw))) : rows;
+  const list = kw ? rows.filter(m => [m.name, m.code, m.phone, m.tenant, m.peak_leader, m.sponsor_name, m.sponsor_code].some(x => String(x || '').includes(kw))) : rows;
   const tip = cur === 'pending'
     ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後成為 VIP1（綠佳利會員）</b>，學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
-  pane.innerHTML = tip + `<input class="search" placeholder="搜尋姓名、編號、手機、團隊" value="${esc(q)}" oninput="q=this.value;renderMembers()">`
+  pane.innerHTML = tip + `<input class="search" placeholder="搜尋姓名、編號、高峰領袖、推薦人、團隊" value="${esc(q)}" oninput="q=this.value;renderMembers()">`
     + (list.length ? list.map(card).join('') : '<div class="empty">沒有資料</div>');
 }
 function lvTag(l){ return `<span class="lv ${l===0?'lv0':l===1?'lv1':l===2?'lv2':'lvx'}">VIP${l}</span>`; }
+// 註冊表填的資料（2026-11-12）：負責高峰領袖、推薦人；待審的再多列生日性別，並跟族譜裡同編號的那一筆比對
+function regLines(m){
+  const out = [];
+  const sp = [m.sponsor_name, m.sponsor_code].filter(Boolean).map(esc).join(' ');
+  if(m.peak_leader || sp) out.push(`負責高峰：${m.peak_leader ? esc(m.peak_leader) : '<span style="color:var(--red)">未填</span>'} · 推薦人：${sp || '未填'}`);
+  const pending = m.level === 0 && m.code && !m.rejected_at;
+  if(pending && (m.birthday || m.gender)) out.push(`生日 ${esc(m.birthday || '-')} · ${m.gender === 'male' ? '男' : m.gender === 'female' ? '女' : '-'}`);
+  const L = m.lin, diff = [];
+  if(pending && L){
+    if(L.name && m.name && L.name !== m.name) diff.push(`姓名 ${esc(L.name)}`);
+    if(L.sponsor_code && m.sponsor_code && L.sponsor_code !== m.sponsor_code) diff.push(`推薦人編號 ${esc(L.sponsor_code)}`);
+    if(L.sponsor_name && m.sponsor_name && L.sponsor_name !== m.sponsor_name) diff.push(`推薦人 ${esc(L.sponsor_name)}`);
+  }
+  if(diff.length) out.push(`<span style="color:var(--red);font-weight:800">與族譜不一致</span>　族譜登記的是：${diff.join('、')}`);
+  return out.map(t => `<div class="m-meta">${t}</div>`).join('');
+}
 function card(m){
   const av = m.picture_url ? `<img class="av" src="${esc(m.picture_url)}" alt="">` : `<div class="av">${esc((m.name||'?').slice(0,1))}</div>`;
   const acts = [];
@@ -190,8 +207,8 @@ function card(m){
   if(m.can_set_level && !m.is_central) acts.push(`<select onchange="setLevel('${m.id}', this)" aria-label="調整等級">${[0,1,2].map(l =>
       `<option value="${l}" ${l===m.level?'selected':''}>${LV_NAME[l]}</option>`).join('')}${m.level > 2 ? `<option selected>VIP${m.level}</option>` : ''}</select>`);
   return `<div class="card"><div class="m-row">${av}<div class="m-main">
-      <div class="m-name">${esc(m.name || '未填寫')} ${lvTag(m.level)} ${m.is_central ? '<span class="lv lvx">中央</span>' : ''}</div>
-      <div class="m-meta">${esc(m.code || '未填編號')} · ${esc(m.phone || '-')} · ${esc(m.tenant || '未綁團隊')} · ${fmt(m.joined_at)}${m.rejected_at ? ' · 退回於 ' + fmt(m.rejected_at) : ''}</div>
+      <div class="m-name">${esc(m.name || '未填寫')} ${lvTag(m.level)} ${m.is_central ? '<span class="lv lvx">中央</span>' : ''}${m.coop_pending ? ' <span class="lv lvc">共同經營・待確認</span>' : ''}</div>
+      <div class="m-meta">${esc(m.code || '未填編號')}${m.phone ? ' · ' + esc(m.phone) : ''} · ${esc(m.tenant || '未綁團隊')} · ${fmt(m.applied_at || m.joined_at)}${m.rejected_at ? ' · 退回於 ' + fmt(m.rejected_at) : ''}</div>${regLines(m)}
     </div></div>${acts.length ? `<div class="acts">${acts.join('')}</div>` : ''}</div>`;
 }
 async function approve(id, btn){
@@ -334,8 +351,9 @@ async function saveLin(btn){
 function previewInit(){
   const T = [{id:'t1', name:'敬豪團隊', handle:'@809lipop'}, {id:'t2', name:'魷魚團隊', handle:'@453ajvfv'}];
   const M = [
-    {id:'m1', name:'王小明', code:'2712345', phone:'0912-345-678', level:0, tenant:'敬豪團隊', joined_at:'2026-11-05', can_approve:true, can_reject:true, can_set_level:true},
-    {id:'m2', name:'陳美玲', code:'2723456', phone:'0922-111-222', level:0, tenant:'魷魚團隊', joined_at:'2026-11-07', can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m1', name:'王小明', code:'2712345', level:0, tenant:'敬豪團隊', joined_at:'2026-11-05', applied_at:'2026-11-12', birthday:'1968-03-09', gender:'male', peak_leader:'游育杰', sponsor_code:'2675630', sponsor_name:'游育杰', lin:{name:'王小明', sponsor_code:'2675630', sponsor_name:'游育杰'}, can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m2', name:'陳美玲', code:'2712345B', level:0, tenant:null, joined_at:'2026-11-07', applied_at:'2026-11-12', birthday:'1970-12-25', gender:'female', coop_pending:true, peak_leader:'陳大文', sponsor_code:'2600001', sponsor_name:'林珊合', can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m6', name:'李阿華', code:'2700009', level:0, tenant:'魷魚團隊', joined_at:'2026-11-08', applied_at:'2026-11-11', birthday:'1962-05-01', gender:'female', peak_leader:'黃舜心', sponsor_code:'2675630', sponsor_name:'游育杰', lin:{name:'李阿花', sponsor_code:'2600001', sponsor_name:'林珊合'}, can_approve:true, can_reject:true, can_set_level:true},
     {id:'m3', name:'林珊合', code:'2600001', phone:'0933-000-111', level:1, tenant:'敬豪團隊', joined_at:'2026-06-26', can_set_level:true},
     {id:'m4', name:'游育杰', code:'2675630', phone:'-', level:1, tenant:'Aplus', joined_at:'2026-06-26', is_central:true},
     {id:'m5', name:'訪客', code:null, phone:'-', level:0, tenant:'魷魚團隊', joined_at:'2026-11-09', can_set_level:true},

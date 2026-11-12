@@ -420,3 +420,33 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 #member-btn .member-vip { padding: 2px 8px; border-radius: 999px; background: var(--gold); color: #fff; font-size: 12px; font-weight: 700; }
 .button-sub { background: var(--gold-soft) !important; color: var(--ink) !important; }
 @media (min-width: 900px) { body:has(#card:not([hidden])) #member-btn { visibility: hidden; } } /* 桌機卡片在右上角，打開時讓位，不壓到關閉鈕 */
+#member-btn .member-wait { background: var(--gold-soft); color: var(--ink); }
+
+/* 首頁註冊表（會員入口打開的卡片）：字大、一格一件事，輸入框 17px 以上手機才不會自動放大 */
+@media (max-width: 899px) { #card.is-wide:has(.reg) { height: 86dvh; } }
+.reg { display: flex; flex-direction: column; gap: 16px; }
+.reg .card-title, .reg .simple-line { margin-bottom: 0; }
+.reg-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.reg-label { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px; font-weight: 700; }
+.reg-tag { padding: 1px 8px; border-radius: 999px; background: var(--gold); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 20px; }
+.reg-tag.reg-opt { background: var(--gold-soft); color: var(--sub); }
+.reg-input, .reg-select { width: 100%; min-width: 0; min-height: 50px; padding: 10px 12px; border: 1px solid #cfc6ad; border-radius: 8px;
+  background: #fff; color: var(--ink); font: inherit; font-size: 18px; line-height: 28px; }
+.reg-input:focus, .reg-select:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+.reg-row { display: grid; grid-template-columns: 1.7fr 1fr 1fr; gap: 8px; }
+.reg-stack { display: flex; flex-direction: column; gap: 8px; }
+.reg-chips { display: flex; gap: 10px; }
+.reg-chip { flex: 1; min-height: 50px; border: 1px solid #cfc6ad; border-radius: 8px; background: #fff; font-size: 18px; font-weight: 700; }
+.reg-chip[aria-pressed="true"] { border-color: var(--gold); background: var(--gold); box-shadow: inset 0 0 0 2px var(--ink); }
+.reg-hint { margin: 0; color: var(--sub); font-size: 15px; font-weight: 400; line-height: 1.5; }
+.reg-more { border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; }
+.reg-more summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 50px; padding: 8px 0; font-size: 17px; font-weight: 700; cursor: pointer; }
+.reg-more[open] { padding-bottom: 12px; }
+.reg-more .reg-field + .reg-field { margin-top: 12px; }
+.reg-err { margin: 0; padding: 10px 12px; border-radius: 8px; background: #fdecea; color: #b3261e; font-size: 17px; font-weight: 700; }
+.reg-coop { padding: 14px; border: 2px solid var(--gold); border-radius: 10px; background: var(--gold-soft); }
+.reg-coop p { margin: 0 0 12px; font-size: 17px; line-height: 1.6; }
+.reg-coop .button-sub { background: #fff !important; border: 1px solid #cfc6ad; }
+.reg-actions { margin-top: 4px; }
+.reg-actions .button[type="submit"] { flex: 1 1 100%; min-height: 52px; font-size: 19px; }
+.reg-actions .button:disabled, .reg-coop .button:disabled { opacity: .6; cursor: default; }

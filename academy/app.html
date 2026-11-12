@@ -102,12 +102,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <div class="wrap">
 
-  <!-- 不是會員：查不到、VIP0、審核中、被退回都一樣，細節由會員中心講（2026-11-10） -->
+  <!-- 不是會員：查不到、VIP0、審核中、被退回都一樣，細節由首頁的註冊表／會員卡講（2026-11-12） -->
   <div id="screen-notmember" class="center">
     <div class="big">🏡</div>
     <h2>新手村開放給綠佳利會員</h2>
-    <p>到會員中心完成註冊，<b>通過後這一頁就會直接打開</b>。</p>
-    <a class="btn" id="hub-btn" style="max-width:400px;margin-top:20px;text-decoration:none;text-align:center" href="https://liff.line.me/2009692859-9mE2Ymmb">前往會員中心</a>
+    <p>先完成會員註冊，<b>通過後這一頁就會直接打開</b>。</p>
+    <a class="btn" id="hub-btn" style="max-width:400px;margin-top:20px;text-decoration:none;text-align:center" href="https://liff.line.me/2009692859-h2XfVyCT?member=1">前往註冊</a>
   </div>
 
   <!-- 學院首頁：新手村 17 堂 -->
@@ -144,7 +144,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 // ⚠️ 換成 LINE Developers Console 新建的 LIFF ID（Endpoint = /academy/app.html）
 const LIFF_ID = '2009692859-wevHkClh';
 const SB_URL  = 'https://nsgqsopqlkhayuefdout.supabase.co';
-const HUB_URL = 'https://liff.line.me/2009692859-9mE2Ymmb';   // 會員中心（註冊、審核進度都在那邊）
+const HUB_URL = 'https://liff.line.me/2009692859-h2XfVyCT?member=1';   // 首頁的註冊表／會員卡（註冊、審核進度都在那邊）
 // 會員閘道：學院的查詢一律交給伺服器，由伺服器拿 LIFF access token 問 LINE 驗明正身後代查（前端傳的 LINE 編號不算）
 const GATE = SB_URL + '/functions/v1/member-gate';
 async function gate(fn, args){
@@ -198,13 +198,13 @@ async function loadContext(){
 
 function route(){
   if(ctx.access){ renderHome(); return; }
-  // 不是會員：學院不分「查不到／VIP0／審核中／被退回」，一律請他去會員中心（帶 ?oa= 進來的一起帶過去）
+  // 不是會員：學院不分「查不到／VIP0／審核中／被退回」，一律請他去首頁註冊（帶 ?oa= 進來的一起帶過去）
   const oa = new URLSearchParams(location.search).get('oa');
-  if(oa) document.getElementById('hub-btn').href = HUB_URL + '?oa=' + encodeURIComponent(oa);
+  if(oa) document.getElementById('hub-btn').href = HUB_URL + '&oa=' + encodeURIComponent(oa);
   show('screen-notmember');
 }
 
-// 從會員中心辦完滑回來 → 自動重查
+// 註冊完滑回來 → 自動重查
 document.addEventListener('visibilitychange', () => {
   if(!document.hidden && lineUserId && document.getElementById('screen-notmember').classList.contains('active')) loadContext();
 });
