@@ -45,6 +45,8 @@
   @media (max-width: 479px) { .rules dd.tier { flex-direction: column; gap: 0; } }
   .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
+  .cta { display: block; margin-top: 16px; padding: 16px; border-radius: 14px; background: #b8960c; color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
+  .cta::after { content: " ›"; }
 
   /* 沒指定是哪一趟（或代號打錯）：列出現在有的，樣子跟首頁看板一樣 */
   .lead { margin: 0 0 14px; font-size: 20px; font-weight: 700; }
@@ -97,8 +99,14 @@
       }
     }
     const foot = el('p', 'foot');
-    foot.append(el('strong', '', '辦法以公司公告為準。'), `資料來源：${trip.src}`);
-    page.append(pass, tear, rules, foot);
+    foot.append(el('strong', '', trip.disclaimer || '辦法以公司公告為準。'), `資料來源：${trip.src}`);
+    page.append(pass, tear, rules);
+    if (trip.cta) { // 團隊自己辦的：完整行程和報名表在團隊的報名網頁
+      const go = el('a', 'cta', trip.cta.label);
+      go.href = trip.cta.href;
+      page.append(go);
+    }
+    page.append(foot);
   } else {
     page.append(el('p', 'lead', trips.length ? '現在可以挑戰的獎勵旅遊' : '目前沒有進行中的獎勵旅遊。'));
     if (trips.length) {

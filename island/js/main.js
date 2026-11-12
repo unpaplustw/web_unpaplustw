@@ -184,7 +184,6 @@ function travelCard(id) {
     board.append(row);
   }
   wrap.append(board);
-  if (point.trips) wrap.append(el('p', 'note', '辦法以公司公告為準。'));
   return wrap;
 }
 

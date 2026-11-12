@@ -84,7 +84,9 @@ export const COMPANY = {
 // 即將出發的每一列點進去是獨立頁面 /travel/?t=<id>，rows（辦法細節）只在那一頁出現；已出發的不能點，note 直接列在那一列底下。
 // 要更新：出發了，就把 trips 那一筆搬到 past（留 when／name／where／note 四欄）；
 // 有新活動，在 trips 最前面加一筆（id＝網址用的英文代號、不能重複；when／where＝看板上的時間、目的地，寫短的）。
-// 內容一律照展翅月刊原文（src 記期別），月刊沒寫的欄位不要自己補；rows 沒寫的欄位就不顯示。
+// 公司辦的：內容一律照展翅月刊原文（src 記期別），月刊沒寫的欄位不要自己補；rows 沒寫的欄位就不顯示。
+// 團隊自己辦的：照團隊的報名網頁，只放日期、航班、費用、報名截止這幾項，行程／訂金／取消規定不抄（留在報名網頁，那邊才是正本）；
+//   cta＝登機證頁最底下的大按鈕（連到報名網頁）、disclaimer＝頁尾那句但書（沒寫就是「辦法以公司公告為準。」）。
 export const TRAVEL = {
   id: 'travel', name: '獎勵旅遊島',
   hook: '達到分數，公司招待你去。',
@@ -93,6 +95,18 @@ export const TRAVEL = {
     { id: 'travel-now', name: '即將出發', kind: 'terminal', x: 2.4, z: 6.0,
       hook: '現在還能挑戰的、快要出發的，都在這裡。',
       trips: [
+        { id: 'busan-2027', name: '冬季戀歌之旅（奔馳團隊）', when: '2027 年 1 月 7～11 日', where: '韓國釜山', badge: '報名中', open: true,
+          rows: [
+            ['什麼時候', '2027/1/7（四）～1/11（一），五日'],
+            ['航空公司', '釜山航空'],
+            ['台北出發（桃園機場）', ['去程 BX572：桃園 13:30 → 釜山 16:55', '回程 BX575：釜山 15:00 → 桃園 16:40']],
+            ['高雄出發（小港機場）', ['去程 BX586：高雄 15:00 → 釜山 18:25', '回程 BX585：釜山 12:00 → 高雄 14:00']],
+            ['費用', '每人 NT$24,600（含導遊、領隊服務費）'],
+            ['報名截止', '2026/11/23'],
+          ],
+          cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
+          disclaimer: '航班以正式開票資料為準，費用以旅行社確認為準。',
+          src: '奔馳團隊報名網頁（2026/11/12 讀取）' },
         { id: 'festa-2027', name: 'GO TO FESTA 2027', when: '2027 年 10 月前後', where: '日本', badge: '挑戰中', open: true,
           rows: [
           ['去哪裡', '日本 FESTA 世界年會'],
