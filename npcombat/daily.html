@@ -950,46 +950,38 @@ function renderNameRow(key) {
   if (key === 'invite') renderApptPick(row, chosen);
 }
 // ══ 📅 赴約（2026-11-10 Randoph：「11/10 打電話邀約 11/13 見面，13 日要問最後有見面嗎」）════════
-//   邀約選了人 → 可選填「約哪天」（要晚於今天；今天約今天見＝直接記邀請，不算赴約）
+//   邀約選了人 → 可選填「約哪天」。🔴 2026-11-12 Randoph「開放」選今天：學員今天約今天見到，沒地方記就一直選今天被擋 → 選今天＝今天就見到了，赴約 +2 當下算、之後不問
 //   到那天起 → 最上面問「見到了嗎？」：見到了＝赴約 +2（可順手記溝通本／說明會）；沒見到＝回到「該約」、不加不扣
 //   一次邀約只問一次：回答＋送出後清掉約定日。存在 contacts.appt_date／appt_set_on；回答存 names.attended／names.missed
 let apptDraft = {};   // 今天邀約選的人 → 約哪天
 // 🔴 2026-11-10 Randoph：「日期西元縮掉，變成按鈕；選日期就送出（旁邊出現已送出），最下面送出只管＋－數值」
-//   明天起 7 天各一顆＋「其他日期」；按了立刻寫 contacts.appt_date／appt_set_on，再按同一顆＝取消
 //   「見到了嗎」的回答仍要按送出才存（它會加分，要跟數字一起算）
 let apptBusy = {};
-function apptDays(base) {
-  const W = '日一二三四五六', out = [];
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(base + 'T00:00:00'); d.setDate(d.getDate() + i);
-    out.push({ ds: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
-               lb: (i === 1 ? '明天 ' : '') + `${d.getMonth() + 1}/${d.getDate()}` + (i === 1 ? '' : `（${W[d.getDay()]}）`) });
-  }
-  return out;
-}
 function renderApptPick(row, chosen) {
   const box = row.querySelector('.nm-appts'); if (!box) return;
-  const days = apptDays(today()), min = days[0].ds;
+  const min = today();
   chosen.forEach(c => { if (!apptDraft[c.id] && c.appt_set_on === today() && c.appt_date) apptDraft[c.id] = c.appt_date; });   // 沒送出就關掉再回來，今天存的日期要帶回
+  chosen.forEach(c => { if (!apptDraft[c.id] && !c.appt_date && (names.attended || []).includes(c.id)) apptDraft[c.id] = today(); });   // 選今天的不存 contacts：送出後再回來，靠「今天有邀約＋有赴約」帶回
   if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，見到了再 +2</div>`; return; }
-  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・要選<b>明天以後</b>，選了就存，那天會問你「見到了嗎」，見到了再 +2</small></div>`
+  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・<b>今天就見到了</b>選今天，赴約 +2；約<b>之後</b>的選那天，到時會問你「見到了嗎」，見到了再 +2</small></div>`
     + chosen.map(c => {   // 每人一行（2026-11-10 Randoph：「太複雜了，不要用選按的，佔空間」）：點格子跳月曆，選完就存
       const cur = apptDraft[c.id] || '', wd = cur ? '日一二三四五六'[new Date(cur + 'T00:00:00').getDay()] : '';
-      return `<div class="appt-pick"><b>${escH(c.name)}</b><span class="appt-date${cur ? ' on' : ''}"><input type="date" min="${min}" value="${cur}" onchange="apptPick(this,'${c.id}')" onblur="apptDone(this,'${c.id}')"><em>${cur ? `${mdOf(cur)}（${wd}）` : '選日期'}</em></span>`
-        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">✓ 已送出</small><button type="button" class="appt-x" onclick="setAppt('${c.id}','')">取消</button>` : '') + `</div>`;
+      const isT = cur === today();
+      return `<div class="appt-pick"><b>${escH(c.name)}</b><span class="appt-date${cur ? ' on' : ''}"><input type="date" min="${min}" value="${cur}" onchange="apptPick(this,'${c.id}')" onblur="apptDone(this,'${c.id}')"><em>${isT ? '今天見到了' : cur ? `${mdOf(cur)}（${wd}）` : '選日期'}</em></span>`
+        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">${isT ? '赴約 +2' : '✓ 已送出'}</small><button type="button" class="appt-x" onclick="setAppt('${c.id}','')">取消</button>` : '') + `</div>`;
     }).join('')
-    + (chosen.some(c => apptDraft[c.id]) ? `<div class="appt-note">日期存好了 ✅　邀約次數記得按最下面「送出」</div>` : '');
+    + (chosen.some(c => apptDraft[c.id]) ? `<div class="appt-note">日期記好了 ✅　記得按最下面「送出」才會算分</div>` : '');
 }
 // 月曆開著時不能重畫這一排：重畫會把日期欄換掉，月曆跟著關掉（iPhone 月曆一打開就先帶入今天＝一次變動 → 學員「來不及點就閃退」，2026-11-10）
 let apptT = {};
 function apptOpen() { const a = document.activeElement; return !!(a && a.type === 'date' && a.closest('.appt-date')); }
 function apptRedraw() { if (!apptOpen()) renderNameRow('invite'); }
 function apptPick(el, id) {   // 月曆還開著：只換格子上的字；停 1.5 秒沒再動就先存（不重畫）
-  const v = el.value, ok = !!v && v > today(), sp = el.parentNode;
+  const v = el.value, ok = !!v && v >= today(), sp = el.parentNode;
   sp.classList.toggle('on', ok);
-  sp.querySelector('em').textContent = ok ? `${mdOf(v)}（${'日一二三四五六'[new Date(v + 'T00:00:00').getDay()]}）` : '選日期';
+  sp.querySelector('em').textContent = !ok ? '選日期' : v === today() ? '今天見到了' : `${mdOf(v)}（${'日一二三四五六'[new Date(v + 'T00:00:00').getDay()]}）`;
   clearTimeout(apptT[id]);
-  if (ok && v !== apptDraft[id]) apptT[id] = setTimeout(() => { if (el.isConnected && el.value === v) setAppt(id, v, true); }, 1500);
+  if (ok && v > today() && v !== apptDraft[id]) apptT[id] = setTimeout(() => { if (el.isConnected && el.value === v) setAppt(id, v, true); }, 1500);   // 今天的不搶先存：iPhone 月曆一打開可能先帶入今天，等月曆收起才算數
 }
 function apptDone(el, id) {   // 月曆收起來：存檔並重畫
   if (!el.isConnected) return;
@@ -1001,24 +993,31 @@ async function setAppt(id, ds, fromPicker) {
   if (actionsLocked() || apptBusy[id] || dayChanged()) return;
   const c = contacts.find(x => x.id === id); if (!c) return;
   const t = today();
-  if (ds && ds <= t) { toast('要選明天以後的日期'); apptRedraw(); return; }
+  if (ds && ds < t) { toast('不能選過去的日期'); apptRedraw(); return; }
+  const wasToday = apptDraft[id] === t;
+  const setMet = on => { if (on) addNm('attended', id); else dropNm('attended', id); vals.attended = (names.attended || []).length; renderAppt(); };
+  if (ds === t && wasToday && fromPicker) { apptRedraw(); return; }
   const next = (!ds || (!fromPicker && apptDraft[id] === ds)) ? null : ds;   // 再按同一顆／月曆按清除＝取消
   if (!next && !apptDraft[id]) { apptRedraw(); return; }
+  if (!next && wasToday) { delete apptDraft[id]; setMet(false); toast('已取消'); apptRedraw(); return; }   // 今天的沒寫 contacts，不用動資料庫
+  if (next === t && !c.appt_date) { apptDraft[id] = t; setMet(true); toast('今天見到了　赴約 +2 🎉 記得按送出'); apptRedraw(); return; }
   apptBusy[id] = 1; apptRedraw();
-  const { error } = await sb.from('contacts').update(next ? { appt_date: next, appt_set_on: t } : { appt_date: null, appt_set_on: null }).eq('id', id);
+  const keep = next && next > t;   // 之後的日期才寫進 contacts（到那天要問）；改成今天＝把原本存的日期清掉
+  const { error } = await sb.from('contacts').update(keep ? { appt_date: next, appt_set_on: t } : { appt_date: null, appt_set_on: null }).eq('id', id);
   delete apptBusy[id];
   if (error) toast('日期沒存到，請再按一次（' + error.message + '）');
   else {
     if (next) apptDraft[id] = next; else delete apptDraft[id];
-    c.appt_date = next; c.appt_set_on = next ? t : null;
-    toast(next ? `已送出：${mdOf(next)} 見面 ✅` : '已取消約定日');
+    c.appt_date = keep ? next : null; c.appt_set_on = keep ? t : null;
+    if (next === t) setMet(true); else if (wasToday) setMet(false);
+    toast(next === t ? '今天見到了　赴約 +2 🎉 記得按送出' : next ? `已送出：${mdOf(next)} 見面 ✅` : '已取消約定日');
     renderBook();
   }
   apptRedraw();
 }
 function apptCards() {   // 到期（含過期沒回答）＋今天已回答的
   const t = today(), ans = new Set([...(names.attended || []), ...(names.missed || [])]);
-  return contacts.filter(c => ans.has(c.id) || (c.appt_date && c.appt_set_on && c.appt_set_on < c.appt_date && c.appt_date <= t));
+  return contacts.filter(c => apptDraft[c.id] === t ? false : ans.has(c.id) || (c.appt_date && c.appt_set_on && c.appt_set_on < c.appt_date && c.appt_date <= t));   // 今天約今天見的在邀約那一排就記了，上面不重複出現
 }
 function renderAppt() {
   const box = document.getElementById('apptArea'); if (!box) return;
