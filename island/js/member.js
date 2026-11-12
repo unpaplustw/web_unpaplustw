@@ -40,7 +40,8 @@ export function initMember({ openCard, el }) {
   btn.hidden = false;
 
   let lineUserId = null, profile = null, member = undefined; // undefined＝還沒查；null＝後台沒有這個人
-  let peaks = null;                                          // 負責高峰領袖下拉（查過就留著）
+  let peaksReq = null;                                       // 負責高峰領袖下拉（查過就留著；同時只查一次）
+  let regForm = null;                                        // 正在填的註冊表：關掉再開、連按兩下都是同一張，打過的字不會不見
   let mockMember = preview ? PREVIEW[preview] : null;
 
   const param = (k) => new URLSearchParams(location.search).get(k);   // 要等 liff.init 之後才讀（LIFF 會先把參數包在 liff.state）
@@ -67,8 +68,23 @@ export function initMember({ openCard, el }) {
     const res = await fetch(GATE, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access_token: window.liff.getAccessToken(), ...body }) });
     const d = await res.json();
-    if (!d.ok) throw new Error(d.error || 'gate');
+    if (!d.ok) {
+      if (d.error === 'invalid_token' || d.error === 'no_token') expire();
+      throw new Error(d.error || 'gate');
+    }
     return d;
+  }
+  // LINE 登入過期：當成還沒登入，右上角變回「會員登入」，按了就重新登入（不然會卡在按了沒反應）
+  function expire() {
+    try { window.liff.logout(); } catch { /* 沒得登出也沒關係 */ }
+    lineUserId = null; member = undefined; paint();
+  }
+  function loadPeaks() {
+    if (!peaksReq) {
+      peaksReq = gate({ action: 'register', fn: 'reg_options' }).then((d) => d.data?.peaks || [])
+        .catch(() => { peaksReq = null; return null; });   // 沒載到：這張表讓他自己填高峰
+    }
+    return peaksReq;
   }
   async function lookup() {
     const d = await gate({ action: 'me' });
@@ -142,9 +158,7 @@ export function initMember({ openCard, el }) {
   }
 
   async function regCard() {
-    if (!peaks) {
-      try { peaks = (await gate({ action: 'register', fn: 'reg_options' })).data?.peaks || []; } catch { peaks = null; }
-    }
+    const peaks = await loadPeaks();
     const old = member?.status === 'rejected' ? member : {};   // 被退回：把上次填的帶回來改
     const form = el('form', 'simple reg'); form.noValidate = true;
     form.append(el('h2', 'card-title', '註冊成為會員'),
@@ -255,11 +269,14 @@ export function initMember({ openCard, el }) {
           p_sponsor_code: sc || null, p_sponsor_name: fSn.value.trim() || null, p_coop: Boolean(coop), p_oa: param('oa'),
         } })).data || {};
         if (r.ok || r.error === 'pending' || r.error === 'already_member') {   // 送出成功（或其實早就送過）→ 換成最新的卡
+          regForm = null;
           await lookup(); paint(); openMine(); return;
         }
         if (r.error === 'code_taken') { coopBox.hidden = false; coopBox.scrollIntoView({ block: 'center' }); }
         else fail(MSG[r.error] || '送出失敗，請再試一次');
-      } catch { fail('連線失敗，請再試一次'); }
+      } catch (e) {
+        fail(/_token$/.test(e?.message || '') ? '登入過期了。請關掉這一頁重新打開，登入後再填一次' : '連線失敗，請再試一次');
+      }
       send.disabled = coopYes.disabled = false; send.textContent = '送出';
     }
     form.addEventListener('submit', (e) => { e.preventDefault(); coopBox.hidden = true; submit(false); });
@@ -278,7 +295,10 @@ export function initMember({ openCard, el }) {
     if (member?.status === 'member') return openCard(memberCard(), false);
     if (member?.status === 'pending') return openCard(pendingCard(), false);
     const tour = document.getElementById('tour'); if (tour) tour.hidden = true;   // 註冊表優先，導覽下次再看
-    openCard(await regCard(), true);
+    if (!regForm) regForm = regCard();                       // 同一張表只建一次（連按、關掉再開都不重建）
+    const form = await regForm;
+    if (form.isConnected && !document.getElementById('card').hidden) return;   // 已經開著：不動它
+    openCard(form, true);
   }
 
   btn.addEventListener('click', async () => {
