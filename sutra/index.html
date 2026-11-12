@@ -13,6 +13,7 @@
   /* 藏經閣：首頁 APLUS 城西邊那棟樓點進來。要 LINE 登入、VIP1 以上才看得到內容。
      內容不在這個檔案裡：登入後由會員閘道 member-gate → DB 的 get_sutra() 給（sutra_items 表）。
      兩類：recite＝必背（要念的）、quote＝講師金句。金句還沒有內容時，上面的兩顆切換鈕不出現。
+     原文裡的「❤❤❤」和一串底線是留給自己名字的位置，頁面會換成登入會員的姓名（2026-11-12 Randoph 確認）。
      版面預覽（不用登入、假字）：網址加 #preview；#preview-quotes＝連金句一起看；#preview-none＝不是會員的畫面 */
   :root { --bg: #f7f5f0; --card: #fff; --cream: #f6f1e1; --line: #e6e0d2; --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c; --board: #171c26; --amber: #ffc93c; --pass-ink: #f4f1e6; --pass-sub: #9aa3b5; }
   * { box-sizing: border-box; }
@@ -109,13 +110,15 @@
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
   const preview = (location.hash.match(/^#preview(-quotes|-none)?$/) || [null])[0];
   let data = null, tab = 'recite';
+  // 原文裡留給「自己名字」的位置（一串 ❤ 或一串底線）換成登入會員的姓名；沒有姓名就照原文
+  const mine = (text, name) => name ? text.replace(/(?:\u2764\uFE0F?)+|_{3,}/g, name) : text;
 
   // 版面預覽用的假字（真的內容只在登入後由伺服器給，不寫在這個檔案裡）
   const MOCK = {
     access: true, name: '預覽會員',
     recite: [
       { id: 'demo-a', title: '示範一（編號的）', numbered: true, body: Array.from({ length: 21 }, (_, i) => '這是第 ' + (i + 1) + ' 句示範文字，長一點的句子會自動換行').join('\n') },
-      { id: 'demo-b', title: '示範二（分段的）', numbered: false, body: '第一段第一行 同一行的後半句\n\n第二段第一行\n第二段第二行\n\n最後一段！' },
+      { id: 'demo-b', title: '示範二（分段的）', numbered: false, body: '第一段第一行 我\u2764\u2764\u2764 一定做得到\n\n第二段第一行\n第二段第二行\n\n最後一段！' },
       { id: 'demo-c', title: '示範三___________標題很長', numbered: false, body: '只有一段' },
     ],
     quotes: [],
@@ -204,6 +207,7 @@
       if (oa) $('none-btn').href = HUB_URL + '&oa=' + encodeURIComponent(oa);
       return show('s-none');
     }
+    for (const it of data.recite) { it.title = mine(it.title, data.name); it.body = mine(it.body, data.name); }
     if (preview) history.replaceState(null, '', location.pathname + location.search);   // 預覽：把 #preview 收掉，之後 # 留給篇名
     route();
   }
