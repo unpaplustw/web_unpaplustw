@@ -7,7 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
-<script src="score.js"></script>
+<script src="score.js?v=20261112"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap');
   :root {
@@ -111,6 +111,7 @@
   .appt-ok{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:14px;font-weight:800;color:#2f8f55}  .appt-ok.missed{color:#b3473a}
   .appt-ok button{border:none;background:#f3eee2;border-radius:8px;padding:4px 10px;font-size:13px;font-family:inherit;color:var(--muted)}
   .appt-tip{font-size:12px;color:var(--muted);text-align:center}
+  .appt-up{display:flex;align-items:center;justify-content:space-between;gap:8px}  .appt-re input{width:96px;height:36px;border-style:solid}  .appt-re-row{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;font-size:12.5px;color:var(--muted)}
   .bk-appt{margin-left:8px;font-size:12px;font-weight:700;color:#2f6fae;background:#eef6ff;border-radius:10px;padding:2px 8px;vertical-align:middle}  .bk-appt.due{color:#b3473a;background:#fdecea}
   .nm-chip{border:1.5px solid var(--border);background:#fff;border-radius:16px;padding:5px 11px;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
   .nm-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
@@ -950,7 +951,8 @@ function renderNameRow(key) {
   if (key === 'invite') renderApptPick(row, chosen);
 }
 // ══ 📅 赴約（2026-11-10 Randoph：「11/10 打電話邀約 11/13 見面，13 日要問最後有見面嗎」）════════
-//   邀約選了人 → 可選填「約哪天」。🔴 2026-11-12 Randoph「開放」選今天：學員今天約今天見到，沒地方記就一直選今天被擋 → 選今天＝今天就見到了，赴約 +2 當下算、之後不問
+//   邀約選了人 → 可選填「約哪天」。🔴 2026-11-12 Randoph：「鼓勵邀約安排時間，如果當天有赴約就是 +1」→ 選今天＝今天就見到了，赴約 +1（記 names.sameday，算式在 score.js）；事先約好見到 +2
+//   🔴 2026-11-12 改約（Randoph：「改約不算分數」「提早確定要改日期要去哪裡調整」）：最上面「約好的見面」約了就一直列著，還沒到的、到期的都有「改約」，不加不扣
 //   到那天起 → 最上面問「見到了嗎？」：見到了＝赴約 +2（可順手記溝通本／說明會）；沒見到＝回到「該約」、不加不扣
 //   一次邀約只問一次：回答＋送出後清掉約定日。存在 contacts.appt_date／appt_set_on；回答存 names.attended／names.missed
 let apptDraft = {};   // 今天邀約選的人 → 約哪天
@@ -961,14 +963,14 @@ function renderApptPick(row, chosen) {
   const box = row.querySelector('.nm-appts'); if (!box) return;
   const min = today();
   chosen.forEach(c => { if (!apptDraft[c.id] && c.appt_set_on === today() && c.appt_date) apptDraft[c.id] = c.appt_date; });   // 沒送出就關掉再回來，今天存的日期要帶回
-  chosen.forEach(c => { if (!apptDraft[c.id] && !c.appt_date && (names.attended || []).includes(c.id)) apptDraft[c.id] = today(); });   // 選今天的不存 contacts：送出後再回來，靠「今天有邀約＋有赴約」帶回
-  if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，見到了再 +2</div>`; return; }
-  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・<b>今天就見到了</b>選今天，赴約 +2；約<b>之後</b>的選那天，到時會問你「見到了嗎」，見到了再 +2</small></div>`
+  chosen.forEach(c => { if (!apptDraft[c.id] && (names.sameday || []).includes(c.id)) apptDraft[c.id] = today(); });   // 選今天的不存 contacts：送出後再回來，靠 names.sameday 帶回
+  if (!chosen.length) { box.innerHTML = `<div class="appt-hint">📅 打名字或點選人 → 就能選<b>約哪天見面</b>，到那天見到了再 +2</div>`; return; }
+  box.innerHTML = `<div class="appt-pick-hd">📅 約哪天見面？<small>選填・先約好<b>之後</b>的日子，到那天見到了赴約 <b>+2</b>；今天就見到了選今天，赴約 +1</small></div>`
     + chosen.map(c => {   // 每人一行（2026-11-10 Randoph：「太複雜了，不要用選按的，佔空間」）：點格子跳月曆，選完就存
       const cur = apptDraft[c.id] || '', wd = cur ? '日一二三四五六'[new Date(cur + 'T00:00:00').getDay()] : '';
       const isT = cur === today();
       return `<div class="appt-pick"><b>${escH(c.name)}</b><span class="appt-date${cur ? ' on' : ''}"><input type="date" min="${min}" value="${cur}" onchange="apptPick(this,'${c.id}')" onblur="apptDone(this,'${c.id}')"><em>${isT ? '今天見到了' : cur ? `${mdOf(cur)}（${wd}）` : '選日期'}</em></span>`
-        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">${isT ? '赴約 +2' : '✓ 已送出'}</small><button type="button" class="appt-x" onclick="setAppt('${c.id}','')">取消</button>` : '') + `</div>`;
+        + (apptBusy[c.id] ? `<small class="ing">儲存中…</small>` : cur ? `<small class="ok">${isT ? '赴約 +1' : '✓ 已送出'}</small><button type="button" class="appt-x" onclick="setAppt('${c.id}','')">取消</button>` : '') + `</div>`;
     }).join('')
     + (chosen.some(c => apptDraft[c.id]) ? `<div class="appt-note">日期記好了 ✅　記得按最下面「送出」才會算分</div>` : '');
 }
@@ -995,12 +997,12 @@ async function setAppt(id, ds, fromPicker) {
   const t = today();
   if (ds && ds < t) { toast('不能選過去的日期'); apptRedraw(); return; }
   const wasToday = apptDraft[id] === t;
-  const setMet = on => { if (on) addNm('attended', id); else dropNm('attended', id); vals.attended = (names.attended || []).length; renderAppt(); };
+  const setMet = on => { ['attended', 'sameday'].forEach(f => on ? addNm(f, id) : dropNm(f, id)); vals.attended = (names.attended || []).length; renderAppt(); };
   if (ds === t && wasToday && fromPicker) { apptRedraw(); return; }
   const next = (!ds || (!fromPicker && apptDraft[id] === ds)) ? null : ds;   // 再按同一顆／月曆按清除＝取消
   if (!next && !apptDraft[id]) { apptRedraw(); return; }
   if (!next && wasToday) { delete apptDraft[id]; setMet(false); toast('已取消'); apptRedraw(); return; }   // 今天的沒寫 contacts，不用動資料庫
-  if (next === t && !c.appt_date) { apptDraft[id] = t; setMet(true); toast('今天見到了　赴約 +2 🎉 記得按送出'); apptRedraw(); return; }
+  if (next === t && !c.appt_date) { apptDraft[id] = t; setMet(true); toast('今天見到了　赴約 +1 🎉 記得按送出'); apptRedraw(); return; }
   apptBusy[id] = 1; apptRedraw();
   const keep = next && next > t;   // 之後的日期才寫進 contacts（到那天要問）；改成今天＝把原本存的日期清掉
   const { error } = await sb.from('contacts').update(keep ? { appt_date: next, appt_set_on: t } : { appt_date: null, appt_set_on: null }).eq('id', id);
@@ -1010,19 +1012,28 @@ async function setAppt(id, ds, fromPicker) {
     if (next) apptDraft[id] = next; else delete apptDraft[id];
     c.appt_date = keep ? next : null; c.appt_set_on = keep ? t : null;
     if (next === t) setMet(true); else if (wasToday) setMet(false);
-    toast(next === t ? '今天見到了　赴約 +2 🎉 記得按送出' : next ? `已送出：${mdOf(next)} 見面 ✅` : '已取消約定日');
+    toast(next === t ? '今天見到了　赴約 +1 🎉 記得按送出' : next ? `已送出：${mdOf(next)} 見面 ✅` : '已取消約定日');
     renderBook();
   }
   apptRedraw();
 }
+const apptSame = id => (names.sameday || []).includes(id);   // 今天約今天見的在邀約那一排就記了，上面不重複出現
 function apptCards() {   // 到期（含過期沒回答）＋今天已回答的
   const t = today(), ans = new Set([...(names.attended || []), ...(names.missed || [])]);
-  return contacts.filter(c => apptDraft[c.id] === t ? false : ans.has(c.id) || (c.appt_date && c.appt_set_on && c.appt_set_on < c.appt_date && c.appt_date <= t));   // 今天約今天見的在邀約那一排就記了，上面不重複出現
+  return contacts.filter(c => !apptSame(c.id) && (ans.has(c.id) || (c.appt_date && c.appt_set_on && c.appt_set_on < c.appt_date && c.appt_date <= t)));
 }
+function apptComing() {   // 還沒到的（今天在邀約那排剛選日期的不列，那排自己能改）
+  const t = today(), ans = new Set([...(names.attended || []), ...(names.missed || [])]);
+  return contacts.filter(c => c.appt_date && c.appt_date > t && !apptDraft[c.id] && !ans.has(c.id)).sort((x, y) => x.appt_date < y.appt_date ? -1 : 1);
+}
+const wdOf = ds => '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
+const dayAfter = ds => { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() + 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const reBtn = c => `<span class="appt-date appt-re"><input type="date" min="${dayAfter(today())}" value="" onchange="rePick(this,'${c.id}')" onblur="reDone(this,'${c.id}')"><em>📅 改約</em></span>`;
 function renderAppt() {
   const box = document.getElementById('apptArea'); if (!box) return;
-  const cs = actionsLocked() ? [] : apptCards();
-  if (!cs.length) { box.innerHTML = ''; return; }
+  if (reOpen()) return;   // 改約的月曆開著：不能重畫（重畫月曆會關掉），收起時再畫
+  const cs = actionsLocked() ? [] : apptCards(), up = actionsLocked() ? [] : apptComing();
+  if (!cs.length && !up.length) { box.innerHTML = ''; return; }
   box.innerHTML = `<div class="appt"><div class="appt-hd">📅 約好的見面</div>` + cs.map(c => {
     const a = (names.attended || []).includes(c.id) ? 'met' : (names.missed || []).includes(c.id) ? 'missed' : '';
     const when = !c.appt_date ? '' : c.appt_date === today() ? '今天見面' : `${mdOf(c.appt_date)} 見面（已過）`;
@@ -1032,8 +1043,30 @@ function renderAppt() {
              + `<button type="button" onclick="answerAppt('${c.id}','present')">🗣️ 見到了<br>講了溝通本</button>`
              + `<button type="button" onclick="answerAppt('${c.id}','seminar')">🏛️ 見到了<br>帶去說明會</button>`
              + `<button type="button" onclick="answerAppt('${c.id}','met')">☕ 見到了<br>還沒講</button>`
-             + `<button type="button" class="no" onclick="answerAppt('${c.id}','missed')">😢 沒見到</button></div>`) + `</div>`;
-  }).join('') + `<div class="appt-tip">回答完記得按最下面「送出」才會存 ✅</div></div>`;
+             + `<button type="button" class="no" onclick="answerAppt('${c.id}','missed')">😢 沒見到</button></div>`
+             + `<div class="appt-re-row"><span>朋友改時間了？</span>${reBtn(c)}</div>`) + `</div>`;
+  }).join('')
+  + up.map(c => `<div class="appt-r appt-up"><div class="appt-n"><b>${escH(c.name)}</b><small>${mdOf(c.appt_date)}（${wdOf(c.appt_date)}）見面</small></div>${reBtn(c)}</div>`).join('')
+  + (cs.length ? `<div class="appt-tip">回答完記得按最下面「送出」才會存 ✅</div>` : '') + `</div>`;
+}
+// 📅 改約：只換日期，不加分不扣分、不算再一次邀約；新日期到了再問一次。選了就存（不用按送出）
+let reT = {};
+function reOpen() { const a = document.activeElement; return !!(a && a.type === 'date' && a.closest('#apptArea')); }
+function rePick(el, id) {   // 月曆還開著：只換字；停 1.5 秒沒再動就先存（不重畫）
+  const v = el.value; clearTimeout(reT[id]);
+  if (!v || v <= today()) return;
+  el.parentNode.querySelector('em').textContent = `改到 ${mdOf(v)}`;
+  reT[id] = setTimeout(() => { if (el.isConnected && el.value === v) reAppt(id, v, true); }, 1500);
+}
+function reDone(el, id) { if (!el.isConnected) return; clearTimeout(reT[id]); const v = el.value; setTimeout(() => reAppt(id, v), 0); }   // 等焦點真的離開再畫
+async function reAppt(id, ds, keepOpen) {
+  const c = contacts.find(x => x.id === id), t = today(), done = () => { if (!keepOpen) renderAppt(); };
+  if (!c || !c.appt_date || actionsLocked() || dayChanged() || !ds || ds === c.appt_date) return done();
+  if (ds <= t) { toast('改約請選明天以後的日子'); return done(); }
+  const { error } = await sb.from('contacts').update({ appt_date: ds, appt_set_on: c.appt_set_on || t }).eq('id', id);
+  if (error) toast('改約沒存到，請再試一次（' + error.message + '）');
+  else { c.appt_date = ds; c.appt_set_on = c.appt_set_on || t; toast(`已改約：${mdOf(ds)}（${wdOf(ds)}）見面 ✅`); renderBook(); }
+  done();
 }
 const addNm = (k, id) => { names[k] = [...new Set([...(names[k] || []), id])]; };
 const dropNm = (k, id) => { names[k] = (names[k] || []).filter(x => x !== id); };
@@ -1842,7 +1875,7 @@ async function submit() {
         present: vals.present, seminar: vals.seminar,
         ghosted: vals.ghosted, rejected: vals.rejected, attended: (names.attended || []).length,
         decl_read: declRead,
-        names: Object.fromEntries([...COUNT_FIELDS.map(f => f.key), 'attended', 'missed'].map(k => [k, names[k] || []]).filter(([, v]) => v.length)),
+        names: Object.fromEntries([...COUNT_FIELDS.map(f => f.key), 'attended', 'missed', 'sameday'].map(k => [k, names[k] || []]).filter(([, v]) => v.length)),
       };
       if (existingId) {
         const { error: updErr } = await sb.from('action_logs').update(logRow).eq('id', existingId);
@@ -1926,8 +1959,8 @@ function showResult() {
 
   // counter fields
   if (vals.attended) {   // 📅 赴約（2026-11-10）
-    totalPts += vals.attended * 2;
-    html += `<div class="result-row"><span class="result-row-label">✅ 赴約見面</span><span class="result-row-val">${vals.attended} 位 → ${vals.attended * 2} 分</span></div>`;
+    const ap = attPts({ attended: vals.attended, names }); totalPts += ap;
+    html += `<div class="result-row"><span class="result-row-label">✅ 赴約見面</span><span class="result-row-val">${vals.attended} 位 → ${ap} 分</span></div>`;
   }
   COUNT_FIELDS.forEach(f => {
     const v = vals[f.key];
@@ -1940,7 +1973,7 @@ function showResult() {
     </div>`;
   });
 
-  const nameBonus = namePts({ ...vals, names });   // ✍️ 寫名字每人次 +1（2026-11-11，算式在 score.js）
+  const nameBonus = nameOnlyPts({ ...vals, names });   // ✍️ 寫名字每人次 +1（2026-11-11，算式在 score.js）
   if (nameBonus) { totalPts += nameBonus; html += `<div class="result-row"><span class="result-row-label">✍️ 有寫出是誰</span><span class="result-row-val">${nameBonus} 位 → ${nameBonus} 分</span></div>`; }
 
   // close entries
