@@ -13,7 +13,7 @@
   /* 藏經閣：首頁 APLUS 城西邊那棟樓點進來。要 LINE 登入、VIP1 以上才看得到內容。
      內容不在這個檔案裡：登入後由會員閘道 member-gate → DB 的 get_sutra() 給（sutra_items 表）。
      兩類：recite＝必背（要念的）、quote＝講師金句。金句還沒有內容時，上面的兩顆切換鈕不出現。
-     單篇頁有「默背」：整篇蓋起來，點一句掀一句，再按一次回到全文；不計分、不留紀錄（2026-11-12）。
+     單篇頁有「默背」：畫面換成背誦台，按鈕在螢幕下方，按一下、下一句大字浮上來，背過的往上退；不計分、不留紀錄（2026-11-13 Randoph 定）。
      原文裡的「❤❤❤」和一串底線是留給自己名字的位置，頁面會換成登入會員的姓名（2026-11-12 Randoph 確認）。
      版面預覽（不用登入、假字）：網址加 #preview；#preview-quotes＝連金句一起看；#preview-none＝不是會員的畫面 */
   :root { --bg: #f7f5f0; --card: #fff; --cream: #f6f1e1; --line: #e6e0d2; --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c; --board: #171c26; --amber: #ffc93c; --pass-ink: #f4f1e6; --pass-sub: #9aa3b5; }
@@ -58,15 +58,30 @@
   .piece ol li { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 23px; line-height: 1.6; counter-increment: n; overflow-wrap: anywhere; }
   .piece ol li:first-child { border-top: 0; }
   .piece ol li::before { content: counter(n); flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin-top: 1px; border-radius: 50%; background: var(--cream); color: var(--gold); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .piece p { margin: 18px 0 0; font-size: 23px; line-height: 1.8; overflow-wrap: anywhere; }
-  /* 默背：一句一塊，蓋起來的時候字看不到，點一下掀開 */
+  .piece p { margin: 18px 0 0; font-size: 23px; line-height: 1.8; white-space: pre-line; overflow-wrap: anywhere; }
+  /* 默背：整個畫面換成深色的背誦台。按鈕固定在螢幕下方，按一下，下一句從下面浮上來（大字），前面背過的往上退、變小變淡 */
   .recite-btn { display: block; width: 100%; min-height: 56px; margin: 12px 0 0; padding: 8px; border: 0; border-radius: 12px; background: var(--board); color: var(--amber); font: inherit; font-size: 21px; font-weight: 700; cursor: pointer; }
-  .recite-btn[aria-pressed="true"] { background: var(--btn); color: var(--ink); }
-  .piece .recite-hint { margin: 10px 0 0; color: var(--sub); font-size: 17px; line-height: 1.6; }
-  .ln { display: block; border-radius: 8px; }
-  .piece ol li .ln { flex: 1; min-width: 0; }
-  .piece p .ln + .ln { margin-top: 6px; }
-  .ln.veil { background: var(--cream); color: transparent; box-shadow: inset 0 0 0 2px var(--line); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .rc { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: var(--board); color: var(--pass-ink);
+    padding: env(safe-area-inset-top, 0px) max(20px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(20px, env(safe-area-inset-left, 0px)); }
+  .rc-top { flex: none; display: flex; align-items: center; gap: 12px; min-height: 60px; }
+  .rc-title { flex: 1; min-width: 0; color: var(--pass-sub); font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rc-exit { flex: none; min-height: 44px; padding: 6px 14px; border: 1px solid #3a4456; border-radius: 22px; background: none; color: var(--pass-ink); font: inherit; font-size: 17px; cursor: pointer; }
+  .rc-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; padding-bottom: 20px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%); mask-image: linear-gradient(to bottom, transparent 0, #000 22%); }
+  .rc-hint { margin: auto 0; color: var(--pass-sub); font-size: 22px; line-height: 1.7; text-align: center; }
+  .rc-line { flex: none; margin: 14px 0 0; color: var(--pass-sub); font-size: 19px; font-weight: 400; line-height: 1.55; overflow-wrap: anywhere; transition: font-size .3s ease, color .3s ease; }
+  .rc-line b { margin-right: 8px; color: #6f7a8f; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rc-line.now { margin-top: 22px; color: #fff; font-size: 34px; font-weight: 700; line-height: 1.45; animation: rc-rise .5s cubic-bezier(.2, .8, .2, 1); }
+  .rc-line.now b { display: block; margin: 0 0 4px; color: var(--amber); font-size: 17px; }
+  @keyframes rc-rise { from { opacity: 0; transform: translateY(56px); } to { opacity: 1; transform: none; } }
+  .rc-foot { flex: none; padding: 12px 0 18px; }
+  .rc-bar { height: 6px; border-radius: 3px; background: #2b3342; overflow: hidden; }
+  .rc-bar i { display: block; width: 0; height: 100%; border-radius: 3px; background: var(--amber); transition: width .3s ease; }
+  .rc-count { margin: 8px 0 10px; color: var(--pass-sub); font-size: 17px; font-variant-numeric: tabular-nums; text-align: center; }
+  .rc-next { display: block; width: 100%; min-height: 76px; border: 0; border-radius: 18px; background: var(--amber); color: var(--board); font: inherit; font-size: 28px; font-weight: 900; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .rc-next:active { transform: scale(.98); }
+  @media (max-height: 560px) { .rc-line.now { font-size: 28px; } .rc-next { min-height: 60px; font-size: 24px; } }
+  @media (prefers-reduced-motion: reduce) { .rc-line, .rc-bar i { transition: none; } .rc-line.now { animation: none; } }
   .piece-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
   .piece-foot button { min-height: 56px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
   .piece-foot button:disabled { visibility: hidden; }
@@ -109,6 +124,20 @@
     </div>
   </div>
 
+  <!-- 默背：背誦台（蓋住整個畫面）。按鈕在螢幕下方，按一下出下一句 -->
+  <div id="s-recite" class="rc" hidden>
+    <div class="rc-top">
+      <span class="rc-title" id="rc-title"></span>
+      <button type="button" class="rc-exit" id="rc-exit">看全文</button>
+    </div>
+    <div class="rc-stage" id="rc-stage" aria-live="polite"></div>
+    <div class="rc-foot">
+      <div class="rc-bar"><i id="rc-fill"></i></div>
+      <p class="rc-count" id="rc-count"></p>
+      <button type="button" class="rc-next" id="rc-next">開始</button>
+    </div>
+  </div>
+
 </main>
 <script>
 (() => {
@@ -135,7 +164,7 @@
   const MOCK_QUOTES = [{ id: 'q1', body: '這是一則示範金句，真的內容等講師的話進來。', speaker: '示範講師' }, { id: 'q2', body: '第二則示範金句。', speaker: null }];
 
   function show(id) {
-    for (const s of ['s-loading', 's-none', 's-home', 's-piece']) $(s).hidden = s !== id;
+    for (const s of ['s-loading', 's-none', 's-home', 's-piece', 's-recite']) $(s).hidden = s !== id;
     window.scrollTo(0, 0);
   }
   function fail(title, text) {
@@ -183,47 +212,71 @@
   /* ---------- 單篇 ---------- */
   function paintPiece(i) {
     const it = data.recite[i], box = $('piece');
-    const lines = [];                                   // 每一句（一行）一個元素；默背時一句一句蓋
-    const ln = (text) => { const sp = el('span', 'ln', text); lines.push(sp); return sp; };
     const btn = el('button', 'recite-btn', '默背'); btn.type = 'button'; btn.id = 'recite-btn';
-    const hint = el('p', 'recite-hint', '字都蓋起來了。背一句，點一句對答案。'); hint.id = 'recite-hint'; hint.hidden = true;
-    box.replaceChildren(el('h1', '', it.title), btn, hint);
+    btn.addEventListener('click', () => { viaButton = true; location.hash = it.id + RECITE; });
+    box.replaceChildren(el('h1', '', it.title), btn);
     if (it.numbered) {
       const ol = el('ol');
-      for (const line of it.body.split('\n')) { const li = el('li'); li.append(ln(line)); ol.append(li); }
+      for (const line of it.body.split('\n')) ol.append(el('li', '', line));
       box.append(ol);
-    } else {                                             // 空行分段；段內一行一句
-      for (const para of it.body.split(/\n\s*\n/)) { const p = el('p'); for (const line of para.split('\n')) p.append(ln(line)); box.append(p); }
+    } else {
+      for (const para of it.body.split(/\n\s*\n/)) box.append(el('p', '', para));   // 空行分段；段內照原本的換行
     }
-    // 默背：整篇蓋起來，點一句掀一句；再按一次按鈕回到全文。不計分、不留紀錄
-    let on = false;
-    const cover = (sp, yes) => {
-      sp.classList.toggle('veil', yes);
-      if (yes) { sp.setAttribute('role', 'button'); sp.tabIndex = 0; sp.setAttribute('aria-label', '點一下看這一句'); }
-      else { sp.removeAttribute('role'); sp.removeAttribute('tabindex'); sp.removeAttribute('aria-label'); }
-    };
-    for (const sp of lines) {
-      sp.addEventListener('click', () => { if (sp.classList.contains('veil')) cover(sp, false); });
-      sp.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && sp.classList.contains('veil')) { e.preventDefault(); cover(sp, false); } });
-    }
-    btn.addEventListener('click', () => {
-      on = !on;
-      btn.textContent = on ? '看全文' : '默背';
-      btn.setAttribute('aria-pressed', String(on));
-      hint.hidden = !on;
-      for (const sp of lines) cover(sp, on);
-    });
     const prev = data.recite[i - 1], next = data.recite[i + 1];
     $('piece-prev').disabled = !prev; $('piece-next').disabled = !next;
     $('piece-prev').onclick = () => { location.hash = prev.id; };
     $('piece-next').onclick = () => { location.hash = next.id; };
   }
 
+  /* ---------- 默背：按一下出一句 ---------- */
+  // 網址 #<篇>.recite＝這一篇的背誦台（手機返回鍵會回到全文）。不計分、不留紀錄
+  const RECITE = '.recite';
+  let viaButton = false;            // 是從全文頁按「默背」進來的：結束時退一步就回全文
+  let rc = null;                    // { id, lines, n }：現在背到第幾句
+  function startRecite(i) {
+    const it = data.recite[i];
+    rc = { id: it.id, lines: it.body.split('\n').map((l) => l.trim()).filter(Boolean), n: 0 };
+    $('rc-title').textContent = it.title;
+    $('rc-stage').replaceChildren(el('p', 'rc-hint', '先在心裡背，再按下面的按鈕對答案。'));
+    paintRecite();
+  }
+  function paintRecite() {
+    const total = rc.lines.length, done = rc.n >= total;
+    $('rc-fill').style.width = (rc.n / total * 100) + '%';
+    $('rc-count').textContent = done ? '背完了　' + total + ' ／ ' + total : rc.n + ' ／ ' + total;
+    $('rc-next').textContent = done ? '再背一次' : rc.n === 0 ? '開始' : '下一句';
+  }
+  $('rc-next').addEventListener('click', () => {
+    if (!rc) return;
+    const stage = $('rc-stage');
+    if (rc.n >= rc.lines.length) {                           // 背完了 → 從頭再來
+      rc.n = 0;
+      stage.replaceChildren(el('p', 'rc-hint', '先在心裡背，再按下面的按鈕對答案。'));
+      return paintRecite();
+    }
+    if (rc.n === 0) stage.replaceChildren();
+    for (const old of stage.querySelectorAll('.rc-line.now')) old.classList.remove('now');   // 上一句往上退、變小
+    const p = el('p', 'rc-line now');
+    p.append(el('b', '', String(rc.n + 1)), rc.lines[rc.n]);
+    stage.append(p);                                         // 新的一句從下面浮上來
+    rc.n += 1;
+    paintRecite();
+  });
+  $('rc-exit').addEventListener('click', () => {
+    if (!rc) return;
+    if (viaButton) { viaButton = false; history.back(); }     // 退一步＝回全文
+    else { history.replaceState(null, '', '#' + rc.id); route(); }
+  });
+
   // 網址 # 後面是哪一篇就開哪一篇（手機的返回鍵也照這個走）
   function route() {
     if (!data) return;
-    const id = decodeURIComponent(location.hash.slice(1));
+    let id = decodeURIComponent(location.hash.slice(1));
+    const reciting = id.endsWith(RECITE);
+    if (reciting) id = id.slice(0, -RECITE.length);
     const i = data.recite.findIndex((it) => it.id === id);
+    if (i >= 0 && reciting) { startRecite(i); show('s-recite'); return; }
+    rc = null;
     if (i >= 0) { paintPiece(i); show('s-piece'); }
     else { paintHome(); show('s-home'); }
   }
