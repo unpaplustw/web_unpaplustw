@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { TILES, PORTS, SATELLITES, COMPANY, ORBIT_AFTER_ACTIVITY_MS } from './data.js';
+import { TILES, PORTS, SATELLITES, COMPANY, TRAVEL, ORBIT_AFTER_ACTIVITY_MS } from './data.js';
 
 // ─────────────── 尺寸 ───────────────
 const R1 = 24;                      // 島半徑
@@ -23,6 +23,8 @@ const MOAT_IN = 0.885, MOAT_OUT = 0.975; // 護城河在島緣的位置（島外
 const PLAIN_TOWERS = [25, -25, 66, 112, 138, -45, -75, -105, -135]; // 城牆哨塔的方位
 const BRIDGE_DEG = 90;               // 往綠佳利島的吊橋，從東側城牆出去
 const COMP_POS = new THREE.Vector3(45, -0.6, 4); // 綠佳利島相對主島的位置（右邊）
+const TRAVEL_DEG = -90;              // 往獎勵旅遊島的吊橋，從西側城牆出去
+const TRAVEL_POS = new THREE.Vector3(-43, -0.6, 3); // 獎勵旅遊島相對主島的位置（左邊）
 const TW_K = 8.4;                    // 台灣經緯度 → 島面座標的倍率
 const D2R = Math.PI / 180;
 
@@ -606,6 +608,122 @@ const COMPANY_KIT = {
     return 2.9;
   },
 };
+// ─────────────── 獎勵旅遊島：機場（跑道、塔台、航廈、地球儀、一架起飛的飛機）───────────────
+const RUNWAY_X = -4.3, RUNWAY_LEN = 21; // 跑道在島的西側、南北向
+function buildTravel(mats) {
+  const r = rng(909);
+  const g = new THREE.Group(); g.position.copy(TRAVEL_POS);
+  const k = new Kit();
+  const pts = organic(12.5, 37, 0.05).map((p) => new THREE.Vector2(p.x * 0.8, p.y * 1.22)); // 南北長的橢圓，放得下跑道
+  const around = (f, ox = 0, oz = 0) => pts.map((p) => new THREE.Vector2(p.x * f + ox, p.y * f - oz));
+  k.add(slab(around(1.06), -1.2, 1.1, 0.3), PAL.rimDark);
+  k.add(slab(around(1.03), -0.9, 0.95, 0.28), PAL.rim);
+  k.add(slab(pts, -0.2, 0.55, 0.3), PAL.grass);
+  [[0.92, PAL.earth], [0.8, PAL.rock[0]], [0.64, PAL.rock[1]], [0.46, PAL.rock[2]], [0.28, PAL.rock[3]]]
+    .forEach(([f, col], i) => k.add(slab(around(f, (r() - 0.5) * 0.8, (r() - 0.5) * 0.8), -1.2 - (i + 1) * 1.4, 1.3, 0.3), col));
+  k.add(new THREE.ConeGeometry(2.6, 6, 7), PAL.rock[1], mat(0, -11, 0, 0.3, 1, 1, 1, Math.PI));
+  for (let i = 0; i < 22; i++) { const p = pts[Math.floor(r() * pts.length)], len = 1.5 + r() * 3; k.add(G.cyl6, PAL.root, mat(p.x * 0.85, -1.4 - len / 2, -p.y * 0.85, 0, 0.1, len, 0.1)); }
+
+  // 跑道：深灰道面＋白色中線＋兩端的斑馬線＋邊燈
+  const placed = [];
+  const tarmac = '#5d6168', paint = '#fbf7ee';
+  k.add(G.box, tarmac, mat(RUNWAY_X, G1 + 0.03, 0, 0, 2.8, 0.06, RUNWAY_LEN));
+  for (let i = -3; i <= 3; i++) k.add(G.box, paint, mat(RUNWAY_X, G1 + 0.07, i * 2.2, 0, 0.16, 0.02, 1.1));
+  for (const e of [-1, 1]) for (let j = -2; j <= 2; j++) k.add(G.box, paint, mat(RUNWAY_X + j * 0.46, G1 + 0.07, e * (RUNWAY_LEN / 2 - 0.9), 0, 0.22, 0.02, 1.0));
+  for (let z = -RUNWAY_LEN / 2; z <= RUNWAY_LEN / 2 + 0.01; z += 3) for (const s of [-1, 1]) k.add(G.sph, PAL.goldBright, mat(RUNWAY_X + s * 1.55, G1 + 0.1, z, 0, 0.18, 0.18, 0.18));
+  for (let z = -RUNWAY_LEN / 2; z <= RUNWAY_LEN / 2; z += 1.5) placed.push({ x: RUNWAY_X, z, r: 2.1 });
+  // 停機坪：緊貼跑道的一塊，航廈蓋在它上面
+  k.add(G.box, '#8a8f97', mat(-0.2, G1 + 0.03, 6.6, 0, 5.4, 0.05, 4.0));
+  placed.push({ x: -1.6, z: 6.6, r: 2.4 }, { x: 1.2, z: 6.6, r: 2.4 });
+  // 風向袋
+  k.add(G.cyl6, '#9aa4ad', mat(RUNWAY_X + 2.4, G1 + 0.7, -7.5, 0, 0.06, 1.4, 0.06));
+  k.add(G.cone6, '#f08a3c', mat(RUNWAY_X + 2.85, G1 + 1.35, -7.5, 0, 0.32, 0.9, 0.32, 0, Math.PI / 2));
+  placed.push({ x: RUNWAY_X + 2.4, z: -7.5, r: 0.8 });
+
+  const out = { group: g, points: [] };
+  for (const b of TRAVEL.points) {
+    const [h, hitR] = TRAVEL_KIT[b.kind](k, b.x, b.z);
+    placed.push({ x: b.x, z: b.z, r: hitR + 0.4 }); out.points.push({ def: b, x: b.x, z: b.z, h, hitR });
+  }
+  TRAVEL_KIT.tower(k, 1.6, -1.2); placed.push({ x: 1.6, z: -1.2, r: 1.3 });
+  buildPlane(k, RUNWAY_X, G1 + 3.3, 7.6, 0, 0.26, 0.8);       // 剛離地，機頭朝正前方
+  k.shadowAt(RUNWAY_X, 6.6, 1.5, G1 + 0.07);
+
+  let n = 0, tries = 0;
+  while (n < 26 && tries++ < 1200) {
+    const p = pts[Math.floor(r() * pts.length)], f = r() * 0.86, x = p.x * f, z = -p.y * f;
+    if (!inside(pts, x, z) || !placed.every((q) => Math.hypot(q.x - x, q.z - z) > q.r + 0.5)) continue;
+    const s0 = 0.55 + r() * 0.3; k.add(G.cyl6, PAL.trunk, mat(x, G1 + 0.2 * s0, z, 0, 0.14 * s0, 0.4 * s0, 0.14 * s0));
+    k.add(G.ico, pick(PAL.leaf, r), mat(x, G1 + 0.75 * s0, z, r() * 3, 0.9 * s0, 0.8 * s0, 0.9 * s0));
+    placed.push({ x, z, r: 0.35 }); n++;
+  }
+  const east = pts[Math.round(pts.length / 4)];                 // 正東的岸邊＝吊橋上岸處
+  out.eastCoast = new THREE.Vector3(east.x * 0.9, G1 + 0.1, -east.y * 0.9);
+  out.center = new THREE.Vector3(0, G1, 0);
+  g.add(k.mesh(mats));
+  return out;
+}
+// 每個地標回傳 [高度, 點擊範圍半徑]
+const TRAVEL_KIT = {
+  terminal(k, x, z) { // 即將出發：航廈（玻璃帷幕＋弧形屋頂＋金色出發看板）
+    const { P, L } = B(k, x, G1, z, -0.5);
+    const glass = '#7fb6e6';
+    P(G.box, PAL.stoneShade, 0, 0.1, 0, 0, 5.2, 0.2, 2.9);
+    P(G.box, PAL.white, 0, 0.95, -0.2, 0, 4.8, 1.5, 2.0);
+    P(G.box, glass, 0, 0.98, 0.81, 0, 4.4, 1.1, 0.06);
+    for (let i = -3; i <= 3; i++) P(G.box, PAL.white, i * 0.63, 0.98, 0.85, 0, 0.07, 1.1, 0.04);
+    P(G.box, '#2e3540', 0, 0.5, 0.86, 0, 0.9, 0.7, 0.05);                      // 入口
+    P(G.cyl16, PAL.navy, 0, 1.7, -0.2, 0, 0.95, 5.0, 2.3, 0, Math.PI / 2);     // 弧形屋頂
+    for (const s of [-1, 1]) P(G.box, '#5a5348', s * 1.2, 2.45, 0.2, 0, 0.1, 0.7, 0.1);
+    P(G.box, PAL.gold, 0, 2.95, 0.2, 0, 3.2, 0.7, 0.14);                       // 出發看板
+    for (let i = 0; i < 3; i++) P(G.box, PAL.goldBright, -0.95 + i * 0.95, 2.95, 0.28, 0, 0.7, 0.36, 0.02);
+    L(0, 3.0, 0.5, 1.8);
+    return [3.4, 2.6];
+  },
+  globe(k, x, z) { // 已出發：地球儀（去過的地方插著金色圖釘）
+    const { P, L } = B(k, x, G1, z, 0.4);
+    const cy = 2.35, R = 1.35;
+    P(G.cyl16, PAL.stoneShade, 0, 0.15, 0, 0, 2.4, 0.3, 2.4);
+    P(G.cyl8, PAL.gold, 0, 0.7, 0, 0, 0.32, 0.9, 0.32);
+    P(G.puff, '#4f9ad6', 0, cy, 0, 0, R * 2, R * 2, R * 2);
+    const on = (lat, lon, d) => { const a = lat * D2R, b = lon * D2R; return [Math.cos(a) * Math.sin(b) * d, cy + Math.sin(a) * d, Math.cos(a) * Math.cos(b) * d]; };
+    [[35, 20, 0.95], [10, 60, 0.8], [-25, 30, 0.7], [45, -70, 1.0], [-10, -50, 0.75], [30, 150, 0.9], [-30, -150, 0.7], [55, -160, 0.6]]
+      .forEach(([la, lo, s]) => { const [px, py, pz] = on(la, lo, R - 0.16 * s); P(G.ico, '#7fb86a', px, py, pz, lo * D2R, s, s, s); }); // 陸地
+    [[38, 30], [20, -20], [48, 85], [-15, 20], [5, -95], [-35, 110], [60, -40]]
+      .forEach(([la, lo]) => { const [px, py, pz] = on(la, lo, R + 0.06); P(G.sph, PAL.goldBright, px, py, pz, 0, 0.22, 0.22, 0.22); }); // 圖釘
+    P(new THREE.TorusGeometry(R + 0.3, 0.07, 6, 30), PAL.gold, 0, cy, 0, 0, 1, 1, 1, Math.PI / 2 - 0.41); // 斜斜的金環
+    L(0, cy + R + 0.5, 0, 1.6);
+    return [cy + R + 0.4, 1.9];
+  },
+  tower(k, x, z) { // 塔台（景物，不能按）
+    const { P, L } = B(k, x, G1, z, 0);
+    P(G.cyl8, PAL.white, 0, 2.1, 0, 0, 0.95, 4.2, 0.95);
+    P(G.cyl8, PAL.stoneShade, 0, 4.3, 0, 0, 1.5, 0.2, 1.5);
+    P(G.cyl8, '#7fb6e6', 0, 4.8, 0, 0, 1.75, 0.8, 1.75);
+    P(G.cyl8, PAL.navy, 0, 5.3, 0, 0, 2.0, 0.2, 2.0);
+    P(G.cyl6, '#9aa4ad', 0, 5.9, 0, 0, 0.06, 1.0, 0.06);
+    P(G.sph, '#ff5a4a', 0, 6.45, 0, 0, 0.22, 0.22, 0.22);
+    L(0, 6.45, 0, 1.2);
+    return [6.6, 1.2];
+  },
+};
+// 飛機：機頭朝 +z；heading＝水平轉向、pitch＝機頭抬起的角度
+function buildPlane(k, x, y, z, heading, pitch, sc) {
+  const base = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(-pitch, heading, 0, 'YXZ')), new THREE.Vector3(sc, sc, sc));
+  const P = (geo, color, lx, ly, lz, sx, sy, sz, rx = 0) => k.add(geo, color, base.clone().multiply(mat(lx, ly, lz, 0, sx, sy, sz, rx)));
+  const H = Math.PI / 2;
+  P(G.cyl16, PAL.white, 0, 0, 0, 0.72, 4.2, 0.72, H);          // 機身
+  P(G.cone16, PAL.white, 0, 0, 2.55, 0.72, 0.9, 0.72, H);      // 機頭
+  P(G.cone16, PAL.white, 0, 0.06, -2.6, 0.72, 1.0, 0.6, -H);   // 機尾
+  P(G.box, '#3d4a5c', 0, 0.16, 2.15, 0.5, 0.16, 0.5);          // 駕駛艙玻璃
+  P(G.box, PAL.window, 0, 0.1, 0.1, 0.74, 0.1, 3.2);           // 一排窗
+  P(G.box, PAL.gold, 0, -0.12, 0, 0.74, 0.06, 4.0);            // 金色腰線
+  P(G.box, PAL.white, 0, -0.1, 0.1, 5.4, 0.08, 1.05);          // 主翼
+  P(G.box, PAL.white, 0, 0.12, -2.4, 2.1, 0.06, 0.6);          // 水平尾翼
+  P(G.box, PAL.gold, 0, 0.68, -2.45, 0.08, 1.05, 0.75);        // 垂直尾翼
+  for (const s of [-1, 1]) P(G.cyl8, PAL.navy, s * 1.35, -0.34, 0.4, 0.34, 0.75, 0.34, H); // 引擎
+}
+
 // 吊橋：兩端之間一片片木板，中間微微下垂，兩側繩索
 function buildBridge(k, a, b) {
   const n = 30, side = new THREE.Vector3().subVectors(b, a).setY(0).normalize(), perp = new THREE.Vector3(-side.z, 0, side.x);
@@ -792,7 +910,7 @@ function buildCity(mats) {
     const ax = a.x, az = -a.y, bx = b.x, bz = -b.y, mx = (ax + bx) / 2, mz = (az + bz) / 2;
     if (mz > 0 && Math.abs(mx) < GATE_HALF) continue;                         // 城門開口
     if (Math.abs(Math.atan2(mx, mz) / D2R) > 180 - MT_HALF) continue;        // 靠山
-    if (Math.abs(Math.atan2(mx, mz) / D2R - BRIDGE_DEG) < 4) continue;        // 往綠佳利島的吊橋出口
+    if ([BRIDGE_DEG, TRAVEL_DEG].some((d) => Math.abs(Math.atan2(mx, mz) / D2R - d) < 4)) continue; // 往兩座島的吊橋出口
     const len = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bx - ax, bz - az);
     k.add(G.box, PAL.wall, mat(mx, G1 + WALL_H / 2, mz, ang, 0.6, WALL_H, len + 0.06));
     k.add(G.box, PAL.wallDark, mat(mx, G1 + WALL_H + 0.04, mz, ang, 0.8, 0.08, len + 0.06));
@@ -802,6 +920,7 @@ function buildCity(mats) {
   const onWall = (deg) => polar(deg, edgeAt(p1, deg) * WALL_F);
   for (const deg of PLAIN_TOWERS) { const [x, z] = onWall(deg); buildPlainTower(k, x, z); placed.push({ x, z, r: 1.8 }); }
   const bridgeFrom = new THREE.Vector3(...((p) => [p[0], G1 + 0.1, p[1]])(onWall(BRIDGE_DEG)));
+  const travelFrom = new THREE.Vector3(...((p) => [p[0], G1 + 0.1, p[1]])(onWall(TRAVEL_DEG)));
 
   // ── 靠山 ──
   for (const pk of buildMountains(k, r, p1)) placed.push(pk);
@@ -932,7 +1051,7 @@ function buildCity(mats) {
 
   city.add(k.mesh(mats));
   return {
-    city, waterfalls, magic, radar, bridgeFrom,
+    city, waterfalls, magic, radar, bridgeFrom, travelFrom,
     spots: {
       castle: { x: CASTLE[0], z: CASTLE[1], gy: GH, h: castleH, focusY: 9, focusR: 16, hit: [HILL_R * 0.8, 24] },
       left: { x: LEFT[0], z: LEFT[1], gy: G1, h: academy.h, focusY: 2.5, focusR: 9.5, hit: [5, 9], rooms: academy.rooms },
@@ -1042,6 +1161,19 @@ export function createIsland({ stage, onPick, onBackground }) {
     addHit(entry.object, new THREE.CylinderGeometry(1.4, 1.4, b.h + 1, 10).translate(0, (b.h + 1) / 2 - 0.5, 0), entry);
   }
 
+  // ── 獎勵旅遊島（機場）＋吊橋 ──
+  const trav = buildTravel(mats); city.add(trav.group);
+  { const kb = new Kit(); buildBridge(kb, built.travelFrom, trav.eastCoast.clone().add(TRAVEL_POS)); city.add(kb.mesh(mats)); }
+  const travAnchor = (p) => { const a = new THREE.Object3D(); a.position.copy(p); trav.group.add(a); return a; };
+  entries.push({ kind: 'travel', id: TRAVEL.id, island: true, object: travAnchor(trav.center), offset: new THREE.Vector3(0, 8.6, 0), focusY: 2, focusR: 17,
+    label: makeLabel(TRAVEL, 'travel', 'label-tile label-travel', TRAVEL.name) });
+  for (const b of trav.points) {
+    const entry = { kind: 'travel', id: b.def.id, object: travAnchor(new THREE.Vector3(b.x, G1, b.z)), offset: new THREE.Vector3(0, b.h + 0.3, 0), focusY: b.h * 0.45, focusR: Math.max(7, b.h * 1.5),
+      label: makeLabel(b.def, 'travel', 'label-tile', b.def.name) };
+    entries.push(entry);
+    addHit(entry.object, new THREE.CylinderGeometry(b.hitR, b.hitR, b.h + 1, 10).translate(0, (b.h + 1) / 2 - 0.5, 0), entry);
+  }
+
   const fitR = R1 + 6.5;
   // ── 彩虹（城的後方，鏡頭放低才出現）──
   const rainbow = buildRainbow(); scene.add(rainbow);
@@ -1116,7 +1248,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     return { pos, target: target.clone() };
   }
   // 全景：側上方看過來，塔在中間、看得到底下的岩石與瀑布
-  const homeView = () => viewFor(new THREE.Vector3(portrait() ? 13 : 19, portrait() ? 22 : 1, 0), fitDist(portrait() ? 45 : 44), THREE.MathUtils.degToRad(70), portrait() ? 0.5 : 0.18); // 兩座島一起入鏡
+  const homeView = () => viewFor(new THREE.Vector3(portrait() ? 3 : 3, portrait() ? 20 : 1, 0), fitDist(portrait() ? 46 : 55), THREE.MathUtils.degToRad(70), portrait() ? 0.85 : 0.18); // 三座島一起入鏡
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let fly = null;
   function flyTo(v, dur = 1.4) {
@@ -1131,7 +1263,7 @@ export function createIsland({ stage, onPick, onBackground }) {
     width = Math.max(1, rect.width); height = Math.max(1, rect.height);
     renderer.setSize(width, height, false);
     camera.aspect = width / height; camera.updateProjectionMatrix();
-    controls.minDistance = 8; controls.maxDistance = fitDist(fitR) * 1.6;
+    controls.minDistance = 8; controls.maxDistance = fitDist(fitR) * 2.2;
     if (!userMoved && !fly) { const v = homeView(); camera.position.copy(v.pos); controls.target.copy(v.target); }
     applyViewOffset();
     wake(600);
@@ -1149,8 +1281,8 @@ export function createIsland({ stage, onPick, onBackground }) {
   }
 
   // 名牌重疊時，重要的先擺：選到的 → 精神之塔 → 功能區 → 衛星 → 停靠站；擺不下的先藏
-  const prio = (e) => (e.parent ? 8 : e.label.classList.contains('is-active') ? 9 : e.home ? 4 : e.island ? 3.5 : e.kind === 'tile' ? 3 : e.kind === 'company' ? 2.5 : e.kind === 'satellite' ? 2 : 1);
-  let activeId = null;
+  const prio = (e) => (e.parent ? 8 : e.label.classList.contains('is-active') ? 9 : e.kind === 'travel' && activeKind === 'travel' ? 7 : e.home ? 4 : e.island ? 3.5 : e.kind === 'tile' ? 3 : e.kind === 'company' || e.kind === 'travel' ? 2.5 : e.kind === 'satellite' ? 2 : 1);
+  let activeId = null, activeKind = null; // activeKind：選到獎勵旅遊島時，島上的名牌優先（不被主島的名牌蓋掉）
   const projected = new THREE.Vector3();
   function placeLabels() {
     const placed = [];
@@ -1275,12 +1407,12 @@ export function createIsland({ stage, onPick, onBackground }) {
 
   return {
     select(id) {
-      activeId = id;
+      activeId = id; activeKind = entries.find((e) => e.id === id)?.kind ?? null;
       let focus = null;
       for (const entry of entries) {
         const active = entry.id === id;
         entry.label.classList.toggle('is-active', active);
-        if (active && (entry.kind === 'tile' || entry.kind === 'port' || entry.kind === 'company')) focus = entry;
+        if (active && (entry.kind === 'tile' || entry.kind === 'port' || entry.kind === 'company' || entry.kind === 'travel')) focus = entry;
       }
       if (focus) { // 鏡頭靠近選到的地方，保留目前的方向
         const off = camera.position.clone().sub(controls.target);

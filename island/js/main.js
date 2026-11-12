@@ -1,4 +1,4 @@
-import { TILES, PORTS, SATELLITES, COMPANY, TOUR } from './data.js';
+import { TILES, PORTS, SATELLITES, COMPANY, TRAVEL, TOUR } from './data.js';
 import { loadAplus, loadPorts, loadCharity, loadOverseas } from './content.js';
 import { initMember } from './member.js';
 
@@ -63,6 +63,7 @@ function buildList() {
     listGroup('APLUS城', home.map((tile) => listButton(tile.name, 'tile', tile.id))),
     listGroup('功能區', land.map((tile) => listButton(tile.name, 'tile', tile.id))),
     listGroup('綠佳利島（公司）', [listButton(COMPANY.name, 'company', COMPANY.id), ...COMPANY.buildings.map((b) => listButton(b.name, 'company', b.id))]),
+    listGroup('獎勵旅遊島', [listButton(TRAVEL.name, 'travel', TRAVEL.id), ...TRAVEL.points.map((p) => listButton(p.name, 'travel', p.id))]),
 
     ...(SATELLITES.length ? [listGroup('衛星', SATELLITES.map(listLink))] : []),
   );
@@ -145,6 +146,48 @@ function portCard(port) {
   for (const line of data.hours) dl.append(el('dd', '', line));
   wrap.append(dl);
   for (const line of data.notes) wrap.append(el('p', 'note', line));
+  return wrap;
+}
+
+// 獎勵旅遊島：島本身＝兩顆大按鈕；「即將出發」＝一趟一塊；「已出發」＝年表
+function travelCard(id) {
+  const wrap = el('div', 'simple');
+  if (id === TRAVEL.id) {
+    wrap.append(el('h2', 'card-title', TRAVEL.name), el('p', 'card-hook', TRAVEL.hook), el('p', 'simple-line', TRAVEL.line));
+    const row = el('div', 'card-buttons travel-buttons');
+    for (const p of TRAVEL.points) {
+      const button = el('button', 'button', p.name);
+      button.type = 'button';
+      button.addEventListener('click', () => pick('travel', p.id));
+      row.append(button);
+    }
+    wrap.append(row);
+    return wrap;
+  }
+  const point = TRAVEL.points.find((p) => p.id === id);
+  wrap.append(el('h2', 'card-title', point.name), el('p', 'card-hook', point.hook));
+  for (const trip of point.trips || []) {
+    const box = el('section', 'trip');
+    box.append(el('span', trip.open ? 'trip-badge is-open' : 'trip-badge', trip.badge), el('h3', 'trip-name', trip.name));
+    const dl = el('dl', 'trip-rows');
+    for (const [label, value] of trip.rows) {
+      dl.append(el('dt', '', label));
+      for (const line of [].concat(value)) dl.append(el('dd', '', line));
+    }
+    box.append(dl, el('p', 'trip-src', `資料來源：${trip.src}`));
+    wrap.append(box);
+  }
+  if (point.past) {
+    const list = el('div', 'timeline');
+    for (const trip of point.past) {
+      const row = el('section', 'timeline-year');
+      row.append(el('h4', 'timeline-label', trip.when), el('p', 'trip-where', trip.where),
+        el('p', 'timeline-event', trip.note ? `${trip.name}｜${trip.note}` : trip.name));
+      list.append(row);
+    }
+    wrap.append(list);
+  }
+  if (point.trips) wrap.append(el('p', 'note', '辦法以公司公告為準。'));
   return wrap;
 }
 
@@ -266,6 +309,10 @@ function pick(kind, id) {
   island?.select(id);
   if (kind === 'port') {
     openCard(portCard(PORTS.find((port) => port.id === id)), false);
+    return;
+  }
+  if (kind === 'travel') { // 獎勵旅遊島：島本身、即將出發、已出發
+    openCard(travelCard(id), id !== TRAVEL.id);
     return;
   }
   if (kind === 'company') { // 綠佳利島：島本身開 /company/，建築開各自的按鈕

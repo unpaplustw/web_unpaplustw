@@ -402,6 +402,19 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 
 /* 綠佳利島（公司）的島名：淡綠色，跟 A Plus 的金色區分 */
 .label-company { z-index: 3; background: #eef6ea; border-color: #7fae5a; color: #3c6b33; font-weight: 700; }
+/* 獎勵旅遊島的島名：淡藍色（天空），跟 A Plus 的金色、綠佳利島的綠色區分 */
+.label-travel { z-index: 3; background: #eaf3fb; border-color: #6fa3d4; color: #2b5d8c; font-weight: 700; }
+/* 獎勵旅遊島卡片：兩顆大按鈕；一趟旅遊一塊；字放大給長輩看 */
+.travel-buttons .button { flex: 1 1 140px; min-height: 56px; font-size: 19px; line-height: 38px; }
+.trip { margin-top: 14px; padding: 14px 14px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.trip-badge { display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--gold-soft); color: var(--ink); font-size: 14px; font-weight: 700; }
+.trip-badge.is-open { background: #2f7d4f; color: #fff; }
+.trip-name { margin: 8px 0 4px; font-size: 20px; line-height: 1.4; }
+.trip-rows { margin: 0; }
+.trip-rows dt { margin-top: 12px; color: #8a6d00; font-size: 14px; font-weight: 700; }
+.trip-rows dd { margin: 2px 0 0; font-size: 17px; line-height: 1.6; }
+.trip-src { margin: 12px 0 0; color: var(--sub); font-size: 13px; }
+.trip-where { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.5; }
 
 /* 公司總部卡片：每個地區沙龍之間加分隔線、標題縮小 */
 .simple .simple { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
