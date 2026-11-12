@@ -80,7 +80,10 @@ export const COMPANY = {
 
 // 獎勵旅遊島：A Plus 系統首頁左邊的另一座島（機場），公布公司的獎勵旅遊。全部公開、不用登入。
 // 島上兩個能按的地方：航廈＝即將出發（現在能挑戰的＋快出發的）、地球儀＝已出發（去過的地方）。x／z＝島上的位置。
-// 要更新：出發了，就把 trips 那一筆搬到 past（留 when／name／where／note 四欄）；有新活動，在 trips 最前面加一筆。
+// 首頁卡片兩邊都是航班看板（時間／目的地／活動／狀態），一趟一列。
+// 即將出發的每一列點進去是獨立頁面 /travel/?t=<id>，rows（辦法細節）只在那一頁出現；已出發的不能點，note 直接列在那一列底下。
+// 要更新：出發了，就把 trips 那一筆搬到 past（留 when／name／where／note 四欄）；
+// 有新活動，在 trips 最前面加一筆（id＝網址用的英文代號、不能重複；when／where＝看板上的時間、目的地，寫短的）。
 // 內容一律照展翅月刊原文（src 記期別），月刊沒寫的欄位不要自己補；rows 沒寫的欄位就不顯示。
 export const TRAVEL = {
   id: 'travel', name: '獎勵旅遊島',
@@ -90,7 +93,7 @@ export const TRAVEL = {
     { id: 'travel-now', name: '即將出發', kind: 'terminal', x: 2.4, z: 6.0,
       hook: '現在還能挑戰的、快要出發的，都在這裡。',
       trips: [
-        { name: 'GO TO FESTA 2027', badge: '挑戰中', open: true,
+        { id: 'festa-2027', name: 'GO TO FESTA 2027', when: '2027 年 10 月前後', where: '日本', badge: '挑戰中', open: true,
           rows: [
           ['去哪裡', '日本 FESTA 世界年會'],
           ['包含什麼', '機票、住宿、公司、工廠、年會、晚宴'],

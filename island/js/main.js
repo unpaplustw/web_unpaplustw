@@ -149,7 +149,7 @@ function portCard(port) {
   return wrap;
 }
 
-// 獎勵旅遊島：島本身＝兩顆大按鈕；「即將出發」＝一趟一塊；「已出發」＝年表
+// 獎勵旅遊島：島本身＝兩顆大按鈕；「即將出發」「已出發」＝航班看板，一趟一列（細節在獨立頁面 /travel/）
 function travelCard(id) {
   const wrap = el('div', 'simple');
   if (id === TRAVEL.id) {
@@ -166,27 +166,24 @@ function travelCard(id) {
   }
   const point = TRAVEL.points.find((p) => p.id === id);
   wrap.append(el('h2', 'card-title', point.name), el('p', 'card-hook', point.hook));
-  for (const trip of point.trips || []) {
-    const box = el('section', 'trip');
-    box.append(el('span', trip.open ? 'trip-badge is-open' : 'trip-badge', trip.badge), el('h3', 'trip-name', trip.name));
-    const dl = el('dl', 'trip-rows');
-    for (const [label, value] of trip.rows) {
-      dl.append(el('dt', '', label));
-      for (const line of [].concat(value)) dl.append(el('dd', '', line));
-    }
-    box.append(dl, el('p', 'trip-src', `資料來源：${trip.src}`));
-    wrap.append(box);
+  // 有 id 的那一列（即將出發）整列是連結，點進獨立頁面；沒有 id 的（已出發）不能點
+  const board = el('div', 'board');
+  const head = el('div', 'board-head');
+  head.append(el('span', 'board-code', point.trips ? 'DEPARTURES' : 'DEPARTED'), el('span', '', '時間・目的地・狀態'));
+  board.append(head);
+  for (const trip of point.trips || point.past) {
+    const row = el(trip.id ? 'a' : 'div', 'flight');
+    if (trip.id) row.href = `/travel/?t=${trip.id}`;
+    const main = el('div', 'flight-main');
+    main.append(el('span', 'flight-when', trip.when), el('strong', 'flight-where', trip.where), el('span', 'flight-name', trip.name));
+    if (trip.note) main.append(el('span', 'flight-note', trip.note));
+    const side = el('div', 'flight-side');
+    side.append(el('span', trip.open ? 'flight-status is-open' : 'flight-status', trip.badge || '已出發'));
+    if (trip.id) side.append(el('span', 'flight-go', '看細節 ›'));
+    row.append(main, side);
+    board.append(row);
   }
-  if (point.past) {
-    const list = el('div', 'timeline');
-    for (const trip of point.past) {
-      const row = el('section', 'timeline-year');
-      row.append(el('h4', 'timeline-label', trip.when), el('p', 'trip-where', trip.where),
-        el('p', 'timeline-event', trip.note ? `${trip.name}｜${trip.note}` : trip.name));
-      list.append(row);
-    }
-    wrap.append(list);
-  }
+  wrap.append(board);
   if (point.trips) wrap.append(el('p', 'note', '辦法以公司公告為準。'));
   return wrap;
 }

@@ -404,17 +404,24 @@ a.list-item::after { content: " ↗"; color: var(--gold); }
 .label-company { z-index: 3; background: #eef6ea; border-color: #7fae5a; color: #3c6b33; font-weight: 700; }
 /* 獎勵旅遊島的島名：淡藍色（天空），跟 A Plus 的金色、綠佳利島的綠色區分 */
 .label-travel { z-index: 3; background: #eaf3fb; border-color: #6fa3d4; color: #2b5d8c; font-weight: 700; }
-/* 獎勵旅遊島卡片：兩顆大按鈕；一趟旅遊一塊；字放大給長輩看 */
+/* 獎勵旅遊島卡片：兩顆大按鈕；航班看板（深色底、亮黃字）一趟一列；字放大給長輩看 */
 .travel-buttons .button { flex: 1 1 140px; min-height: 56px; font-size: 19px; line-height: 38px; }
-.trip { margin-top: 14px; padding: 14px 14px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-.trip-badge { display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--gold-soft); color: var(--ink); font-size: 14px; font-weight: 700; }
-.trip-badge.is-open { background: #2f7d4f; color: #fff; }
-.trip-name { margin: 8px 0 4px; font-size: 20px; line-height: 1.4; }
-.trip-rows { margin: 0; }
-.trip-rows dt { margin-top: 12px; color: #8a6d00; font-size: 14px; font-weight: 700; }
-.trip-rows dd { margin: 2px 0 0; font-size: 17px; line-height: 1.6; }
-.trip-src { margin: 12px 0 0; color: var(--sub); font-size: 13px; }
-.trip-where { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.5; }
+.board { margin-top: 12px; border-radius: 12px; overflow: hidden; background: #171c26; color: #f4f1e6; }
+.board-head { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; background: #0e121a; color: #9aa3b5; font-size: 13px; }
+.board-code { margin-right: auto; color: #ffc93c; font-weight: 700; letter-spacing: .16em; }
+.flight { display: flex; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid #2b3342; color: inherit; text-decoration: none; }
+.flight-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.flight-when { color: #ffc93c; font-size: 16px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.flight-where { font-size: 21px; line-height: 1.45; }
+.flight-name { color: #c9cfdb; font-size: 16px; line-height: 1.5; }
+.flight-note { color: #98a1b3; font-size: 15px; line-height: 1.5; }
+.flight-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.flight-status { padding: 3px 10px; border: 1px solid #4a5468; border-radius: 6px; color: #9aa3b5; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.flight-status.is-open { border-color: #57d98a; color: #57d98a; }
+.flight-status.is-open::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: #57d98a; animation: board-blink 1.4s steps(2, jump-none) infinite; }
+.flight-go { color: #ffc93c; font-size: 17px; font-weight: 700; white-space: nowrap; }
+a.flight:hover, a.flight:focus-visible { background: #212a3a; }
+@keyframes board-blink { 50% { opacity: .25; } }
 
 /* 公司總部卡片：每個地區沙龍之間加分隔線、標題縮小 */
 .simple .simple { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>獎勵旅遊｜A Plus 系統</title>
+<meta name="description" content="獎勵旅遊辦法：去哪裡、什麼時候、怎麼達成。辦法以公司公告為準。">
+<meta name="theme-color" content="#171c26">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap">
+<style>
+  /* 獎勵旅遊的獨立頁面：首頁「獎勵旅遊島 › 即將出發」看板點一列進來。網址 /travel/?t=<id>，資料在 /island/js/data.js 的 TRAVEL */
+  :root { --bg: #f7f5f0; --gold: #8a6d00; --ink: #2d2a24; --sub: #6b6558; --line: #e6e0d2; --card: #fff; --board: #171c26; --board-dark: #0e121a; --amber: #ffc93c; --lit: #57d98a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; font-size: 18px; line-height: 1.7; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
+  .back { display: inline-block; min-height: 44px; padding: 8px 4px; color: var(--sub); text-decoration: none; font-size: 17px; }
+
+  /* 上半：登機證（深色，跟首頁看板同一套顏色） */
+  .pass { position: relative; padding: 20px 20px 22px; border-radius: 16px 16px 0 0; background: var(--board); color: #f4f1e6; }
+  .pass-code { margin: 0 0 10px; color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: .16em; }
+  .pass h1 { margin: 0 0 18px; font-size: 28px; line-height: 1.35; text-wrap: balance; }
+  .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; margin: 0; }
+  .pass-grid div { min-width: 0; }
+  .pass-grid div:last-child { grid-column: 1 / -1; }
+  .pass-grid dt { color: #9aa3b5; font-size: 14px; }
+  .pass-grid dd { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.45; }
+  .pass-grid .is-open { color: var(--lit); }
+  .pass-grid .is-open::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: var(--lit); animation: blink 1.4s steps(2, jump-none) infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  /* 撕線：兩側半圓缺口＋虛線 */
+  .tear { position: relative; height: 22px; background: var(--card); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .tear::before { content: ""; position: absolute; left: 18px; right: 18px; top: 10px; border-top: 2px dashed var(--line); }
+  .tear i { position: absolute; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); }
+  .tear i:first-child { left: -12px; }
+  .tear i:last-child { right: -12px; }
+
+  /* 下半：辦法 */
+  .rules { margin: 0; padding: 4px 20px 20px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 16px 16px; background: var(--card); }
+  .rules dt { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--gold); font-size: 16px; font-weight: 700; }
+  .rules dt:first-child { margin-top: 0; border-top: 0; }
+  .rules dd { margin: 4px 0 0; font-size: 20px; line-height: 1.65; }
+  .rules dd.tier { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: #f6f1e1; }
+  .rules dd.tier b { flex: none; min-width: 5.2em; font-size: 22px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 479px) { .rules dd.tier { flex-direction: column; gap: 0; } }
+  .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
+  .foot strong { display: block; color: var(--ink); font-size: 17px; }
+
+  /* 沒指定是哪一趟（或代號打錯）：列出現在有的，樣子跟首頁看板一樣 */
+  .lead { margin: 0 0 14px; font-size: 20px; font-weight: 700; }
+  .board { border-radius: 12px; overflow: hidden; background: var(--board); color: #f4f1e6; }
+  .board-head { padding: 10px 14px; background: var(--board-dark); color: var(--amber); font-size: 13px; font-weight: 700; letter-spacing: .16em; }
+  .flight { display: flex; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid #2b3342; color: inherit; text-decoration: none; }
+  .flight-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .flight-when { color: var(--amber); font-size: 16px; font-weight: 700; }
+  .flight-where { font-size: 21px; line-height: 1.45; }
+  .flight-name { color: #c9cfdb; font-size: 16px; }
+  .flight-go { flex: none; color: var(--amber); font-size: 17px; font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/">‹ 回首頁</a>
+  <div id="page"></div>
+</main>
+<script type="module">
+  import { TRAVEL } from '/island/js/data.js';
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+  const page = document.getElementById('page');
+  const trips = TRAVEL.points.flatMap((p) => p.trips || []);
+  const want = new URLSearchParams(location.search).get('t');
+  const trip = trips.find((t) => t.id === want) || (!want && trips.length === 1 ? trips[0] : null);
+
+  if (trip) {
+    document.title = `${trip.name}｜獎勵旅遊`;
+    const pass = el('header', 'pass');
+    const grid = el('dl', 'pass-grid');
+    for (const [label, value, cls] of [['目的地', trip.where], ['狀態', trip.badge, trip.open ? 'is-open' : ''], ['時間', trip.when]]) {
+      const cell = el('div');
+      cell.append(el('dt', '', label), el('dd', cls, value));
+      grid.append(cell);
+    }
+    pass.append(el('p', 'pass-code', 'BOARDING PASS・獎勵旅遊'), el('h1', '', trip.name), grid);
+    const tear = el('div', 'tear');
+    tear.append(el('i'), el('i'));
+    // rows：一格一段；值是陣列（例如各級門檻）就一行一塊，冒號前面放大
+    const rules = el('dl', 'rules');
+    for (const [label, value] of trip.rows) {
+      rules.append(el('dt', '', label));
+      for (const line of [].concat(value)) {
+        const cut = Array.isArray(value) ? line.indexOf('：') : -1;
+        if (cut < 0) { rules.append(el('dd', '', line)); continue; }
+        const dd = el('dd', 'tier');
+        dd.append(el('b', '', line.slice(0, cut)), el('span', '', line.slice(cut + 1)));
+        rules.append(dd);
+      }
+    }
+    const foot = el('p', 'foot');
+    foot.append(el('strong', '', '辦法以公司公告為準。'), `資料來源：${trip.src}`);
+    page.append(pass, tear, rules, foot);
+  } else {
+    page.append(el('p', 'lead', trips.length ? '現在可以挑戰的獎勵旅遊' : '目前沒有進行中的獎勵旅遊。'));
+    if (trips.length) {
+      const board = el('div', 'board');
+      board.append(el('div', 'board-head', 'DEPARTURES'));
+      for (const t of trips) {
+        const row = el('a', 'flight');
+        row.href = `/travel/?t=${t.id}`;
+        const main = el('div', 'flight-main');
+        main.append(el('span', 'flight-when', t.when), el('strong', 'flight-where', t.where), el('span', 'flight-name', t.name));
+        row.append(main, el('span', 'flight-go', '看細節 ›'));
+        board.append(row);
+      }
+      page.append(board);
+    }
+  }
+</script>
+</body>
+</html>
