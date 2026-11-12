@@ -38,7 +38,11 @@ export const TILES = [
     line: '按一下，抽一題最常被問到的問題。各隊搶著回答，答得好就加分。',
     cta: '開始對抗賽', link: '/party/' },
 
-  { id: 'plot-w', status: 'reserved', angle: -72 },   // 2026-11-06 雷達站拿掉（自媒體有內容再放回：spot: 'plot', landmark: 'radar', link: '/radar/'）
+  { id: 'sutra',   name: '藏經閣',       status: 'empty', spot: 'plot', landmark: 'pagoda', angle: -72,
+    hook: '心法都收在這裡。',
+    line: '要背的內容放這裡，打開就能照著念。綠佳利會員用 LINE 登入就能看。',
+    cta: '進藏經閣', link: '/sutra/' },
+  // 城牆內兩塊空地都用掉了（72＝活動廣場、-72＝藏經閣）。雷達站 2026-11-06 拿掉，自媒體有內容要放回時得另外開空地（landmark: 'radar', link: '/radar/'）
 ];
 
 // 地區沙龍：資料集中在綠佳利島的「公司總部」卡片（島上不再一間間蓋，太擠）。

@@ -8,6 +8,7 @@
 //              （2026-11-10 起學院不單獨上鎖：VIP1 以上直接進，沒有申請、審核、特批、停權）
 //   admin    → 會員中心後台的 9 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
 //   register → 首頁註冊表的 3 支函式（白名單，同上）；頭像由這裡用 LINE 驗過的帶入，前端傳的不算
+//   sutra    → 藏經閣的 1 支函式（白名單，同上）；內容放 DB 的 sutra_items，網頁原始碼裡沒有
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -44,7 +45,11 @@ const REGISTER: Record<string, Spec> = {
   register_member: { id: 'p_line_user_id', pic: 'p_picture_url',
                      args: ['p_code', 'p_name', 'p_birthday', 'p_gender', 'p_peak', 'p_sponsor_code', 'p_sponsor_name', 'p_coop', 'p_oa'] },
 };
-const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER };
+// 藏經閣（/sutra/，2026-11-12）：心法內容只給 VIP1 以上；能不能看由 DB 的 get_sutra() 判斷（跟學院同一條規則）
+const SUTRA: Record<string, Spec> = {
+  get_sutra: { id: 'p_line_user_id', args: [] },
+};
+const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER, sutra: SUTRA };
 
 function cors(req: Request) {
   const o = req.headers.get('origin') ?? '';
@@ -92,7 +97,8 @@ Deno.serve(async (req) => {
     }
     case 'academy':
     case 'admin':
-    case 'register': {
+    case 'register':
+    case 'sutra': {
       const list = CHANNELS[body.action], fn = body.fn ?? '';
       const spec = Object.hasOwn(list, fn) ? list[fn] : null;
       if (!spec) return json(req, { ok: false, error: 'unknown_fn' }, 400);

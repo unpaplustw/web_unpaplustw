@@ -378,6 +378,37 @@ function buildStage(k, x, gy, z, rot) {
   k.shadowAt(x, z, 2.8, gy);
   return 4.2;
 }
+// ── 藏經閣：三層樓閣，深藍飛簷、金頂，門前一座攤開的經書台 ──
+function buildPagoda(k, x, gy, z, rot) {
+  const { P, L } = B(k, x, gy, z, rot);
+  const roof = new THREE.ConeGeometry(0.5, 1, 4);
+  P(G.cyl16, PAL.stoneShade, 0, 0.12, 0, 0, 5.4, 0.24, 5.4);
+  P(G.box, PAL.stone, 0, 0.44, -0.3, 0, 3.6, 0.4, 3.6);                              // 台基
+  // 一層
+  P(G.box, PAL.white, 0, 1.34, -0.3, 0, 2.8, 1.4, 2.8);
+  P(G.box, PAL.gold, 0, 1.14, 1.12, 0, 0.8, 1.0, 0.06);                              // 門
+  for (const u of [-0.95, 0.95]) P(G.box, PAL.window, u, 1.44, 1.12, 0, 0.36, 0.5, 0.04);
+  P(G.box, PAL.goldSoft, 0, 2.08, -0.3, 0, 3.0, 0.1, 3.0);
+  P(roof, PAL.navy, 0, 2.5, -0.3, Math.PI / 4, 5.2, 0.8, 5.2);
+  // 二層
+  P(G.box, PAL.white, 0, 3.0, -0.3, 0, 2.0, 1.1, 2.0);
+  for (const u of [-0.5, 0.5]) P(G.box, PAL.window, u, 3.1, 0.72, 0, 0.3, 0.44, 0.04);
+  P(G.box, PAL.goldSoft, 0, 3.58, -0.3, 0, 2.2, 0.1, 2.2);
+  P(roof, PAL.navy, 0, 3.96, -0.3, Math.PI / 4, 4.0, 0.72, 4.0);
+  // 三層＋金頂
+  P(G.box, PAL.white, 0, 4.4, -0.3, 0, 1.4, 0.9, 1.4);
+  P(G.box, PAL.window, 0, 4.46, 0.42, 0, 0.3, 0.4, 0.04);
+  P(roof, PAL.gold, 0, 5.3, -0.3, Math.PI / 4, 3.0, 1.0, 3.0);
+  P(G.cyl8, PAL.goldBright, 0, 6.05, -0.3, 0, 0.12, 0.6, 0.12);
+  P(G.sph, PAL.goldBright, 0, 6.45, -0.3, 0, 0.34, 0.34, 0.34);
+  // 門前的經書台：木架上一本攤開的書
+  P(G.box, PAL.wood, 1.8, 0.62, 1.7, 0, 0.5, 0.76, 0.4);
+  for (const s of [-1, 1]) P(G.box, PAL.white, 1.8 + s * 0.24, 1.08, 1.7, 0, 0.46, 0.05, 0.56, 0, s * -0.22);
+  P(G.box, PAL.goldSoft, 1.8, 1.05, 1.7, 0, 0.05, 0.06, 0.58);
+  L(0, 1.2, 1.5, 2.2); L(0, 6.45, -0.3, 1.6);
+  k.shadowAt(x, z, 2.8, gy);
+  return 6.9;
+}
 // ── 雷達站：控制室＋鐵架塔＋會轉的大碟型天線 ──
 function buildRadar(k, x, gy, z, rot, mats) {
   const { P, L } = B(k, x, gy, z, rot);
@@ -1188,6 +1219,7 @@ function buildCity(mats) {
     let h;
     if (t.landmark === 'radar') { radar = buildRadar(k, x, G1, z, rot, mats); city.add(radar.holder); h = radar.h; }
     else if (t.landmark === 'stage') h = buildStage(k, x, G1, z, rot);
+    else if (t.landmark === 'pagoda') h = buildPagoda(k, x, G1, z, rot);
     else h = buildClinic(k, x, G1, z, rot);
     placed.push({ x, z, r: 3.4 });
     plotSpots[t.id] = { x, z, gy: G1, h, focusY: 2, focusR: 8.5, hit: [3.4, 8], viewAz: Math.atan2(-x, -z) }; // 鏡頭從城中央往外看

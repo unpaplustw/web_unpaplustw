@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>藏經閣｜A Plus 系統</title>
+<meta name="description" content="藏經閣：心法都收在這裡。綠佳利會員用 LINE 登入就能看。">
+<meta name="theme-color" content="#171c26">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  /* 藏經閣：首頁 APLUS 城西邊那棟樓點進來。要 LINE 登入、VIP1 以上才看得到內容。
+     內容不在這個檔案裡：登入後由會員閘道 member-gate → DB 的 get_sutra() 給（sutra_items 表）。
+     兩類：recite＝必背（要念的）、quote＝講師金句。金句還沒有內容時，上面的兩顆切換鈕不出現。
+     版面預覽（不用登入、假字）：網址加 #preview；#preview-quotes＝連金句一起看；#preview-none＝不是會員的畫面 */
+  :root { --bg: #f7f5f0; --card: #fff; --cream: #f6f1e1; --line: #e6e0d2; --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c; --board: #171c26; --amber: #ffc93c; --pass-ink: #f4f1e6; --pass-sub: #9aa3b5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; font-size: 20px; line-height: 1.7; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px)); }
+  [hidden] { display: none !important; }
+  .back { display: inline-block; min-height: 44px; padding: 8px 4px; border: 0; background: none; color: var(--sub); font: inherit; font-size: 17px; text-decoration: none; cursor: pointer; }
+
+  /* 載入中／不是會員／打不開 */
+  .center { padding: 72px 8px; text-align: center; }
+  .center h2 { margin: 0 0 8px; font-size: 26px; line-height: 1.4; }
+  .center p { margin: 0; color: var(--sub); }
+  .spin { width: 40px; height: 40px; margin: 0 auto 16px; border: 4px solid var(--line); border-top-color: var(--btn); border-radius: 50%; animation: sp 1s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .cta { display: block; max-width: 400px; margin: 24px auto 0; padding: 16px; border-radius: 14px; background: var(--btn); color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
+
+  /* 首頁：深色門楣＋清單 */
+  .head { padding: 22px 20px; border-radius: 16px; background: var(--board); color: var(--pass-ink); }
+  .head-code { margin: 0 0 6px; color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: .16em; }
+  .head h1 { margin: 0; font-size: 32px; font-weight: 900; line-height: 1.3; }
+  .head p { margin: 6px 0 0; color: var(--pass-sub); font-size: 17px; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .tabs button { min-height: 56px; padding: 8px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 21px; font-weight: 700; cursor: pointer; }
+  .tabs button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .list { display: grid; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+  .item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 76px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .item-main { flex: 1; min-width: 0; }
+  .item-title { display: block; font-size: 23px; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+  .item-note { display: block; color: var(--sub); font-size: 16px; }
+  .item-go { flex: none; color: var(--gold); font-size: 26px; font-weight: 700; }
+
+  /* 金句：一則一張卡 */
+  .quote { margin: 0; padding: 20px; border: 1px solid var(--line); border-left: 6px solid var(--btn); border-radius: 14px; background: var(--card); }
+  .quote p { margin: 0; font-size: 23px; font-weight: 700; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
+  .quote footer { margin-top: 10px; color: var(--sub); font-size: 17px; }
+
+  /* 單篇：大字、一句一行 */
+  .piece { padding: 6px 20px 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+  .piece h1 { margin: 16px 0 6px; padding-bottom: 14px; border-bottom: 2px solid var(--board); font-size: 28px; font-weight: 900; line-height: 1.4; overflow-wrap: anywhere; }
+  .piece ol { margin: 0; padding: 0; list-style: none; counter-reset: n; }
+  .piece ol li { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 23px; line-height: 1.6; counter-increment: n; overflow-wrap: anywhere; }
+  .piece ol li:first-child { border-top: 0; }
+  .piece ol li::before { content: counter(n); flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin-top: 1px; border-radius: 50%; background: var(--cream); color: var(--gold); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .piece p { margin: 18px 0 0; font-size: 23px; line-height: 1.8; white-space: pre-line; overflow-wrap: anywhere; }
+  .piece-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .piece-foot button { min-height: 56px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
+  .piece-foot button:disabled { visibility: hidden; }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <div id="s-loading" class="center"><div class="spin"></div><p>載入中…</p></div>
+
+  <!-- 不是會員（查不到、VIP0、審核中、被退回都一樣）：請他去首頁註冊，跟學院同一套 -->
+  <div id="s-none" class="center" hidden>
+    <h2 id="none-title">藏經閣開放給綠佳利會員</h2>
+    <p id="none-text">先完成會員註冊，通過後這一頁就會直接打開。</p>
+    <a class="cta" id="none-btn" href="https://liff.line.me/2009692859-h2XfVyCT?member=1">前往註冊</a>
+  </div>
+
+  <div id="s-home" hidden>
+    <a class="back" href="/">‹ 回首頁</a>
+    <header class="head">
+      <p class="head-code">SUTRA・心法</p>
+      <h1>藏經閣</h1>
+      <p id="home-sub">心法都收在這裡</p>
+    </header>
+    <div class="tabs" id="tabs" hidden>
+      <button type="button" data-tab="recite" aria-pressed="true">必背</button>
+      <button type="button" data-tab="quotes" aria-pressed="false">講師金句</button>
+    </div>
+    <ul class="list" id="recite-list"></ul>
+    <div class="list" id="quote-list" hidden></div>
+  </div>
+
+  <div id="s-piece" hidden>
+    <button type="button" class="back" id="piece-back">‹ 回藏經閣</button>
+    <article class="piece" id="piece"></article>
+    <div class="piece-foot">
+      <button type="button" id="piece-prev">‹ 上一篇</button>
+      <button type="button" id="piece-next">下一篇 ›</button>
+    </div>
+  </div>
+
+</main>
+<script>
+(() => {
+  const LIFF_ID = '2009692859-h2XfVyCT';   // 「總會員中心」LIFF（Endpoint https://unpaplus.com.tw/，這一頁在它底下，共用）
+  const GATE = 'https://nsgqsopqlkhayuefdout.supabase.co/functions/v1/member-gate';
+  const HUB_URL = 'https://liff.line.me/2009692859-h2XfVyCT?member=1';
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+  const preview = (location.hash.match(/^#preview(-quotes|-none)?$/) || [null])[0];
+  let data = null, tab = 'recite';
+
+  // 版面預覽用的假字（真的內容只在登入後由伺服器給，不寫在這個檔案裡）
+  const MOCK = {
+    access: true, name: '預覽會員',
+    recite: [
+      { id: 'demo-a', title: '示範一（編號的）', numbered: true, body: Array.from({ length: 21 }, (_, i) => '這是第 ' + (i + 1) + ' 句示範文字，長一點的句子會自動換行').join('\n') },
+      { id: 'demo-b', title: '示範二（分段的）', numbered: false, body: '第一段第一行 同一行的後半句\n\n第二段第一行\n第二段第二行\n\n最後一段！' },
+      { id: 'demo-c', title: '示範三___________標題很長', numbered: false, body: '只有一段' },
+    ],
+    quotes: [],
+  };
+  const MOCK_QUOTES = [{ id: 'q1', body: '這是一則示範金句，真的內容等講師的話進來。', speaker: '示範講師' }, { id: 'q2', body: '第二則示範金句。', speaker: null }];
+
+  function show(id) {
+    for (const s of ['s-loading', 's-none', 's-home', 's-piece']) $(s).hidden = s !== id;
+    window.scrollTo(0, 0);
+  }
+  function fail(title, text) {
+    $('none-title').textContent = title; $('none-text').textContent = text; $('none-btn').hidden = true;
+    show('s-none');
+  }
+
+  async function load() {
+    if (preview) return preview === '#preview-none' ? { access: false } : { ...MOCK, quotes: preview === '#preview-quotes' ? MOCK_QUOTES : [] };
+    const res = await fetch(GATE, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: liff.getAccessToken(), action: 'sutra', fn: 'get_sutra' }) });
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || 'gate');
+    return d.data;
+  }
+
+  /* ---------- 首頁清單 ---------- */
+  function paintHome() {
+    if (data.name) $('home-sub').textContent = data.name + '，心法都收在這裡';
+    const hasQuotes = data.quotes.length > 0;
+    $('tabs').hidden = !hasQuotes;                 // 金句還沒有內容：不出現切換鈕，直接列必背
+    if (!hasQuotes) tab = 'recite';
+    for (const b of $('tabs').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
+    $('recite-list').hidden = tab !== 'recite';
+    $('quote-list').hidden = tab !== 'quotes';
+
+    $('recite-list').replaceChildren(...data.recite.map((it) => {
+      const li = el('li'), b = el('button', 'item'), main = el('span', 'item-main');
+      b.type = 'button';
+      main.append(el('span', 'item-title', it.title));
+      if (it.numbered) main.append(el('span', 'item-note', it.body.split('\n').length + ' 句'));
+      b.append(main, el('span', 'item-go', '›'));
+      b.addEventListener('click', () => { location.hash = it.id; });
+      li.append(b);
+      return li;
+    }));
+    $('quote-list').replaceChildren(...data.quotes.map((q) => {
+      const box = el('blockquote', 'quote');
+      box.append(el('p', '', q.body));
+      if (q.speaker) box.append(el('footer', '', '— ' + q.speaker));
+      return box;
+    }));
+  }
+
+  /* ---------- 單篇 ---------- */
+  function paintPiece(i) {
+    const it = data.recite[i], box = $('piece');
+    box.replaceChildren(el('h1', '', it.title));
+    if (it.numbered) {
+      const ol = el('ol');
+      for (const line of it.body.split('\n')) ol.append(el('li', '', line));
+      box.append(ol);
+    } else {
+      for (const para of it.body.split(/\n\s*\n/)) box.append(el('p', '', para));   // 空行分段；段內照原本的換行
+    }
+    const prev = data.recite[i - 1], next = data.recite[i + 1];
+    $('piece-prev').disabled = !prev; $('piece-next').disabled = !next;
+    $('piece-prev').onclick = () => { location.hash = prev.id; };
+    $('piece-next').onclick = () => { location.hash = next.id; };
+  }
+
+  // 網址 # 後面是哪一篇就開哪一篇（手機的返回鍵也照這個走）
+  function route() {
+    if (!data) return;
+    const id = decodeURIComponent(location.hash.slice(1));
+    const i = data.recite.findIndex((it) => it.id === id);
+    if (i >= 0) { paintPiece(i); show('s-piece'); }
+    else { paintHome(); show('s-home'); }
+  }
+  window.addEventListener('hashchange', route);
+  $('piece-back').addEventListener('click', () => { history.replaceState(null, '', location.pathname + location.search); route(); });
+  for (const b of $('tabs').querySelectorAll('button')) b.addEventListener('click', () => { tab = b.dataset.tab; paintHome(); });
+
+  async function open() {
+    try { data = await load(); } catch (e) { console.error('sutra', e); return fail('連線失敗', '請稍後再打開一次。'); }
+    if (!data || !data.access) {
+      const oa = new URLSearchParams(location.search).get('oa');
+      if (oa) $('none-btn').href = HUB_URL + '&oa=' + encodeURIComponent(oa);
+      return show('s-none');
+    }
+    if (preview) history.replaceState(null, '', location.pathname + location.search);   // 預覽：把 #preview 收掉，之後 # 留給篇名
+    route();
+  }
+
+  // 註冊完滑回來 → 自動重查
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !preview && !$('s-none').hidden && !$('none-btn').hidden) open(); });
+
+  (async () => {
+    if (preview) return open();
+    try {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href.split('#')[0] }); return; }
+    } catch (e) {
+      console.error('liff', e);
+      return fail('開啟失敗', '請從 LINE 開啟這個頁面。若持續失敗，請聯繫團隊負責人。');
+    }
+    open();
+  })();
+})();
+</script>
+</body>
+</html>
