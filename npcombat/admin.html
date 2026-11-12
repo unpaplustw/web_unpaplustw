@@ -852,6 +852,9 @@ function renderHwMatrix(realStudents, coachById, scope) {
 
   const hwBy  = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
   const engBy = {}; engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
+  // 🔴 2026-11-12 Randoph：教練已按送出、這格沒標＝學員沒交（送出時就寫「沒標到的就算學員沒繳」），不是教練未回報
+  const subSet = new Set(submitRows.map(r => r.coach_id + '|' + r.log_date)), coachIdOf = {};
+  students.forEach(s => { coachIdOf[s.id] = s.coach_id; });
   const logBy = {}; allLogs.forEach(l => logBy[l.student_id + '|' + l.log_date] = l);
   mkSet = new Set(makeupRows.filter(r => r.subject === 'student').map(r => r.student_id + '|' + r.log_date));
   // 學員遲交＝行動紀錄最後修改時間晚於當天 22:00（台北）。作業沒有學員的時間戳，只有教練標記，所以作業表不判遲交。
@@ -901,6 +904,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
       if (eng && eng.homework === false)
         return { k:'none', txt:'✕', why:'LINE 標沒交', hw:true };
       // ③ 教練沒標
+      if (subSet.has(coachIdOf[sid] + '|' + ds)) return { k:'none', txt:'✕', why:'教練已送出、沒標這位＝學員沒交', hw:true };
       return over ? { k:'unk', txt:'？', why:'教練還沒回報，學員交了沒不知道' }
                   : { k:'na',  txt:'',  why:'還在期限內' };
     }
@@ -1192,6 +1196,7 @@ function calcDemerits() {
   const hwBy = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
   const graceOn = b.hw_grace_until && today <= b.hw_grace_until;   // 寬限期內只提醒不計點
 
+  const subSet2 = new Set(submitRows.map(r => r.coach_id + '|' + r.log_date));
   const stuRows = stu.map(s => {
     // 🚪 退班後不再累加（2026-08-25 Randoph）：人都退了還一路加到結業，
     //    那個數字沒有意義，還會讓全班統計失真。點數凍結在退班當下。
@@ -1199,7 +1204,7 @@ function calcDemerits() {
     let miss = 0;                                   // 小組回報：教練標「沒交」的天數
     dueDays.forEach(d => {
       if (gone && d >= gone) return;                // 退班日（含）之後不計
-      const r = engBy[s.id + '|' + d]; if (r && r.homework === false) miss++;
+      const r = engBy[s.id + '|' + d]; if (r && r.homework != null ? r.homework === false : subSet2.has(s.coach_id + '|' + d)) miss++;   // 🔴 2026-11-12 Randoph：教練已按送出、這格沒標＝學員沒交（送出時就寫「沒標到的就算學員沒繳」），不是教練未回報
     });
     // 🔴 2026-08-19 Randoph 決定：教練沒檢核就當學員沒交。
     //    「退不退班是我們人工說的算，就是要誇張的數字，逼教練去填寫。」

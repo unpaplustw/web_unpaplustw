@@ -1765,12 +1765,14 @@ function dayState(sid, ds) {
       const tot  = recs.reduce((a, r) => a + (r.total || 0), 0);
       if (done > 0) return { k:'part', label:`${done}/${tot}` };
     }
+    if (isSubmitted(ds)) return { k:'none', label:'✕' };   // 🔴 2026-11-12 Randoph：教練已按送出、這格沒標＝學員沒交（送出時就寫「沒標到的就算學員沒繳」），不是教練未回報
     return overDeadline(ds) ? { k:'unk', label:'？' } : { k:'na', label:'' };
   }
   // 心得日：看小組心得（教練標）
   const r = engAll[sid + '|' + ds];
   if (r && r.homework === true)  return { k:'full', label:'✓' };
   if (r && r.homework === false) return { k:'none', label:'✕' };
+  if (isSubmitted(ds)) return { k:'none', label:'✕' };   // 同上：已送出、沒標＝學員沒交
   return overDeadline(ds) ? { k:'unk', label:'？' } : { k:'na', label:'' };
 }
 
