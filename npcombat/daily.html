@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="units.js"></script>
 <script src="score.js?v=20261112"></script>
+<script src="commit.js?v=20261112"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap');
   :root {
@@ -415,6 +416,7 @@
   <div class="hd-day" id="dayCount"></div>
 </div>
 <div class="deadline-bar">⏰ 每日最晚 22:00 填寫回報</div>
+<div id="commitArea"></div>   <!-- ⭐ 自己的承諾：五格（2026-11-12，規則在 commit.js） -->
 <div class="goal-panel" id="goalPanel" style="display:none"></div>   <!-- 目標完成率（2026-11-08） -->
 <div class="ptabs" id="pageTabs" style="display:none"></div>   <!-- 整頁頁籤（2026-11-08） -->
 
@@ -1586,6 +1588,7 @@ async function init() {
       return;
     }
     studentId = stu.id;
+    loadCommit(sb, BATCH_ID, [studentId]).then(m => { if (m[studentId]) document.getElementById('commitArea').innerHTML = commitCard(m[studentId]); }).catch(() => {});   // ⭐ 自己的承諾：不擋主流程，算不出來就不顯示
     // 班別以「組」為準（組的 track），組還沒設才退回學員自己報名的 track。
     // 2026-09-13：原本不分班別，行動組／精英組 9/14 起一打開也停在學習頁籤看到作業——他們不用上課。
     myTrack = stu.track || 'learn';

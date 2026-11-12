@@ -9,6 +9,7 @@
 <script src="units.js"></script>
 <script src="consts.js"></script>
 <script src="score.js?v=20261112"></script>
+<script src="commit.js?v=20261112"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
   :root {
@@ -535,6 +536,7 @@
     只問「完成了沒」，<b>不壓日期</b>——任何時候都可以回頭補。點格子展開該單元題目逐題勾，勾幾題系統自己算。<br>
     <span class="hw-lg"><i class="hw-c hw-full"></i>全繳　<i class="hw-c hw-part"></i>部分　<i class="hw-c hw-none"></i>沒繳　<i class="hw-c mk"></i>結案後補標　<i class="hw-c hw-unk"></i>還沒回報</span>
   </div>
+  <div id="hwCommit"></div>   <!-- ⭐ 自己的承諾：整組五格（2026-11-12） -->
   <div id="hwGrid"></div>
   <div id="hwDetail" style="display:none"></div>
   <div id="hwMissing"></div>
@@ -1074,6 +1076,15 @@ function rerenderVerify() { if (currentMode === 'org') renderOrg(); else renderE
 // ══ 🌱 我的組織（2026-11-08 Randoph）══════════════════════════════
 //   帶組＝陪跑，不是上下線；學員的締結由「負責上線」（報名選的引路人）審，終身組由該組教練審。
 //   這一頁就是教練自己組織的成績：誰在我組織裡、報了什麼、直推到哪、組織締結幾筆。
+// ⭐ 自己的承諾（2026-11-12 Randoph）：學員頁、教練一覽表、負責上線看到同一排五格。規則只在 commit.js
+let orgCommit = {};
+async function loadOrgCommit() { try { orgCommit = await loadCommit(sb, BATCH_ID, myDownline.map(s => s.id)); } catch (e) { orgCommit = {}; } }
+async function paintHwCommit() {
+  const el = document.getElementById('hwCommit'); if (!el) return;
+  try { const m = await loadCommit(sb, BATCH_ID, studentList.map(s => s.id));
+        el.innerHTML = commitList(studentList.filter(s => !s.dropped_at).map(s => ({ name: s.name, c: m[s.id] })), '待你確認'); }
+  catch (e) { el.innerHTML = ''; }
+}
 function renderOrg() {
   const el = document.getElementById('orgArea'); if (!el) return;
   const chip = (txt, ok) => `<span class="gchip${ok ? ' ok' : ''}">${ok ? '✅ ' : ''}${txt}</span>`;
@@ -1081,7 +1092,7 @@ function renderOrg() {
     const cs = downlineCloses.filter(c => c.member_id === s.member_id && c.verified !== false);
     const direct = new Set(cs.filter(c => c.is_new === true && c.target_code).map(c => c.target_code)).size;
     return { s, direct, org: cs.filter(c => c.is_org).length, goal: TRACK_GOAL[s.track] || 1 };
-  }).sort((a, b) => (b.direct >= b.goal) - (a.direct >= a.goal) || b.direct - a.direct);
+  }).sort((a, b) => ((orgCommit[b.s.id] || {}).x >= 3) - ((orgCommit[a.s.id] || {}).x >= 3) || (b.direct >= b.goal) - (a.direct >= a.goal) || b.direct - a.direct);   // 缺交滿三個的排最前面
   const sum = rows.reduce((a, r) => a + r.direct, 0), orgN = rows.reduce((a, r) => a + r.org, 0);
   el.innerHTML = `<div class="org-intro">🌱 <b>我的組織</b>＝報名時選<b>你</b>當負責上線的學員（👑 終身組＝你這組的學員）。<br>`
     + `不管他在哪一組、誰帶他，<b>他的締結都由你審</b>，他的成績也是你組織的成績。</div>`
@@ -1091,6 +1102,7 @@ function renderOrg() {
       + `<div class="ggoal-row"><span>🌱 組織締結（非實戰班夥伴）</span><b>${orgN} 筆</b></div></div>`
       + rows.map(r => `<div class="org-row"><div class="org-top"><b>${r.s.name}</b>${trackTag(r.s)}<small>${r.s.group || '未分組'}</small></div>`
         + `<div class="gchips" style="padding:4px 0 0">${chip(`🎯 直推 ${r.direct}/${r.goal}`, r.direct >= r.goal)}${r.org ? chip(`🌱 組織締結 ${r.org}`, false) : ''}</div>`
+        + (orgCommit[r.s.id] ? `<div style="padding:8px 0 2px">${commitRow(orgCommit[r.s.id], '教練未確認')}</div>` : '')
         + `<button class="eng-book" onclick="showStuBook('${r.s.id}', this)">📒 看名單本</button><div></div></div>`).join('')
       : `<div class="hw-hint">目前沒有學員選你當負責上線。</div>`);
 }
@@ -1440,7 +1452,7 @@ function setMode(mode) {
   } else if (mode === 'org') {
     const a = document.getElementById('orgArea');
     if (a && !a.innerHTML) a.innerHTML = '<div class="hw-hint">載入中…</div>';
-    loadDownlineCloses().then(() => { renderOrg(); renderChkBadge(); })
+    loadDownlineCloses().then(loadOrgCommit).then(() => { renderOrg(); renderChkBadge(); })
       .catch(e => { if (a) a.innerHTML = `<div class="hw-hint">資料載入失敗：${e.message}<br>請關掉重開，或截圖告訴總教練</div>`; });
   } else if (mode === 'guide') {
     fillDropStu();                                                  // 退班下拉：切進來才填，學員清單此時已載入
@@ -1897,6 +1909,7 @@ function renderHw() {
   });
   h += '</table></div>';
   grid.innerHTML = h;
+  paintHwCommit();
   renderHwDetail();
 
   const mbox = document.getElementById('hwMissing');
