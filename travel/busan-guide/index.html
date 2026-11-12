@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>釜山加碼攻略｜獎勵旅遊</title>
+<meta name="description" content="冬季戀歌之旅（奔馳團隊）加碼攻略：直推 600 分半價招待，放下 3 位看獎金怎麼跳。加碼辦法以奔馳團隊公告為準。">
+<meta name="theme-color" content="#171c26">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<style>
+  /* 釜山團加碼攻略：登機證頁 /travel/?t=busan-2027 的「加碼攻略」按鈕點進來。顏色跟 /travel/ 同一套。內容照奔馳團隊加碼海報；獎金數字是 Randoph 給的試算（2026-11-12） */
+  :root {
+    --bg: #f7f5f0; --card: #ffffff; --cream: #f6f1e1; --line: #e6e0d2;
+    --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c;
+    --board: #171c26; --board-dark: #0e121a; --board-line: #2b3342;
+    --pass-ink: #f4f1e6; --pass-sub: #9aa3b5; --amber: #ffc93c; --lit: #57d98a;
+    --s-refer: #a37f00; --s-cycle: #1b7fb0; --ok: #1f7a46; --ok-bg: #e4f3ea;
+    --note: #5b6472; --note-line: #b9c0cc;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; font-size: 20px; line-height: 1.65; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 460px; margin: 0 auto; padding-block: 16px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+
+  .back { display: inline-block; min-height: 44px; padding: 8px 4px; color: var(--sub); font-size: 17px; text-decoration: none; }
+
+  .cta { display: block; margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--btn); color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
+  .cta::after { content: " ›"; }
+  .cta.guide { background: var(--board); color: var(--amber); }
+  .cta.guide::after { content: none; }
+  .cta small { display: block; color: var(--pass-ink); font-size: 16px; font-weight: 400; }
+
+  /* 上半深色票頭 */
+  .pass { padding: 20px 20px 22px; border-radius: 16px 16px 0 0; background: var(--board); color: var(--pass-ink); }
+  .pass-code { margin: 0 0 10px; color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: .16em; }
+  .pass h1 { margin: 0 0 18px; font-size: 32px; font-weight: 900; line-height: 1.3; }
+  .pass h1 em { color: var(--amber); font-style: normal; }
+  .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0; }
+  .pass-grid div { min-width: 0; }
+  .pass-grid div:last-child { grid-column: 1 / -1; }
+  .pass-grid dt { color: var(--pass-sub); font-size: 14px; }
+  .pass-grid dd { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.45; }
+  .tear { position: relative; height: 22px; background: var(--card); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .tear::before { content: ""; position: absolute; left: 18px; right: 18px; top: 10px; border-top: 2px dashed var(--line); }
+  .tear i { position: absolute; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); }
+  .tear i:first-child { left: -12px; }
+  .tear i:last-child { right: -12px; }
+
+  .sheet { padding: 0 20px 22px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 16px 16px; background: var(--card); }
+  .sheet section { padding: 20px 0; border-top: 1px solid var(--line); }
+  .sheet section:first-child { border-top: 0; padding-top: 6px; }
+  .sheet section:last-child { padding-bottom: 0; }
+  h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 23px; line-height: 1.4; }
+  h2 .no { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--board); color: var(--amber); font-size: 18px; }
+  p { margin: 0; }
+  .hint { margin-top: 10px; color: var(--sub); font-size: 17px; }
+  .lead { font-size: 22px; font-weight: 700; }
+
+  /* 1. 三位＝600 分 */
+  .meter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 14px; }
+  .meter div { padding: 10px 4px; background: var(--cream); text-align: center; line-height: 1.35; }
+  .meter div:first-child { border-radius: 10px 0 0 10px; }
+  .meter div:last-child { border-radius: 0 10px 10px 0; }
+  .meter span { display: block; color: var(--sub); font-size: 15px; }
+  .meter b { font-size: 22px; font-variant-numeric: tabular-nums; }
+  .sum { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; font-size: 22px; }
+  .sum b { font-size: 30px; font-weight: 900; }
+  .ok { padding: 2px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-size: 17px; font-weight: 700; }
+
+  /* 2. 旅費這邊 */
+  .fare { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--cream); }
+  .fare .from { flex: 1; min-width: 0; line-height: 1.4; }
+  .fare .from span { display: block; color: var(--sub); font-size: 15px; }
+  .fare .from b { font-size: 22px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fare .arrow { flex: none; color: var(--sub); font-size: 24px; }
+  .fare .to { flex: none; font-size: 28px; font-weight: 900; }
+
+  /* 3. 收入這邊：三種位置比一比 */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 4px; font-size: 16px; color: var(--sub); }
+  .legend i { display: inline-block; width: 14px; height: 14px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; }
+  .k-refer { background: var(--s-refer); }
+  .k-cycle { background: var(--s-cycle); }
+  .seat { margin-top: 14px; padding: 14px 16px 16px; border-radius: 12px; background: var(--cream); }
+  .seat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .seat-name { font-size: 22px; font-weight: 700; }
+  .seat-name span { color: var(--sub); font-size: 16px; font-weight: 400; }
+  .seat-total { font-size: 28px; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .seat-total span { font-size: 17px; font-weight: 700; }
+  .bar { display: flex; gap: 2px; height: 18px; margin: 8px 0 10px; }
+  .bar i { display: block; min-width: 0; }
+  .bar .k-refer { border-radius: 4px 0 0 4px; }
+  .bar .k-cycle { border-radius: 0 4px 4px 0; }
+  .calc { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 17px; line-height: 1.5; }
+  .calc dt { color: var(--sub); }
+  .calc dt i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; }
+  .calc dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .calc dd b { font-weight: 700; }
+
+  /* 4. 時間 */
+  .steps { margin: 0; padding: 0; list-style: none; }
+  .steps > li { position: relative; padding: 0 0 18px 44px; }
+  .steps > li:last-child { padding-bottom: 0; }
+  .steps > li::before { content: ""; position: absolute; left: 15px; top: 34px; bottom: 0; border-left: 2px solid var(--line); }
+  .steps > li:last-child::before { display: none; }
+  .steps .dot { position: absolute; left: 0; top: 2px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--board); font-size: 16px; font-weight: 700; }
+  .steps .when { color: var(--gold); font-size: 17px; font-weight: 700; }
+  .steps .what { font-size: 21px; font-weight: 700; line-height: 1.45; }
+  .who { margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: var(--cream); }
+  .who h3 { margin: 0 0 4px; font-size: 18px; }
+  .who h3 span { color: var(--sub); font-size: 15px; font-weight: 400; }
+  .who p { margin-top: 6px; font-size: 18px; line-height: 1.45; }
+  .who p span { display: block; color: var(--sub); font-size: 17px; }
+  .who p b { font-size: 21px; }
+  .nb { white-space: nowrap; }
+
+  /* 5. 要先知道 */
+  .know { margin: 0; padding-left: 1.2em; }
+  .know li { margin-top: 6px; }
+  .know li:first-child { margin-top: 0; }
+
+  /* 分數對照表 */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 18px; font-variant-numeric: tabular-nums; }
+  caption { padding-bottom: 6px; color: var(--gold); font-size: 17px; font-weight: 700; text-align: left; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { color: var(--sub); font-size: 15px; font-weight: 400; }
+  td.pick { background: var(--cream); font-weight: 900; }
+
+  .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
+  .foot strong { display: block; color: var(--ink); font-size: 17px; }
+
+  /* 3. 互動：把 3 位放下去，看獎金跳 */
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .tabs button { min-height: 64px; padding: 6px 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 21px; font-weight: 700; line-height: 1.3; cursor: pointer; }
+  .tabs button small { display: block; color: var(--sub); font-size: 15px; font-weight: 400; }
+  .tabs button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .tabs button[aria-pressed="true"] small { color: var(--pass-ink); }
+  .stage { margin-top: 12px; padding: 10px 6px 6px; border-radius: 12px; background: var(--cream); }
+  .stage svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; overflow: visible; }
+  .edge { stroke: var(--note-line); stroke-width: 2; }
+  .mid { stroke: var(--sub); stroke-width: 2; }
+  .edge.hot { stroke: var(--s-cycle); stroke-width: 4; }
+  .me circle { fill: var(--card); stroke: var(--note-line); stroke-width: 2; transition: fill .2s, stroke .2s; }
+  .me text { fill: var(--sub); font-size: 15px; font-weight: 700; }
+  .me.path circle { fill: var(--board); stroke: var(--board); }
+  .me.path text { fill: var(--amber); }
+  .me.lit circle { fill: var(--amber); stroke: var(--s-cycle); stroke-width: 4; }
+  .me.lit text { fill: var(--board); }
+  .slot circle { fill: var(--card); stroke: var(--sub); stroke-width: 2; stroke-dasharray: 4 4; }
+  .slot text { fill: var(--sub); font-size: 17px; font-weight: 700; }
+  .slot.on circle { fill: var(--s-cycle); stroke: var(--s-cycle); stroke-dasharray: none; }
+  .slot.on text { fill: #ffffff; }
+  .slot.on { animation: drop .35s ease-out; transform-box: fill-box; transform-origin: center; }
+  @keyframes drop { from { transform: translateY(-26px) scale(.6); opacity: 0; } }
+  .big-leg { fill: var(--line); stroke: var(--note-line); stroke-width: 1.5; }
+  .tag { fill: var(--sub); font-size: 13px; }
+  .tag.small-leg { fill: var(--ink); font-size: 14px; font-weight: 700; }
+  .float { fill: var(--ink); font-size: 16px; font-weight: 900; animation: rise .95s ease-out forwards; paint-order: stroke; stroke: var(--cream); stroke-width: 4px; }
+  @keyframes rise { from { transform: translateY(6px); opacity: 0; } 25% { opacity: 1; } to { transform: translateY(-16px); opacity: 0; } }
+  .drop { display: block; width: 100%; margin-top: 12px; padding: 14px; border: 0; border-radius: 14px; background: var(--btn); color: var(--ink); font: inherit; font-size: 22px; font-weight: 700; cursor: pointer; }
+  .drop[disabled] { opacity: .55; cursor: default; }
+  .tally { margin-top: 12px; padding: 14px 16px; border: 2px solid var(--board); border-radius: 12px; background: var(--card); }
+  .tally-total { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .tally-total > span { font-size: 18px; font-weight: 700; }
+  .tally-total b { font-size: 40px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tally-total b i { font-size: 18px; font-style: normal; font-weight: 700; }
+  .tally-total b.bump { animation: bump .28s ease-out; }
+  @keyframes bump { 40% { transform: scale(1.12); } }
+  .tally dt { white-space: nowrap; }
+  .tally dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 18px; }
+  .tally dt i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; }
+  .tally dd { margin: 0; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tally .ok { margin-left: 6px; white-space: nowrap; }
+  .tally dd { white-space: nowrap; }
+  h3.sub { margin: 24px 0 0; font-size: 21px; }
+  @media (prefers-reduced-motion: reduce) { .slot.on, .float, .tally-total b.bump { animation: none; } .float { opacity: 0; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/travel/?t=busan-2027">‹ 回上一頁</a>
+  <header class="pass">
+    <p class="pass-code">BONUS・加碼攻略</p>
+    <h1>直推 600 分<br><em>釜山半價去</em></h1>
+    <dl class="pass-grid">
+      <div><dt>活動</dt><dd>冬季戀歌之旅</dd></div>
+      <div><dt>報名截止</dt><dd>2026/11/23</dd></div>
+      <div><dt>誰加碼</dt><dd>兩千萬美金與千萬美金領袖 × CFC 世界大使</dd></div>
+    </dl>
+  </header>
+  <div class="tear"><i></i><i></i></div>
+
+  <div class="sheet">
+
+    <section>
+      <h2><span class="no">1</span>最快的走法</h2>
+      <p class="lead">直接推薦 3 位「1+11・15,000P」</p>
+      <div class="meter" role="img" aria-label="三位各 200 分，合計 600 分">
+        <div><span>第 1 位</span><b>200 分</b></div>
+        <div><span>第 2 位</span><b>200 分</b></div>
+        <div><span>第 3 位</span><b>200 分</b></div>
+      </div>
+      <p class="sum">合計 <b>600 分</b><span class="ok">✓ 達標</span></p>
+      <p class="hint">推薦在 BC001 位置，每位算 220 分，3 位是 660 分。</p>
+    </section>
+
+    <section>
+      <h2><span class="no">2</span>旅費這邊</h2>
+      <div class="fare">
+        <div class="from"><span>團費每人</span><b>24,600 元</b></div>
+        <div class="arrow">→</div>
+        <div class="to">半價招待</div>
+      </div>
+      <p class="hint">加碼補助用紅包發放。</p>
+    </section>
+
+    <section>
+      <h2><span class="no">3</span>收入這邊</h2>
+      <p class="lead">放下 3 位，看獎金跳</p>
+      <div class="tabs" id="sim-tabs">
+        <button type="button" data-mode="1" aria-pressed="true">小資<small>1 單位</small></button>
+        <button type="button" data-mode="3" aria-pressed="false">小金<small>3 單位</small></button>
+        <button type="button" data-mode="7" aria-pressed="false">大金<small>7 單位</small></button>
+      </div>
+      <div class="tally" aria-live="polite">
+        <div class="tally-total"><span>獎金合計</span><b id="sim-total"><span id="sim-total-n">0</span> <i>元</i></b></div>
+        <dl>
+          <dt><i class="k-refer"></i>推薦獎金</dt><dd id="sim-refer">0</dd>
+          <dt><i class="k-cycle"></i>日循環獎金</dt><dd id="sim-cycle">0</dd>
+          <dt>直推分數</dt><dd><span id="sim-score">0</span> 分<span class="ok" id="sim-ok" hidden>✓ 達標</span></dd>
+        </dl>
+      </div>
+      <div class="stage"><svg id="sim-tree" viewBox="0 0 300 226" role="img" aria-label="你的位置圖：新人放在最小邊"></svg></div>
+      <button type="button" class="drop" id="sim-drop">放下第 1 位</button>
+      <p class="hint">圓圈「你」是你自己的位置。新人放在最小邊，往上每經過一個你的位置，就多領一次日循環獎金。</p>
+      <h3 class="sub">放完 3 位，三種比一比</h3>
+      <p class="hint">同樣推薦這 3 位，推薦獎金一樣，差在日循環獎金。</p>
+      <div class="legend"><span><i class="k-refer"></i>推薦獎金</span><span><i class="k-cycle"></i>日循環獎金</span></div>
+
+      <div class="seat">
+        <div class="seat-head"><div class="seat-name">小資 <span>1 單位</span></div><div class="seat-total">38,700 <span>元</span></div></div>
+        <div class="bar" style="width:46.24%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:22500" title="日循環獎金 22,500 元"></i></div>
+        <dl class="calc">
+          <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
+          <dt><i class="k-cycle"></i>7,500 × 3</dt><dd><b>22,500</b></dd>
+        </dl>
+      </div>
+
+      <div class="seat">
+        <div class="seat-head"><div class="seat-name">小金 <span>3 單位</span></div><div class="seat-total">61,200 <span>元</span></div></div>
+        <div class="bar" style="width:73.12%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:45000" title="日循環獎金 45,000 元"></i></div>
+        <dl class="calc">
+          <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
+          <dt><i class="k-cycle"></i>7,500 × 3 × 2</dt><dd><b>45,000</b></dd>
+        </dl>
+      </div>
+
+      <div class="seat">
+        <div class="seat-head"><div class="seat-name">大金 <span>7 單位</span></div><div class="seat-total">83,700 <span>元</span></div></div>
+        <div class="bar" style="width:100%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:67500" title="日循環獎金 67,500 元"></i></div>
+        <dl class="calc">
+          <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
+          <dt><i class="k-cycle"></i>7,500 × 3 × 3</dt><dd><b>67,500</b></dd>
+        </dl>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="no">4</span>什麼時候要做完</h2>
+      <ol class="steps">
+        <li>
+          <span class="dot">1</span>
+          <div class="when">2026/11/23 前</div>
+          <div class="what">先報名，繳訂金 <span class="nb">10,000 元</span></div>
+        </li>
+        <li>
+          <span class="dot">2</span>
+          <div class="when">報件期限內</div>
+          <div class="what">直推分數達 600 分</div>
+          <div class="who">
+            <h3>既有會員</h3>
+            <p><span>11/1～12/15 前報件</span><b>半價招待</b></p>
+            <p><span>12/16～12/31 報件</span><b>5,000 元獎金</b></p>
+          </div>
+          <div class="who">
+            <h3>新會員 <span>11/1 以後加入</span></h3>
+            <p><span>活動發布日起～12/31 報件</span><b>半價招待</b></p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2><span class="no">5</span>要先知道</h2>
+      <ul class="know">
+        <li>分數不含互助分數。</li>
+        <li>以名義計，一個名義只補助一個名額。</li>
+        <li>沒達到補助資格，照原團費參加，訂金不退。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>分數對照表</h2>
+      <div class="tbl-wrap">
+        <table>
+          <caption>推薦 BC001 位置</caption>
+          <thead><tr><th>創業方案</th><th>1+11／1+11B</th><th>1+5／1+5B</th></tr></thead>
+          <tbody>
+            <tr><td>20,000P</td><td>300 分</td><td>150 分</td></tr>
+            <tr><td>15,000P</td><td>220 分</td><td>110 分</td></tr>
+            <tr><td>10,000P</td><td>132 分</td><td>66 分</td></tr>
+          </tbody>
+        </table>
+        <table>
+          <caption>推薦 BC 位置</caption>
+          <thead><tr><th>創業方案</th><th>1+11／1+11B</th><th>1+5／1+5B</th></tr></thead>
+          <tbody>
+            <tr><td>20,000P</td><td>260 分</td><td>130 分</td></tr>
+            <tr><td>15,000P</td><td class="pick">200 分</td><td>100 分</td></tr>
+            <tr><td>10,000P</td><td>120 分</td><td>60 分</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <a class="cta" href="https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec">看完整行程與報名</a>
+  <p class="foot"><strong>加碼辦法以奔馳團隊公告為準；獎金是以「推薦 3 位 1+11・15,000P」試算，實際以公司核發為準。</strong>資料來源：奔馳團隊加碼獎勵海報</p>
+
+</main>
+<script>
+(() => {
+  // 互動試算：新人放在最小邊，往上每經過一個自己的位置領一次日循環獎金
+  const NS = 'http://www.w3.org/2000/svg';
+  const REFER = 5400, CYCLE = 7500, SCORE = 200, SEATS = 3;
+  // nodes＝自己的位置（x, y）；path＝新人往上會經過的位置（由下往上）
+  // r＝自己位置的半徑；mid＝中間那條線的 x；slots＝最小邊的三個直推位；tris＝直推那個位置的另一邊（直角三角形）；isos＝其他位置底下（等腰三角形 x, 頂, 半寬, 底）
+  const MODES = {
+    1: { h: 304, r: 22, mid: 160, nodes: [[160, 40]], edges: [], path: [0],
+      slots: [[112, 112], [76, 178], [40, 244]], tris: [[176, 56, 176, 236, 284, 236]], isos: [], small: [16, 292] },
+    3: { h: 332, r: 20, mid: 170, nodes: [[170, 44], [106, 104], [234, 104]], edges: [[0, 1], [0, 2]], path: [1, 0],
+      slots: [[76, 166], [56, 224], [36, 282]], tris: [[118, 118, 118, 226, 160, 226]], isos: [[234, 104, 46, 226]], small: [14, 322] },
+    7: { h: 366, r: 17, mid: 173, nodes: [[173, 44], [99, 94], [239, 94], [58, 146], [140, 146], [206, 146], [272, 146]], edges: [[0, 1], [0, 2], [1, 3], [1, 4], [2, 5], [2, 6]], path: [3, 1, 0],
+      slots: [[44, 204], [34, 258], [24, 312]], tris: [[70, 160, 70, 236, 100, 236]], isos: [[140, 146, 26, 236], [206, 146, 26, 236], [272, 146, 26, 236]], small: [6, 354] },
+  };
+  const svg = document.getElementById('sim-tree');
+  const tabs = [...document.querySelectorAll('#sim-tabs button')];
+  const btn = document.getElementById('sim-drop');
+  const out = { total: document.getElementById('sim-total-n'), refer: document.getElementById('sim-refer'), cycle: document.getElementById('sim-cycle'), score: document.getElementById('sim-score') };
+  const totalBox = document.getElementById('sim-total');
+  const okTag = document.getElementById('sim-ok');
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt = (n) => Math.round(n).toLocaleString('en-US');
+  const wait = (ms) => new Promise((r) => setTimeout(r, calm ? 0 : ms));
+  const mk = (tag, attrs, text) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (text !== undefined) n.textContent = text; return n; };
+  let mode = 1, placed = 0, busy = false, run = 0;
+  const shown = { total: 0, refer: 0, cycle: 0, score: 0 };
+  const sums = { refer: 0, cycle: 0, score: 0 };
+  let parts = { nodes: [], slots: [], hot: [] };
+
+  // 數字跳動：從畫面上現在的數字滾到新的數字
+  function roll(key, to) {
+    const from = shown[key], el = out[key], t0 = performance.now(), mine = run;
+    if (calm) { shown[key] = to; el.textContent = fmt(to); return; }
+    const tick = (now) => {
+      if (mine !== run) return;
+      const p = Math.min(1, (now - t0) / 320);
+      shown[key] = from + (to - from) * p;
+      el.textContent = fmt(shown[key]);
+      if (p < 1) requestAnimationFrame(tick); else shown[key] = to;
+    };
+    requestAnimationFrame(tick);
+  }
+  function showSums() {
+    roll('refer', sums.refer); roll('cycle', sums.cycle); roll('score', sums.score); roll('total', sums.refer + sums.cycle);
+    totalBox.classList.remove('bump'); void totalBox.offsetWidth; totalBox.classList.add('bump');
+  }
+
+  function draw() {
+    const m = MODES[mode];
+    svg.setAttribute('viewBox', '0 0 300 ' + m.h);
+    svg.replaceChildren();
+    parts = { nodes: [], slots: [], hot: [] };
+    const onPath = (i) => m.path.includes(i);
+    // 中間那條線：左邊最小邊、右邊大邊
+    svg.append(mk('line', { class: 'mid', x1: m.mid, y1: m.nodes[0][1], x2: m.mid, y2: m.h - 8 }));
+    for (const [a, b] of m.edges) {
+      const line = mk('line', { class: 'edge', x1: m.nodes[a][0], y1: m.nodes[a][1], x2: m.nodes[b][0], y2: m.nodes[b][1] });
+      if (onPath(a) && onPath(b)) parts.hot.push(line);
+      svg.append(line);
+    }
+    // 大邊：直角三角形
+    for (const t of m.tris) svg.append(mk('polygon', { class: 'big-leg', points: t.join(' ') }));
+    // 其他位置底下：等腰三角形，中間一條線
+    for (const [x, y, w, b] of m.isos) {
+      svg.append(mk('polygon', { class: 'big-leg', points: [x, y, x - w, b, x + w, b].join(' ') }));
+      svg.append(mk('line', { class: 'edge', x1: x, y1: y, x2: x, y2: b }));
+    }
+    // 最小邊：三個直推位，一個接一個往下
+    let [px, py] = m.nodes[m.path[0]];
+    for (const [x, y] of m.slots) {
+      const line = mk('line', { class: 'edge', x1: px, y1: py, x2: x, y2: y });
+      parts.hot.unshift(line);
+      svg.append(line);
+      px = x; py = y;
+    }
+    m.slots.forEach(([x, y], i) => {
+      const g = mk('g', { class: 'slot' });
+      g.append(mk('circle', { cx: x, cy: y, r: 20 }), mk('text', { x, y: y + 6, 'text-anchor': 'middle' }, String(i + 1)));
+      parts.slots.push(g);
+      svg.append(g);
+    });
+    svg.append(mk('text', { class: 'tag small-leg', x: m.small[0], y: m.small[1] }, '最小邊・直推 3 位'));
+    m.nodes.forEach(([x, y], i) => {
+      const g = mk('g', { class: onPath(i) ? 'me path' : 'me' });
+      g.append(mk('circle', { cx: x, cy: y, r: m.r }), mk('text', { x, y: y + 5, 'text-anchor': 'middle' }, '你'));
+      parts.nodes[i] = g;
+      svg.append(g);
+    });
+  }
+
+  function reset() {
+    run++; placed = 0; busy = false;
+    sums.refer = sums.cycle = sums.score = 0;
+    for (const k in shown) { shown[k] = 0; out[k].textContent = '0'; }
+    okTag.hidden = true;
+    btn.disabled = false;
+    btn.textContent = '放下第 1 位';
+    draw();
+  }
+
+  async function place() {
+    if (busy) return;
+    if (placed >= SEATS) { reset(); return; }
+    const mine = run, m = MODES[mode];
+    busy = true; btn.disabled = true;
+    const slot = parts.slots[placed];
+    slot.classList.add('on');
+    slot.querySelector('text').textContent = '新';
+    placed++;
+    sums.refer += REFER; sums.score += SCORE;
+    showSums();
+    await wait(420);
+    // 業績往上走：每到一個自己的位置，亮一下、跳一次日循環獎金
+    for (const i of m.path) {
+      if (mine !== run) return;
+      const g = parts.nodes[i], [x, y] = m.nodes[i];
+      g.classList.add('lit');
+      const fly = mk('text', { class: 'float', x, y: y - m.r - 8, 'text-anchor': 'middle' }, '+' + fmt(CYCLE));
+      svg.append(fly);
+      setTimeout(() => fly.remove(), 1000);
+      sums.cycle += CYCLE;
+      showSums();
+      await wait(520);
+      g.classList.remove('lit');
+    }
+    if (mine !== run) return;
+    busy = false; btn.disabled = false;
+    if (placed >= SEATS) { okTag.hidden = false; btn.textContent = '重來一次'; }
+    else btn.textContent = '放下第 ' + (placed + 1) + ' 位';
+  }
+
+  for (const t of tabs) t.addEventListener('click', () => {
+    mode = Number(t.dataset.mode);
+    for (const o of tabs) o.setAttribute('aria-pressed', String(o === t));
+    reset();
+  });
+  btn.addEventListener('click', place);
+  reset();
+})();
+</script>
+</body>
+</html>

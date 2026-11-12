@@ -47,6 +47,9 @@
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
   .cta { display: block; margin-top: 16px; padding: 16px; border-radius: 14px; background: #b8960c; color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
   .cta::after { content: " ›"; }
+  .cta.guide { background: var(--board); color: var(--amber); }
+  .cta.guide::after { content: none; }
+  .cta small { display: block; color: #f4f1e6; font-size: 16px; font-weight: 400; }
 
   /* 沒指定是哪一趟（或代號打錯）：列出現在有的，樣子跟首頁看板一樣 */
   .lead { margin: 0 0 14px; font-size: 20px; font-weight: 700; }
@@ -105,6 +108,12 @@
       const go = el('a', 'cta', trip.cta.label);
       go.href = trip.cta.href;
       page.append(go);
+    }
+    if (trip.guide) { // 有加碼活動：多一顆深色按鈕，連到攻略頁
+      const tip = el('a', 'cta guide', trip.guide.label + ' ›');
+      tip.href = trip.guide.href;
+      tip.append(el('small', '', trip.guide.sub));
+      page.append(tip);
     }
     page.append(foot);
   } else {

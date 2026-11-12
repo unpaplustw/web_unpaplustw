@@ -87,6 +87,7 @@ export const COMPANY = {
 // 公司辦的：內容一律照展翅月刊原文（src 記期別），月刊沒寫的欄位不要自己補；rows 沒寫的欄位就不顯示。
 // 團隊自己辦的：照團隊的報名網頁，只放日期、航班、費用、報名截止這幾項，行程／訂金／取消規定不抄（留在報名網頁，那邊才是正本）；
 //   cta＝登機證頁最底下的大按鈕（連到報名網頁）、disclaimer＝頁尾那句但書（沒寫就是「辦法以公司公告為準。」）。
+//   guide＝有加碼活動時多一顆「攻略」按鈕（label／sub＝按鈕上兩行字、href＝攻略頁，每個活動一頁，放在 /travel/<代號>/）。
 export const TRAVEL = {
   id: 'travel', name: '獎勵旅遊島',
   hook: '達到分數，公司招待你去。',
@@ -105,6 +106,7 @@ export const TRAVEL = {
             ['報名截止', '2026/11/23'],
           ],
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
+          guide: { label: '加碼攻略', sub: '直推 600 分，半價招待', href: '/travel/busan-guide/' },
           disclaimer: '航班以正式開票資料為準，費用以旅行社確認為準。',
           src: '奔馳團隊報名網頁（2026/11/12 讀取）' },
         { id: 'festa-2027', name: 'GO TO FESTA 2027', when: '2027 年 10 月前後', where: '日本', badge: '挑戰中', open: true,
