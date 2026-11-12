@@ -173,6 +173,12 @@
   .tally dt i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; }
   .tally dd { margin: 0; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
   .tally .ok { margin-left: 6px; white-space: nowrap; }
+  /* 直推分數自己一列（不跟上面兩列共用欄寬，窄手機才不會把數字擠出框外） */
+  .tally-score { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; font-size: 18px; white-space: nowrap; }
+  .tally-score b { font-variant-numeric: tabular-nums; }
+  /* 日循環獎金一律標「一年」：對外算法是一套放在收入邊、一年增加 7,500（2026-10-28 定），不是推薦當下就領 */
+  .yr { margin-left: 6px; color: var(--sub); font-size: 14px; font-weight: 400; }
+  .yr-note { margin-top: 8px; color: var(--sub); font-size: 15px; }
   .tally dd { white-space: nowrap; }
   h3.sub { margin: 24px 0 0; font-size: 21px; }
   @media (prefers-reduced-motion: reduce) { .slot.on, .float, .tally-total b.bump { animation: none; } .float { opacity: 0; } }
@@ -228,16 +234,17 @@
         <div class="tally-total"><span>獎金合計</span><b id="sim-total"><span id="sim-total-n">0</span> <i>元</i></b></div>
         <dl>
           <dt><i class="k-refer"></i>推薦獎金</dt><dd id="sim-refer">0</dd>
-          <dt><i class="k-cycle"></i>日循環獎金</dt><dd id="sim-cycle">0</dd>
-          <dt>直推分數</dt><dd><span id="sim-score">0</span> 分<span class="ok" id="sim-ok" hidden>✓ 達標</span></dd>
+          <dt><i class="k-cycle"></i>日循環獎金<small class="yr">一年</small></dt><dd id="sim-cycle">0</dd>
         </dl>
+        <p class="tally-score"><span>直推分數</span><span><b><span id="sim-score">0</span> 分</b><span class="ok" id="sim-ok" hidden>✓ 達標</span></span></p>
       </div>
       <div class="stage"><svg id="sim-tree" viewBox="0 0 300 226" role="img" aria-label="你的位置圖：新人放在最小邊"></svg></div>
       <button type="button" class="drop" id="sim-drop">放下第 1 位</button>
       <p class="hint">圓圈「你」是你自己的位置。新人放在最小邊，往上每經過一個你的位置，就多領一次日循環獎金。</p>
+      <p class="yr-note">日循環獎金是放在收入邊後，一年增加的收入。</p>
       <h3 class="sub">放完 3 位，三種比一比</h3>
       <p class="hint">同樣推薦這 3 位，推薦獎金一樣，差在日循環獎金。</p>
-      <div class="legend"><span><i class="k-refer"></i>推薦獎金</span><span><i class="k-cycle"></i>日循環獎金</span></div>
+      <div class="legend"><span><i class="k-refer"></i>推薦獎金</span><span><i class="k-cycle"></i>日循環獎金<small class="yr">一年</small></span></div>
 
       <div class="seat">
         <div class="seat-head"><div class="seat-name">小資 <span>1 單位</span></div><div class="seat-total">38,700 <span>元</span></div></div>
