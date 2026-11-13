@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>釜山加碼攻略｜獎勵旅遊</title>
-<meta name="description" content="冬季戀歌之旅（奔馳團隊）加碼攻略：直推 600 分半價招待，放下 3 位看獎金怎麼跳。加碼辦法以奔馳團隊公告為準。">
+<meta name="description" content="冬季戀歌之旅（奔馳團隊）獨家對折補助：怎麼達成、綠佳利額外給多少、帶領組織可以多少。加碼辦法以奔馳團隊公告為準。">
 <meta name="theme-color" content="#171c26">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap">
 <style>
-  /* 釜山團加碼攻略：登機證頁 /travel/?t=busan-2027 的「加碼攻略」按鈕點進來。顏色跟 /travel/ 同一套。內容照奔馳團隊加碼海報；獎金數字是 Randoph 給的試算（2026-11-12） */
+  /* 釜山團加碼攻略：登機證頁 /travel/?t=busan-2027 的深色按鈕點進來。顏色跟 /travel/ 同一套。規則照奔馳團隊加碼海報；獎金數字照制度頁的對外算法（一套放在收入邊一年 7,500） */
   :root {
     --bg: #f7f5f0; --card: #ffffff; --cream: #f6f1e1; --line: #e6e0d2;
     --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c;
@@ -52,20 +52,10 @@
   .sheet section:first-child { border-top: 0; padding-top: 6px; }
   .sheet section:last-child { padding-bottom: 0; }
   h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 23px; line-height: 1.4; }
-  h2 .no { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--board); color: var(--amber); font-size: 18px; }
   p { margin: 0; }
   .hint { margin-top: 10px; color: var(--sub); font-size: 17px; }
   .lead { font-size: 22px; font-weight: 700; }
 
-  /* 1. 三位＝600 分 */
-  .meter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 14px; }
-  .meter div { padding: 10px 4px; background: var(--cream); text-align: center; line-height: 1.35; }
-  .meter div:first-child { border-radius: 10px 0 0 10px; }
-  .meter div:last-child { border-radius: 0 10px 10px 0; }
-  .meter span { display: block; color: var(--sub); font-size: 15px; }
-  .meter b { font-size: 22px; font-variant-numeric: tabular-nums; }
-  .sum { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; font-size: 22px; }
-  .sum b { font-size: 30px; font-weight: 900; }
   .ok { padding: 2px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-size: 17px; font-weight: 700; }
 
   /* 2. 旅費這邊 */
@@ -119,14 +109,6 @@
   .know li { margin-top: 6px; }
   .know li:first-child { margin-top: 0; }
 
-  /* 分數對照表 */
-  .tbl-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 18px; font-variant-numeric: tabular-nums; }
-  caption { padding-bottom: 6px; color: var(--gold); font-size: 17px; font-weight: 700; text-align: left; }
-  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-  th:first-child, td:first-child { text-align: left; }
-  thead th { color: var(--sub); font-size: 15px; font-weight: 400; }
-  td.pick { background: var(--cream); font-weight: 900; }
 
   .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
@@ -182,41 +164,54 @@
   .tally dd { white-space: nowrap; }
   h3.sub { margin: 24px 0 0; font-size: 21px; }
   @media (prefers-reduced-motion: reduce) { .slot.on, .float, .tally-total b.bump { animation: none; } .float { opacity: 0; } }
-  /* 4. 帶夥伴一起去（2026-11-13）：下方一顆大按鈕，按一下多一位「也達成直推 3 位」的夥伴。
-     上半給朋友看（幾個人一起去、這一團省多少），下半給帶頭的人看（自己一年的日循環，小資／小金／大金）。
-     算法：只算新進來的業績；每位夥伴 3 套、一套一年 7,500；夥伴左右輪流排，每個自己的位置取左右少的那一邊 */
-  .fr-trip { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 16px; margin-top: 12px; padding: 12px 18px; border-radius: 14px; background: var(--board); color: var(--pass-ink); }
-  .fr-trip-label { grid-column: 1 / -1; color: var(--pass-sub); font-size: 15px; }
-  .fr-trip-n { display: block; font-size: 60px; font-weight: 900; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .fr-trip-n i { margin-left: 4px; font-size: 22px; font-style: normal; font-weight: 700; }
-  .fr-trip-save { color: var(--pass-sub); font-size: 16px; line-height: 1.4; text-align: right; }
-  .fr-trip-save b { display: block; color: var(--amber); font-size: 30px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .fr-trip-save b i { font-size: 17px; font-style: normal; font-weight: 700; }
-  .fr-bump { animation: fr-bump .3s ease-out; }
-  @keyframes fr-bump { 40% { transform: scale(1.09); } }
-  /* 座位：中間走道（中線），左線、右線各 4 個位子，最前面是你 */
-  .fr-cabin { margin-top: 10px; padding: 12px 12px 14px; border-radius: 14px; background: var(--cream); }
-  .fr-me { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 6px; border-radius: 14px; background: var(--board); color: var(--amber); font-size: 22px; font-weight: 900; }
-  .fr-rows { display: grid; grid-template-columns: 1fr 14px 1fr; gap: 0 10px; }
-  .fr-aisle { grid-row: 1 / span 2; grid-column: 2; justify-self: center; width: 2px; border-radius: 1px; background: var(--sub); }
-  .fr-side { padding-bottom: 6px; color: var(--sub); font-size: 15px; text-align: center; }
-  .fr-seats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .fr-seat { display: grid; place-items: center; height: 48px; border: 2px dashed var(--note-line); border-radius: 12px; color: var(--note-line); font-size: 17px; font-weight: 700; }
-  .fr-seat.on { border: 0; background: var(--s-cycle); color: #fff; animation: fr-pop .4s cubic-bezier(.2, .8, .2, 1); }
-  @keyframes fr-pop { from { opacity: 0; transform: translateY(26px) scale(.8); } to { opacity: 1; transform: none; } }
-  .fr-mile { margin-top: 12px; padding: 8px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-size: 17px; font-weight: 700; text-align: center; }
-  .fr-fine { margin-top: 10px; color: var(--sub); font-size: 15px; line-height: 1.6; }
-  .fr-lead { margin-top: 10px; padding: 10px 16px 12px; border: 2px solid var(--board); border-radius: 12px; }
-  .fr-lead-label { display: block; font-size: 18px; font-weight: 700; }
-  .fr-lead-n { display: block; font-size: 40px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-  .fr-lead-n i { font-size: 18px; font-style: normal; font-weight: 700; }
-  table.fr-tbl { font-size: 16px; }
-  table.fr-tbl th, table.fr-tbl td { padding: 8px 4px; }
-  /* 按鈕黏在螢幕下方：只有這一段在畫面上的時候才出現 */
-  .fr-dock { position: sticky; bottom: 0; z-index: 2; margin-top: 8px; padding: 14px 0 calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--card) 26%); }
-  .fr-go { display: block; width: 100%; min-height: 72px; border: 0; border-radius: 18px; background: var(--amber); color: var(--board); font: inherit; font-size: 26px; font-weight: 900; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-shadow: 0 6px 18px rgba(23, 28, 38, .18); }
-  .fr-go:active { transform: scale(.98); }
-  @media (prefers-reduced-motion: reduce) { .fr-seat.on, .fr-bump { animation: none; } }
+  /* ── 三個頁籤（2026-11-13 Randoph 定）：條件獎勵／額外獎金／帶領組織。按了換下面整塊內容，網址 # 跟著換；每個頁籤最下面都是同一顆「立即報名」 ── */
+  .gtabs { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 -20px; padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .gtabs button { min-height: 54px; padding: 4px 2px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
+  .gtabs button[aria-selected="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .ptitle { margin: 18px 0 0; font-size: 25px; font-weight: 900; line-height: 1.4; }
+  .sheet .ptitle + section { border-top: 0; padding-top: 12px; }
+  .fine { margin-top: 10px; color: var(--sub); font-size: 15px; line-height: 1.6; }
+  .rowname { margin-top: 14px; color: var(--sub); font-size: 16px; }
+  .rowname + .tabs, .rowname + .pt-where { margin-top: 6px; }
+  #tm-side button { white-space: nowrap; }
+
+  /* 頁籤一：算算看還差幾分（按一下加一套；按鈕上寫的就是分數，等於分數表本身） */
+  .pt-box { padding: 12px 16px 14px; border: 2px solid var(--board); border-radius: 12px; }
+  .pt-now { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .pt-now > span { font-size: 18px; font-weight: 700; }
+  .pt-now b { font-size: 40px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pt-now b i { font-size: 18px; font-style: normal; font-weight: 700; }
+  .pt-bar { height: 10px; margin-top: 6px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .pt-bar i { display: block; width: 0; height: 100%; border-radius: 5px; background: var(--btn); transition: width .3s ease; }
+  .pt-left { margin-top: 8px; font-size: 21px; font-weight: 700; }
+  .pt-box.done { border-color: var(--ok); }
+  .pt-box.done .pt-bar i { background: var(--ok); }
+  .pt-box.done .pt-left { color: var(--ok); }
+  .pt-where { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .pt-where button { min-height: 52px; padding: 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 17px; font-weight: 700; line-height: 1.3; cursor: pointer; }
+  .pt-where button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .pt-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: center; margin-top: 12px; }
+  .pt-grid .h { color: var(--sub); font-size: 15px; text-align: center; }
+  .pt-grid .p { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pt-add { position: relative; min-height: 60px; padding: 4px; border: 0; border-radius: 12px; background: var(--cream); color: var(--ink); font: inherit; font-size: 21px; font-weight: 900; font-variant-numeric: tabular-nums; cursor: pointer; touch-action: manipulation; }
+  .pt-add:active { transform: scale(.97); }
+  .pt-add small { display: block; color: var(--sub); font-size: 14px; font-weight: 400; }
+  .pt-add.has { background: var(--board); color: var(--amber); }
+  .pt-add.has small { color: var(--pass-ink); }
+  .pt-reset { display: block; margin: 12px auto 0; min-height: 44px; padding: 6px 18px; border: 1px solid var(--note-line); border-radius: 22px; background: none; color: var(--sub); font: inherit; font-size: 17px; cursor: pointer; }
+
+  /* 頁籤三：帶領組織（兩排按鈕：自己的位置、左右各幾位夥伴） */
+  .tm-box { margin-top: 14px; padding: 12px 16px 14px; border: 2px solid var(--board); border-radius: 12px; }
+  .tm-label { display: block; font-size: 18px; font-weight: 700; }
+  .tm-n { display: block; font-size: 42px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .tm-n i { font-size: 18px; font-style: normal; font-weight: 700; }
+  .tm-n.bump { animation: bump .28s ease-out; }
+  .tm-split { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 18px; }
+  .tm-split dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .tm-go { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--cream); font-size: 18px; line-height: 1.55; }
+  .tm-go b { font-size: 21px; font-variant-numeric: tabular-nums; }
+  .tm-note { margin-top: 10px; padding: 10px 14px; border-left: 4px solid var(--btn); background: var(--cream); font-size: 16px; line-height: 1.55; }
+  @media (prefers-reduced-motion: reduce) { .pt-bar i { transition: none; } .tm-n.bump { animation: none; } }
 </style>
 </head>
 <body>
@@ -224,7 +219,7 @@
   <a class="back" href="/travel/?t=busan-2027">‹ 回上一頁</a>
   <header class="pass">
     <p class="pass-code">BONUS・加碼攻略</p>
-    <h1>直推 600 分<br><em>釜山半價去</em></h1>
+    <h1>奔馳會員獨家<br><em>對折補助</em></h1>
     <dl class="pass-grid">
       <div><dt>活動</dt><dd>冬季戀歌之旅</dd></div>
       <div><dt>報名截止</dt><dd>2026/11/23</dd></div>
@@ -234,189 +229,176 @@
   <div class="tear"><i></i><i></i></div>
 
   <div class="sheet">
+    <div class="gtabs" id="gtabs" role="tablist">
+      <button type="button" role="tab" data-tab="rule" aria-selected="true">條件獎勵</button>
+      <button type="button" role="tab" data-tab="bonus" aria-selected="false">額外獎金</button>
+      <button type="button" role="tab" data-tab="team" aria-selected="false">帶領組織</button>
+    </div>
 
-    <section>
-      <h2><span class="no">1</span>最快的走法</h2>
-      <p class="lead">直接推薦 3 位「1+11・15,000P」</p>
-      <div class="meter" role="img" aria-label="三位各 200 分，合計 600 分">
-        <div><span>第 1 位</span><b>200 分</b></div>
-        <div><span>第 2 位</span><b>200 分</b></div>
-        <div><span>第 3 位</span><b>200 分</b></div>
-      </div>
-      <p class="sum">合計 <b>600 分</b><span class="ok">✓ 達標</span></p>
-      <p class="hint">推薦在 BC001 位置，每位算 220 分，3 位是 660 分。</p>
-    </section>
+    <div class="panel" id="p-rule" role="tabpanel">
+      <p class="ptitle">達成目標條件和獎勵</p>
 
-    <section>
-      <h2><span class="no">2</span>旅費這邊</h2>
-      <div class="fare">
-        <div class="from"><span>團費每人</span><b>24,600 元</b></div>
-        <div class="arrow">→</div>
-        <div class="to">半價招待</div>
-      </div>
-      <p class="hint">加碼補助用紅包發放。</p>
-    </section>
-
-    <section>
-      <h2><span class="no">3</span>收入這邊</h2>
-      <p class="lead">放下 3 位，看獎金跳</p>
-      <div class="tabs" id="sim-tabs">
-        <button type="button" data-mode="1" aria-pressed="true">小資<small>1 單位</small></button>
-        <button type="button" data-mode="3" aria-pressed="false">小金<small>3 單位</small></button>
-        <button type="button" data-mode="7" aria-pressed="false">大金<small>7 單位</small></button>
-      </div>
-      <div class="tally" aria-live="polite">
-        <div class="tally-total"><span>獎金合計</span><b id="sim-total"><span id="sim-total-n">0</span> <i>元</i></b></div>
-        <dl>
-          <dt><i class="k-refer"></i>推薦獎金</dt><dd id="sim-refer">0</dd>
-          <dt><i class="k-cycle"></i>日循環獎金<small class="yr">一年</small></dt><dd id="sim-cycle">0</dd>
-        </dl>
-        <p class="tally-score"><span>直推分數</span><span><b><span id="sim-score">0</span> 分</b><span class="ok" id="sim-ok" hidden>✓ 達標</span></span></p>
-      </div>
-      <div class="stage"><svg id="sim-tree" viewBox="0 0 300 226" role="img" aria-label="你的位置圖：新人放在最小邊"></svg></div>
-      <button type="button" class="drop" id="sim-drop">放下第 1 位</button>
-      <p class="hint">圓圈「你」是你自己的位置。新人放在最小邊，往上每經過一個你的位置，就多領一次日循環獎金。</p>
-      <p class="yr-note">日循環獎金是放在收入邊後，一年增加的收入。</p>
-      <h3 class="sub">放完 3 位，三種比一比</h3>
-      <p class="hint">同樣推薦這 3 位，推薦獎金一樣，差在日循環獎金。</p>
-      <div class="legend"><span><i class="k-refer"></i>推薦獎金</span><span><i class="k-cycle"></i>日循環獎金<small class="yr">一年</small></span></div>
-
-      <div class="seat">
-        <div class="seat-head"><div class="seat-name">小資 <span>1 單位</span></div><div class="seat-total">38,700 <span>元</span></div></div>
-        <div class="bar" style="width:46.24%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:22500" title="日循環獎金 22,500 元"></i></div>
-        <dl class="calc">
-          <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
-          <dt><i class="k-cycle"></i>7,500 × 3</dt><dd><b>22,500</b></dd>
-        </dl>
-      </div>
-
-      <div class="seat">
-        <div class="seat-head"><div class="seat-name">小金 <span>3 單位</span></div><div class="seat-total">61,200 <span>元</span></div></div>
-        <div class="bar" style="width:73.12%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:45000" title="日循環獎金 45,000 元"></i></div>
-        <dl class="calc">
-          <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
-          <dt><i class="k-cycle"></i>7,500 × 3 × 2</dt><dd><b>45,000</b></dd>
-        </dl>
-      </div>
-
-      <div class="seat">
-        <div class="seat-head"><div class="seat-name">大金 <span>7 單位</span></div><div class="seat-total">83,700 <span>元</span></div></div>
-        <div class="bar" style="width:100%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:67500" title="日循環獎金 67,500 元"></i></div>
-        <dl class="calc">
-          <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
-          <dt><i class="k-cycle"></i>7,500 × 3 × 3</dt><dd><b>67,500</b></dd>
-        </dl>
-      </div>
-    </section>
-
-    <section id="friends">
-      <h2><span class="no">4</span>帶夥伴一起去</h2>
-      <p class="lead">多帶一位，看這一團怎麼變</p>
-      <div class="fr-trip" aria-live="polite">
-        <span class="fr-trip-label">一起去釜山</span>
-        <span class="fr-trip-n" id="fr-n-box"><span id="fr-n">1</span><i>人</i></span>
-        <p class="fr-trip-save">這一團一共省<b><span id="fr-save">12,300</span> <i>元</i></b></p>
-      </div>
-      <div class="fr-cabin">
-        <div class="fr-me">你</div>
-        <div class="fr-rows">
-          <div class="fr-side">左線</div>
-          <div class="fr-aisle"></div>
-          <div class="fr-side">右線</div>
-          <div class="fr-seats" id="fr-seats-l"></div>
-          <div class="fr-seats" id="fr-seats-r"></div>
+      <section>
+        <h2>獎勵</h2>
+        <div class="fare">
+          <div class="from"><span>團費每人</span><b>24,600 元</b></div>
+          <div class="arrow">→</div>
+          <div class="to">半價招待</div>
         </div>
-        <p class="fr-mile" id="fr-mile" hidden></p>
-      </div>
-      <p class="fr-fine">每一格是一位「也達成直推 3 位」的夥伴。他達成，他的團費也是半價。</p>
+        <p class="hint">達標就省 12,300 元。</p>
+      </section>
 
-      <h3 class="sub">帶頭的人看這裡</h3>
-      <div class="tabs" id="fr-tabs">
-        <button type="button" data-k="1" aria-pressed="true">小資<small>1 單位</small></button>
-        <button type="button" data-k="2" aria-pressed="false">小金<small>3 單位</small></button>
-        <button type="button" data-k="3" aria-pressed="false">大金<small>7 單位</small></button>
-      </div>
-      <div class="fr-lead" aria-live="polite">
-        <span class="fr-lead-label">你的日循環獎金<small class="yr">一年</small></span>
-        <span class="fr-lead-n" id="fr-lead-box"><span id="fr-lead">0</span> <i>元</i></span>
-      </div>
-      <p class="fr-fine">夥伴左右輪流排。同一邊要湊到對面也有人，才對碰得起來，所以有時多帶一位數字不會動。</p>
-      <div class="tbl-wrap">
-        <table class="fr-tbl">
-          <thead><tr><th>夥伴</th><th>小資</th><th>小金</th><th>大金</th></tr></thead>
-          <tbody>
-            <tr><td>左右各 2</td><td><b>45,000</b></td><td><b>90,000</b></td><td><b>90,000</b></td></tr>
-            <tr><td>左右各 4</td><td><b>90,000</b></td><td><b>180,000</b></td><td><b>270,000</b></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="fr-fine">日循環是一年的數字，只算新進來的業績：每位夥伴直推 3 位「1+11・15,000P」，一套放在收入邊一年 7,500。半價招待要夥伴各自達成 600 分。</p>
-      <div class="fr-dock"><button type="button" class="fr-go" id="fr-go">再帶一位夥伴</button></div>
-    </section>
+      <section>
+        <h2>怎麼達成</h2>
+        <p class="lead">直接推薦「15,000P 1+11 優惠套組」3 套</p>
+        <p class="hint">直推分數滿 600 分就達標，3 套就夠了。</p>
+      </section>
 
-    <section>
-      <h2><span class="no">5</span>什麼時候要做完</h2>
-      <ol class="steps">
-        <li>
-          <span class="dot">1</span>
-          <div class="when">2026/11/23 前</div>
-          <div class="what">先報名，繳訂金 <span class="nb">10,000 元</span></div>
-        </li>
-        <li>
-          <span class="dot">2</span>
-          <div class="when">報件期限內</div>
-          <div class="what">直推分數達 600 分</div>
-          <div class="who">
-            <h3>既有會員</h3>
-            <p><span>11/1～12/15 前報件</span><b>半價招待</b></p>
-            <p><span>12/16～12/31 報件</span><b>5,000 元獎金</b></p>
-          </div>
-          <div class="who">
-            <h3>新會員 <span>11/1 以後加入</span></h3>
-            <p><span>活動發布日起～12/31 報件</span><b>半價招待</b></p>
-          </div>
-        </li>
-      </ol>
-    </section>
+      <section>
+        <h2>什麼時候要做完</h2>
+        <ol class="steps">
+          <li>
+            <span class="dot">1</span>
+            <div class="when">2026/11/23 前</div>
+            <div class="what">先完成旅遊報名</div>
+          </li>
+          <li>
+            <span class="dot">2</span>
+            <div class="when">報件期限內</div>
+            <div class="what">直推分數達 600 分</div>
+            <div class="who">
+              <h3>既有會員</h3>
+              <p><span>11/1～12/15 前報件</span><b>半價招待</b></p>
+              <p><span>12/16～12/31 報件</span><b>5,000 元獎金</b></p>
+            </div>
+            <div class="who">
+              <h3>新會員 <span>11/1 以後加入</span></h3>
+              <p><span>活動發布日起～12/31 報件</span><b>半價招待</b></p>
+            </div>
+          </li>
+        </ol>
+      </section>
 
-    <section>
-      <h2><span class="no">6</span>要先知道</h2>
-      <ul class="know">
-        <li>分數不含互助分數。</li>
-        <li>以名義計，一個名義只補助一個名額。</li>
-        <li>沒達到補助資格，照原團費參加，訂金不退。</li>
-      </ul>
-    </section>
+      <section>
+        <h2>要先知道</h2>
+        <ul class="know">
+          <li>要先完成這趟旅遊的報名才算。</li>
+          <li>這個獎勵是旅遊補助，達標後用紅包發。</li>
+          <li>一個名義只補助一個名額。</li>
+          <li>分數不含互助分數。</li>
+        </ul>
+      </section>
 
-    <section>
-      <h2>分數對照表</h2>
-      <div class="tbl-wrap">
-        <table>
-          <caption>推薦 BC001 位置</caption>
-          <thead><tr><th>創業方案</th><th>1+11／1+11B</th><th>1+5／1+5B</th></tr></thead>
-          <tbody>
-            <tr><td>20,000P</td><td>300 分</td><td>150 分</td></tr>
-            <tr><td>15,000P</td><td>220 分</td><td>110 分</td></tr>
-            <tr><td>10,000P</td><td>132 分</td><td>66 分</td></tr>
-          </tbody>
-        </table>
-        <table>
-          <caption>推薦 BC 位置</caption>
-          <thead><tr><th>創業方案</th><th>1+11／1+11B</th><th>1+5／1+5B</th></tr></thead>
-          <tbody>
-            <tr><td>20,000P</td><td>260 分</td><td>130 分</td></tr>
-            <tr><td>15,000P</td><td class="pick">200 分</td><td>100 分</td></tr>
-            <tr><td>10,000P</td><td>120 分</td><td>60 分</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+      <section>
+        <h2>算算看還差幾分</h2>
+        <div class="pt-box" id="pt-box" aria-live="polite">
+          <div class="pt-now"><span>目前</span><b><span id="pt-now">0</span> <i>分</i></b></div>
+          <div class="pt-bar"><i id="pt-fill"></i></div>
+          <p class="pt-left" id="pt-left">還差 600 分</p>
+        </div>
+        <p class="rowname">推薦在哪一種位置</p>
+        <div class="pt-where" id="pt-where" role="group" aria-label="推薦在哪一種位置">
+          <button type="button" data-w="bc001" aria-pressed="true">BC001 位置</button>
+          <button type="button" data-w="bc" aria-pressed="false">BC 位置</button>
+        </div>
+        <p class="hint">推薦了哪一種套組，就按一下那一格，按一下加一套。</p>
+        <div class="pt-grid" id="pt-grid">
+          <span></span><span class="h">1+11／1+11B</span><span class="h">1+5／1+5B</span>
+        </div>
+        <button type="button" class="pt-reset" id="pt-reset">重算</button>
+      </section>
+    </div>
 
+    <div class="panel" id="p-bonus" role="tabpanel" hidden>
+      <p class="ptitle">綠佳利額外會給你多少錢</p>
+
+      <section>
+        <p class="lead">放下 3 位，看獎金跳</p>
+        <div class="tabs" id="sim-tabs">
+          <button type="button" data-mode="1" aria-pressed="true">小資<small>1 單位</small></button>
+          <button type="button" data-mode="3" aria-pressed="false">小金<small>3 單位</small></button>
+          <button type="button" data-mode="7" aria-pressed="false">大金<small>7 單位</small></button>
+        </div>
+        <div class="tally" aria-live="polite">
+          <div class="tally-total"><span>獎金合計</span><b id="sim-total"><span id="sim-total-n">0</span> <i>元</i></b></div>
+          <dl>
+            <dt><i class="k-refer"></i>推薦獎金</dt><dd id="sim-refer">0</dd>
+            <dt><i class="k-cycle"></i>日循環獎金<small class="yr">一年</small></dt><dd id="sim-cycle">0</dd>
+          </dl>
+          <p class="tally-score"><span>直推分數</span><span><b><span id="sim-score">0</span> 分</b><span class="ok" id="sim-ok" hidden>✓ 達標</span></span></p>
+        </div>
+        <div class="stage"><svg id="sim-tree" viewBox="0 0 300 226" role="img" aria-label="你的位置圖：新人放在最小邊"></svg></div>
+        <button type="button" class="drop" id="sim-drop">放下第 1 位</button>
+        <p class="hint">圓圈「你」是你自己的位置。新人放在最小邊，往上每經過一個你的位置，就多領一次日循環獎金。</p>
+        <p class="yr-note">日循環獎金是放在收入邊後，一年增加的收入。</p>
+        <h3 class="sub">放完 3 位，三種比一比</h3>
+        <p class="hint">同樣推薦這 3 位，推薦獎金一樣，差在日循環獎金。</p>
+        <div class="legend"><span><i class="k-refer"></i>推薦獎金</span><span><i class="k-cycle"></i>日循環獎金<small class="yr">一年</small></span></div>
+
+        <div class="seat">
+          <div class="seat-head"><div class="seat-name">小資 <span>1 單位</span></div><div class="seat-total">38,700 <span>元</span></div></div>
+          <div class="bar" style="width:46.24%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:22500" title="日循環獎金 22,500 元"></i></div>
+          <dl class="calc">
+            <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
+            <dt><i class="k-cycle"></i>7,500 × 3</dt><dd><b>22,500</b></dd>
+          </dl>
+        </div>
+
+        <div class="seat">
+          <div class="seat-head"><div class="seat-name">小金 <span>3 單位</span></div><div class="seat-total">61,200 <span>元</span></div></div>
+          <div class="bar" style="width:73.12%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:45000" title="日循環獎金 45,000 元"></i></div>
+          <dl class="calc">
+            <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
+            <dt><i class="k-cycle"></i>7,500 × 3 × 2</dt><dd><b>45,000</b></dd>
+          </dl>
+        </div>
+
+        <div class="seat">
+          <div class="seat-head"><div class="seat-name">大金 <span>7 單位</span></div><div class="seat-total">83,700 <span>元</span></div></div>
+          <div class="bar" style="width:100%"><i class="k-refer" style="flex:16200" title="推薦獎金 16,200 元"></i><i class="k-cycle" style="flex:67500" title="日循環獎金 67,500 元"></i></div>
+          <dl class="calc">
+            <dt><i class="k-refer"></i>5,400 × 3</dt><dd><b>16,200</b></dd>
+            <dt><i class="k-cycle"></i>7,500 × 3 × 3</dt><dd><b>67,500</b></dd>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <div class="panel" id="p-team" role="tabpanel" hidden>
+      <p class="ptitle">帶領組織可以多少錢</p>
+
+      <section>
+        <p class="lead">選你的位置，再選帶幾位夥伴</p>
+        <p class="rowname">你的位置</p>
+        <div class="tabs" id="tm-pos">
+          <button type="button" data-k="1" aria-pressed="true">小資<small>1 單位</small></button>
+          <button type="button" data-k="2" aria-pressed="false">小金<small>3 單位</small></button>
+          <button type="button" data-k="3" aria-pressed="false">大金<small>7 單位</small></button>
+        </div>
+        <p class="rowname">左右兩邊，各帶幾位夥伴達成</p>
+        <div class="tabs" id="tm-side">
+          <button type="button" data-s="2" aria-pressed="true">各 2 位<small>共 4 位</small></button>
+          <button type="button" data-s="4" aria-pressed="false">各 4 位<small>共 8 位</small></button>
+          <button type="button" data-s="8" aria-pressed="false">各 8 位<small>共 16 位</small></button>
+        </div>
+        <div class="tm-box" aria-live="polite">
+          <span class="tm-label">你的獎金<small class="yr">一年</small></span>
+          <span class="tm-n" id="tm-total-box"><span id="tm-total">45,000</span> <i>元</i></span>
+          <dl class="tm-split">
+            <dt>日循環獎金</dt><dd id="tm-cycle">45,000</dd>
+            <dt>領導獎金</dt><dd id="tm-lead">0</dd>
+          </dl>
+        </div>
+        <p class="tm-go"><b id="tm-people">5</b> 個人一起去釜山，這一團一共省 <b id="tm-save">61,500</b> 元。</p>
+        <p class="tm-note" id="tm-note" hidden>大金有 8 條腿，4 位夥伴只排滿一半，最底層還對碰不起來，所以這一格跟小金一樣。</p>
+        <p class="fine">每位夥伴都達成「直接推薦 15,000P 1+11 優惠套組 3 套」，左右平均排。只算新進來的業績：一套放在收入邊，一年 7,500。</p>
+        <p class="fine">領導獎金：你自己開的位置每完成一次獨立循環，你領 3,000。要本人購買達 20,000 點以上才領得到。</p>
+      </section>
+    </div>
   </div>
 
-  <a class="cta" href="https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec">看完整行程與報名</a>
-  <p class="foot"><strong>加碼辦法以奔馳團隊公告為準；獎金是以「推薦 3 位 1+11・15,000P」試算，實際以公司核發為準。</strong>資料來源：奔馳團隊加碼獎勵海報</p>
-
+  <a class="cta" href="https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec">立即報名</a>
+  <p class="foot"><strong>加碼辦法以奔馳團隊公告為準；獎金是以「15,000P 1+11 優惠套組」試算，實際以公司核發為準。</strong>資料來源：奔馳團隊加碼獎勵海報</p>
 </main>
 <script>
 (() => {
@@ -561,78 +543,120 @@
 </script>
 <script>
 (() => {
-  // 4. 帶夥伴一起去：按一下多一位「也達成直推 3 位」的夥伴
-  const HALF = 12300, SET = 7500, SETS_EACH = 3, MAX = 8;   // 半價省的團費、一套一年的日循環、每位夥伴 3 套、最多帶 8 位
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Math.round(n).toLocaleString('en-US');
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let n = 0, k = 1;                         // n＝帶了幾位夥伴；k＝自己的位置有幾層（小資 1、小金 2、大金 3）
-  const shown = { save: HALF, lead: 0 };
 
-  // 夥伴排到哪一條腿：左右輪流，而且每一層都盡量平均（位元反轉順序）
-  function legOf(i, legs) {
+  /* ---------- 三個頁籤：網址 #rule｜#bonus｜#team ---------- */
+  const TABS = ['rule', 'bonus', 'team'];
+  const gt = $('gtabs');
+  function showTab(name, byClick) {
+    if (!TABS.includes(name)) name = TABS[0];
+    for (const t of TABS) $('p-' + t).hidden = t !== name;
+    for (const b of gt.querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+    if (byClick) {
+      history.replaceState(null, '', '#' + name);
+      const top = gt.getBoundingClientRect().top + window.scrollY;   // 頁籤列黏在上面的時候換頁籤：捲回這一頁籤的開頭
+      if (window.scrollY > top) window.scrollTo(0, top);
+    }
+  }
+  for (const b of gt.querySelectorAll('button')) b.addEventListener('click', () => showTab(b.dataset.tab, true));
+  window.addEventListener('hashchange', () => showTab(location.hash.slice(1), false));
+  showTab(location.hash.slice(1), false);
+
+  /* ---------- 頁籤一：算算看還差幾分 ---------- */
+  // 分數照奔馳團隊加碼海報的兩張表：[1+11／1+11B, 1+5／1+5B]
+  const GOAL = 600;
+  const SCORE = {
+    bc001: { 20000: [300, 150], 15000: [220, 110], 10000: [132, 66] },
+    bc: { 20000: [260, 130], 15000: [200, 100], 10000: [120, 60] },
+  };
+  const POINTS = [20000, 15000, 10000];
+  let where = 'bc001';
+  const count = {};                                   // count[位置][點數][方案] ＝ 加了幾套
+  const clear = () => { for (const w in SCORE) { count[w] = {}; for (const p of POINTS) count[w][p] = [0, 0]; } };
+  clear();
+  const cells = [];
+  for (const p of POINTS) {
+    const name = document.createElement('span'); name.className = 'p'; name.textContent = fmt(p) + 'P';
+    $('pt-grid').append(name);
+    for (const plan of [0, 1]) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pt-add';
+      b.addEventListener('click', () => { count[where][p][plan] += 1; paintPoints(); });
+      $('pt-grid').append(b); cells.push({ b, p, plan });
+    }
+  }
+  function paintPoints() {
+    let total = 0;
+    for (const w in SCORE) for (const p of POINTS) for (const plan of [0, 1]) total += count[w][p][plan] * SCORE[w][p][plan];
+    for (const { b, p, plan } of cells) {
+      const n = count[where][p][plan];
+      b.replaceChildren('+' + SCORE[where][p][plan] + ' 分');
+      const s = document.createElement('small'); s.textContent = n ? '已加 ' + n + ' 套' : '按一下加一套'; b.append(s);
+      b.classList.toggle('has', n > 0);
+    }
+    $('pt-now').textContent = fmt(total);
+    $('pt-fill').style.width = Math.min(100, total / GOAL * 100) + '%';
+    const done = total >= GOAL;
+    $('pt-box').classList.toggle('done', done);
+    $('pt-left').textContent = done ? (total === GOAL ? '✓ 達標，剛好 600 分' : '✓ 達標，超過 ' + fmt(total - GOAL) + ' 分') : '還差 ' + fmt(GOAL - total) + ' 分';
+  }
+  for (const b of $('pt-where').querySelectorAll('button')) b.addEventListener('click', () => {
+    where = b.dataset.w;
+    for (const o of $('pt-where').querySelectorAll('button')) o.setAttribute('aria-pressed', String(o === b));
+    paintPoints();
+  });
+  $('pt-reset').addEventListener('click', () => { clear(); paintPoints(); });
+  paintPoints();
+
+  /* ---------- 頁籤三：帶領組織 ---------- */
+  // 只算新進來的業績。每位夥伴 3 套（15,000P 1+11，一套 16.5 萬點），照左右平均排到最底層各條腿。
+  // 日循環：每個自己的位置取左右少的那一邊，一套一年 7,500。
+  // 領導獎金：自己開的位置（最上面那個不算）每完成一次獨立循環（左右各滿 25 萬點）領 3,000；本人要購買達 20,000 點以上。
+  const HALF = 12300, SET_YEAR = 7500, SETS_EACH = 3, SET_POINTS = 165000, CYCLE_POINTS = 250000, LEAD = 3000;
+  function legOf(i, legs) {                            // 左右輪流、每一層都盡量平均（位元反轉順序）
     const bits = Math.log2(legs); let v = i % legs, r = 0;
     for (let b = 0; b < bits; b++) { r = (r << 1) | (v & 1); v >>= 1; }
     return r;
   }
-  // 一年的日循環：每個自己的位置，左右兩邊取少的那邊，一套 7,500
-  function leadYear(count, levels) {
-    const legs = 2 ** levels, sets = new Array(legs).fill(0);
-    for (let i = 0; i < count; i++) sets[legOf(i, legs)] += SETS_EACH;
+  function team(levels, perSide) {
+    const legs = 2 ** levels, sets = new Array(legs).fill(0), partners = perSide * 2;
+    for (let i = 0; i < partners; i++) sets[legOf(i, legs)] += SETS_EACH;
     const sum = (a, b) => sets.slice(a, b).reduce((x, y) => x + y, 0);
-    let total = 0;
+    let cycle = 0, lead = 0;
     for (let size = legs; size >= 2; size /= 2) {
       for (let start = 0; start < legs; start += size) {
-        total += Math.min(sum(start, start + size / 2), sum(start + size / 2, start + size)) * SET;
+        const weak = Math.min(sum(start, start + size / 2), sum(start + size / 2, start + size));
+        cycle += weak * SET_YEAR;
+        if (size < legs) lead += Math.floor(weak * SET_POINTS / CYCLE_POINTS) * LEAD;
       }
     }
-    return total;
+    return { cycle, lead, people: 1 + partners };
   }
-
-  function roll(key, el, to) {
-    const from = shown[key], t0 = performance.now();
-    if (calm) { shown[key] = to; el.textContent = fmt(to); return; }
-    const tick = (now) => {
-      const p = Math.min(1, (now - t0) / 360);
-      shown[key] = from + (to - from) * p; el.textContent = fmt(shown[key]);
-      if (p < 1) requestAnimationFrame(tick); else shown[key] = to;
-    };
+  let k = 1, side = 2, shownTotal = null;
+  function roll(el, from, to) {
+    if (calm || from === null) { el.textContent = fmt(to); return; }
+    const t0 = performance.now();
+    const tick = (now) => { const p = Math.min(1, (now - t0) / 360); el.textContent = fmt(from + (to - from) * p); if (p < 1) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
   }
-  const bump = (el) => { el.classList.remove('fr-bump'); void el.offsetWidth; el.classList.add('fr-bump'); };
-
-  const seats = { l: [], r: [] };
-  for (const side of ['l', 'r']) for (let i = 0; i < MAX / 2; i++) {
-    const s = document.createElement('div'); s.className = 'fr-seat'; s.textContent = '空位';
-    $('fr-seats-' + side).append(s); seats[side].push(s);
+  function paintTeam() {
+    const r = team(k, side), total = r.cycle + r.lead;
+    roll($('tm-total'), shownTotal, total);
+    if (shownTotal !== null && shownTotal !== total) { const box = $('tm-total-box'); box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); }
+    shownTotal = total;
+    $('tm-cycle').textContent = fmt(r.cycle);
+    $('tm-lead').textContent = fmt(r.lead);
+    $('tm-people').textContent = String(r.people);
+    $('tm-save').textContent = fmt(HALF * r.people);
+    $('tm-note').hidden = !(k === 3 && side === 2);
   }
-
-  let target = 0;                            // 日循環現在該停在哪個數字（數字還在滾的時候也看這個）
-  function paint(moved) {
-    $('fr-n').textContent = String(1 + n);
-    roll('save', $('fr-save'), HALF * (1 + n));
-    const lead = leadYear(n, k), changed = lead !== target;
-    target = lead;
-    roll('lead', $('fr-lead'), lead);
-    if (moved) bump($('fr-n-box'));
-    if (changed) bump($('fr-lead-box'));
-    for (const side of ['l', 'r']) seats[side].forEach((s, i) => {
-      const on = i < (side === 'l' ? Math.ceil(n / 2) : Math.floor(n / 2));
-      if (on && !s.classList.contains('on')) { s.classList.add('on'); s.textContent = '夥伴'; }
-      if (!on && s.classList.contains('on')) { s.classList.remove('on'); s.textContent = '空位'; }
-    });
-    const mile = n === 4 ? '左右各 2 位，5 個人一起去' : n === 8 ? '左右各 4 位，9 個人一起去' : '';
-    $('fr-mile').hidden = !mile; $('fr-mile').textContent = mile;
-    $('fr-go').textContent = n >= MAX ? '重來一次' : '再帶一位夥伴';
-  }
-
-  $('fr-go').addEventListener('click', () => { n = n >= MAX ? 0 : n + 1; paint(true); });
-  for (const b of $('fr-tabs').querySelectorAll('button')) b.addEventListener('click', () => {
-    k = Number(b.dataset.k);
-    for (const o of $('fr-tabs').querySelectorAll('button')) o.setAttribute('aria-pressed', String(o === b));
-    paint(false);
+  for (const [id, key] of [['tm-pos', 'k'], ['tm-side', 's']]) for (const b of $(id).querySelectorAll('button')) b.addEventListener('click', () => {
+    if (key === 'k') k = Number(b.dataset.k); else side = Number(b.dataset.s);
+    for (const o of $(id).querySelectorAll('button')) o.setAttribute('aria-pressed', String(o === b));
+    paintTeam();
   });
-  paint(false);
+  paintTeam();
 })();
 </script>
 </body>
