@@ -2502,9 +2502,6 @@ function renderPairing() {
   // 🔴 2026-11-13：原本這裡還有「分組與資料調整」（每組一張卡，改組別／班別／上線／退班／編輯／刪除）。
   //    Randoph：「檢視和編輯都是兩區，不夠直覺」→ 全部搬到 👥名冊 每一列的「✏️ 管理」（管理卡），這裡只留開班前的第一次配對。
   let h = `<div class="sec-title"><span>🔧 第一次配對</span><span class="sec-count">${ac.length} 組 / 還沒分組 ${unpaired.length} 人</span></div>`;
-  h += `<div class="ck warn" style="border-left-color:var(--gold)"><div class="ck-ico">👥</div><div class="ck-b">
-    <div class="ck-t">要改某個人的資料 → 到 👥名冊，點他那一列的「✏️ 管理」</div>
-    <div class="ck-d">換組、班別、上線、退班／歸隊、電話、繳費、刪除都在那張卡上；教練的組別／班別點「✏️ 管理教練」。這裡只處理還沒分組的學員。</div></div></div>`;
 
   // ── 待配對 ──
   if (!isReadonly) {
