@@ -278,6 +278,7 @@
   .hwm th.nm1,.hwm td.nm1{left:0;min-width:84px;max-width:84px;overflow:hidden;text-overflow:ellipsis}
   .hwm td.who{cursor:pointer;text-decoration:underline dotted var(--gold-bd);text-underline-offset:3px}
   .hwm td.who:hover{color:var(--gold)}
+  .who-lk{cursor:pointer;text-decoration:underline dotted var(--gold-bd);text-underline-offset:3px}  .who-lk:hover{color:var(--gold)}   /* 分析頁可點的人名 → 管理卡 */
   .hwm-c.editable{cursor:pointer} .hwm-c.editable:hover{outline:2px solid var(--gold)}
   .cell-pop{position:absolute;z-index:70;display:none;background:var(--navy2);border:1px solid var(--gold);border-radius:9px;padding:8px;box-shadow:0 6px 20px rgba(0,0,0,.55)}
   .cell-pop b{display:block;font-size:12px;color:var(--white);margin-bottom:6px;white-space:nowrap}
@@ -658,6 +659,12 @@ const regInfo29 = s => {
 const nm = r => r.members_master?.name || '（未知）';
 const mc = r => { const c = r.members_master?.member_code; return c ? `（${c}）` : ''; };
 const sp = r => r.sponsor?.members_master?.name || '';
+// 👤 分析頁的人名（2026-11-13 後台第 3 步）：管理員點了跳管理卡（openStu／openCoach，跟 👥名冊 同一張）；教練唯讀模式只是文字。
+//    有些清單只留了名字沒留 id（關注名單是用名字當 key 累計的）→ whoSn／whoCn 用名字回查。
+const whoS = (id, txt) => isReadonly || !id ? txt : `<span class="who-lk" onclick="event.stopPropagation();openStu('${id}')">${txt}</span>`;
+const whoC = (id, txt) => isReadonly || !id ? txt : `<span class="who-lk" onclick="event.stopPropagation();openCoach('${id}')">${txt}</span>`;
+const whoSn = name => whoS((students.find(s => s.status === 'approved' && nm(s) === name) || {}).id, name);
+const whoCn = name => whoC((coaches.find(c => c.status === 'approved' && nm(c) === name) || {}).id, name);
 const nl = v => { if (!v) return ''; if (Array.isArray(v)) return v.join('、'); return String(v); };
 const bdg = s => {
   const m = { pending:['b-pending','待審核'], approved:['b-approved','已批准'], rejected:['b-rejected','已拒絕'] };
@@ -792,7 +799,7 @@ function renderCoachOverview(realStudents, logsByStu) {
   h += `<div class="cov-note">看了＝教練有進來標｜交件＝看過的裡面有交｜已回＝交了的裡面有回｜<b>看了 0% ＝教練沒來，不是學員沒交</b></div>`;
   h += `<table class="cov-tbl"><tr><th>教練</th><th>看了</th><th>交件</th><th>已回</th><th>組員填報</th></tr>`;
   rows.forEach(r => {
-    h += `<tr><td>${r.name}<br><span class="cov-sub">${r.n} 位組員</span></td>
+    h += `<tr><td>${whoCn(r.name)}<br><span class="cov-sub">${r.n} 位組員</span></td>
       ${cell(r.looked, r.due)}${cell(r.handed, r.looked)}${cell(r.replied, r.handed)}
       <td><span class="cov-pct ${cls(pct(r.filled, r.n))}">${r.filled}/${r.n}</span><br><span class="cov-sub">有填過</span></td></tr>`;
   });
@@ -971,7 +978,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
     days.length} 天 · ${realStudents.length} 位學員</span></div>`;
   h += `<div class="cov-note">
     ${[['full','✓','準時交了'],['part','6/8','作業只交一部分'],['part','填','只填行動紀錄、心得沒貼'],['part','貼','只貼心得、行動紀錄沒填'],['none','✕','沒交'],['full late','遲','學員 22:00 後才填'],['full mk','補','教練結案後才補標'],['unk','？','教練還沒回報'],['na','','還沒到期／未開放']].map(x => `<span class="hwm-lg"><i class="hwm-c ${x[0]}">${x[1]}</i>${x[2]}</span>`).join('')}<br>
-    ✏️ <b>點格子可改</b>（只有總教練）｜👤 點學員名字看教練與領袖｜滑過格子看判定理由${
+    ✏️ <b>點格子可改</b>（只有總教練）｜👤 ${isReadonly ? '點學員名字看教練與領袖' : '點學員或教練名字 → 管理卡（資料、換組、退班都在那）'}｜滑過格子看判定理由${
       zeroDone ? `<br>⚠️ <b>${zeroDone} 人</b>整排都沒被處理——要找的是教練` : ''}</div>`;
   // 教練／領袖收進學員名字（Randoph：寬度有限）——hover 有 title、點一下彈出小卡，
   // 省下約 120px 給日期欄。名字帶點狀底線提示可點。
@@ -990,13 +997,13 @@ function renderHwMatrix(realStudents, coachById, scope) {
     if (gNow !== lastG) {          // 依組別分段：每組一列標題（組別・教練），找教練算帳最快
       lastG = gNow;
       h += `<tr class="hwm-gh"><td class="nm nm1">${gNow}</td><td colspan="${days.length + 1}">${
-        coachById[r.s.coach_id] || '未配對'} 教練</td></tr>`;
+        whoC(r.s.coach_id, coachById[r.s.coach_id] || '未配對')} 教練</td></tr>`;
     }
     const cN = coachById[r.s.coach_id] || '—', sN = coachById[r.s.sponsor_id] || '—';
     const gFull = groupByCoach[r.s.coach_id] || '';
     h += `<tr><td class="nm nm1 who" data-n="${nm(r.s)}" data-c="${cN}" data-s="${sN}" 
              data-g="${gFull || '未分組'}"
-             onclick="showWho(event,this)" title="教練 ${cN}｜領袖 ${sN}">${nm(r.s)}</td>`;
+             onclick="${isReadonly ? 'showWho(event,this)' : `event.stopPropagation();openStu('${r.s.id}')`}" title="教練 ${cN}｜領袖 ${sN}">${nm(r.s)}</td>`;
     days.forEach(ds => {
       const c = cellOf(r.s.id, ds);
       const mk = c.k === 'full' && mkSet.has(r.s.id + '|' + ds);
@@ -1104,7 +1111,7 @@ function renderTrack(target) {
   h += `<div class="sec-title"><span>🔴 連續沒填（教練快關心）</span><span class="sec-count">${silent.length} 人</span></div>`;
   if (!silent.length) h += `<div class="dash-empty">太棒了，沒人失聯 🎉</div>`;
   else h += '<div>' + silent.map(x =>
-    `<div class="track-row track-red"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.txt}</span></div>`
+    `<div class="track-row track-red"><span class="track-name">${whoSn(x.name)}</span><span class="track-mid">教練：${whoCn(x.coach)}</span><span class="track-tag">${x.txt}</span></div>`
   ).join('') + '</div>';
 
   const vb = isSimple ? '標' : '審';   // simple 模式教練的動作是「標記」不是「審核」
@@ -1112,9 +1119,9 @@ function renderTrack(target) {
   if (!due.length) h += `<div class="dash-empty">今天該${vb}的都${vb}完了 👍</div>`;
   else h += '<div>' + due.map(x =>
     `<div class="track-row track-orange">
-      <span class="track-name">教練：${x.coach}</span>
+      <span class="track-name">教練：${whoCn(x.coach)}</span>
       <span class="track-tag">${x.items.length} 筆待${vb}</span>
-      <div class="track-chips">${x.items.map(i => `<span class="track-chip">${i}</span>`).join('')}</div>
+      <div class="track-chips">${x.items.map(i => `<span class="track-chip">${whoSn(i)}</span>`).join('')}</div>
     </div>`
   ).join('') + '</div>';
 
@@ -1122,10 +1129,10 @@ function renderTrack(target) {
   if (!failed.length) h += `<div class="dash-empty">沒有漏${vb}記錄 ✨</div>`;
   else h += '<div>' + failed.map(x =>
     `<div class="track-row track-black">
-      <span class="track-name">教練：${x.coach}</span>
+      <span class="track-name">教練：${whoCn(x.coach)}</span>
       <span class="track-tag">共 ${x.total} 天未${vb}</span>
       <div class="track-stulist">${x.stus.map(st =>
-        `<div class="track-stu"><span>${st.name}</span><span class="track-dots">${'🔴'.repeat(st.cnt)}<b>未${vb} ${st.cnt} 天</b></span></div>`
+        `<div class="track-stu"><span>${whoSn(st.name)}</span><span class="track-dots">${'🔴'.repeat(st.cnt)}<b>未${vb} ${st.cnt} 天</b></span></div>`
       ).join('')}</div>
     </div>`
   ).join('') + '</div>';
@@ -1133,7 +1140,7 @@ function renderTrack(target) {
   h += `<div class="sec-title"><span>📉 本週至今 vs 上週同期下滑</span><span class="sec-count">${drop.length} 人</span></div>`;
   if (!drop.length) h += `<div class="dash-empty">沒有明顯退步 💪</div>`;
   else h += '<div>' + drop.map(x =>
-    `<div class="track-row track-blue"><span class="track-name">${x.name}</span><span class="track-mid">教練：${x.coach}</span><span class="track-tag">${x.lastW} → ${x.thisW} 分</span></div>`
+    `<div class="track-row track-blue"><span class="track-name">${whoSn(x.name)}</span><span class="track-mid">教練：${whoCn(x.coach)}</span><span class="track-tag">${x.lastW} → ${x.thisW} 分</span></div>`
   ).join('') + '</div>';
 
   if (target) el.insertAdjacentHTML('beforeend', h); else el.innerHTML = h;
@@ -1283,7 +1290,7 @@ function renderDemerits(target) {
   if (!stuRows.length) h += `<div class="dash-empty">目前沒有人被記點 🎉</div>`;
   else {
     h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>待確認</th><th>合計</th>${isReadonly ? '' : '<th></th>'}</tr>`;
-    stuRows.forEach(r => h += `<tr${r.gone ? ' style="opacity:.5"' : ''}><td>${r.name}<span class="c">${r.coach}</span></td>
+    stuRows.forEach(r => h += `<tr${r.gone ? ' style="opacity:.5"' : ''}><td>${whoS(r.id, r.name)}<span class="c">${r.coach}</span></td>
       <td>${r.miss || '—'}</td>
       <td>${r.hwMiss || '—'}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
       <td>${r.hwUng ? `<span class="dm-pend">${r.hwUng}</span>` : '—'}</td>
@@ -1300,7 +1307,7 @@ function renderDemerits(target) {
   if (!coachRows.length) h += `<div class="dash-empty">教練全部準時 👏</div>`;
   else {
     h += `<table class="dm-tbl"><tr><th>教練</th><th>沒送出</th><th>逾時送出</th><th>送出時欠回</th><th>作業未檢核</th><th>合計</th></tr>`;
-    coachRows.forEach(r => h += `<tr><td>${r.name}<span class="c">${r.n} 位組員</span></td>
+    coachRows.forEach(r => h += `<tr><td>${whoCn(r.name)}<span class="c">${r.n} 位組員</span></td>
       <td>${r.noSubmit || '—'}</td><td>${r.lateSubmit || '—'}</td><td>${r.oweReply || '—'}</td>
       <td>${r.hwNo ? r.hwNo + ' 格' : '—'}</td>
       <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td>
@@ -1895,7 +1902,7 @@ function renderDashboard(target, part) {
             const e = engOf(s.id);
             const pts = log ? (log.name_list||0)+(log.meet||0)+(log.invite||0)*2+(log.present||0)*5+(log.seminar||0)*5+(log.ghosted||0)+(log.rejected||0)+(log.attended||0)*2+namePts(log) : 0;
             return `<div class="dash-stu-row">
-              <span>${nm(s)}${mc(s)}</span>
+              <span>${whoS(s.id, nm(s) + mc(s))}</span>
               <div class="dash-stu-status">
                 ${log ? `<span class="stu-b dash-perfect">✍️ 已填<i>${pts} 分</i></span>` : `<span class="stu-b dash-zero">✍️ 未填</span>`}
                 ${flag(e.homework === true ? true : (e.homework === false ? false : null), '📤 交了', '📤 沒交', '📤 未標')}
@@ -2046,7 +2053,7 @@ function renderDashboard(target, part) {
               ? `<span class="stu-b ${lvl(pct(n, den))}">${icon} <span class="dash-pct">${n}</span><i>/${den} 天</i></span>`
               : `<span class="stu-b stu-na" title="教練還沒進來標記，不代表學員沒做">⬜ 未標</span>`;
             return `<div class="dash-stu-row">
-              <span>${nm(s)}${mc(s)}</span>
+              <span>${whoS(s.id, nm(s) + mc(s))}</span>
               <div class="dash-stu-status">
                 ${mark('📤', sSent, wd)}
                 ${mark('↩️', sRep, wdC)}
