@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>釜山加碼攻略｜獎勵旅遊</title>
 <meta name="description" content="冬季戀歌 釜山五日浪漫之旅 奔馳獨家加碼獎勵：怎麼達成、綠佳利額外給多少、帶領組織可以多少。加碼辦法以奔馳公告為準。">
-<meta name="theme-color" content="#171c26">
+<meta name="theme-color" content="#c2697f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap">
 <style>
   /* 釜山團加碼攻略：登機證頁 /travel/?t=busan-2027 的深色按鈕點進來。顏色跟 /travel/ 同一套。規則照奔馳加碼海報；獎金數字照制度頁的對外算法（一套放在收入邊一年 7,500） */
+  /* 配色 2026-11-13 Randoph 定：深色票頭與按鈕改 #c2697f（粉底上的小字用白色）；「N 個人一起去釜山」那塊 #dac7d6 */
   :root {
     --bg: #f7f5f0; --card: #ffffff; --cream: #f6f1e1; --line: #e6e0d2;
     --ink: #2d2a24; --sub: #6b6558; --gold: #8a6d00; --btn: #b8960c;
-    --board: #171c26; --board-dark: #0e121a; --board-line: #2b3342;
-    --pass-ink: #f4f1e6; --pass-sub: #9aa3b5; --amber: #ffc93c; --lit: #57d98a;
+    --board: #c2697f; --on-board: #ffffff; --board-dark: #0e121a; --board-line: #2b3342;
+    --pass-ink: #f4f1e6; --pass-sub: rgba(255,255,255,.86); --amber: #ffc93c; --lit: #57d98a;
     --s-refer: #a37f00; --s-cycle: #1b7fb0; --ok: #1f7a46; --ok-bg: #e4f3ea;
     --note: #5b6472; --note-line: #b9c0cc;
   }
@@ -27,15 +28,15 @@
 
   .cta { display: block; margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--btn); color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
   .cta::after { content: " ›"; }
-  .cta.guide { background: var(--board); color: var(--amber); }
+  .cta.guide { background: var(--board); color: var(--on-board); }
   .cta.guide::after { content: none; }
   .cta small { display: block; color: var(--pass-ink); font-size: 16px; font-weight: 400; }
 
   /* 上半深色票頭 */
   .pass { padding: 20px 20px 22px; border-radius: 16px 16px 0 0; background: var(--board); color: var(--pass-ink); }
-  .pass-code { margin: 0 0 8px; color: var(--amber); font-size: 18px; font-weight: 900; letter-spacing: .08em; }
+  .pass-code { margin: 0 0 8px; color: var(--on-board); font-size: 18px; font-weight: 900; letter-spacing: .08em; }
   .pass h1 { margin: 0 0 18px; font-size: 32px; font-weight: 900; line-height: 1.3; }
-  .pass h1 em { color: var(--amber); font-style: normal; }
+  .pass h1 em { color: var(--on-board); font-style: normal; }
   .pass h1 small { display: block; margin-bottom: 2px; font-size: 22px; font-weight: 700; line-height: 1.3; }
   .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0; }
   .pass-grid div { min-width: 0; }
@@ -118,7 +119,7 @@
   .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
   .tabs button { min-height: 64px; padding: 6px 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 21px; font-weight: 700; line-height: 1.3; cursor: pointer; }
   .tabs button small { display: block; color: var(--sub); font-size: 15px; font-weight: 400; }
-  .tabs button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .tabs button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--on-board); }
   .tabs button[aria-pressed="true"] small { color: var(--pass-ink); }
   .stage { margin-top: 12px; padding: 10px 6px 6px; border-radius: 12px; background: var(--cream); }
   .stage svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; overflow: visible; }
@@ -128,7 +129,7 @@
   .me circle { fill: var(--card); stroke: var(--note-line); stroke-width: 2; transition: fill .2s, stroke .2s; }
   .me text { fill: var(--sub); font-size: 15px; font-weight: 700; }
   .me.path circle { fill: var(--board); stroke: var(--board); }
-  .me.path text { fill: var(--amber); }
+  .me.path text { fill: var(--on-board); }
   .me.lit circle { fill: var(--amber); stroke: var(--s-cycle); stroke-width: 4; }
   .me.lit text { fill: var(--board); }
   .slot circle { fill: var(--card); stroke: var(--sub); stroke-width: 2; stroke-dasharray: 4 4; }
@@ -168,7 +169,7 @@
   /* ── 三個頁籤（2026-11-13 Randoph 定）：條件獎勵／額外獎金／帶領組織。按了換下面整塊內容，網址 # 跟著換；每個頁籤最下面都是同一顆「立即報名」 ── */
   .gtabs { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 -20px; padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--card); }
   .gtabs button { min-height: 54px; padding: 4px 2px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
-  .gtabs button[aria-selected="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .gtabs button[aria-selected="true"] { border-color: var(--board); background: var(--board); color: var(--on-board); }
   .ptitle { margin: 18px 0 0; font-size: 25px; font-weight: 900; line-height: 1.4; }
   .sheet .ptitle + section { border-top: 0; padding-top: 12px; }
   .fine { margin-top: 10px; color: var(--sub); font-size: 15px; line-height: 1.6; }
@@ -190,14 +191,14 @@
   .pt-box.done .pt-left { color: var(--ok); }
   .pt-where { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
   .pt-where button { min-height: 52px; padding: 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 17px; font-weight: 700; line-height: 1.3; cursor: pointer; }
-  .pt-where button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--amber); }
+  .pt-where button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: var(--on-board); }
   .pt-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: center; margin-top: 12px; }
   .pt-grid .h { color: var(--sub); font-size: 15px; text-align: center; }
   .pt-grid .p { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pt-add { position: relative; min-height: 60px; padding: 4px; border: 0; border-radius: 12px; background: var(--cream); color: var(--ink); font: inherit; font-size: 21px; font-weight: 900; font-variant-numeric: tabular-nums; cursor: pointer; touch-action: manipulation; }
   .pt-add:active { transform: scale(.97); }
   .pt-add small { display: block; color: var(--sub); font-size: 14px; font-weight: 400; }
-  .pt-add.has { background: var(--board); color: var(--amber); }
+  .pt-add.has { background: var(--board); color: var(--on-board); }
   .pt-add.has small { color: var(--pass-ink); }
   .pt-reset { display: block; margin: 12px auto 0; min-height: 44px; padding: 6px 18px; border: 1px solid var(--note-line); border-radius: 22px; background: none; color: var(--sub); font: inherit; font-size: 17px; cursor: pointer; }
 
@@ -211,7 +212,7 @@
   .tm-n { font-size: 38px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tm-n i { font-size: 18px; font-style: normal; font-weight: 700; }
   .tm-n.bump { animation: bump .28s ease-out; }
-  .tm-go { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--cream); font-size: 18px; line-height: 1.55; }
+  .tm-go { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: #dac7d6; font-size: 18px; line-height: 1.55; }
   .tm-go b { font-size: 21px; font-variant-numeric: tabular-nums; }
   @media (prefers-reduced-motion: reduce) { .pt-bar i { transition: none; } .tm-n.bump { animation: none; } }
 </style>

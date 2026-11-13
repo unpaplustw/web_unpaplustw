@@ -23,7 +23,7 @@
   .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; margin: 0; }
   .pass-grid div { min-width: 0; }
   .pass-grid div:last-child { grid-column: 1 / -1; }
-  .pass-grid dt { color: #9aa3b5; font-size: 14px; }
+  .pass-grid dt { color: var(--pass-sub, #9aa3b5); font-size: 14px; }
   .pass-grid dd { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.45; }
   .pass-grid .is-open { color: var(--lit); }
   .pass-grid .is-open::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: var(--lit); animation: blink 1.4s steps(2, jump-none) infinite; }
@@ -88,6 +88,12 @@
 
   if (trip) {
     document.title = `${trip.name}｜獎勵旅遊`;
+    if (trip.theme) { // 這一趟自己的配色（例：釜山團粉色）：深色票頭、深色按鈕、票頭小字
+      const r = document.documentElement.style;
+      r.setProperty('--board', trip.theme.board); r.setProperty('--amber', trip.theme.accent);
+      r.setProperty('--lit', trip.theme.accent); r.setProperty('--pass-sub', trip.theme.sub);
+      document.querySelector('meta[name="theme-color"]').content = trip.theme.board;
+    }
     const pass = el('header', 'pass');
     const grid = el('dl', 'pass-grid');
     for (const [label, value, cls] of [['目的地', trip.where], ['狀態', trip.badge, trip.open ? 'is-open' : ''], ['時間', trip.when]]) {
