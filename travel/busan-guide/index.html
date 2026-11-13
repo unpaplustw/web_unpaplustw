@@ -73,13 +73,6 @@
   .goal { font-size: 24px; font-weight: 700; }
   .goal b { color: var(--board); font-size: 44px; font-weight: 900; }
   .pt-where button small { display: block; font-size: 14px; font-weight: 400; opacity: .85; }
-  .tbl-wrap { overflow-x: auto; }
-  table.score { width: 100%; border-collapse: collapse; font-size: 17px; font-variant-numeric: tabular-nums; text-align: center; }
-  table.score th, table.score td { padding: 7px 4px; border: 1px solid var(--line); }
-  table.score thead th { background: var(--cream); color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.35; }
-  table.score thead th small { display: block; color: var(--sub); font-size: 13px; font-weight: 400; }
-  table.score td:first-child { font-weight: 700; white-space: nowrap; }
-  table.score td.pick { background: var(--board); color: #fff; font-weight: 900; }
 
   /* 3. 收入這邊：三種位置比一比 */
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 4px; font-size: 16px; color: var(--sub); }
@@ -302,24 +295,6 @@
           <li>「一個名義」僅只補助「一個名額」</li>
           <li>分數計算不包含互助分數</li>
         </ul>
-      </section>
-
-      <section>
-        <h2>分數表</h2>
-        <div class="tbl-wrap">
-          <table class="score">
-            <thead>
-              <tr><th rowspan="2">創業方案</th><th colspan="2">推薦新會員<small>BC001 位置</small></th><th colspan="2">推薦追加位置<small>BC 位置</small></th></tr>
-              <tr><th>1+11<br>1+11B</th><th>1+5<br>1+5B</th><th>1+11<br>1+11B</th><th>1+5<br>1+5B</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>20,000P</td><td>300</td><td>150</td><td>260</td><td>130</td></tr>
-              <tr><td>15,000P</td><td class="pick">220</td><td>110</td><td>200</td><td>100</td></tr>
-              <tr><td>10,000P</td><td>132</td><td>66</td><td>120</td><td>60</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="hint">單位：分。不含互助分數；一個名義只補助一個名額。</p>
       </section>
 
       <section>
