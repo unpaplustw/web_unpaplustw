@@ -111,9 +111,9 @@ export const TRAVEL = {
             ['報名截止', '2026/11/23'],
           ],
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
-          guide: { label: '奔馳獨家對折補助', sub: '趕緊來瞧瞧', href: '/travel/busan-guide/' },   // 按鈕文字 2026-11-13 Randoph 定：不要寫複雜的語言
+          guide: { label: '奔馳獨家加碼獎勵', sub: '趕緊來瞧瞧', href: '/travel/busan-guide/' },   // 按鈕文字 2026-11-13 Randoph 定：不要寫複雜的語言
           disclaimer: '航班以正式開票資料為準，費用以旅行社確認為準。',
-          src: '奔馳團隊報名網頁（2026/11/12 讀取）' },
+          src: '奔馳報名網頁（2026/11/12 讀取）' },
         { id: 'festa-2027', name: 'GO TO FESTA 2027', when: '2027 年 10 月前後', where: '日本', badge: '挑戰中', open: true,
           rows: [
           ['去哪裡', '日本 FESTA 世界年會'],
