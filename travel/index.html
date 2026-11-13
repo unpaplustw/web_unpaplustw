@@ -18,7 +18,7 @@
 
   /* 上半：登機證（深色，跟首頁看板同一套顏色） */
   .pass { position: relative; padding: 20px 20px 22px; border-radius: 16px 16px 0 0; background: var(--board); color: #f4f1e6; }
-  .pass-code { margin: 0 0 10px; color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: .16em; }
+  .pass-code { margin: 0 0 10px; color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
   .pass h1 { margin: 0 0 18px; font-size: 28px; line-height: 1.35; text-wrap: balance; }
   .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; margin: 0; }
   .pass-grid div { min-width: 0; }
@@ -86,7 +86,7 @@
       cell.append(el('dt', '', label), el('dd', cls, value));
       grid.append(cell);
     }
-    pass.append(el('p', 'pass-code', 'BOARDING PASS・獎勵旅遊'), el('h1', '', trip.name), grid);
+    pass.append(el('p', 'pass-code', trip.code || 'BOARDING PASS・獎勵旅遊'), el('h1', '', trip.name), grid);
     const tear = el('div', 'tear');
     tear.append(el('i'), el('i'));
     // rows：一格一段；值是陣列（例如各級門檻）就一行一塊，冒號前面放大
