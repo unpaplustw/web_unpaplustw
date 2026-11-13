@@ -118,6 +118,13 @@
   .know li:first-child { margin-top: 0; }
 
 
+  /* 轉發文案（2026-11-13 Randoph 給的原文，一字不改）＋一鍵複製 */
+  .share { margin-top: 18px; padding: 18px 16px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+  .share h2 { margin: 0; font-size: 23px; }
+  .share-hint { margin-top: 2px; color: var(--sub); font-size: 16px; }
+  .share-btn { display: block; width: 100%; min-height: 60px; margin-top: 12px; border: 0; border-radius: 14px; background: var(--board); color: #fff; font: inherit; font-size: 22px; font-weight: 900; cursor: pointer; }
+  .share-btn.done { background: var(--ok); }
+  .share-text { margin: 12px 0 0; padding: 14px; border-radius: 12px; background: var(--cream); font: inherit; font-size: 17px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
   .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
 
@@ -403,6 +410,48 @@
     </div>
   </div>
 
+  <section class="share">
+    <h2>轉發文案</h2>
+    <p class="share-hint">按一下複製，貼到 LINE 就能轉發。</p>
+    <button type="button" class="share-btn" id="share-btn">一鍵複製文案</button>
+    <pre class="share-text" id="share-text">🌟自己報名完成直推三：
+（直接推薦 3 位「15,000P 1+11」）
+
+(1) 綠佳利獎金 38,700 元！
+　推薦獎金 5,400×3＝16,200
+　日循環獎金 22,500（一年）
+　※收入邊放滿 3 位、另一邊已有業績
+(2) 奔馳獨家加碼獎勵：旅費半價，省 12,300 元！
+(3) Festa 分數累積 660 分！
+　再 140 分達 800 分，公司補助 15,000 元
+(4) 組織增加三位潛力無窮的夥伴！
+
+👉 直推三，馬上拿到 28,500 元
+（推薦獎金 16,200＋旅費省 12,300）
+再加一年日循環 22,500，合計 51,000 元😍
+
+❗️如果有佈局和推薦佈局，獎金跟著放大：
+
+🌟帶左右各二位夥伴達成直推三
+💴小資：推薦 21,600＋日循環 60,000＝81,600
+💴小金：推薦 21,600＋日循環 120,000＋領導獎金 12,000＝153,600
+
+🌟帶左右各四位夥伴達成直推三
+💴小資：推薦 43,200＋日循環 120,000＝163,200
+💴大金：推薦 43,200＋日循環 360,000＋領導獎金 54,000＝457,200🎆
+
+❤️和夥伴一起興奮的韓國之旅，無價♾️
+（夥伴每人也省 12,300 元旅費）
+
+🧁 下一站：高峰領袖（單月獎金 30 萬）
+🍰 再往上：鑽石高峰（左右各帶出 2 位高峰）
+🎂 終點：CFC 世界大使
+
+📌 說明
+・加碼獎勵務必先完成旅遊報名與繳費；既有會員 12/15 前、新會員 12/31 前報件
+・實際以公司核發為準
+👉 自己按按看：https://unpaplus.com.tw/travel/busan-guide/#team</pre>
+  </section>
   <a class="cta" href="https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec">立即報名</a>
   <p class="foot"><strong>加碼辦法以奔馳公告為準；獎金是以「15,000P 1+11 優惠套組」試算，實際以公司核發為準。</strong>資料來源：奔馳加碼獎勵海報</p>
 </main>
@@ -663,6 +712,27 @@
     paintTeam();
   });
   paintTeam();
+})();
+</script>
+<script>
+(() => {
+  // 一鍵複製轉發文案：先用 clipboard，不行（舊手機、LINE 內建瀏覽器）就選取文字用 execCommand
+  const btn = document.getElementById('share-btn'), box = document.getElementById('share-text');
+  const done = (ok) => {
+    btn.textContent = ok ? '✓ 已複製，去 LINE 貼上' : '請長按下面的文字複製';
+    btn.classList.toggle('done', ok);
+    setTimeout(() => { btn.textContent = '一鍵複製文案'; btn.classList.remove('done'); }, 2500);
+  };
+  const fallback = () => {
+    const ta = document.createElement('textarea'); ta.value = box.textContent; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '-1000px'; document.body.append(ta); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove(); done(ok);
+  };
+  btn.addEventListener('click', () => {
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(box.textContent).then(() => done(true), fallback);
+    else fallback();
+  });
 })();
 </script>
 </body>
