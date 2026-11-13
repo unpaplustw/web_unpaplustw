@@ -67,6 +67,19 @@
   .fare .from b { font-size: 22px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .fare .arrow { flex: none; color: var(--sub); font-size: 24px; }
   .fare .to { flex: none; font-size: 28px; font-weight: 900; }
+  /* 幹部回饋（2026-11-13）：省多少、600 分要大、要顯眼 */
+  .save-big { margin-top: 12px; font-size: 22px; font-weight: 700; }
+  .save-big b { color: var(--board); font-size: 34px; font-weight: 900; }
+  .goal { font-size: 24px; font-weight: 700; }
+  .goal b { color: var(--board); font-size: 44px; font-weight: 900; }
+  .pt-where button small { display: block; font-size: 14px; font-weight: 400; opacity: .85; }
+  .tbl-wrap { overflow-x: auto; }
+  table.score { width: 100%; border-collapse: collapse; font-size: 17px; font-variant-numeric: tabular-nums; text-align: center; }
+  table.score th, table.score td { padding: 7px 4px; border: 1px solid var(--line); }
+  table.score thead th { background: var(--cream); color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.35; }
+  table.score thead th small { display: block; color: var(--sub); font-size: 13px; font-weight: 400; }
+  table.score td:first-child { font-weight: 700; white-space: nowrap; }
+  table.score td.pick { background: var(--board); color: #fff; font-weight: 900; }
 
   /* 3. 收入這邊：三種位置比一比 */
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 4px; font-size: 16px; color: var(--sub); }
@@ -243,17 +256,17 @@
       <section>
         <h2>獎勵</h2>
         <div class="fare">
-          <div class="from"><span>團費每人</span><b>24,600 元</b></div>
+          <div class="from"><span>旅費每人</span><b>24,600 元</b></div>
           <div class="arrow">→</div>
           <div class="to">半價招待</div>
         </div>
-        <p class="hint">達標就省 12,300 元。</p>
+        <p class="save-big">達標就省 <b>12,300 元</b></p>
       </section>
 
       <section>
         <h2>怎麼達成</h2>
-        <p class="lead">直接推薦「15,000P 1+11 優惠套組」3 套</p>
-        <p class="hint">直推分數滿 600 分就達標，3 套就夠了。</p>
+        <p class="goal">直推分數達 <b>600 分</b></p>
+        <p class="hint">最快方式：直推 3 套 1+11 優惠方案（1.5 萬點商品），每套 220 分，3 套 660 分。</p>
       </section>
 
       <section>
@@ -292,18 +305,36 @@
       </section>
 
       <section>
+        <h2>分數表</h2>
+        <div class="tbl-wrap">
+          <table class="score">
+            <thead>
+              <tr><th rowspan="2">創業方案</th><th colspan="2">推薦新會員<small>BC001 位置</small></th><th colspan="2">推薦追加位置<small>BC 位置</small></th></tr>
+              <tr><th>1+11<br>1+11B</th><th>1+5<br>1+5B</th><th>1+11<br>1+11B</th><th>1+5<br>1+5B</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>20,000P</td><td>300</td><td>150</td><td>260</td><td>130</td></tr>
+              <tr><td>15,000P</td><td class="pick">220</td><td>110</td><td>200</td><td>100</td></tr>
+              <tr><td>10,000P</td><td>132</td><td>66</td><td>120</td><td>60</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">單位：分。不含互助分數；一個名義只補助一個名額。</p>
+      </section>
+
+      <section>
         <h2>算算看還差幾分</h2>
         <div class="pt-box" id="pt-box" aria-live="polite">
           <div class="pt-now"><span>目前</span><b><span id="pt-now">0</span> <i>分</i></b></div>
           <div class="pt-bar"><i id="pt-fill"></i></div>
           <p class="pt-left" id="pt-left">還差 600 分</p>
         </div>
-        <p class="rowname">推薦在哪一種位置</p>
+        <p class="rowname">推薦的是哪一種</p>
         <div class="pt-where" id="pt-where" role="group" aria-label="推薦在哪一種位置">
-          <button type="button" data-w="bc001" aria-pressed="true">BC001 位置</button>
-          <button type="button" data-w="bc" aria-pressed="false">BC 位置</button>
+          <button type="button" data-w="bc001" aria-pressed="true">推薦新會員<small>BC001</small></button>
+          <button type="button" data-w="bc" aria-pressed="false">推薦追加位置<small>BC</small></button>
         </div>
-        <p class="hint">推薦了哪一種套組，就按一下那一格，按一下加一套。</p>
+        <p class="hint">推薦哪種套組，就按那一個，每按一下加一套。</p>
         <div class="pt-grid" id="pt-grid">
           <span></span><span class="h">1+11／1+11B</span><span class="h">1+5／1+5B</span>
         </div>
@@ -391,7 +422,7 @@
           </dl>
           <div class="tm-sum"><span>合計</span><span class="tm-n" id="tm-total-box"><span id="tm-total">81,600</span> <i>元</i></span></div>
         </div>
-        <p class="tm-go"><b id="tm-people">5</b> 個人一起去釜山，每個人的團費都省 12,300 元。</p>
+        <p class="tm-go"><b id="tm-people">5</b> 個人一起去釜山，每個人的旅費都省 12,300 元。</p>
         <p class="fine">夥伴是你推薦的，每位再推薦 3 套「15,000P 1+11」，左右平均排；只算新進來的業績。領導獎金要本人購買達 20,000 點以上。</p>
       </section>
     </div>
@@ -404,7 +435,7 @@
 (() => {
   // 互動試算：新人放在最小邊，往上每經過一個自己的位置領一次日循環獎金
   const NS = 'http://www.w3.org/2000/svg';
-  const REFER = 5400, CYCLE = 7500, SCORE = 200, SEATS = 3;
+  const REFER = 5400, CYCLE = 7500, SCORE = 220, SEATS = 3;
   // nodes＝自己的位置（x, y）；path＝新人往上會經過的位置（由下往上）
   // r＝自己位置的半徑；mid＝中間那條線的 x；slots＝最小邊的三個直推位；tris＝直推那個位置的另一邊（直角三角形）；isos＝其他位置底下（等腰三角形 x, 頂, 半寬, 底）
   const MODES = {
