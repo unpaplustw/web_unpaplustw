@@ -43,6 +43,15 @@
   .rules dd.tier { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: #f6f1e1; }
   .rules dd.tier b { flex: none; min-width: 5.2em; font-size: 22px; font-variant-numeric: tabular-nums; }
   @media (max-width: 479px) { .rules dd.tier { flex-direction: column; gap: 0; } }
+  /* 活動海報（選填；活動結束會整段拿掉） */
+  .posters { margin-top: 22px; padding: 18px 16px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+  .posters h2 { margin: 0; font-size: 22px; }
+  .posters-hint { margin: 2px 0 12px; color: var(--sub); font-size: 16px; }
+  .posters-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; align-items: end; }
+  .poster { margin: 0; min-width: 0; text-align: center; }
+  .poster img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .poster figcaption { margin-top: 6px; font-size: 16px; line-height: 1.4; }
+  .poster-save { display: block; margin-top: 6px; min-height: 44px; padding: 8px; border-radius: 10px; background: #f6f1e1; color: var(--ink); font-size: 18px; font-weight: 700; text-decoration: none; }
   .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
   .cta { display: block; margin-top: 16px; padding: 16px; border-radius: 14px; background: #b8960c; color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
@@ -114,6 +123,21 @@
       tip.href = trip.guide.href;
       tip.append(el('small', '', trip.guide.sub));
       page.append(tip);
+    }
+    if (trip.posters) { // 活動海報：小圖滑到才載，點小圖開原圖，下面一顆「下載」
+      const box = el('section', 'posters');
+      box.append(el('h2', '', '活動海報'), el('p', 'posters-hint', '點圖看大圖，按「下載」存到手機。'));
+      const grid = el('div', 'posters-grid');
+      for (const p of trip.posters) {
+        const item = el('figure', 'poster');
+        const view = el('a'); view.href = p.full; view.target = '_blank'; view.rel = 'noopener';
+        const img = el('img'); img.src = p.thumb; img.alt = p.name; img.loading = 'lazy'; view.append(img);
+        const save = el('a', 'poster-save', '下載'); save.href = p.full; save.download = `${trip.name}_${p.name}.jpg`;
+        item.append(view, el('figcaption', '', p.name), save);
+        grid.append(item);
+      }
+      box.append(grid);
+      page.append(box);
     }
     page.append(foot);
   } else {

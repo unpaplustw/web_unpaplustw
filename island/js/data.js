@@ -92,6 +92,7 @@ export const COMPANY = {
 // 團隊自己辦的：照團隊的報名網頁，只放日期、航班、費用、報名截止這幾項，行程／訂金／取消規定不抄（留在報名網頁，那邊才是正本）；
 //   cta＝登機證頁最底下的大按鈕（連到報名網頁）、disclaimer＝頁尾那句但書（沒寫就是「辦法以公司公告為準。」）。
 //   code＝登機證頁最上面那行小字（沒寫就是「BOARDING PASS・獎勵旅遊」；團隊辦的寫主辦，例：釜山團「BOARDING PASS・環貫綠佳利 · 奔馳」）。
+//   posters＝活動海報（name／thumb 小圖／full 原圖）；登機證頁最下面列小圖，點了開原圖、可下載。圖檔放 /travel/<代號>-posters/。
 //   guide＝有加碼活動時多一顆「攻略」按鈕（label／sub＝按鈕上兩行字、href＝攻略頁，每個活動一頁，放在 /travel/<代號>/）。
 export const TRAVEL = {
   id: 'travel', name: '獎勵旅遊島',
@@ -112,6 +113,11 @@ export const TRAVEL = {
           ],
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
           guide: { label: '奔馳獨家加碼獎勵', sub: '趕緊來瞧瞧', href: '/travel/busan-guide/' },   // 按鈕文字 2026-11-13 Randoph 定：不要寫複雜的語言
+          // 活動海報（Randoph 2026-11-13 提供；🗑️ 活動結束後連同 /travel/busan-posters/ 資料夾一起刪）
+          posters: [
+            { name: '行程・直式', file: 'itinerary-tall' }, { name: '行程・橫式', file: 'itinerary-wide' },
+            { name: '加碼獎勵・直式', file: 'bonus-tall' }, { name: '加碼獎勵・橫式', file: 'bonus-wide' },
+          ].map((p) => ({ name: p.name, thumb: `/travel/busan-posters/${p.file}-s.jpg`, full: `/travel/busan-posters/${p.file}.jpg` })),
           disclaimer: '航班以正式開票資料為準，費用以旅行社確認為準。',
           src: '奔馳報名網頁（2026/11/12 讀取）' },
         { id: 'festa-2027', name: 'GO TO FESTA 2027', when: '2027 年 10 月前後', where: '日本', badge: '挑戰中', open: true,
