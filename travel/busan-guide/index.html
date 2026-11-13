@@ -118,13 +118,19 @@
   .know li:first-child { margin-top: 0; }
 
 
-  /* 轉發文案（2026-11-13 Randoph 給的原文，一字不改）＋一鍵複製 */
-  .share { margin-top: 18px; padding: 18px 16px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
-  .share h2 { margin: 0; font-size: 23px; }
-  .share-hint { margin-top: 2px; color: var(--sub); font-size: 16px; }
-  .share-btn { display: block; width: 100%; min-height: 60px; margin-top: 14px; border: 0; border-radius: 14px; background: var(--board); color: #fff; font: inherit; font-size: 22px; font-weight: 900; cursor: pointer; }
+  /* 宣傳文案（2026-11-13 Randoph 給的原文，一字不改）：「要先知道」最下面的按鈕 → 彈出畫面，最下面一鍵複製／關閉 */
+  .promo-open { display: block; width: 100%; min-height: 58px; margin-top: 16px; border: 2px solid var(--board); border-radius: 14px; background: var(--card); color: var(--board); font: inherit; font-size: 22px; font-weight: 900; cursor: pointer; }
+  .promo { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); background: rgba(23, 28, 38, .55); }
+  .promo[hidden] { display: none; }   /* 上面的 display: flex 會蓋過 hidden，要明寫 */
+  .promo-card { display: flex; flex-direction: column; width: 100%; max-width: 460px; max-height: 100%; border-radius: 18px; background: var(--card); box-shadow: 0 20px 50px rgba(0, 0, 0, .3); overflow: hidden; }
+  .promo-title { flex: none; margin: 0; padding: 16px 20px 12px; border-bottom: 1px solid var(--line); font-size: 23px; }
+  .promo-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px; }
+  .share-text { margin: 0; padding: 14px; border-radius: 12px; background: var(--cream); font: inherit; font-size: 17px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .promo-foot { flex: none; display: grid; grid-template-columns: 2fr 1fr; gap: 10px; padding: 12px 16px 16px; border-top: 1px solid var(--line); }
+  .share-btn { min-height: 58px; border: 0; border-radius: 14px; background: var(--board); color: #fff; font: inherit; font-size: 21px; font-weight: 900; cursor: pointer; }
   .share-btn.done { background: var(--ok); }
-  .share-text { margin: 12px 0 0; padding: 14px; border-radius: 12px; background: var(--cream); font: inherit; font-size: 17px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .promo-close { min-height: 58px; border: 2px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; }
+  body.promo-on { overflow: hidden; }
   .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
 
@@ -302,6 +308,7 @@
           <li>「一個名義」僅只補助「一個名額」</li>
           <li>分數計算不包含互助分數</li>
         </ul>
+        <button type="button" class="promo-open" id="promo-open">宣傳文案</button>
       </section>
 
       <section>
@@ -410,9 +417,10 @@
     </div>
   </div>
 
-  <section class="share">
-    <h2>轉發文案</h2>
-    <p class="share-hint">看完按最下面的按鈕複製，貼到 LINE 就能轉發。</p>
+  <div class="promo" id="promo" hidden role="dialog" aria-modal="true" aria-labelledby="promo-title">
+    <div class="promo-card">
+      <h2 class="promo-title" id="promo-title">宣傳文案</h2>
+      <div class="promo-body">
     <pre class="share-text" id="share-text">🌟自己報名完成直推三：
 （直接推薦 3 位「15,000P 1+11」）
 
@@ -450,8 +458,13 @@
 ・加碼獎勵務必先完成旅遊報名與繳費；既有會員 12/15 前、新會員 12/31 前報件
 ・實際以公司核發為準
 👉 自己按按看：https://unpaplus.com.tw/travel/busan-guide/#team</pre>
-    <button type="button" class="share-btn" id="share-btn">一鍵複製文案</button>
-  </section>
+      </div>
+      <div class="promo-foot">
+        <button type="button" class="share-btn" id="share-btn">一鍵複製</button>
+        <button type="button" class="promo-close" id="promo-close">關閉</button>
+      </div>
+    </div>
+  </div>
   <a class="cta" href="https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec">立即報名</a>
   <p class="foot"><strong>加碼辦法以奔馳公告為準；獎金是以「15,000P 1+11 優惠套組」試算，實際以公司核發為準。</strong>資料來源：奔馳加碼獎勵海報</p>
 </main>
@@ -719,9 +732,9 @@
   // 一鍵複製轉發文案：先用 clipboard，不行（舊手機、LINE 內建瀏覽器）就選取文字用 execCommand
   const btn = document.getElementById('share-btn'), box = document.getElementById('share-text');
   const done = (ok) => {
-    btn.textContent = ok ? '✓ 已複製，去 LINE 貼上' : '請長按下面的文字複製';
+    btn.textContent = ok ? '✓ 已複製' : '請長按文字複製';
     btn.classList.toggle('done', ok);
-    setTimeout(() => { btn.textContent = '一鍵複製文案'; btn.classList.remove('done'); }, 2500);
+    setTimeout(() => { btn.textContent = '一鍵複製'; btn.classList.remove('done'); }, 2500);
   };
   const fallback = () => {
     const ta = document.createElement('textarea'); ta.value = box.textContent; ta.setAttribute('readonly', '');
@@ -729,6 +742,13 @@
     let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
     ta.remove(); done(ok);
   };
+  const promo = document.getElementById('promo'), opener = document.getElementById('promo-open');
+  const open = () => { promo.hidden = false; document.body.classList.add('promo-on'); promo.querySelector('.promo-body').scrollTop = 0; btn.focus(); };
+  const close = () => { promo.hidden = true; document.body.classList.remove('promo-on'); opener.focus(); };
+  opener.addEventListener('click', open);
+  document.getElementById('promo-close').addEventListener('click', close);
+  promo.addEventListener('click', (e) => { if (e.target === promo) close(); });   // 點外面的暗處也會關
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !promo.hidden) close(); });
   btn.addEventListener('click', () => {
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(box.textContent).then(() => done(true), fallback);
     else fallback();
