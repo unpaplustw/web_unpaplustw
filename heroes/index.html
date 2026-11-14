@@ -43,6 +43,22 @@
   @media (max-width: 768px) { .hhero h1 { font-size: 30px; } .wrap { padding: 32px 16px 80px; } }
 
   /* ── 搜尋 / 篩選 ── */
+  /* 緣分卡（Randoph 2026-11-14）：一進來隨機一位有照片＋金句的夥伴；約三分之一畫面，不把搜尋推走 */
+  .fate { margin: 18px 0 0; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow);
+    padding: 18px 18px 16px; display: grid; grid-template-columns: 96px 1fr; gap: 6px 16px; align-items: center; }
+  .fate .fava { grid-row: span 2; width: 96px; height: 96px; border-radius: 50%; overflow: hidden; background: var(--gold-light);
+    border: 3px solid transparent; background-image: linear-gradient(var(--card), var(--card)), var(--gold-grad); background-origin: border-box; background-clip: padding-box, border-box; }
+  .fate .fava img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; display: block; transition: opacity .25s; }
+  .fate .fq { font-size: 18px; font-weight: 700; line-height: 1.5; color: var(--text-dark); align-self: end; }
+  .fate .fq::before { content: "「"; color: var(--gold-main); } .fate .fq::after { content: "」"; color: var(--gold-main); }
+  .fate .fn { font-size: 14px; color: var(--text-muted); align-self: start; }
+  .fate .fn b { color: var(--text-dark); font-weight: 700; margin-right: 6px; }
+  .fate .fbtn { grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 10px; }
+  .fate .fbtn button { flex: 1; height: 46px; border-radius: 999px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .fate .go { background: var(--gold-grad); color: #fff; border: 0; }
+  .fate .again { background: var(--card); color: var(--gold-deep); border: 1.5px solid var(--gold-main); }
+  .fate.swap .fq, .fate.swap .fn, .fate.swap .fava img { opacity: 0; }
+  .fate .fq, .fate .fn { transition: opacity .25s; }
   .search { margin: 24px 0 14px; }
   .search input { width: 100%; height: 50px; border: 1px solid var(--border); border-radius: 10px; padding: 0 18px;
     font-size: 16px; background: var(--card); color: var(--text-dark); outline: none; font-family: inherit; box-shadow: var(--shadow); }
@@ -241,6 +257,12 @@
       <h1>優秀會員歷程</h1>
       <p>每一位，都曾是和你一樣的普通人</p>
     </div>
+    <div class="fate" id="fate" style="display:none">
+      <div class="fava"><img id="fateImg" alt=""></div>
+      <p class="fq" id="fateQ"></p>
+      <p class="fn" id="fateN"></p>
+      <div class="fbtn"><button class="go" onclick="fateGo()">看完整故事</button><button class="again" onclick="fateNext()">🎲 換一個緣分</button></div>
+    </div>
     <div class="search">
       <input type="search" id="q" placeholder="搜尋姓名或職業，例如：保險、藥局、家庭主婦" />
     </div>
@@ -316,6 +338,34 @@ function listed(p) { return !!p.s; }
 
 /* 排序（Randoph 2026-11-06）：資料越豐富、越近期有更新的越前面。
    分數 w 由重生腳本算好（豐富度＋新鮮度）；同分才隨機，讓同一級的人輪流露臉。 */
+/* ── 緣分卡：只從「有故事＋照片＋金句」的人抽；故事越完整（w 越高）越容易被抽到，不連續抽到同一人 ── */
+let fateCur = null;
+function fatePool() { return people.filter(p => p.s && p.t && p.q); }
+function fatePick() {
+  const pool = fatePool().filter(p => p !== fateCur);
+  if (!pool.length) return null;
+  const tot = pool.reduce((s, p) => s + (p.w || 1), 0);
+  let r = Math.random() * tot;
+  for (const p of pool) { r -= (p.w || 1); if (r <= 0) return p; }
+  return pool[pool.length - 1];
+}
+function fateShow(p) {
+  if (!p) return;
+  fateCur = p;
+  const box = document.getElementById("fate"), img = document.getElementById("fateImg");
+  box.classList.add("swap");
+  setTimeout(() => {
+    img.src = "t/" + p.t;
+    document.getElementById("fateQ").textContent = p.q;
+    document.getElementById("fateN").innerHTML = `<b>${esc(p.n)}</b>${esc(p.o || "")}`;
+    box.style.display = "grid"; box.classList.remove("swap");
+    /* 縮圖先上，再換成 R2 原圖（只載這一張） */
+    fetch("data/p/" + p.k + ".json").then(r => r.json()).then(d => { if (fateCur === p && d.ph) { const hi = new Image(); hi.onload = () => { if (fateCur === p) img.src = d.ph; }; hi.src = d.ph; } }).catch(() => {});
+  }, box.style.display === "none" ? 0 : 220);
+}
+function fateNext() { fateShow(fatePick()); }
+function fateGo() { if (fateCur) openDetail(fateCur.k); }
+
 function shuffle(arr) {
   arr.forEach(p => p._k = (p.w || 0) + Math.random() * 0.5);
   arr.sort((a, b) => b._k - a._k);
@@ -527,6 +577,7 @@ async function init() {
     people.forEach(p => { if (cnt[p.n] === 1) byName[p.n] = p.k; });
     people.forEach(p => (p.a || []).forEach(a => { if (!cnt[a] && !byName[a]) byName[a] = p.k; }));
     shuffle(people);
+    fateNext();
     if (window.innerWidth >= 768) document.getElementById("filterBox").open = true;
     drawChips(); renderGrid();
     const k = keyFromHash();
