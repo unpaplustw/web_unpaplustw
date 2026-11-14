@@ -137,6 +137,12 @@
   .share-btn.done { background: var(--ok); }
   .promo-close { min-height: 58px; border: 2px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; }
   body.promo-on { overflow: hidden; }
+  /* 加碼獎勵海報（11-14 從登機證頁移過來；🗑️ 活動結束跟整頁一起收） */
+  .posters-grid { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 12px; }
+  .poster { margin: 0; text-align: center; }
+  .poster img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .poster figcaption { margin-top: 6px; font-size: 16px; }
+  .poster-save { display: block; margin-top: 6px; min-height: 44px; padding: 8px; border-radius: 10px; background: var(--cream); color: var(--ink); font-size: 18px; font-weight: 700; text-decoration: none; }
   .foot { margin: 18px 4px 0; color: var(--sub); font-size: 15px; }
   .foot strong { display: block; color: var(--ink); font-size: 17px; }
 
@@ -334,6 +340,23 @@
           <span></span><span class="h">1+11／1+11B</span><span class="h">1+5／1+5B</span>
         </div>
         <button type="button" class="pt-reset" id="pt-reset">重算</button>
+      </section>
+
+      <section class="posters">
+        <h2>加碼獎勵海報</h2>
+        <p class="hint">點圖看大圖，按「下載」存到手機。</p>
+        <div class="posters-grid">
+          <figure class="poster">
+            <a href="/travel/busan-posters/bonus-tall.jpg" target="_blank" rel="noopener"><img src="/travel/busan-posters/bonus-tall-s.jpg" alt="加碼獎勵・直式海報" loading="lazy"></a>
+            <figcaption>加碼獎勵・直式</figcaption>
+            <a class="poster-save" href="/travel/busan-posters/bonus-tall.jpg" download="冬季戀歌 釜山五日浪漫之旅_加碼獎勵・直式.jpg">下載</a>
+          </figure>
+          <figure class="poster">
+            <a href="/travel/busan-posters/bonus-wide.jpg" target="_blank" rel="noopener"><img src="/travel/busan-posters/bonus-wide-s.jpg" alt="加碼獎勵・橫式海報" loading="lazy"></a>
+            <figcaption>加碼獎勵・橫式</figcaption>
+            <a class="poster-save" href="/travel/busan-posters/bonus-wide.jpg" download="冬季戀歌 釜山五日浪漫之旅_加碼獎勵・橫式.jpg">下載</a>
+          </figure>
+        </div>
       </section>
     </div>
 

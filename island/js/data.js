@@ -115,10 +115,9 @@ export const TRAVEL = {
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
           theme: { board: '#c2697f', accent: '#ffffff', sub: 'rgba(255,255,255,.86)' },   // 配色 2026-11-13 Randoph 定
           guide: { label: '奔馳獨家加碼獎勵', sub: '趕緊來瞧瞧', href: '/travel/busan-guide/' },   // 按鈕文字 2026-11-13 Randoph 定：不要寫複雜的語言
-          // 活動海報（Randoph 2026-11-13 提供；🗑️ 活動結束後連同 /travel/busan-posters/ 資料夾一起刪）
+          // 行程海報（Randoph 2026-11-13 提供；加碼獎勵那兩張 11-14 移到攻略頁條件獎勵頁籤；🗑️ 活動結束後連同 /travel/busan-posters/ 資料夾一起刪）
           posters: [
             { name: '行程・直式', file: 'itinerary-tall' }, { name: '行程・橫式', file: 'itinerary-wide' },
-            { name: '加碼獎勵・直式', file: 'bonus-tall' }, { name: '加碼獎勵・橫式', file: 'bonus-wide' },
           ].map((p) => ({ name: p.name, thumb: `/travel/busan-posters/${p.file}-s.jpg`, full: `/travel/busan-posters/${p.file}.jpg` })),
           disclaimer: '航班以正式開票資料為準，費用以旅行社確認為準。',
           src: '奔馳報名網頁（2026/11/12 讀取）' },
