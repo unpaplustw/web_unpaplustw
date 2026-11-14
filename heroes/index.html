@@ -251,6 +251,8 @@
       <div class="chips" id="roleChips"></div>
       <p class="flabel">我卡在⋯</p>
       <div class="chips" id="painChips"></div>
+      <p class="flabel">我想看⋯</p>
+      <div class="chips" id="rankChips"></div>
     </details>
     <p class="srch-note" id="srchNote"></p>
     <div class="grid" id="grid"></div>
@@ -288,9 +290,13 @@ const PAINS = [["health","健康亮紅燈"],["money","收入卡住"],["time","�
 const RANK = ["AQA","CFC Master","CFC","高峰","12星鑽","9星鑽","7星鑽","5星鑽","3星鑽","1星鑽","星鑽","終身成就","進階成就","成就"];
 /* 🔴 對外用語對照（Randoph 2026-09-23）：只改顯示 */
 const BADGE_ALIAS = { "成就": "全球分紅" };
+/* 獎銜篩選（Randoph 2026-11-14）：按每人「最高獎銜」分 4 組，一人只落一組（MECE）；14 種獎銜不逐一列，免得按鈕擠滿手機 */
+const RANK_GROUPS = [["cfc","CFC 以上",["AQA","CFC Master","CFC"]],["peak","高峰",["高峰"]],
+                     ["star","星鑽",["12星鑽","9星鑽","7星鑽","5星鑽","3星鑽","1星鑽","星鑽"]],["ach","全球分紅",["終身成就","進階成就","成就"]]];
+function rankGroup(p) { const top = (p.b || []).find(b => RANK.includes(b)); const g = top && RANK_GROUPS.find(x => x[2].includes(top)); return g ? g[0] : ""; }
 
 let people = [], redirect = {}, byKey = {}, byName = {};
-let activeRole = "", activePain = "", shown = PAGE, cur = null;
+let activeRole = "", activePain = "", activeRank = "", shown = PAGE, cur = null;
 
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 function tagLabel(id) { const r = ROLES.find(x => x[0] === id); if (r) return r[1].replace(/^\S+\s/, ""); const p = PAINS.find(x => x[0] === id); return p ? p[1] : id; }
@@ -325,16 +331,21 @@ function drawChips() {
   document.getElementById("painChips").innerHTML =
     `<button class="${activePain ? "" : "on"}" onclick="setPain('')">不限</button>` +
     PAINS.filter(x => painN[x[0]]).map(x => `<button class="${x[0] === activePain ? "on" : ""}" onclick="setPain('${x[0]}')">${x[1]} ${painN[x[0]]}</button>`).join("");
-  const on = [activeRole && tagLabel(activeRole), activePain && tagLabel(activePain)].filter(Boolean);
+  const rankN = {}; pool.forEach(p => { const g = rankGroup(p); if (g) rankN[g] = (rankN[g] || 0) + 1; });
+  document.getElementById("rankChips").innerHTML =
+    `<button class="${activeRank ? "" : "on"}" onclick="setRank('')">不限</button>` +
+    RANK_GROUPS.filter(g => rankN[g[0]]).map(g => `<button class="${g[0] === activeRank ? "on" : ""}" onclick="setRank('${g[0]}')">${g[1]} ${rankN[g[0]]}</button>`).join("");
+  const on = [activeRole && tagLabel(activeRole), activePain && tagLabel(activePain), activeRank && RANK_GROUPS.find(g => g[0] === activeRank)[1]].filter(Boolean);
   document.getElementById("filterSum").textContent = on.length ? "篩選：" + on.join(" ＋ ") : "篩選";
 }
 function setRole(r) { activeRole = activeRole === r ? "" : r; shown = PAGE; drawChips(); renderGrid(); }
 function setPain(x) { activePain = activePain === x ? "" : x; shown = PAGE; drawChips(); renderGrid(); }
+function setRank(x) { activeRank = activeRank === x ? "" : x; shown = PAGE; drawChips(); renderGrid(); }
 
 function currentRows() {
   const q = document.getElementById("q").value.trim();
   /* 搜尋時查全部人（含只有榮耀線的），沒搜尋時只列有故事的人 */
-  let rows = people.filter(p => (q ? true : listed(p)) && (!activeRole || p.r === activeRole) && (!activePain || (p.p || []).includes(activePain)));
+  let rows = people.filter(p => (q ? true : listed(p)) && (!activeRole || p.r === activeRole) && (!activePain || (p.p || []).includes(activePain)) && (!activeRank || rankGroup(p) === activeRank));
   if (q) {
     const score = p => p.n.includes(q) ? 0 : (p.a || []).some(a => a.includes(q)) ? 1 : (p.o || "").includes(q) ? 2 : (p.q || "").includes(q) ? 3 : 9;
     rows = rows.filter(p => score(p) < 9).sort((a, b) => score(a) - score(b));
@@ -347,7 +358,7 @@ function renderGrid() {
   const grid = document.getElementById("grid");
   document.getElementById("srchNote").textContent = q ? "" : "以下是有完整故事的夥伴；想找特定的人，直接搜尋姓名";
   if (!rows.length) {
-    grid.innerHTML = `<p class="empty" style="grid-column:1/-1;">${q ? "找不到這個名字或職業" : "這個組合目前沒有人，把「我卡在⋯」改成「不限」再試一次"}</p>`;
+    grid.innerHTML = `<p class="empty" style="grid-column:1/-1;">${q ? "找不到這個名字或職業" : "這個組合目前沒有人，把「我卡在⋯」或「我想看⋯」改成「不限」再試一次"}</p>`;
     document.getElementById("count").textContent = "";
     document.getElementById("moreBtn").style.display = "none";
     return;
@@ -367,6 +378,7 @@ function showMore() { shown += PAGE; renderGrid(); }
 function jumpTag(id) {
   const k = tagKind(id);
   if (k === "role") { activeRole = id; activePain = ""; } else if (k === "pain") { activePain = id; activeRole = ""; } else return;
+  activeRank = "";
   document.getElementById("q").value = "";
   shown = PAGE; goList(); drawChips(); renderGrid();
   document.getElementById("filterBox").open = true;
@@ -499,7 +511,7 @@ async function showDetail(k) {
     `<button onclick="backToSearch()">回到搜尋</button>`;
 }
 function backToSearch() {
-  activeRole = activePain = ""; shown = PAGE;
+  activeRole = activePain = activeRank = ""; shown = PAGE;
   document.getElementById("q").value = "";
   goList(); drawChips(); renderGrid(); window.scrollTo(0, 0);
   document.getElementById("q").focus();
