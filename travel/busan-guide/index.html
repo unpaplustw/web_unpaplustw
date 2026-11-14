@@ -123,7 +123,13 @@
   .promo { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); background: rgba(23, 28, 38, .55); }
   .promo[hidden] { display: none; }   /* 上面的 display: flex 會蓋過 hidden，要明寫 */
   .promo-card { display: flex; flex-direction: column; width: 100%; max-width: 460px; max-height: 100%; border-radius: 18px; background: var(--card); box-shadow: 0 20px 50px rgba(0, 0, 0, .3); overflow: hidden; }
-  .promo-title { flex: none; margin: 0; padding: 16px 20px 12px; border-bottom: 1px solid var(--line); font-size: 23px; }
+  .promo-title { flex: none; margin: 0; padding: 16px 20px 8px; font-size: 23px; }
+  .promo-tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 12px; border-bottom: 1px solid var(--line); }
+  .promo-tabs button { min-height: 54px; padding: 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-size: 19px; font-weight: 900; line-height: 1.25; cursor: pointer; }
+  .promo-tabs button small { display: block; color: var(--sub); font-size: 13px; font-weight: 400; }
+  .promo-tabs button[aria-pressed="true"] { border-color: var(--board); background: var(--board); color: #fff; }
+  .promo-tabs button[aria-pressed="true"] small { color: rgba(255,255,255,.88); }
+  .share-text[hidden] { display: none; }
   .promo-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px; }
   .share-text { margin: 0; padding: 14px; border-radius: 12px; background: var(--cream); font: inherit; font-size: 17px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
   .promo-foot { flex: none; display: grid; grid-template-columns: 2fr 1fr; gap: 10px; padding: 12px 16px 16px; border-top: 1px solid var(--line); }
@@ -420,6 +426,10 @@
   <div class="promo" id="promo" hidden role="dialog" aria-modal="true" aria-labelledby="promo-title">
     <div class="promo-card">
       <h2 class="promo-title" id="promo-title">宣傳文案</h2>
+      <div class="promo-tabs" id="promo-tabs" role="group" aria-label="選擇版本">
+        <button type="button" data-v="share-text" aria-pressed="true">夥伴版<small>推薦與獎金</small></button>
+        <button type="button" data-v="share-text-new" aria-pressed="false">新朋友版<small>主打出去玩</small></button>
+      </div>
       <div class="promo-body">
     <pre class="share-text" id="share-text">🌟自己報名完成直推三：
 （直接推薦 3 位「15,000P 1+11」）
@@ -461,6 +471,31 @@
 
 來試算和報名⬇️
 https://unpaplus.com.tw/travel/busan-guide/#team</pre>
+    <pre class="share-text" id="share-text-new" hidden>❄️冬季戀歌｜釜山五日浪漫之旅
+2027/1/7（四）～1/11（一）
+
+別團要挑：有慶州的沒滑車、有滑車的不住海雲台
+這一團，全部一次玩到😍
+
+🛷 SKY LUGE 滑車＋景觀纜車 雙享受
+🚃 海雲台海岸列車＋青沙浦天空步道、紅白燈塔
+👘 慶州佛國寺＋古宅穿韓服拍美照
+🎨 甘川文化村，釜山最好拍的彩色山城
+🦀 長腳蟹套餐「兩人一隻」
+🥩 韓式烤肉吃到飽、人蔘雞湯、韓式豬腳大餐
+🏨 住海雲台（索諾月海雲台或同等級）
+✈️ 釜山航空，白天出發，不用半夜趕飛機
+
+🛍 購物點只有一站彩妝，其他時間都在玩、在吃
+
+💰 每人 24,600 元，小費已經含了！
+（很多團報價不含小費，每天還要另付 300）
+🎁 11/23 前付訂，每人送一張網卡
+📅 報名截止 2026/11/23
+
+今年冬天，一起去釜山吧⛄
+看完整行程和報名⬇️
+https://unpaplus.com.tw/travel/?t=busan-2027</pre>
       </div>
       <div class="promo-foot">
         <button type="button" class="share-btn" id="share-btn">一鍵複製</button>
@@ -733,7 +768,14 @@ https://unpaplus.com.tw/travel/busan-guide/#team</pre>
 <script>
 (() => {
   // 一鍵複製轉發文案：先用 clipboard，不行（舊手機、LINE 內建瀏覽器）就選取文字用 execCommand
-  const btn = document.getElementById('share-btn'), box = document.getElementById('share-text');
+  const btn = document.getElementById('share-btn');
+  let box = document.getElementById('share-text');   // 目前顯示的那一版（夥伴版／新朋友版）
+  for (const v of document.querySelectorAll('#promo-tabs button')) v.addEventListener('click', () => {
+    for (const o of document.querySelectorAll('#promo-tabs button')) { o.setAttribute('aria-pressed', String(o === v)); document.getElementById(o.dataset.v).hidden = o !== v; }
+    box = document.getElementById(v.dataset.v);
+    document.querySelector('.promo-body').scrollTop = 0;
+    btn.textContent = '一鍵複製'; btn.classList.remove('done');
+  });
   const done = (ok) => {
     btn.textContent = ok ? '✓ 已複製' : '請長按文字複製';
     btn.classList.toggle('done', ok);
