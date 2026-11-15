@@ -221,9 +221,7 @@
   .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
   .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
-  /* 📅 今天（2026-11-13）：三個大數字＋要處理的事 */
-  .td-stats{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap}  .td-stat{flex:1;min-width:200px;background:var(--glass);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 18px}
-  .td-big{font-size:30px;font-weight:800;color:var(--gold);line-height:1.2}  .td-lab{font-size:13px;color:var(--white);margin-top:2px}  .td-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:10px}  .td-bar i{display:block;height:5px;border-radius:3px;background:var(--gold)}  .td-note{font-size:11.5px;color:var(--muted);margin-top:6px}
+  /* 📅 今天（2026-11-13；11-15 只剩要處理的事）*/
   .td-item{background:var(--glass);border:1px solid rgba(255,255,255,.06);border-left:3px solid var(--muted);border-radius:8px;padding:14px 16px;margin-bottom:10px}  .td-item.r{border-left-color:var(--red)}  .td-item.y{border-left-color:var(--yellow)}  .td-item.b{border-left-color:var(--blue)}
   .td-t{font-size:16px;font-weight:700;color:var(--white)}  .td-t small{font-size:12.5px;font-weight:400;color:var(--muted);margin-left:10px}  .td-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .td-chip{font-size:13px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 10px}  .td-chip i{font-style:normal;opacity:.65;margin-left:6px}  .td-chip.more{cursor:pointer;opacity:.75}
@@ -336,60 +334,12 @@
   .dash-prog-card{flex:1;background:var(--glass);border:1px solid var(--gold-bd);border-radius:10px;padding:14px;text-align:center}
   .dash-prog-n{font-size:24px;font-weight:700;color:var(--gold)}
   .dash-prog-l{font-size:12px;color:var(--muted);margin-top:4px}
-  .dash-prog-bar{height:6px;background:var(--navy3);border-radius:3px;margin-top:8px;overflow:hidden}
-  .dash-prog-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
-  .dash-coach-row{background:var(--glass);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:8px;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  .dash-coach-row.dash-complete{border:2px solid var(--gold);box-shadow:0 0 8px rgba(212,175,55,.25)}
-  .dash-coach-row .coach-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
-  .dash-coach-row.open .coach-body{max-height:800px}
-  .dash-coach-row.open .coach-arrow{transform:rotate(180deg)}
-  .dash-coach-hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;user-select:none}
-  .dash-coach-hd:hover{background:var(--navy3)}
-  .dash-stu-row{display:flex;justify-content:space-between;align-items:center;padding:8px 16px 8px 32px;border-top:1px solid rgba(255,255,255,.04);font-size:13px}
-  .dash-stu-status{display:flex;gap:6px;align-items:center;flex-shrink:0}
-  .dash-chip{padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500}
-  .dash-chip-filled{background:var(--green-bg);color:var(--green)}
-  .dash-chip-confirmed{background:var(--gold-lt);color:var(--gold)}
-  .dash-chip-empty{background:rgba(138,143,168,.12);color:var(--muted)}
-  .dash-chip-pending{background:var(--yellow-bg);color:var(--yellow)}
   .dash-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 2px;vertical-align:middle}
   .dot-none{background:rgba(138,143,168,.25)}
   .dot-filled{background:var(--gold)}
   .dot-done{background:var(--green)}
-  .dash-dots-row{display:flex;align-items:center;gap:4px;margin-top:4px;font-size:11px}
-  .dash-dots-label{color:var(--muted);font-size:11px;font-weight:500;min-width:16px}
-  .dash-dots-count{color:var(--muted);font-size:11px;margin-left:6px;white-space:nowrap}
-  .dash-day-label{font-size:10px;color:var(--muted);font-weight:500}
-  .dash-legend{display:flex;gap:14px;align-items:center;margin-bottom:14px;font-size:11px;color:var(--muted)}
-  .dash-legend .dot{margin-right:3px}
-  .dash-self{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:2px}
-  .dash-coach-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-  .dash-coach-stats{display:flex;align-items:center;gap:6px;flex-shrink:0}
-  .dash-day-block{font-size:13px;color:var(--white);background:var(--navy3);padding:3px 10px;border-radius:4px;white-space:nowrap;min-width:130px;text-align:center}
-  .dash-pct{display:inline-block;min-width:32px;text-align:right}
-  .dash-day-block.dash-perfect{background:rgba(91,141,239,.15)}
-  .dash-day-block.dash-pass{background:var(--green-bg)}
-  .dash-day-block.dash-warn{background:var(--yellow-bg)}
-  .dash-day-block.dash-danger{background:var(--red-bg)}
-  .dash-day-block.dash-zero{background:rgba(224,92,92,.25)}
-  .stu-b{font-size:11.5px;color:var(--white);background:var(--navy3);padding:3px 10px;border-radius:5px;white-space:nowrap;min-width:130px;text-align:center;box-sizing:border-box}
-  .stu-arrow-gap{width:12px;margin-left:8px;flex-shrink:0}
-  .stu-b i{font-style:normal;font-weight:400;font-size:10.5px;color:var(--muted);margin-left:4px}
   /* 2026-09-17 Randoph：重點是 LINE 繳交／回覆；作業、行動紀錄降成淡色參考 */
-  .dash-day-block.minor,.stu-b.minor{opacity:.5;font-size:11px;min-width:0;background:transparent;border:1px solid rgba(255,255,255,.1)}
-  .stu-b.dash-perfect{background:rgba(91,141,239,.15)}
-  .stu-b.dash-pass{background:var(--green-bg)}
-  .stu-b.dash-warn{background:var(--yellow-bg)}
-  .stu-b.dash-danger{background:var(--red-bg)}
-  .stu-b.dash-zero{background:rgba(224,92,92,.25)}
-  .stu-b.stu-na{background:rgba(255,255,255,.05);color:var(--muted)}
-  .dash-perfect .dash-pct{color:var(--blue)}
-  .dash-pass .dash-pct{color:var(--green)}
-  .dash-warn .dash-pct{color:var(--yellow)}
-  .dash-danger .dash-pct{color:var(--red)}
-  .dash-zero .dash-pct{color:var(--red);font-weight:700}
-  .dash-pct{color:var(--gold);font-weight:600}
 
   @media(max-width:600px){
     .stats{grid-template-columns:repeat(2,1fr)}
@@ -1252,68 +1202,63 @@ function calcDemerits() {
 }
 
 // ════════════════════════════════════════════
-// 📅 今天（2026-11-13 分析改版第 1 頁）
-//   三個大數字 ＋「要處理的事」。沒有狀況的項目整行不出現。
-//   紅＝已經發生、要總教練決定；黃＝今天還救得回來；藍＝請教練去關心。
-//   每一項都沿用既有算法，不另外算一套：沒送出＝calcDemerits()、✕／❗＝commit.js、沒填＝calcSilent()。
+// 📅 今天（2026-11-13 分析改版第 1 頁；2026-11-15 只剩一張清單）
+//   Randoph 11/15：「今天的進度說真的我也不會看，直接合併到下面，最重要的事情」→ 三個大數字拿掉，它們代表的事變成清單項目。
+//   紅＝已經發生、要總教練決定；黃＝今天還救得回來；藍＝請教練去關心。沒有狀況的項目整行不出現。
+//   教練只看「昨天」那一天（不累積天數：過去的改不了，累積情況看各組狀況卡的小格）。
+//   ✕／❗＝commit.js（跟學員自己看到的同一套）。
 // ════════════════════════════════════════════
 function renderToday(el) {
   el.innerHTML = '<div class="loading-box">整理中…</div>';
   paintToday(el).catch(e => { el.innerHTML = `<div class="empty"><div class="empty-text">「今天」整理失敗：${e.message}</div></div>`; });
 }
 async function paintToday(el) {
-  const now = new Date(), today = localDateStr(now), yest = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  const now = new Date(), yest = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
   const b = batchRow(), from = b.submit_from || b.start_date, md = ds => +ds.slice(5, 7) + '/' + +ds.slice(8);
   const real = realStudentList().filter(s => !s.dropped_at && s.coach_id);
   const ac = approvedCoaches().filter(c => real.some(s => s.coach_id === c.id));          // 有帶組的教練
   const sub = new Set(submitRows.map(r => r.coach_id + '|' + r.log_date));
-  const over = ds => { const dl = new Date(ds + 'T12:00:00'); dl.setDate(dl.getDate() + 1); return now > dl; };
+  const yOver = (() => { const dl = new Date(yest + 'T12:00:00'); dl.setDate(dl.getDate() + 1); return now > dl; })();
   const wkday = ds => { const w = new Date(ds + 'T00:00:00').getDay(); return w >= 1 && w <= 5; };
   const need = (c, ds) => !!from && ds >= from && (!b.end_date || ds <= b.end_date) && (wkday(ds) || !(!c.track || c.track === 'learn'));   // 學習組週末不用送出
-  const actDue = ds => real.filter(s => { const f = stuActFrom(s); return f && f <= ds; });                // 那天該填行動回報的人
-  const filled = ds => { const ids = new Set(allLogs.filter(l => l.log_date === ds).map(l => l.student_id)); return actDue(ds).filter(s => ids.has(s.id)).length; };
-  const needY = ac.filter(c => need(c, yest)), sentY = needY.filter(c => sub.has(c.id + '|' + yest));
-  const notYet = ds => real.length - actDue(ds).length, skip = ds => notYet(ds) ? `・另 ${notYet(ds)} 位學習組還在上課週，不用填` : '';
 
-  // ✕／❗（跟學員自己看到的同一套）＋待審報件
+  // ✕／❗＋待審報件
   let cm = {}, pv = 0;
   try { cm = await loadCommit(sb, bid, real.map(s => s.id)); } catch (e) {}
-  try { const r = await sb.from('closing_records').select('id', { count: 'exact', head: true }).eq('batch_id', bid).is('verified', null); pv = r.count || 0; } catch (e) {}
+  if (bid) try { const r = await sb.from('closing_records').select('id', { count: 'exact', head: true }).eq('batch_id', bid).is('verified', null); pv = r.count || 0; } catch (e) {}
 
-  const noSub = ac.map(c => ({ id: c.id, name: nm(c), group: c.group_name || '', noSubmit: coachDays(c).filter(d => d.k === 'none').length })).filter(r => r.noSubmit).sort((a, z) => z.noSubmit - a.noSubmit);   // 同各組卡的小格
+  const noY = ac.filter(c => need(c, yest) && !sub.has(c.id + '|' + yest));                // 昨天該送、還沒送
   const x3 = real.filter(s => (cm[s.id] || {}).x >= 3).sort((a, z) => cm[z.id].x - cm[a.id].x);
-  const pend = over(yest) ? [] : needY.filter(c => !sub.has(c.id + '|' + yest));
   const warnBy = {}; real.forEach(s => { const w = (cm[s.id] || {}).warn || 0; if (w) warnBy[s.coach_id] = (warnBy[s.coach_id] || 0) + w; });
   const warnC = ac.filter(c => warnBy[c.id]).sort((a, z) => warnBy[z.id] - warnBy[a.id]);
-  const silent = calcSilent(), never = silent.filter(x => x.gap === 999), gap = silent.filter(x => x.gap !== 999);
+  // 昨天該填行動回報、沒填的學員；旁邊標「從未填」或連續幾天沒填（算到昨天）
+  const logDays = {}; allLogs.forEach(l => { (logDays[l.student_id] = logDays[l.student_id] || new Set()).add(l.log_date); });
+  const coachName = {}; coaches.forEach(c => { coachName[c.id] = nm(c); });
+  const missY = real.map(s => {
+    const f = stuActFrom(s), has = logDays[s.id] || new Set();
+    if (!f || f > yest || has.has(yest)) return null;
+    let n = 0; for (let d = new Date(yest + 'T00:00:00'); localDateStr(d) >= f && !has.has(localDateStr(d)); d.setDate(d.getDate() - 1)) n++;
+    const ever = [...has].some(ds => ds >= f);
+    return { s, n: ever ? n : 999, tag: ever ? (n > 1 ? `${n} 天沒填` : '') : '從未填' };
+  }).filter(Boolean).sort((a, z) => z.n - a.n);
 
   const chip = (inner, ex) => `<span class="td-chip">${inner}${ex ? `<i>${ex}</i>` : ''}</span>`;
   const more = (arr, f, n) => arr.length <= n ? arr.map(f).join('') : arr.slice(0, n).map(f).join('')
     + `<span class="td-chip more" onclick="this.nextElementSibling.style.display='contents';this.remove()">…還有 ${arr.length - n} 位 ▾</span><span style="display:none">${arr.slice(n).map(f).join('')}</span>`;
   const item = (cls, ico, title, note, chips) => `<div class="td-item ${cls}"><div class="td-t">${ico} ${title}${note ? `<small>${note}</small>` : ''}</div>${chips ? `<div class="td-chips">${chips}</div>` : ''}</div>`;
-  const stat = (n, den, lab, note) => `<div class="td-stat"><div class="td-big">${den ? `${n} / ${den}` : '—'}</div><div class="td-lab">${lab}</div>`
-    + `<div class="td-bar"><i style="width:${den ? Math.round(n / den * 100) : 0}%"></i></div><div class="td-note">${den ? note : '這一天不用回報'}</div></div>`;
 
-  const items = [];
-  if (noSub.length) items.push(item('r', '🎓', `${noSub.length} 位教練有回報沒送出`, '過了隔天中午還沒按送出', more(noSub, r => chip(whoC(r.id, r.name), `${r.group ? r.group + '・' : ''}${r.noSubmit} 天`), 12)));
-  if (x3.length) items.push(item('r', '⭐', `${x3.length} 位學員已經 3 個 ✕`, '到了退班線，要不要退由你們決定', more(x3, s => chip(whoS(s.id, nm(s)), `✕ ${cm[s.id].x}`), 12)));
-  if (pend.length) items.push(item('y', '⏰', `今天中午 12:00 前，還有 ${pend.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了中午就算沒送出', more(pend, c => chip(whoC(c.id, nm(c)), c.group_name || ''), 12)));
-  if (warnC.length) items.push(item('y', '❗', `${warnC.length} 位教練有格子還沒確認，學員頁面顯示驚嘆號`, '沒送出，或標了已交但沒逐題檢核；補上就恢復星星', more(warnC, c => chip(whoC(c.id, nm(c)), `${warnBy[c.id]} 格`), 12)));
-  if (never.length) items.push(item('b', '✍️', `${never.length} 位學員開班至今沒填過行動回報`, '請教練關心是不會用，還是沒有行動', more(never, x => chip(whoS(x.id, x.name), x.coach), 8)));
-  if (gap.length) items.push(item('b', '💤', `${gap.length} 位學員連續 2 天以上沒填`, '', more(gap, x => chip(whoS(x.id, x.name), x.txt), 8)));
-  if (pv) items.push(item('b', '📝', `${pv} 筆報件還沒審`, '由負責上線在教練頁「🌱 組織」確認', ''));
-  const busy = new Set([...noSub.map(r => r.id), ...pend.map(c => c.id), ...warnC.map(c => c.id)]), okC = ac.filter(c => !busy.has(c.id)).length;
+  const items = [], coachChips = more(noY, c => chip(whoC(c.id, nm(c)), c.group_name || ''), 14);
+  if (noY.length && yOver)  items.push(item('r', '🎓', `${noY.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了今天中午 12:00', coachChips));
+  if (x3.length)            items.push(item('r', '⭐', `${x3.length} 位學員已經 3 個 ✕`, '到了退班線，要不要退由你們決定', more(x3, s => chip(whoS(s.id, nm(s)), `✕ ${cm[s.id].x}`), 12)));
+  if (noY.length && !yOver) items.push(item('y', '⏰', `今天中午 12:00 前，還有 ${noY.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了中午就算沒送出', coachChips));
+  if (warnC.length)         items.push(item('y', '❗', `${warnC.length} 位教練有格子還沒確認，學員頁面顯示驚嘆號`, '沒送出，或標了已交但沒逐題檢核；補上就恢復星星', more(warnC, c => chip(whoC(c.id, nm(c)), `${warnBy[c.id]} 格`), 12)));
+  if (missY.length)         items.push(item('b', '✍️', `${missY.length} 位學員昨天（${md(yest)}）沒填行動回報`, '請教練關心是不會用，還是沒有行動', more(missY, x => chip(whoS(x.s.id, nm(x.s)), [x.tag, coachName[x.s.coach_id]].filter(Boolean).join('・')), 10)));
+  if (pv)                   items.push(item('b', '📝', `${pv} 筆報件還沒審`, '由負責上線在教練頁「🌱 組織」確認', ''));
+  const busy = new Set([...noY.map(c => c.id), ...warnC.map(c => c.id)]), okC = ac.filter(c => !busy.has(c.id)).length;
 
-  el.innerHTML = `<div class="td-stats">`
-    + stat(filled(today), actDue(today).length, `今天（${md(today)}）已填行動回報`, '22:00 截止' + skip(today))
-    + stat(filled(yest), actDue(yest).length, `昨天（${md(yest)}）學員有填`, '已結算' + skip(yest))
-    + stat(sentY.length, needY.length, `昨天（${md(yest)}）教練已送出`, over(yest) ? '已截止' : '今天中午 12:00 截止')
-    + `</div><div class="sec-title"><span>🔔 要處理的事</span><span class="sec-count">${items.length ? items.length + ' 件 ・ 點名字開管理卡' : '沒有'}</span></div>`
-    + (items.length ? items.join('') : '')
-    + `<div class="td-ok">✅ ${items.length ? (okC ? `其餘 ${okC} 位教練沒有待辦` : '以上處理完就沒事了') : '今天沒有需要處理的事'}</div>`
-    // 舊版「每位教練一列」的昨日明細先收在這裡，等「教練」那一頁做好就移除（2026-11-13）
-    + `<details class="ck-done"><summary style="background:var(--glass);color:var(--muted);font-weight:600">▸ 看上一個上課日各組明細（舊版）</summary><div id="todayOld" style="margin-top:12px"></div></details>`;
-  renderDashboard(document.getElementById('todayOld'), 'daily');
+  el.innerHTML = `<div class="sec-title"><span>🔔 要處理的事</span><span class="sec-count">${items.length ? items.length + ' 件 ・ 點名字開管理卡' : '沒有'}</span></div>`
+    + items.join('')
+    + `<div class="td-ok">✅ ${items.length ? (okC ? `其餘 ${okC} 位教練沒有待辦` : '以上處理完就沒事了') : '今天沒有需要處理的事'}</div>`;
 }
 
 
@@ -1468,7 +1413,7 @@ const ANA = [
   //    分析頁照三個問題重排——今天怎麼樣／哪位教練要找／哪位學員要關心。這一頁回答第一個：三個大數字＋要處理的事。
   //    k 沿用 'daily'（權限、測試都認這個 key）。
   { k:'daily', t:'📅 今天', only:null,
-    d:() => '三個數字 ＋ 要處理的事 · 點名字開管理卡',
+    d:() => '要處理的事 · 點名字開管理卡',
     render: el => renderToday(el) },
 
   // 🔴 2026-11-08 Randoph：作業表與行動表合併——教練每天只標「有沒有在小組貼」，學習週貼作業、之後貼心得，一張就夠
@@ -1899,196 +1844,6 @@ function phaseAfter() {
   return h;
 }
 
-function renderDashboard(target, part) {
-  const today = localDateStr(new Date());
-  const yesterday = localDateStr(new Date(Date.now() - 86400000));
-  const approvedStudents = students.filter(s => s.status === 'approved');
-  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
-  const realStudents = approvedStudents.filter(s => !coachMemberIds.has(s.member_id));
-  const coachStudents = approvedStudents.filter(s => coachMemberIds.has(s.member_id));
-
-  const todayMap = {};
-  todayLogs.forEach(l => { todayMap[l.student_id] = l; });
-  // 日報基準日＝上一個上課日（不是字面上的昨天，見 lastWeekday()）
-  const refDay = lastWeekday();
-  const refWd  = WDAY[new Date(refDay + 'T00:00:00').getDay()];
-  const yesterdayMap = {};
-  allLogs.filter(l => l.log_date === refDay).forEach(l => { yesterdayMap[l.student_id] = l; });
-
-  const totalReal = realStudents.length;
-  const totalCoach = coachStudents.length;
-  const totalAll = approvedStudents.length;
-
-  function pct(n, d) { return d ? Math.round(n / d * 100) : 0; }
-
-  // 「教練有沒有處理」依模式：full＝confirmed／simple＝coach_engagement 有標記
-  // （27期起 confirmed 永遠 false——之前這三張卡的「教練確認率」因此永遠 0%）
-  const dashSimple = ((allBatches.find(b => b.id === bid) || {}).coach_mode || 'simple') === 'simple';
-  const dashMarked = new Set(engRows.filter(r => r.homework !== null && r.homework !== undefined)
-                                    .map(r => r.student_id + '|' + r.log_date));
-  const dashHandled = (s, date, log) => dashSimple ? dashMarked.has(s.id + '|' + date) : !!log?.confirmed;
-
-  // 昨日統計
-  const yStuFill = realStudents.filter(s => yesterdayMap[s.id]).length;
-  const yCoachFill = coachStudents.filter(s => yesterdayMap[s.id]).length;
-  const yConfirmed = approvedStudents.filter(s => dashHandled(s, refDay, yesterdayMap[s.id])).length;
-
-  // 今日統計
-  const tStuFill = realStudents.filter(s => todayMap[s.id]).length;
-  const tCoachFill = coachStudents.filter(s => todayMap[s.id]).length;
-  const tConfirmed = approvedStudents.filter(s => dashHandled(s, today, todayMap[s.id])).length;
-
-  let h = '';
-
-  function progCards(stuFill, stuTotal, coachFill, coachTotal, confirmed, filledTotal) {
-    const sp = pct(stuFill, stuTotal), cp = pct(coachFill, coachTotal), ap = pct(confirmed, filledTotal);
-    return `<div class="dash-progress">
-      <div class="dash-prog-card">
-        <div class="dash-prog-n">${stuFill} / ${stuTotal}</div>
-        <div class="dash-prog-l">學員填報率 ${sp}%</div>
-        <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${sp}%"></div></div>
-      </div>
-      <div class="dash-prog-card">
-        <div class="dash-prog-n">${coachFill} / ${coachTotal}</div>
-        <div class="dash-prog-l">教練填報率 ${cp}%</div>
-        <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${cp}%"></div></div>
-      </div>
-      <div class="dash-prog-card">
-        <div class="dash-prog-n">${confirmed} / ${filledTotal}</div>
-        <div class="dash-prog-l">教練${dashSimple ? '標記' : '確認'}率 ${ap}%</div>
-        <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${ap}%"></div></div>
-      </div>
-    </div>`;
-  }
-
-  // ── ① 日報的分組展開：跟 ② 同一種形狀（組→學員），但只看 refDay 這一天 ──
-  //    Randoph 定案 2026-08-17：日報與整體統計上下分離。日報回答「昨天誰沒做、今天去催誰」，
-  //    處理完就結束；整體統計回答「整期誰跟不上」，那才是記點與退班的依據。
-  function dailyGroups() {
-    const ac = approvedCoaches();
-    const gs = {};
-    ac.forEach(c => { gs[c.id] = { coach: c, students: [] }; });
-    approvedStudents.forEach(s => { if (s.coach_id && gs[s.coach_id]) gs[s.coach_id].students.push(s); });
-    // 12:00 過了嗎？過了之後「未標」就不是「還沒輪到」，而是「教練沒進來看」
-    const coachDl = new Date(refDay + 'T12:00:00'); coachDl.setDate(coachDl.getDate() + 1);
-    const overdue = new Date() > coachDl;
-    const engDay = engRows.filter(r => r.log_date === refDay);
-    const engOf  = sid => engDay.find(r => r.student_id === sid) || {};
-    const rows = Object.values(gs).filter(g => g.students.length).map(g => {
-      const t = g.students.length;
-      const fill = g.students.filter(s => yesterdayMap[s.id]).length;
-      const sent = g.students.filter(s => engOf(s.id).homework === true).length;
-      const rep  = g.students.filter(s => coachDone(engOf(s.id))).length;
-      const selfRec = g.coach ? coachStudents.find(s => s.member_id === g.coach.member_id) : null;
-      return { g, t, fill, sent, rep, self: selfRec ? !!yesterdayMap[selfRec.id] : null,
-               miss: (t - fill) + (t - sent) + (t - rep) };
-    }).sort((a, b) => b.miss - a.miss);            // 問題最多的組排最上面
-    if (!rows.length) return '';
-    const blk = (label, n, t) => {
-      const p = t ? Math.round(n / t * 100) : 0;
-      const c = p === 100 ? 'dash-perfect' : p >= 50 ? 'dash-warn' : p > 0 ? 'dash-danger' : 'dash-zero';
-      return `<span class="stu-b ${c}">${label} <span class="dash-pct">${n}</span><i>/${t}</i></span>`;
-    };
-    // 未標記的格子：期限內＝還沒輪到（灰）；期限後＝教練沒進來看（紅，責任歸教練）
-    const naBlk = txt => overdue
-      ? `<span class="stu-b dash-zero" title="隔天 12:00 已過，教練還沒進來標——這一格歸教練">⚠️ 教練沒看</span>`
-      : `<span class="stu-b stu-na" title="教練還沒進來標記（隔天 12:00 前）">${txt}</span>`;
-    const flag = (v, yes, no, na) => v === true
-      ? `<span class="stu-b dash-perfect">${yes}</span>`
-      : v === false ? `<span class="stu-b dash-zero">${no}</span>`
-                    : naBlk(na);
-    let out = `<div class="cov-note">這一節只看 <b>${refDay}（週${refWd}）</b>一天，處理完就結束——
-      要看整期累積請往下到 <b>② 整體組別回報率</b>。<b>問題最多的組排在最上面。</b><br>
-      ⚠️ <b>兩條死線</b>：學員當天 <b>22:00</b> 前貼${hasHomework() ? '作業' : '行動心得'}；
-      教練<b>隔天 12:00</b> 前處理完（標記＋該回的回完）。<br>
-      🔴 12:00 過後空白格顯示<b>「⚠️ 教練沒看」</b>——責任歸教練，不必再去翻賴群分辨。
-      學員沒交時顯示<b>「✅ 無需回」</b>——沒東西可回也算教練處理完，不扣他。<br>
-      📌 事後補交<b>不會改掉這一天的紀錄</b>（那衡量的是當天的節奏）；補交要看的是
-      <b>③ 作業追蹤彙整</b>的總完成度，那邊不壓日期、隨時可補。</div>`;
-    rows.forEach(r => {
-      out += `<div class="dash-coach-row">
-        <div class="dash-coach-hd" onclick="this.parentElement.classList.toggle('open')">
-          <div class="dash-coach-left">
-            <span class="card-name">${r.g.coach ? nm(r.g.coach) : '未配對教練'}</span>
-            ${r.g.coach?.group_name ? `<span style="color:var(--gold);font-size:11px">${r.g.coach.group_name}</span>` : ''}
-            <span class="dash-self">教練本人${r.self === null ? '－' : (r.self ? '✅' : '❌')}</span>
-          </div>
-          <div class="dash-coach-stats">
-            ${blk('行動紀錄', r.fill, r.t)}
-            ${blk('LINE繳交', r.sent, r.t)}
-            ${blk('LINE回覆', r.rep, r.t)}
-          </div>
-          <span class="coach-arrow">▼</span>
-        </div>
-        <div class="coach-body">
-          ${r.g.students.map(s => {
-            const log = yesterdayMap[s.id];
-            const e = engOf(s.id);
-            const pts = log ? (log.name_list||0)+(log.meet||0)+(log.invite||0)*2+(log.present||0)*5+(log.seminar||0)*5+(log.ghosted||0)+(log.rejected||0)+(log.attended||0)*2+namePts(log) : 0;
-            return `<div class="dash-stu-row">
-              <span>${whoS(s.id, nm(s) + mc(s))}</span>
-              <div class="dash-stu-status">
-                ${log ? `<span class="stu-b dash-perfect">✍️ 已填<i>${pts} 分</i></span>` : `<span class="stu-b dash-zero">✍️ 未填</span>`}
-                ${flag(e.homework === true ? true : (e.homework === false ? false : null), '📤 交了', '📤 沒交', '📤 未標')}
-                ${e.homework === false
-                    ? `<span class="stu-b dash-perfect" title="學員沒交，教練沒東西可回——標了就算處理完">✅ 無需回</span>`
-                    : e.homework === true
-                      ? (e.homework_replied === true
-                          ? `<span class="stu-b dash-perfect">↩️ 回了</span>`
-                          : `<span class="stu-b dash-zero">↩️ 沒回</span>`)
-                      : naBlk('↩️ 未標')}
-                <span class="stu-arrow-gap"></span>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-    });
-    return out;
-  }
-
-  // 教練標記率的分母＝真學員數（教練要標全部組員，不是只標有填 daily 的）
-
-  // ── 電池能量條（今日 LIVE）──
-  const batteryPct = pct(tStuFill, totalReal);
-  if (part !== 'groups') {
-  h += `<div class="battery">
-    <div class="battery-fill" style="width:${batteryPct}%"></div>
-    <div class="battery-text">今天 ${today.slice(5).replace('-','/')}（週${WDAY[new Date(today+'T00:00:00').getDay()]}）進行中 ${batteryPct}%（${tStuFill}/${totalReal}）</div>
-  </div>`;
-
-  // ── 昨日進度 ──
-  h += `<div class="sec-title"><span>📊 ${refDayLabel()}回報</span><span class="sec-count">${refDay.replace(/-/g,' / ')}（週${refWd}）</span></div>`;
-  h += progCards(yStuFill, totalReal, yCoachFill, totalCoach, yConfirmed, totalReal);
-  h += dailyGroups();
-  }   // ← 關閉 if (part !== 'groups')：② 整體組別回報率 不需要電池與昨日三卡
-
-  // ── 教練回報總覽 ──
-  if (!totalAll) {
-    h += `<div class="dash-empty">尚無已批准學員</div>`;
-  } else {
-    const ac = approvedCoaches();
-    const groups = {};
-    ac.forEach(c => { groups[c.id] = { coach: c, students: [] }; });
-    groups['_none'] = { coach: null, students: [] };
-    approvedStudents.forEach(s => {
-      const gid = s.coach_id && groups[s.coach_id] ? s.coach_id : '_none';
-      groups[gid].students.push(s);
-    });
-
-    // 依組別排序，未配對教練放最後
-    const sorted = Object.values(groups).filter(g => g.students.length && g.coach)
-      .sort((a, b) => groupIdx(a.coach) - groupIdx(b.coach));
-
-    const dashVb = dashSimple ? '標記' : '確認';
-
-    // 這個函式現在只剩 daily 那一半（「📅 今天」最下面收著的舊明細）。
-    // 下半的「各組累積矩陣」2026-11-13 換成各組狀況卡（calcGroups／paintGroupCards），四欄的分母規則搬到 calcGroups()。
-    if (part === 'daily') { if (target) target.insertAdjacentHTML('beforeend', h); return; }
-  }
-  if (target) target.insertAdjacentHTML('beforeend', h);
-  else { const d = document.getElementById('p-dashboard'); if (d) d.innerHTML = h; }
-}
 
 // ════════════════════════════════════════════
 // Tab 1: 審核名冊
