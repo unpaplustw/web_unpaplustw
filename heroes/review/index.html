@@ -75,7 +75,7 @@
   <div id="view"><p class="msg">載入中⋯</p></div>
 </div>
 <div class="dock" id="dock" style="display:none"><div class="in">
-  <input type="text" id="note" placeholder="建議下架的原因（可不填）" maxlength="200">
+  <input type="text" id="note" placeholder="備註（保留或下架都可以寫，可不填）" maxlength="200">
   <div class="btns">
     <button class="b-nav" onclick="step(-1)" aria-label="上一位">‹</button>
     <button class="b-rm" onclick="vote('remove')">建議下架</button>
@@ -157,7 +157,7 @@ function step(d) {
   cur = null; draw();
 }
 async function vote(v) {
-  if (!cur) return; const k = cur, note = v === "remove" ? $("note").value.trim() : "";
+  if (!cur) return; const k = cur, note = $("note").value.trim();   /* 備註：保留、下架都可寫（Randoph 2026-11-15） */
   try {
     const r = await rpc("honor_review_vote", { p_token: token, p_code: k, p_vote: v, p_note: note });
     if (!r || !r.ok) throw new Error((r && r.err) || "fail");
@@ -172,14 +172,19 @@ async function drawSummary() {
   try { summary = summary || await rpc("honor_review_summary", { p_token: token }); } catch (e) { $("view").innerHTML = `<p class="msg">讀不到彙整，請稍後再試</p>`; return; }
   if (!summary) { $("view").innerHTML = `<p class="msg">只有管理員看得到彙整</p>`; return; }
   const by = {}; summary.votes.forEach(x => (by[x.code] = by[x.code] || []).push(x));
-  const rows = Object.entries(by).map(([k, xs]) => ({ k, p: byK[k], xs, rm: xs.filter(x => x.v === "remove").length, kp: xs.filter(x => x.v === "keep").length }))
-    .filter(r => r.p && r.rm > 0).sort((a, b) => b.rm - a.rm || a.kp - b.kp);
-  window._rmList = rows.map(r => `${r.p.n}（${r.p.k}）下架 ${r.rm} 票／保留 ${r.kp} 票` + r.xs.filter(x => x.v === "remove" && x.n).map(x => `｜${x.name}：${x.n}`).join("")).join("\n");
+  const all = Object.entries(by).map(([k, xs]) => ({ k, p: byK[k], xs, rm: xs.filter(x => x.v === "remove").length, kp: xs.filter(x => x.v === "keep").length })).filter(r => r.p);
+  const rows = all.filter(r => r.rm > 0).sort((a, b) => b.rm - a.rm || a.kp - b.kp);
+  const noted = all.filter(r => r.rm === 0 && r.xs.some(x => x.n)).sort((a, b) => a.p.n.localeCompare(b.p.n, "zh-Hant"));
+  const line = r => `${r.p.n}（${r.p.k}）下架 ${r.rm} 票／保留 ${r.kp} 票` + r.xs.filter(x => x.n).map(x => `｜${x.name}（${x.v === "keep" ? "保留" : "下架"}）：${x.n}`).join("");
+  window._rmList = [rows.length ? "【建議下架】\n" + rows.map(line).join("\n") : "", noted.length ? "【保留但有備註】\n" + noted.map(line).join("\n") : ""].filter(Boolean).join("\n\n");
+  const card = r => `<div class="sumrow" onclick="tab='all';openCard('${r.k}')"><b>${esc(r.p.n)}</b>　${r.rm ? `<span class="tag remove">下架 ${r.rm}</span> ` : ""}<span class="tag keep">保留 ${r.kp}</span>
+      <p>${r.xs.map(x => `${esc(x.name)}：${x.v === "keep" ? "保留" : "下架"}${x.n ? "（" + esc(x.n) + "）" : ""}`).join("　")}</p></div>`;
   $("view").innerHTML = `<div class="sumrow"><b>審核人進度</b><p>${summary.reviewers.map(r => `${esc(r.name)} ${r.n} 筆`).join("　") || "尚無"}</p></div>
+    ${rows.length || noted.length ? `<button class="copy" onclick="copyList()">複製下架名單＋所有備註（貼給 Claude 處理）</button>` : ""}
     <h4>被建議下架的人（${rows.length} 位，票數多的在前）</h4>
-    ${rows.length ? `<button class="copy" onclick="copyList()">複製這份名單（貼給 Claude 處理）</button>` : `<p class="msg">目前沒有人被建議下架</p>`}
-    ${rows.map(r => `<div class="sumrow" onclick="tab='all';openCard('${r.k}')"><b>${esc(r.p.n)}</b>　<span class="tag remove">下架 ${r.rm}</span> <span class="tag keep">保留 ${r.kp}</span>
-      <p>${r.xs.map(x => `${esc(x.name)}：${x.v === "keep" ? "保留" : "下架"}${x.n ? "（" + esc(x.n) + "）" : ""}`).join("　")}</p></div>`).join("")}`;
+    ${rows.length ? rows.map(card).join("") : `<p class="src">目前沒有人被建議下架</p>`}
+    <h4>保留但有備註（${noted.length} 位）</h4>
+    ${noted.length ? noted.map(card).join("") : `<p class="src">目前沒有</p>`}`;
 }
 async function copyList() { try { await navigator.clipboard.writeText(window._rmList); toast("已複製"); } catch (e) { prompt("長按全選複製：", window._rmList); } }
 
