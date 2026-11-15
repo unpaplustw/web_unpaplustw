@@ -93,6 +93,7 @@ export const COMPANY = {
 //   cta＝登機證頁最底下的大按鈕（連到報名網頁）、disclaimer＝頁尾那句但書（沒寫就是「辦法以公司公告為準。」）。
 //   code＝登機證頁最上面那行小字（沒寫就是「BOARDING PASS・獎勵旅遊」；團隊辦的寫主辦，例：釜山團「BOARDING PASS・環貫綠佳利 · 奔馳」）。
 //   theme＝這一趟自己的配色（board＝深色票頭與深色按鈕、accent＝票頭上的小字與狀態、sub＝票頭上的欄位名）；沒寫就是深藍。
+//   whenFull＝登機證頁票頭「時間」要寫得比 when 完整時才填（沒填就用 when）。
 //   videos＝登機證頁票卡裡面、最上面的 YouTube 影片（name／id／tall＝直式）；先只顯示封面，按了才載入播放器。
 //   posters＝活動海報（name／thumb 小圖／full 原圖）；登機證頁最下面列小圖，點了開原圖、可下載。圖檔放 /travel/<代號>-posters/。
 //   guide＝有加碼活動時多一顆「攻略」按鈕（label／sub＝按鈕上兩行字、href＝攻略頁，每個活動一頁，放在 /travel/<代號>/）。
@@ -106,7 +107,6 @@ export const TRAVEL = {
       trips: [
         { id: 'busan-2027', name: '冬季戀歌 釜山五日浪漫之旅', code: 'BOARDING PASS・環貫綠佳利 · 奔馳', when: '2027 年 1 月 7～11 日', where: '韓國釜山', badge: '報名中', open: true,
           rows: [
-            ['什麼時候', '2027/1/7（四）～1/11（一），共五天'],
             ['航空公司', '釜山航空'],
             ['台北出發（桃園機場）', ['去程 BX572：桃園 13:30 → 釜山 16:55', '回程 BX575：釜山 15:00 → 桃園 16:40']],
             ['高雄出發（小港機場）', ['去程 BX586：高雄 15:00 → 釜山 18:25', '回程 BX585：釜山 12:00 → 高雄 14:00']],
@@ -115,6 +115,7 @@ export const TRAVEL = {
           ],
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
           // 影片（2026-11-15 Randoph 提供的 YouTube；名稱跟宣傳文案一致。tall＝直式短片）🗑️ 活動結束一起收
+          whenFull: '2027/1/7（四）～1/11（一），共五天', // 票頭「時間」用這句（含星期、天數）；清單仍用 when
           videos: [{ name: '冬季戀歌，搶先看', id: '6emV1_LtVOM' }, { name: '這一團好在哪？兩分鐘告訴你', id: 'jKp7N1Rgiz0', tall: true }],
           theme: { board: '#c2697f', accent: '#ffffff', sub: 'rgba(255,255,255,.86)' },   // 配色 2026-11-13 Randoph 定
           guide: { label: '奔馳獨家加碼獎勵', sub: '趕緊來瞧瞧', href: '/travel/busan-guide/' },   // 按鈕文字 2026-11-13 Randoph 定：不要寫複雜的語言

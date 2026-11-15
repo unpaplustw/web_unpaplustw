@@ -20,11 +20,12 @@
   .pass { position: relative; padding: 20px 20px 22px; border-radius: 16px 16px 0 0; background: var(--board); color: #f4f1e6; }
   .pass-code { margin: 0 0 10px; color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
   .pass h1 { margin: 0 0 18px; font-size: 28px; line-height: 1.35; text-wrap: balance; }
+  .pass h1 .nw { display: inline-block; white-space: nowrap; }
   .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; margin: 0; }
   .pass-grid div { min-width: 0; }
   .pass-grid div:last-child { grid-column: 1 / -1; }
   .pass-grid dt { color: var(--pass-sub, #9aa3b5); font-size: 14px; }
-  .pass-grid dd { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.45; }
+  .pass-grid dd { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.45; text-wrap: balance; }
   .pass-grid .is-open { color: var(--lit); }
   .pass-grid .is-open::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: var(--lit); animation: blink 1.4s steps(2, jump-none) infinite; }
   @keyframes blink { 50% { opacity: .25; } }
@@ -110,12 +111,16 @@
     }
     const pass = el('header', 'pass');
     const grid = el('dl', 'pass-grid');
-    for (const [label, value, cls] of [['目的地', trip.where], ['狀態', trip.badge, trip.open ? 'is-open' : ''], ['時間', trip.when]]) {
+    for (const [label, value, cls] of [['目的地', trip.where], ['狀態', trip.badge, trip.open ? 'is-open' : ''], ['時間', trip.whenFull || trip.when]]) {
       const cell = el('div');
       cell.append(el('dt', '', label), el('dd', cls, value));
       grid.append(cell);
     }
-    pass.append(el('p', 'pass-code', trip.code || 'BOARDING PASS・獎勵旅遊'), el('h1', '', trip.name), grid);
+    const h1 = el('h1'); // 名稱有空格就只在空格換行（「冬季戀歌／釜山五日浪漫之旅」，不會斷成「…釜山／五日…」）
+    const parts = trip.name.split(' ');
+    if (parts.length > 1 && parts.every((p) => p.length <= 9)) parts.forEach((p, i) => h1.append(i ? ' ' : '', el('span', 'nw', p)));
+    else h1.textContent = trip.name;
+    pass.append(el('p', 'pass-code', trip.code || 'BOARDING PASS・獎勵旅遊'), h1, grid);
     const tear = el('div', 'tear');
     tear.append(el('i'), el('i'));
     // rows：一格一段；值是陣列（例如各級門檻）就一行一塊，冒號前面放大
@@ -133,7 +138,7 @@
     const foot = el('p', 'foot');
     foot.append(el('strong', '', trip.disclaimer || '辦法以公司公告為準。'), `資料來源：${trip.src}`);
     page.append(pass, tear);
-    if (trip.videos) { // 影片：放在票卡裡面、「什麼時候」的上面。先只放封面，按了才換成 YouTube 播放器（不看的人不耗流量）
+    if (trip.videos) { // 影片：放在票卡裡面、最上面。先只放封面，按了才換成 YouTube 播放器（不看的人不耗流量）
       const box = el('section', 'videos');
       for (const v of trip.videos) {
         const item = el('div', v.tall ? 'video tall' : 'video');
