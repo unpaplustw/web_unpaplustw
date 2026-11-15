@@ -223,6 +223,7 @@
   .gc-ring{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}  .gc-ring b{width:46px;height:46px;border-radius:50%;background:#131a33;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
   .gc-strip{display:flex;gap:3px;margin-top:8px;flex-wrap:wrap}  .gc-strip i{width:20px;height:20px;border-radius:5px;color:#fff;font-size:11px;font-weight:700;font-style:normal;display:flex;align-items:center;justify-content:center}
   .gc-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}  .gc-dot{font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid;color:var(--white)}  .gc-dot .who-lk{text-decoration:none}  .gc-dot i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}  .gc-dot b{margin-left:4px;font-weight:700}
+  .gc-b3{display:flex;align-items:center;gap:8px;margin:5px 0}  .gc-b3 span{flex:0 0 30px;font-size:12px;color:var(--muted)}  .gc-b3 div{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.08)}  .gc-b3 div i{display:block;height:7px;border-radius:4px}  .gc-b3 b{flex:0 0 38px;text-align:right;font-size:13px}  .gc-b3 em{flex:0 0 86px;font-style:normal;font-size:11px;color:var(--muted);white-space:nowrap}
   .gc-sts{display:flex;gap:6px;margin-top:10px}  .gc-st{flex:1;text-align:center;padding:6px 4px;border-radius:8px;background:rgba(255,255,255,.04)}  .gc-st b{display:block;font-size:18px;font-weight:800}  .gc-st span{font-size:11px;color:var(--muted)}
   .gc-org{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}  .gc-none{font-size:12.5px;color:var(--muted)}
   /* 👥 學員頁（2026-11-15）：能量條＝電池造型、一格一天 */
@@ -944,10 +945,11 @@ function stuDot(s, cm, logDays, yest) {
 
 // ════════════════════════════════════════════
 // 🎓 教練頁（2026-11-15）：一位教練一張卡
-//   上半「他帶的組」＝教練自己該做的事：回覆率圓環、每天送出小格、四個數字（沒送出／逾時送出／送出時欠回／待檢核）、組員標籤。
+//   上半「他帶的組」＝教練自己該做的事：**完成度**圓環＋送出／回覆／檢核三條小橫條、每天送出小格、組員標籤。
 //   下半「他的組織」＝選他當負責上線的學員（終身組＝他那組的學員，同教練頁 🌱組織 的規則）：推薦新人、組織締結、報件待他審、下線 3 個 ✕。
-//   不帶組但有下線的人（總教練、總培訓師）也有卡，只有下半。四個數字都從 coachDays() 的小格數出來，跟小格一定對得上。
-//   紅＝2 天以上沒送出或回覆不到五成；黃＝漏 1 天、回覆不到八成、有待檢核／欠回／報件待審；其餘綠。
+//   不帶組但有下線的人（總教練、總培訓師）也有卡，只有下半，排最後。
+//   🔴 圓環、顏色、排序都看同一個完成度（Randoph：「百分比應該呼應關注的排序，不然全部都是紅色也怪怪的」）——
+//      原本圓環＝回覆率、顏色＝「2 天沒送出就紅」、排序跟顏色，三樣各走各的，15 張有 12 張紅、分不出誰最該找。
 // ════════════════════════════════════════════
 function renderCoachPage(el) {
   el.innerHTML = '<div class="loading-box">整理中…</div>';
@@ -959,40 +961,51 @@ async function paintCoachPage(el) {
   let cm = {}, cl = [];
   try { cm = await loadCommit(sb, bid, real.filter(s => s.coach_id).map(s => s.id)); } catch (e) {}
   if (bid) try { const r = await sb.from('closing_records').select('member_id, is_new, is_org, target_code, verified').eq('batch_id', bid); cl = r.data || []; } catch (e) {}
-  const logDays = logDaysMap(), yest = yestStr(), colOf = p => p >= 80 ? '#4ade80' : p >= 50 ? '#facc15' : '#f87171';
+  const logDays = logDaysMap(), yest = yestStr(), colOf = p => p >= 80 ? '#4ade80' : p >= 50 ? '#facc15' : '#f87171', pct = (n, d) => d ? Math.round(n / d * 100) : 100;
   const STR = { full: ['#22a05a', '✓'], late: ['#3b82f6', '遲'], none: ['#d9534f', '✕'], na: ['rgba(255,255,255,.08)', ''] }, md = ds => ds.slice(5).replace('-', '/');
   const stat = (n, lab, hot) => `<div class="gc-st"><b style="color:${hot ? '#f87171' : n ? 'var(--white)' : 'var(--muted)'}">${n}</b><span>${lab}</span></div>`;
+  const bar = (lab, p, txt) => `<div class="gc-b3"><span>${lab}</span><div><i style="width:${p}%;background:${colOf(p)}"></i></div><b style="color:${colOf(p)}">${p}%</b><em>${txt}</em></div>`;
   const cards = approvedCoaches().map(c => {
     const g = byC[c.id] || null, down = real.filter(s => s.sponsor_id === c.id || (s.track === 'lifetime' && s.coach_id === c.id));
     if (!g && !down.length) return null;
     const dIds = new Set(down.map(s => s.member_id)), dc = cl.filter(x => dIds.has(x.member_id) && x.verified !== false);
     const o = { direct: new Set(dc.filter(x => x.is_new === true && x.target_code).map(x => x.target_code)).size, org: dc.filter(x => x.is_org).length,
                 pend: dc.filter(x => x.verified === null).length, x3: down.filter(s => ((cm[s.id] || {}).x || 0) >= 3).length };
-    const t = g ? { miss: g.miss, late: g.days.filter(d => d.k === 'late').length, owe: g.days.filter(d => d.k === 'full' && d.owe).length,
-                    warn: g.mine.reduce((a, s) => a + ((cm[s.id] || {}).warn || 0), 0), reply: g.reply } : null;
-    const lvl = t && (t.miss >= 2 || t.reply < 50) ? 'r' : (t && (t.miss || t.reply < 80 || t.warn || t.late || t.owe)) || o.pend ? 'y' : 'g';
-    const say = [t && t.miss ? `${t.miss} 天沒送出` : '', t && t.reply < 80 ? `回覆 ${t.reply}%` : '', t && t.warn ? `${t.warn} 格待檢核` : '', t && t.late ? `逾時送出 ${t.late} 天` : '',
-                 t && t.owe ? `送出時欠回 ${t.owe} 天` : '', o.pend ? `${o.pend} 筆報件待他審` : ''].filter(Boolean).join('、') || (t ? '該做的都有做到' : '不帶組，組織沒有待辦');
+    let t = null;
+    if (g) {
+      // 🔴 完成度＝教練該做的三件事各 1/3（2026-11-15 Randoph 看過試算表同意）：
+      //    送出＝準時送出天數／已到期該送的天數（逾時不算準時）｜回覆＝calcGroups 的回覆率｜檢核＝已確認的格子／組員已到期的格子（❗＝待確認）
+      const due = g.days.filter(d => d.k !== 'na'), ok = due.filter(d => d.k === 'full').length;
+      const cells = g.mine.reduce((a, s) => a + ((cm[s.id] || {}).days || []).filter(d => d.k !== 'na').length, 0), warn = g.mine.reduce((a, s) => a + ((cm[s.id] || {}).warn || 0), 0);
+      t = { miss: g.miss, late: due.filter(d => d.k === 'late').length, owe: due.filter(d => d.k === 'full' && d.owe).length, warn, due: due.length, ok, cells,
+            sub: pct(ok, due.length), reply: g.reply, chk: pct(cells - warn, cells) };
+      t.score = Math.round((t.sub + t.reply + t.chk) / 3);
+    }
+    const lvl = t ? (t.score < 50 ? 'r' : t.score < 80 ? 'y' : 'g') : o.pend ? 'y' : 'g';
+    const weak = t ? [[t.sub, t.miss ? `${t.miss} 天沒送出` : `逾時送出 ${t.late} 天`], [t.reply, t.reply < 50 ? `回覆只有 ${t.reply}%` : `回覆 ${t.reply}%`], [t.chk, `${t.warn} 格還沒檢核`]].filter(x => x[0] < 80).sort((a, z) => a[0] - z[0]).map(x => x[1]) : [];
+    const list = [...weak, o.pend ? `${o.pend} 筆報件待他審` : ''].filter(Boolean).join('、');
+    const say = list ? (lvl === 'g' && t ? '大致都有做到，還可以補：' + list : list) : (t ? '該做的都有做到' : '不帶組，組織沒有待辦');
     return { c, g, down, o, t, lvl, say };
   }).filter(Boolean);
-  const ORD = { r: 0, y: 1, g: 2 }, ICO = { r: '🔴', y: '🟡', g: '✅' };
-  cards.sort((a, z) => ORD[a.lvl] - ORD[z.lvl] || groupIdx(a.c) - groupIdx(z.c));
+  const ICO = { r: '🔴', y: '🟡', g: '✅' };
+  cards.sort((a, z) => (a.t ? a.t.score : 999) - (z.t ? z.t.score : 999) || groupIdx(a.c) - groupIdx(z.c));   // 完成度低的排前面；不帶組的排最後
   const n = k => cards.filter(x => x.lvl === k).length, pill = (k, txt) => n(k) ? `<span class="gc-pill ${k}">${n(k)} 位 ${txt}</span>` : '';
   const card = x => `<div class="gc ${x.lvl}">
     <div><span class="gc-name">${whoC(x.c.id, nm(x.c))}</span><span class="gc-meta">${x.g ? `${x.c.group_name || '未分組'}・${trackName(x.c.track || 'learn')}` : '不帶組'}</span></div>
     <div class="gc-say">${ICO[x.lvl]} ${x.say}</div>`
     + (x.g ? `<div class="gc-lab">🎓 他帶的組（${x.g.mine.length} 人）</div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <div class="gc-ring" style="background:conic-gradient(${colOf(x.t.reply)} ${x.t.reply * 3.6}deg, rgba(255,255,255,.09) 0)"><b style="color:${colOf(x.t.reply)}">${x.t.reply}%</b></div>
-      <div style="flex:1"><div class="gc-lab" style="margin:0">回覆學員　　每天送出 ↓</div><div class="gc-strip">${x.g.days.map(d => `<i style="background:${STR[d.k][0]}" title="${md(d.ds)}">${STR[d.k][1]}</i>`).join('')}</div></div></div>
-    <div class="gc-sts">${stat(x.t.miss, '沒送出', x.t.miss >= 2)}${stat(x.t.late, '逾時送出', false)}${stat(x.t.owe, '送出時欠回', false)}${stat(x.t.warn, '待檢核 ❗', x.t.warn >= 4)}</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="text-align:center"><div class="gc-ring" style="background:conic-gradient(${colOf(x.t.score)} ${x.t.score * 3.6}deg, rgba(255,255,255,.09) 0)"><b style="color:${colOf(x.t.score)}">${x.t.score}%</b></div><div class="gc-lab" style="margin:4px 0 0">完成度</div></div>
+      <div style="flex:1">${bar('送出', x.t.sub, `${x.t.ok}/${x.t.due} 天準時`)}${bar('回覆', x.t.reply, '學員有交的')}${bar('檢核', x.t.chk, x.t.warn ? `${x.t.warn} 格待確認` : '都確認了')}</div></div>
+    <div class="gc-strip" title="每天有沒有送出">${x.g.days.map(d => `<i style="background:${STR[d.k][0]}" title="${md(d.ds)}">${STR[d.k][1]}</i>`).join('')}<span class="gc-lab" style="margin:0 0 0 6px;align-self:center">每天送出${x.t.owe ? `・送出時欠回 ${x.t.owe} 天` : ''}</span></div>
     <div class="gc-dots">${x.g.mine.map(s => stuDot(s, cm, logDays, yest)).join('')}</div>` : '')
     + `<div class="gc-org"><div class="gc-lab">🌱 他的組織（選他當負責上線的 ${x.down.length} 人）</div>`
     + (x.down.length ? `<div class="gc-sts" style="margin-top:0">${stat(x.o.direct, '推薦新人', false)}${stat(x.o.org, '組織締結', false)}${stat(x.o.pend, '報件待他審', x.o.pend > 0)}${stat(x.o.x3, '下線 3 個 ✕', x.o.x3 > 0)}</div>
       <div class="gc-dots">${x.down.map(s => stuDot(s, cm, logDays, yest)).join('')}</div>` : `<div class="gc-none">這一期沒有學員選他當負責上線</div>`)
     + `</div></div>`;
-  el.innerHTML = `<div class="gc-sum">${pill('r', '要找他談')}${pill('y', '小地方要補')}${pill('g', '正常')}</div>`
-    + `<div class="cov-note">圓環＝回覆率｜小格＝每天有沒有送出（✓ 準時、遲、✕ 沒送出、空格＝今天中午前要送）｜學員標籤：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰連續 2 天以上沒填行動｜名字點了開管理卡</div>`
+  el.innerHTML = `<div class="gc-sum">${pill('r', '要找他談')}${pill('y', '還有要補的')}${pill('g', '正常')}</div>`
+    + `<div class="cov-note"><b>完成度</b>＝送出、回覆、檢核三件事各佔三分之一；不到 50% 紅、50～79% 黃、80% 以上綠，<b>完成度低的排前面</b>｜小格＝每天有沒有送出（✓ 準時、遲、✕ 沒送出、空格＝今天中午前要送）`
+    + `｜學員標籤：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰連續 2 天以上沒填行動｜名字點了開管理卡</div>`
     + `<div class="gc-grid">${cards.map(card).join('')}</div>`;
 }
 
