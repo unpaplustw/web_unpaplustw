@@ -231,6 +231,9 @@
   .more { display: block; margin: 22px auto 0; font-size: 14px; font-weight: 700; padding: 11px 26px; border-radius: 999px;
     border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep); cursor: pointer; font-family: inherit; }
   .rel { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+  .holdbox { margin: 18px 0 4px; padding: 16px 18px; border: 1px dashed var(--gold-main); border-radius: 12px; background: var(--gold-light);
+    color: var(--text-dark); font-size: 15px; line-height: 1.7; text-align: center; }
+  .holdbox b { color: var(--gold-deep); white-space: nowrap; }
   .exits { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; max-width: 760px; margin: 22px auto 0; }
   .exits button { font-size: 14.5px; font-weight: 700; padding: 12px 22px; border-radius: 999px; cursor: pointer; font-family: inherit;
     border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep); }
@@ -524,6 +527,9 @@ async function showDetail(k) {
         <button class="copytup" id="tupBtn" onclick="copyTup()">複製這段介紹詞</button></div>`;
     html += `</div>`;
   }
+
+  /* 自述未達上線門檻（④ 沒過）：不顯示自述，改顯示聯絡窗口（Randoph 2026-11-15） */
+  if (d.hold) html += `<div class="holdbox">自我定位自述的部分，請聯絡 <b>游育杰（魷魚）</b></div>`;
 
   /* 第 3 層：點了才展開。六拍不顯示編號（Randoph：編號是內部判準，訪客會覺得在讀表格） */
   if (isSelf) {
