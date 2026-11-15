@@ -1348,7 +1348,7 @@ function calcGroups() {
   let taughtN = 0; if (typeof SCHEDULE !== 'undefined') Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) taughtN += arr.length; });
   const stuAct = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l);
   return approvedCoaches().map(c => {
-    const mine = students.filter(s => s.status === 'approved' && s.coach_id === c.id); if (!mine.length) return null;
+    const mine = students.filter(s => s.status === 'approved' && !s.dropped_at && s.coach_id === c.id); if (!mine.length) return null;   // 🔴 2026-11-15 Randoph「拿掉」：退班的人不算進分母（教練不必再標他，算進去會冤枉教練）
     const total = mine.length, learn = !c.track || c.track === 'learn', hasCourse = hasHomework() && learn;
     const stus = mine.map(s => {
       const logs = allLogs.filter(l => l.student_id === s.id && isWd(l.log_date) && l.log_date >= aStart && l.log_date < today);
