@@ -39,13 +39,14 @@
   .rules { margin: 0; padding: 4px 20px 20px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 16px 16px; background: var(--card); }
   .rules dt { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--gold); font-size: 16px; font-weight: 700; }
   .rules dt:first-child { margin-top: 0; border-top: 0; }
-  .rules dd { margin: 4px 0 0; font-size: 20px; line-height: 1.65; }
+  .rules dd { margin: 4px 0 0; font-size: 20px; line-height: 1.65; text-wrap: balance; } /* balance：折行時兩行平均，不讓最後一個字落單 */
   .rules dd.tier { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: #f6f1e1; }
   .rules dd.tier b { flex: none; min-width: 5.2em; font-size: 22px; font-variant-numeric: tabular-nums; }
   @media (max-width: 479px) { .rules dd.tier { flex-direction: column; gap: 0; } }
   /* 影片（選填）：橫式 16:9、直式 9:16（直式限寬置中） */
-  .videos { display: grid; gap: 18px; margin-top: 18px; }
-  .video h2 { margin: 0 0 8px; font-size: 21px; line-height: 1.4; }
+  .videos { display: grid; gap: 18px; padding: 6px 20px 20px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--card); }
+  .videos + .rules dt:first-child { padding-top: 16px; border-top: 1px solid var(--line); }
+  .video h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; font-weight: 700; line-height: 1.4; }
   .video-play, .video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 14px; overflow: hidden; background: #000; }
   .video.tall .video-play, .video.tall iframe { aspect-ratio: 9 / 16; max-width: 300px; margin: 0 auto; }
   .video-play { position: relative; padding: 0; cursor: pointer; }
@@ -131,8 +132,8 @@
     }
     const foot = el('p', 'foot');
     foot.append(el('strong', '', trip.disclaimer || '辦法以公司公告為準。'), `資料來源：${trip.src}`);
-    page.append(pass, tear, rules);
-    if (trip.videos) { // 影片：票卡下面、報名按鈕上面。先只放封面，按了才換成 YouTube 播放器（不看的人不耗流量）
+    page.append(pass, tear);
+    if (trip.videos) { // 影片：放在票卡裡面、「什麼時候」的上面。先只放封面，按了才換成 YouTube 播放器（不看的人不耗流量）
       const box = el('section', 'videos');
       for (const v of trip.videos) {
         const item = el('div', v.tall ? 'video tall' : 'video');
@@ -150,6 +151,7 @@
       }
       page.append(box);
     }
+    page.append(rules);
     if (trip.cta) { // 團隊自己辦的：完整行程和報名表在團隊的報名網頁
       const go = el('a', 'cta', trip.cta.label);
       go.href = trip.cta.href;
