@@ -93,6 +93,7 @@ export const COMPANY = {
 //   cta＝登機證頁最底下的大按鈕（連到報名網頁）、disclaimer＝頁尾那句但書（沒寫就是「辦法以公司公告為準。」）。
 //   code＝登機證頁最上面那行小字（沒寫就是「BOARDING PASS・獎勵旅遊」；團隊辦的寫主辦，例：釜山團「BOARDING PASS・環貫綠佳利 · 奔馳」）。
 //   theme＝這一趟自己的配色（board＝深色票頭與深色按鈕、accent＝票頭上的小字與狀態、sub＝票頭上的欄位名）；沒寫就是深藍。
+//   rows 的值寫成 { lead, big, note }＝前綴＋放大上色的數字，註記另起一行小字（例：費用）。
 //   whenFull＝登機證頁票頭「時間」要寫得比 when 完整時才填（沒填就用 when）。
 //   videos＝登機證頁票卡裡面、最上面的 YouTube 影片（name／id／tall＝直式）；先只顯示封面，按了才載入播放器。
 //   posters＝活動海報（name／thumb 小圖／full 原圖）；登機證頁最下面列小圖，點了開原圖、可下載。圖檔放 /travel/<代號>-posters/。
@@ -110,7 +111,7 @@ export const TRAVEL = {
             ['航空公司', '釜山航空'],
             ['台北出發（桃園機場）', ['去程 BX572：桃園 13:30 → 釜山 16:55', '回程 BX575：釜山 15:00 → 桃園 16:40']],
             ['高雄出發（小港機場）', ['去程 BX586：高雄 15:00 → 釜山 18:25', '回程 BX585：釜山 12:00 → 高雄 14:00']],
-            ['費用', '每人 NT$24,600（含導遊、領隊服務費）'],
+            ['費用', { lead: '每人', big: 'NT$24,600', note: '含導遊、領隊服務費' }],
             ['報名截止', '2026/11/23'],
           ],
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
