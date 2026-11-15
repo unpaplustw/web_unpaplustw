@@ -9,7 +9,7 @@
 <script src="units.js"></script>
 <script src="consts.js"></script>
 <script src="score.js?v=20261112"></script>
-<script src="commit.js?v=20261112"></script>
+<script src="commit.js?v=20261115"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
   :root {
@@ -154,10 +154,7 @@
   .roster-check .no{color:var(--muted)}
   /* 🚪 已退班（2026-08-25）：整張卡淡化，一眼分得出誰還在跑 */
   .roster-card.gone{opacity:.55}
-  .dm-drop{background:rgba(249,115,22,.15);color:#fb923c;border:0;border-radius:5px;
     padding:3px 9px;font-size:11.5px;font-family:inherit;cursor:pointer;white-space:nowrap}
-  .dm-drop:hover{background:rgba(249,115,22,.28)}
-  .dm-gone{font-size:11px;color:#f87171;white-space:nowrap}
   .roster-card.gone .card-name::after{content:' 🚪 已退班';font-size:11px;color:#f87171;font-weight:400}
   .btn-edit{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid rgba(91,141,239,.3);background:var(--blue-bg);color:var(--blue);font-family:inherit;transition:.2s}
   .btn-edit:hover{background:rgba(91,141,239,.3)}
@@ -210,23 +207,12 @@
   .btn-add:hover{background:var(--gold-bd)}
 
   /* ── 追蹤分析 ── */
-  .track-row{background:var(--glass);border:1px solid rgba(255,255,255,.06);border-left:3px solid var(--muted);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .track-red{border-left-color:var(--red)}
-  .track-orange{border-left-color:var(--yellow)}
-  .track-blue{border-left-color:var(--blue)}
-  .track-black{border-left-color:#555}
-  .track-name{font-size:14px;font-weight:600;color:var(--white)}
-  .track-mid{font-size:12px;color:var(--muted)}
-  .track-tag{font-size:12px;font-weight:600;color:var(--gold);margin-left:auto}
-  .track-sub{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:4px}
-  .track-chips{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-  .track-chip{font-size:12px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px}
   /* 📅 今天（2026-11-13；11-15 只剩要處理的事）*/
   .td-item{background:var(--glass);border:1px solid rgba(255,255,255,.06);border-left:3px solid var(--muted);border-radius:8px;padding:14px 16px;margin-bottom:10px}  .td-item.r{border-left-color:var(--red)}  .td-item.y{border-left-color:var(--yellow)}  .td-item.b{border-left-color:var(--blue)}
   .td-t{font-size:16px;font-weight:700;color:var(--white)}  .td-t small{font-size:12.5px;font-weight:400;color:var(--muted);margin-left:10px}  .td-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .td-chip{font-size:13px;color:var(--white);background:var(--navy3);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 10px}  .td-chip i{font-style:normal;opacity:.65;margin-left:6px}  .td-chip.more{cursor:pointer;opacity:.75}
   .td-ok{padding:12px 16px;border-radius:12px;background:rgba(61,154,95,.12);color:#7fd39a;font-size:14px;margin-bottom:14px}
-  /* 📊 各組狀況卡（2026-11-13）：一組一張，左教練右學員，上緣顏色＝狀態 */
+  /* 🎓 教練卡（2026-11-13 各組狀況卡 → 2026-11-15 教練頁）：上緣顏色＝狀態 */
   .gc-sum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}  .gc-pill{padding:8px 16px;border-radius:999px;font-weight:700;font-size:14px;border:1px solid}
   .gc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px;margin-bottom:26px;align-items:start}
   .gc{border:1px solid rgba(255,255,255,.08);border-top:4px solid;border-radius:14px;padding:14px 16px}
@@ -236,10 +222,16 @@
   .gc-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}  .gc-two>div:first-child{border-right:1px solid rgba(255,255,255,.07);padding-right:14px}  .gc-lab{font-size:11.5px;color:var(--muted);margin-bottom:6px}
   .gc-ring{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}  .gc-ring b{width:46px;height:46px;border-radius:50%;background:#131a33;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
   .gc-strip{display:flex;gap:3px;margin-top:8px;flex-wrap:wrap}  .gc-strip i{width:20px;height:20px;border-radius:5px;color:#fff;font-size:11px;font-weight:700;font-style:normal;display:flex;align-items:center;justify-content:center}
-  .gc-bar{display:flex;align-items:center;gap:8px;margin-top:7px}  .gc-bar span{flex:0 0 58px;font-size:12px;color:var(--muted)}  .gc-bar div{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.08)}  .gc-bar div i{display:block;height:8px;border-radius:4px}  .gc-bar b{flex:0 0 38px;text-align:right;font-size:13px}
   .gc-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}  .gc-dot{font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid;color:var(--white)}  .gc-dot .who-lk{text-decoration:none}  .gc-dot i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}  .gc-dot b{margin-left:4px;font-weight:700}
+  .gc-sts{display:flex;gap:6px;margin-top:10px}  .gc-st{flex:1;text-align:center;padding:6px 4px;border-radius:8px;background:rgba(255,255,255,.04)}  .gc-st b{display:block;font-size:18px;font-weight:800}  .gc-st span{font-size:11px;color:var(--muted)}
+  .gc-org{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}  .gc-none{font-size:12.5px;color:var(--muted)}
+  /* 👥 學員頁（2026-11-15）：能量條＝電池造型、一格一天 */
+  .st-sort{display:flex;gap:8px;margin:0 0 12px;align-items:center}  .st-sort>span{font-size:12.5px;color:var(--muted)}
+  .st-tbl{width:100%;border-spacing:0 3px}  .st-tbl th.l,.st-tbl td.l{text-align:left;padding-left:14px;white-space:nowrap;color:var(--white);font-size:12px}  .st-tbl td.nm{min-width:120px;max-width:none}  .st-tbl td.pts{text-align:center;font-size:13px;font-weight:700}
+  .st-five{width:118px;margin:0 auto;padding:2px 10px}
+  .st-batt{display:inline-flex;align-items:center;vertical-align:middle}  .st-cells{display:inline-flex;gap:2px;padding:3px;border:1.5px solid rgba(255,255,255,.28);border-radius:6px}  .st-cells i{height:16px;border-radius:2px}
+  .st-tip{width:3px;height:9px;border-radius:0 2px 2px 0;background:rgba(255,255,255,.28)}  .st-batt b{font-size:12px;margin-left:7px;min-width:34px}
   .gc details{margin-top:12px;border-top:1px solid rgba(255,255,255,.07);padding-top:8px}  .gc summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}  .gc summary::-webkit-details-marker{display:none}
-  .gc-tbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px;color:var(--white)}  .gc-tbl td,.gc-tbl th{padding:4px 6px;text-align:center;border-top:1px solid rgba(255,255,255,.05)}  .gc-tbl th{color:var(--muted);font-weight:400;border-top:none}  .gc-tbl td:first-child,.gc-tbl th:first-child{text-align:left}
   /* 記點（2026-08-17）：全部用算的，不存欄位；退不退班人工決定 */
   .dm-tbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px}
   .dm-tbl th{text-align:right;padding:7px 6px;font-size:11px;color:var(--muted);font-weight:400;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -247,13 +239,7 @@
   .dm-tbl td{padding:9px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);color:var(--white)}
   .dm-tbl td:first-child{text-align:left;font-weight:600}
   .dm-tbl td .c{color:var(--muted);font-weight:400;font-size:11px;margin-left:5px}
-  .dm-pt{font-weight:700;font-size:15px}
-  .dm-0{color:#4ade80} .dm-1{color:#fbbf24} .dm-3{color:#f87171}
-  .dm-pend{color:var(--muted);font-weight:400;font-size:11.5px}
-  .dm-made{display:inline-block;min-width:22px;padding:2px 7px;border-radius:5px;background:var(--green-bg);color:var(--green);font-weight:700;font-size:12px}
-  .dm-none{color:var(--muted);font-size:12px}
   /* 寬限期內的點數要看得見才有嚇阻力——原本是小灰字，等於白做 */
-  .dm-will{color:var(--yellow);font-weight:700;font-size:13px}
   /* 階段列／子區塊列（2026-08-17 重整） */
   .sub-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .sub-tab{padding:9px 16px;border-radius:20px;border:1px solid var(--gold-bd);background:var(--glass);color:var(--muted);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -310,20 +296,7 @@
   .hwm-sum{padding:8px 4px;font-size:12px;color:var(--white);white-space:nowrap}
   .hwm-sum b{color:#f87171}
   /* 教練回報總覽（simple 模式，2026-08-13） */
-  .cov-tbl{width:100%;border-collapse:collapse;font-size:13px}
-  .cov-tbl th{text-align:right;padding:8px 6px;font-size:11px;color:var(--muted);font-weight:400;border-bottom:1px solid rgba(255,255,255,.08)}
-  .cov-tbl th:first-child{text-align:left}
-  .cov-tbl td{padding:9px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);color:var(--white)}
-  .cov-tbl td:first-child{text-align:left;font-weight:600}
-  .cov-pct{font-weight:700}
-  .cov-g{color:#4ade80} .cov-y{color:#fbbf24} .cov-r{color:#f87171} .cov-d{color:var(--muted)}
-  .cov-sub{font-size:11px;color:var(--muted);font-weight:400}
   .cov-note{font-size:12px;color:var(--muted);line-height:1.7;background:var(--glass);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:10px}
-  .track-stulist{flex-basis:100%;margin-top:8px;display:flex;flex-direction:column;gap:4px}
-  .track-stu{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;color:var(--white);padding:4px 0;border-top:1px solid rgba(255,255,255,.04)}
-  .track-stu>span:first-child{flex-shrink:0}
-  .track-dots{font-size:10px;letter-spacing:1px;text-align:right;line-height:1.5;word-break:break-all}
-  .track-dots b{color:var(--red);margin-left:4px;font-size:13px;white-space:nowrap}
 
   /* ── Dashboard interaction matrix ── */
   .battery{position:relative;width:100%;height:40px;background:var(--navy3);border:2px solid var(--gold-bd);border-radius:8px;margin-bottom:16px;overflow:hidden}
@@ -930,145 +903,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
   h += `</table></div>`;
   return h;
 }
-// 連續沒填的學員（≥2 天或從未）→ [{ id, name, coach, gap, txt }]，gap 大的在前。「📅 今天」與關注名單共用。
-function calcSilent() {
-  const today = localDateStr(new Date());
-  const dayDiff = (d1, d2) => Math.round((new Date(d1) - new Date(d2)) / 86400000);
-  const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
-  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
-  const realStudents = students.filter(s => s.status === 'approved' && !coachMemberIds.has(s.member_id));
-  const logsByStu = {};
-  allLogs.forEach(l => { (logsByStu[l.student_id] = logsByStu[l.student_id] || []).push(l); });
-  // 🔴 連續沒填（≥2 天或從未）
-  //    2026-09-17：依班別——行動紀錄從「這一組的行動起算日」才開始要求。
-  //    學習組 9/28 才進行動週，之前沒填行動不算失聯（原本 34 人裡大半是學習組）。
-  const silent = [];
-  realStudents.forEach(s => {
-    if (s.dropped_at) return;                                // 2026-09-24：退班的人不必叫教練去關心
-    const from = stuActFrom(s);
-    if (!from || from > today) return;                       // 這一組行動還沒開始
-    const ls = (logsByStu[s.id] || []).filter(l => l.log_date >= from);
-    const coachName = coachById[s.coach_id] || '未配對';
-    if (!ls.length) {
-      const g = dayDiff(today, from);
-      if (g >= 2) silent.push({ id: s.id, name: nm(s), coach: coachName, gap: 999, txt: '從未填寫' });
-      return;
-    }
-    const last = ls.map(l => l.log_date).sort().reverse()[0];
-    const gap = dayDiff(today, last);
-    if (gap >= 2) silent.push({ id: s.id, name: nm(s), coach: coachName, gap, txt: gap + ' 天沒填' });
-  });
-  silent.sort((a, b) => b.gap - a.gap);
-  return silent;
-}
 
-function renderTrack(target) {
-  const el = target || document.getElementById('p-track');
-  if (!el) return;
-  const today = localDateStr(new Date());
-  const yesterday = localDateStr(new Date(Date.now() - 86400000));
-  const dayDiff = (d1, d2) => Math.round((new Date(d1) - new Date(d2)) / 86400000);
-  const actScore = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l);
-
-  const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
-  const coachMemberIds = new Set(coaches.map(c => c.member_id).filter(Boolean));
-  const approved = students.filter(s => s.status === 'approved');
-  const realStudents = approved.filter(s => !coachMemberIds.has(s.member_id));
-
-  const logsByStu = {};
-  allLogs.forEach(l => { (logsByStu[l.student_id] = logsByStu[l.student_id] || []).push(l); });
-
-  const silent = calcSilent();   // 算法在 calcSilent()，「📅 今天」也用同一份
-
-  // 待審分兩種：今日必審（昨天填，今天是deadline）vs 已失職（跨日改不了）
-  // 「有沒有處理」依模式判定：full＝confirmed（26期逐項審核）；simple＝coach_engagement 有標記
-  // （27期起教練的動作寫在那張表，confirmed 永遠 false——2026-08-13 前這裡只看 confirmed，
-  //   把每個填報的學員都列成未審：該亮的沒亮、不該亮的全亮）
-  const isSimple = ((allBatches.find(b => b.id === bid) || {}).coach_mode || 'simple') === 'simple';
-  const engMarked = new Set(engRows.filter(r => r.homework !== null && r.homework !== undefined)
-                                   .map(r => r.student_id + '|' + r.log_date));
-  const handled = l => isSimple ? engMarked.has(l.student_id + '|' + l.log_date) : l.confirmed;
-  const dueByCoach = {};    // 🟠 log_date === 昨天 → Set(學員名)
-  const failedByCoach = {}; // ⚫ log_date < 昨天 → {學員名: 漏審次數}
-  allLogs.forEach(l => {
-    if (handled(l) || l.log_date >= today) return; // 今天填的明天才處理，跳過
-    if (actScore(l) === 0) return;
-    const s = approved.find(x => x.id === l.student_id);
-    if (!s || coachMemberIds.has(s.member_id)) return;
-    const coachName = coachById[s.coach_id] || '未配對';
-    if (l.log_date === yesterday) {
-      (dueByCoach[coachName] = dueByCoach[coachName] || new Set()).add(nm(s));
-    } else {
-      if (!failedByCoach[coachName]) failedByCoach[coachName] = {};
-      failedByCoach[coachName][nm(s)] = (failedByCoach[coachName][nm(s)] || 0) + 1;
-    }
-  });
-  const due = Object.entries(dueByCoach).map(([coach, set]) => ({ coach, items: [...set] }))
-    .sort((a, b) => b.items.length - a.items.length);
-  // 失職：每位教練列學員+漏審次數，按該教練總漏審數排序
-  const failed = Object.entries(failedByCoach).map(([coach, stuMap]) => {
-    const stus = Object.entries(stuMap).map(([name, cnt]) => ({ name, cnt })).sort((a, b) => b.cnt - a.cnt);
-    const total = stus.reduce((a, x) => a + x.cnt, 0);
-    return { coach, stus, total };
-  }).sort((a, b) => b.total - a.total);
-
-  // 📉 本週至今 vs 上週同期（同樣天數，公平比較，因為本週還沒結束）
-  const d = new Date(today);
-  const offset = d.getDay(); // 距離本週日幾天（0=週日）
-  const thisSun = new Date(d); thisSun.setDate(d.getDate() - offset);
-  const lastSun = new Date(thisSun); lastSun.setDate(thisSun.getDate() - 7);
-  const lastSame = new Date(lastSun); lastSame.setDate(lastSun.getDate() + offset); // 上週對應星期幾
-  const tSun = localDateStr(thisSun), lSun = localDateStr(lastSun), lSame = localDateStr(lastSame);
-  const drop = [];
-  realStudents.forEach(s => {
-    const ls = logsByStu[s.id] || [];
-    const thisW = ls.filter(l => l.log_date >= tSun && l.log_date <= today).reduce((a, l) => a + actScore(l), 0);
-    const lastW = ls.filter(l => l.log_date >= lSun && l.log_date <= lSame).reduce((a, l) => a + actScore(l), 0);
-    if (lastW >= 10 && thisW < lastW * 0.5) {
-      drop.push({ name: nm(s), coach: coachById[s.coach_id] || '未配對', lastW, thisW });
-    }
-  });
-  drop.sort((a, b) => (b.lastW - b.thisW) - (a.lastW - a.thisW));
-
-  // ── 渲染 ──
-  let h = '';
-  h += `<div class="sec-title"><span>🔴 連續沒填（教練快關心）</span><span class="sec-count">${silent.length} 人</span></div>`;
-  if (!silent.length) h += `<div class="dash-empty">太棒了，沒人失聯 🎉</div>`;
-  else h += '<div>' + silent.map(x =>
-    `<div class="track-row track-red"><span class="track-name">${whoSn(x.name)}</span><span class="track-mid">教練：${whoCn(x.coach)}</span><span class="track-tag">${x.txt}</span></div>`
-  ).join('') + '</div>';
-
-  const vb = isSimple ? '標' : '審';   // simple 模式教練的動作是「標記」不是「審核」
-  h += `<div class="sec-title"><span>🟠 今日必${vb}（昨天填，今天是 deadline）</span><span class="sec-count">${due.length} 位教練</span></div>`;
-  if (!due.length) h += `<div class="dash-empty">今天該${vb}的都${vb}完了 👍</div>`;
-  else h += '<div>' + due.map(x =>
-    `<div class="track-row track-orange">
-      <span class="track-name">教練：${whoCn(x.coach)}</span>
-      <span class="track-tag">${x.items.length} 筆待${vb}</span>
-      <div class="track-chips">${x.items.map(i => `<span class="track-chip">${whoSn(i)}</span>`).join('')}</div>
-    </div>`
-  ).join('') + '</div>';
-
-  h += `<div class="sec-title"><span>⚫ 未${vb}天數（跨日未${vb}，改不了了）</span><span class="sec-count">${failed.length} 位教練</span></div>`;
-  if (!failed.length) h += `<div class="dash-empty">沒有漏${vb}記錄 ✨</div>`;
-  else h += '<div>' + failed.map(x =>
-    `<div class="track-row track-black">
-      <span class="track-name">教練：${whoCn(x.coach)}</span>
-      <span class="track-tag">共 ${x.total} 天未${vb}</span>
-      <div class="track-stulist">${x.stus.map(st =>
-        `<div class="track-stu"><span>${whoSn(st.name)}</span><span class="track-dots">${'🔴'.repeat(st.cnt)}<b>未${vb} ${st.cnt} 天</b></span></div>`
-      ).join('')}</div>
-    </div>`
-  ).join('') + '</div>';
-
-  h += `<div class="sec-title"><span>📉 本週至今 vs 上週同期下滑</span><span class="sec-count">${drop.length} 人</span></div>`;
-  if (!drop.length) h += `<div class="dash-empty">沒有明顯退步 💪</div>`;
-  else h += '<div>' + drop.map(x =>
-    `<div class="track-row track-blue"><span class="track-name">${whoSn(x.name)}</span><span class="track-mid">教練：${whoCn(x.coach)}</span><span class="track-tag">${x.lastW} → ${x.thisW} 分</span></div>`
-  ).join('') + '</div>';
-
-  if (target) el.insertAdjacentHTML('beforeend', h); else el.innerHTML = h;
-}
 
 // ════════════════════════════════════════════
 // Tab 0: 資訊版
@@ -1089,124 +924,140 @@ function batchEnded() {
 
 function renderNow() { anaPainted.clear(); renderAnalysis(document.getElementById('nowArea')); }
 
-// ── 記點（2026-08-17 定案）──────────────────────────────
-//   兩套規則、兩種性質，不是雙軌而是兩個尺度：
-//     小組回報＝防怠惰（每天的節奏）：學員當天 22:00 貼、教練隔天 22:00 前回
-//     課程作業＝防落後（總完成度）：17 堂課上完前補齊即可
-//   全部用算的、不存欄位；退不退班人工決定，儀表板只負責讓它看得見。
-//   ⚠️ 灰格（教練沒檢核）一律記在教練頭上，不記學員——
-//      否則「不檢核」會變成保護學員的手段，混的教練帶出的組反而最漂亮。
-function calcDemerits() {
-  const b = allBatches.find(x => x.id === bid) || {};
-  const today = localDateStr(new Date());
-  const stu = students.filter(s => s.status === 'approved' && s.coach_id);
-  const coachById = {}; coaches.forEach(c => coachById[c.id] = nm(c));
 
-  // 應標日：開班日到今天的平日（週六日不排作業）
-  const days = [];
-  if (b.start_date) {
-    for (let d = new Date(b.start_date + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
-      const w = d.getDay(); if (w >= 1 && w <= 5) days.push(localDateStr(d));
-    }
-  }
-  // 🔴 兩條死線（2026-08-17 Randoph 定案）
-  //    學員：當天 22:00 貼。過了就是「沒交」——事後補交不改這一天的紀錄，
-  //          否則 22:00 只是建議、遲交零成本，紀律就歸零。補交要被看見的地方是
-  //          homework_checks（作業總完成度，本來就不壓日期）。
-  //    教練：隔天 12:00 前處理完（標記＋該回的回完）。訂 12:00 的理由是總教練下午要能
-  //          追蹤賴群，而 12:00 後畫面上每一格都必須有明確歸屬，不必自己去翻群組。
-  //          實測 27 期：80.5% 的標記本來就在 12:00 前完成，這條線是達得到的。
-  const COACH_DL = 'T12:00:00';
-  const dueDays = days.filter(d => { const x = new Date(d + COACH_DL); x.setDate(x.getDate() + 1); return x <= new Date(); });
-  const subFrom = b.submit_from || b.start_date;
-  const subDays = dueDays.filter(d => d >= subFrom);          // 送出制生效後的日子才算
-
-
-  const engBy = {};   // student|date -> row
-  engRows.forEach(r => engBy[r.student_id + '|' + r.log_date] = r);
-  // 舊的 late()（用 created_at 推斷教練有沒有及時處理）已由 coach_submits 取代——
-  // 送出是教練主動宣告，不必再從標記時間反推。
-
-  const unitDate = {};
-  Object.entries(SCHEDULE || {}).forEach(([d, arr]) => arr.forEach(n => { unitDate[n] = d; }));
-  const logBy = {}; allLogs.forEach(l => { logBy[l.student_id + '|' + l.log_date] = l; });
-
-  // 作業：已上過的單元
-  const taught = new Set();
-  if (typeof SCHEDULE !== 'undefined')
-    Object.entries(SCHEDULE).forEach(([d, arr]) => { if (d <= today) arr.forEach(n => taught.add(n)); });
-  const hwBy = {}; hwRows.forEach(r => hwBy[r.student_id + '|' + r.unit_no] = r);
-  const graceOn = b.hw_grace_until && today <= b.hw_grace_until;   // 寬限期內只提醒不計點
-
-  const subSet2 = new Set(submitRows.map(r => r.coach_id + '|' + r.log_date));
-  const stuRows = stu.map(s => {
-    // 🚪 退班後不再累加（2026-08-25 Randoph）：人都退了還一路加到結業，
-    //    那個數字沒有意義，還會讓全班統計失真。點數凍結在退班當下。
-    const gone = s.dropped_at || null;
-    let miss = 0;                                   // 小組回報：教練標「沒交」的天數
-    dueDays.forEach(d => {
-      if (gone && d >= gone) return;                // 退班日（含）之後不計
-      const r = engBy[s.id + '|' + d]; if (r && r.homework != null ? r.homework === false : subSet2.has(s.coach_id + '|' + d)) miss++;   // 🔴 2026-11-12 Randoph：教練已按送出、這格沒標＝學員沒交（送出時就寫「沒標到的就算學員沒繳」），不是教練未回報
-    });
-    // 🔴 2026-08-19 Randoph 決定：教練沒檢核就當學員沒交。
-    //    「退不退班是我們人工說的算，就是要誇張的數字，逼教練去填寫。」
-    //    我提過的代價他已知並確認：39 人全部受影響、滿 3 點從 2 人變 11 人、
-    //    三位現行 0 點的學員（楊姷妃／陳畇驊／王喬語）會變 15 點，
-    //    而他們的教練（錢威達／張憶文）正是記點最高的兩位。
-    //    ⚠️ 所以 hwUng 要單獨帶出來——退班既然是人工判斷，就必須分得出
-    //       「真的沒交」與「教練沒檢核」，否則總教練自己也判不了。
-    let hwMiss = 0, hwUng = 0;
-    if (stuIsLearn(s)) taught.forEach(u => {        // 2026-09-17：只有學習組有作業，行動／精英組不算
-      if (gone && unitDate[u] && unitDate[u] >= gone) return;   // 退班日之後的單元不計
-      const r = hwBy[s.id + '|' + u];
-      if (!r) {
-        // 教練沒檢核 → 狀況不明，記在教練頭上（下面 hwNo），學員只列「待確認」不計點
-        hwUng++; return;                    // 2026-09-16 Randoph：教練沒檢核＝狀況不明，不算學員沒交（要看的是教練）
-      }
-      if (r.done < r.total) hwMiss++;                // 檢核過但沒寫完 → 真的沒交
-    });
-    return { id: s.id, name: nm(s), coach: coachById[s.coach_id] || '未配對',
-             gone, miss, hwMiss, hwUng,
-             pts: miss + (graceOn ? 0 : hwMiss), pend: graceOn ? hwMiss : 0 };
-  }).filter(r => r.pts > 0 || r.pend > 0 || r.hwUng > 0)   // 待確認也要看得到（2026-09-16）
-    .sort((a, b2) => (b2.pts - a.pts) || (b2.pend - a.pend));
-
-  const coachRows = coaches.filter(c => stu.some(s => s.coach_id === c.id)).map(c => {
-    const mine = stu.filter(s => s.coach_id === c.id);
-    // 🔴 2026-08-19 Randoph 定案：判準收斂成「有沒有在隔天 12:00 前送出」。
-    //    「教練送出後，代表有人沒繳就是學員的問題」——送出是教練主動宣告責任轉移，
-    //    比系統從 created_at 推斷「他到底做了沒」明確得多。
-    //    沒送出 → 逾時未送出，1 點
-    //    送出了但當下還有「已交未回」→ 那是他自己按下去時承認的欠帳，1 點
-    const subBy = {};
-    submitRows.forEach(r => { subBy[r.coach_id + '|' + r.log_date] = r; });
-    let noSubmit = 0, lateSubmit = 0, oweReply = 0;
-    // 🔴 送出制的起算日：這個按鈕 8/19 才上線，之前的日子教練不可能按。
-    //    追溯計點會讓 14 位教練一律 12 點，最認真的那位（原本 1 點）也變 12 點——
-    //    數字失去鑑別力就等於沒有記點。batches.submit_from 為 NULL 才從開班日算。
-    subDays.forEach(d => {
-      const sr = subBy[c.id + '|' + d];
-      if (!sr) { noSubmit++; return; }                       // 到期限都沒送出
-      const dl = new Date(d + COACH_DL); dl.setDate(dl.getDate() + 1);
-      if (new Date(sr.submitted_at) > dl) { lateSubmit++; return; }   // 送出時已超過 12:00
-      if (sr.unreplied > 0) oweReply++;                      // 準時送出，但自己承認還有人沒回
-    });
-
-    let hwNo = 0;
-    mine.filter(stuIsLearn).forEach(s => taught.forEach(u => { if (!hwBy[s.id + '|' + u]) hwNo++; }));
-    return { id: c.id, group: c.group_name || '', name: nm(c), n: mine.length, noSubmit, lateSubmit, oweReply, hwNo,
-             pts: noSubmit + lateSubmit + oweReply };
-  }).filter(r => r.pts > 0 || r.hwNo > 0).sort((a, b2) => (b2.pts - a.pts) || (b2.hwNo - a.hwNo));
-
-  return { stuRows, coachRows, dueDays, subDays, subFrom, taughtN: taught.size, graceOn, grace: b.hw_grace_until };
+// ── 分析頁共用（2026-11-15）──
+const logDaysMap = () => { const m = {}; allLogs.forEach(l => { (m[l.student_id] = m[l.student_id] || new Set()).add(l.log_date); }); return m; };
+const yestStr = () => { const n = new Date(); return localDateStr(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1)); };
+// 行動回報連續沒填幾天（算到昨天）→ { n, never }；行動還沒開始、或昨天有填 → null
+function actGap(s, logDays, yest) {
+  const f = stuActFrom(s), has = logDays[s.id] || new Set();
+  if (!f || f > yest || has.has(yest)) return null;
+  let n = 0; for (let d = new Date(yest + 'T00:00:00'); localDateStr(d) >= f && !has.has(localDateStr(d)); d.setDate(d.getDate() - 1)) n++;
+  return { n, never: ![...has].some(ds => ds >= f) };
+}
+// 一位學員一顆標籤：綠正常／橘有 ✕／紅 3 個 ✕ 以上／灰連續 2 天以上沒填行動（教練卡的組員、下線都用這顆）
+function stuDot(s, cm, logDays, yest) {
+  const x = (cm[s.id] || {}).x || 0, g = actGap(s, logDays, yest), quiet = g && (g.never || g.n >= 2);
+  const col = x >= 3 ? '#f87171' : x ? '#fb923c' : quiet ? '#6b7280' : '#4ade80', tag = x ? `✕${x}` : quiet ? (g.never ? '沒填' : g.n + '天') : '';
+  return `<span class="gc-dot" style="border-color:${col}"><i style="background:${col}"></i>${whoS(s.id, nm(s))}${tag ? `<b style="color:${col === '#6b7280' ? 'var(--muted)' : col}">${tag}</b>` : ''}</span>`;
 }
 
 // ════════════════════════════════════════════
-// 📅 今天（2026-11-13 分析改版第 1 頁；2026-11-15 只剩一張清單）
-//   Randoph 11/15：「今天的進度說真的我也不會看，直接合併到下面，最重要的事情」→ 三個大數字拿掉，它們代表的事變成清單項目。
+// 🎓 教練頁（2026-11-15）：一位教練一張卡
+//   上半「他帶的組」＝教練自己該做的事：回覆率圓環、每天送出小格、四個數字（沒送出／逾時送出／送出時欠回／待檢核）、組員標籤。
+//   下半「他的組織」＝選他當負責上線的學員（終身組＝他那組的學員，同教練頁 🌱組織 的規則）：推薦新人、組織締結、報件待他審、下線 3 個 ✕。
+//   不帶組但有下線的人（總教練、總培訓師）也有卡，只有下半。四個數字都從 coachDays() 的小格數出來，跟小格一定對得上。
+//   紅＝2 天以上沒送出或回覆不到五成；黃＝漏 1 天、回覆不到八成、有待檢核／欠回／報件待審；其餘綠。
+// ════════════════════════════════════════════
+function renderCoachPage(el) {
+  el.innerHTML = '<div class="loading-box">整理中…</div>';
+  paintCoachPage(el).catch(e => { el.innerHTML = `<div class="empty"><div class="empty-text">教練頁整理失敗：${e.message}</div></div>`; });
+}
+async function paintCoachPage(el) {
+  const byC = {}; calcGroups().forEach(g => { byC[g.c.id] = g; });
+  const real = realStudentList().filter(s => !s.dropped_at);
+  let cm = {}, cl = [];
+  try { cm = await loadCommit(sb, bid, real.filter(s => s.coach_id).map(s => s.id)); } catch (e) {}
+  if (bid) try { const r = await sb.from('closing_records').select('member_id, is_new, is_org, target_code, verified').eq('batch_id', bid); cl = r.data || []; } catch (e) {}
+  const logDays = logDaysMap(), yest = yestStr(), colOf = p => p >= 80 ? '#4ade80' : p >= 50 ? '#facc15' : '#f87171';
+  const STR = { full: ['#22a05a', '✓'], late: ['#3b82f6', '遲'], none: ['#d9534f', '✕'], na: ['rgba(255,255,255,.08)', ''] }, md = ds => ds.slice(5).replace('-', '/');
+  const stat = (n, lab, hot) => `<div class="gc-st"><b style="color:${hot ? '#f87171' : n ? 'var(--white)' : 'var(--muted)'}">${n}</b><span>${lab}</span></div>`;
+  const cards = approvedCoaches().map(c => {
+    const g = byC[c.id] || null, down = real.filter(s => s.sponsor_id === c.id || (s.track === 'lifetime' && s.coach_id === c.id));
+    if (!g && !down.length) return null;
+    const dIds = new Set(down.map(s => s.member_id)), dc = cl.filter(x => dIds.has(x.member_id) && x.verified !== false);
+    const o = { direct: new Set(dc.filter(x => x.is_new === true && x.target_code).map(x => x.target_code)).size, org: dc.filter(x => x.is_org).length,
+                pend: dc.filter(x => x.verified === null).length, x3: down.filter(s => ((cm[s.id] || {}).x || 0) >= 3).length };
+    const t = g ? { miss: g.miss, late: g.days.filter(d => d.k === 'late').length, owe: g.days.filter(d => d.k === 'full' && d.owe).length,
+                    warn: g.mine.reduce((a, s) => a + ((cm[s.id] || {}).warn || 0), 0), reply: g.reply } : null;
+    const lvl = t && (t.miss >= 2 || t.reply < 50) ? 'r' : (t && (t.miss || t.reply < 80 || t.warn || t.late || t.owe)) || o.pend ? 'y' : 'g';
+    const say = [t && t.miss ? `${t.miss} 天沒送出` : '', t && t.reply < 80 ? `回覆 ${t.reply}%` : '', t && t.warn ? `${t.warn} 格待檢核` : '', t && t.late ? `逾時送出 ${t.late} 天` : '',
+                 t && t.owe ? `送出時欠回 ${t.owe} 天` : '', o.pend ? `${o.pend} 筆報件待他審` : ''].filter(Boolean).join('、') || (t ? '該做的都有做到' : '不帶組，組織沒有待辦');
+    return { c, g, down, o, t, lvl, say };
+  }).filter(Boolean);
+  const ORD = { r: 0, y: 1, g: 2 }, ICO = { r: '🔴', y: '🟡', g: '✅' };
+  cards.sort((a, z) => ORD[a.lvl] - ORD[z.lvl] || groupIdx(a.c) - groupIdx(z.c));
+  const n = k => cards.filter(x => x.lvl === k).length, pill = (k, txt) => n(k) ? `<span class="gc-pill ${k}">${n(k)} 位 ${txt}</span>` : '';
+  const card = x => `<div class="gc ${x.lvl}">
+    <div><span class="gc-name">${whoC(x.c.id, nm(x.c))}</span><span class="gc-meta">${x.g ? `${x.c.group_name || '未分組'}・${trackName(x.c.track || 'learn')}` : '不帶組'}</span></div>
+    <div class="gc-say">${ICO[x.lvl]} ${x.say}</div>`
+    + (x.g ? `<div class="gc-lab">🎓 他帶的組（${x.g.mine.length} 人）</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="gc-ring" style="background:conic-gradient(${colOf(x.t.reply)} ${x.t.reply * 3.6}deg, rgba(255,255,255,.09) 0)"><b style="color:${colOf(x.t.reply)}">${x.t.reply}%</b></div>
+      <div style="flex:1"><div class="gc-lab" style="margin:0">回覆學員　　每天送出 ↓</div><div class="gc-strip">${x.g.days.map(d => `<i style="background:${STR[d.k][0]}" title="${md(d.ds)}">${STR[d.k][1]}</i>`).join('')}</div></div></div>
+    <div class="gc-sts">${stat(x.t.miss, '沒送出', x.t.miss >= 2)}${stat(x.t.late, '逾時送出', false)}${stat(x.t.owe, '送出時欠回', false)}${stat(x.t.warn, '待檢核 ❗', x.t.warn >= 4)}</div>
+    <div class="gc-dots">${x.g.mine.map(s => stuDot(s, cm, logDays, yest)).join('')}</div>` : '')
+    + `<div class="gc-org"><div class="gc-lab">🌱 他的組織（選他當負責上線的 ${x.down.length} 人）</div>`
+    + (x.down.length ? `<div class="gc-sts" style="margin-top:0">${stat(x.o.direct, '推薦新人', false)}${stat(x.o.org, '組織締結', false)}${stat(x.o.pend, '報件待他審', x.o.pend > 0)}${stat(x.o.x3, '下線 3 個 ✕', x.o.x3 > 0)}</div>
+      <div class="gc-dots">${x.down.map(s => stuDot(s, cm, logDays, yest)).join('')}</div>` : `<div class="gc-none">這一期沒有學員選他當負責上線</div>`)
+    + `</div></div>`;
+  el.innerHTML = `<div class="gc-sum">${pill('r', '要找他談')}${pill('y', '小地方要補')}${pill('g', '正常')}</div>`
+    + `<div class="cov-note">圓環＝回覆率｜小格＝每天有沒有送出（✓ 準時、遲、✕ 沒送出、空格＝今天中午前要送）｜學員標籤：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰連續 2 天以上沒填行動｜名字點了開管理卡</div>`
+    + `<div class="gc-grid">${cards.map(card).join('')}</div>`;
+}
+
+// ════════════════════════════════════════════
+// 👥 學員頁（2026-11-15）：一位學員一列＋能量條
+//   Randoph：「學員我覺得長條可以用能量條會比較好」→ 電池造型、一格一天（看得出斷在哪幾天，百分比看不出來）。
+//   自己的承諾＝五格（commit.js）。📤 交件能量＝每天的狀態，跟五格同一套判定（綠有交／紅沒交／橘等教練／暗還沒到期）。
+//   ⚡ 行動能量＝行動開始後每天有沒有填行動回報；行動還沒開始的學習組改看 📚 作業（一格一個已上的單元：藍全繳／橘部分）。
+//   退班的人不列。排序：依組別／能量低的在前／✕ 多的在前。
+// ════════════════════════════════════════════
+let stuSort = 'group', stuData = null;
+function renderStuPage(el) {
+  el.innerHTML = '<div class="loading-box">整理中…</div>';
+  paintStuPage(el).catch(e => { el.innerHTML = `<div class="empty"><div class="empty-text">學員頁整理失敗：${e.message}</div></div>`; });
+}
+async function paintStuPage(el) {
+  const gs = calcGroups(); let cm = {};
+  try { cm = await loadCommit(sb, bid, gs.flatMap(g => g.mine.map(s => s.id))); } catch (e) {}
+  stuData = { gs, cm }; drawStuPage(el);
+}
+function setStuSort(k) { stuSort = k; const el = document.getElementById('ana-body-stu'); if (el && stuData) drawStuPage(el); }
+function drawStuPage(el) {
+  const { gs, cm } = stuData, today = localDateStr(new Date()), yest = yestStr(), logDays = logDaysMap();
+  const OFF = 'rgba(255,255,255,.07)', HAND = { ok: '#22a05a', x: '#d9534f', warn: '#fb923c', na: OFF }, lv = r => r == null ? 'var(--muted)' : r >= .8 ? '#4ade80' : r >= .5 ? '#facc15' : '#f87171';
+  const taught = typeof SCHEDULE === 'undefined' ? [] : Object.entries(SCHEDULE).filter(([d]) => d <= today).sort().flatMap(([, arr]) => arr);
+  const hwBy = {}; hwRows.forEach(r => { hwBy[r.student_id + '|' + r.unit_no] = r; });
+  const ptsOf = l => (l.name_list||0)+(l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l);
+  const ptsBy = {}; allLogs.forEach(l => { ptsBy[l.student_id] = (ptsBy[l.student_id] || 0) + ptsOf(l); });
+  const batt = (cells, lit) => { const w = cells.length > 16 ? 6 : 11; return cells.length
+    ? `<span class="st-batt"><span class="st-cells">${cells.map(c => `<i style="width:${w}px;background:${c.col}" title="${c.t}"></i>`).join('')}</span><i class="st-tip"></i><b style="color:${lv(lit / cells.length)}">${lit}/${cells.length}</b></span>`
+    : `<span style="color:var(--muted);font-size:12px">還沒開始</span>`; };
+  const rows = gs.flatMap(g => g.mine.map(s => {
+    const c = cm[s.id] || { x: 0, warn: 0, xDays: [], warnDays: [], days: [] };
+    const hand = (c.days || []).filter(d => d.ds < today).map(d => ({ col: HAND[d.k], t: `${d.ds.slice(5).replace('-', '/')}｜${{ ok: '有交', x: '沒交', warn: '等教練確認', na: '還沒到期' }[d.k]}`, ok: d.k === 'ok' }));
+    const f = stuActFrom(s); let two = [], ico = '⚡';
+    if (f && f <= yest) { const has = logDays[s.id] || new Set();
+      for (let d = new Date(f + 'T00:00:00'); localDateStr(d) <= yest; d.setDate(d.getDate() + 1)) { const ds = localDateStr(d), on = has.has(ds); two.push({ col: on ? '#e9c46a' : OFF, t: `${ds.slice(5).replace('-', '/')}｜${on ? '有填行動回報' : '沒填'}`, ok: on }); } }
+    else if (g.hasCourse) { ico = '📚'; two = taught.map(u => { const r = hwBy[s.id + '|' + u], full = r && r.total > 0 && r.done >= r.total, part = r && r.done > 0;
+      return { col: full ? '#3b82f6' : part ? '#e0a020' : OFF, t: `第 ${u} 單元｜${full ? '全繳' : part ? `${r.done}/${r.total}` : '還沒檢核到'}`, ok: !!full }; }); }
+    const hl = hand.filter(k => k.ok).length, tl = two.filter(k => k.ok).length, parts = [hand.length ? hl / hand.length : null, two.length ? tl / two.length : null].filter(v => v != null);
+    return { g, s, c, hand, hl, two, tl, ico, pts: ptsBy[s.id] || 0, energy: parts.length ? parts.reduce((a, v) => a + v, 0) / parts.length : 1 };
+  }));
+  if (stuSort === 'energy') rows.sort((a, z) => a.energy - z.energy || z.c.x - a.c.x);
+  else if (stuSort === 'x') rows.sort((a, z) => z.c.x - a.c.x || z.c.warn - a.c.warn || a.energy - z.energy);
+  const btn = (k, t) => `<button class="sub-tab${stuSort === k ? ' on' : ''}" style="padding:5px 14px;font-size:12.5px" onclick="setStuSort('${k}')">${t}</button>`;
+  let h = `<div class="cov-note"><b>自己的承諾</b>：五格，跟學員自己看到的一樣（✕ 沒交、❗ 等教練確認）｜<b>📤 交件能量</b>：一格一天，綠＝有交、紅＝沒交、橘＝等教練確認｜<b>⚡ 行動能量</b>：一格一天，亮＝那天有填行動回報`
+    + `｜<b>📚 作業</b>（學習組上課週）：一格一個單元，藍＝全繳、橘＝交一部分｜滑過格子看是哪一天｜名字點了開管理卡</div>`
+    + `<div class="st-sort"><span>排序</span>${btn('group', '依組別')}${btn('energy', '能量低的在前')}${btn('x', '✕ 多的在前')}</div>`
+    + `<div class="hwm-wrap"><table class="hwm st-tbl"><tr><th class="nm">學員</th><th>自己的承諾</th><th class="l">📤 交件能量</th><th class="l">⚡ 行動能量／📚 作業</th><th>行動分數</th></tr>`;
+  let last = null;
+  rows.forEach(r => {
+    if (stuSort === 'group' && r.g !== last) { last = r.g; h += `<tr class="hwm-gh"><td class="nm">${r.g.c.group_name || '未分組'}</td><td colspan="4">${whoC(r.g.c.id, nm(r.g.c))} 教練・${trackName(r.g.c.track || 'learn')}</td></tr>`; }
+    h += `<tr><td class="nm">${whoS(r.s.id, nm(r.s))}${stuSort === 'group' ? '' : `<span class="c">${r.g.c.group_name || ''}</span>`}</td>`
+      + `<td><div class="st-five">${commitBoxes(r.c, 19)}</div></td><td class="l">${batt(r.hand, r.hl)}</td><td class="l">${r.two.length ? r.ico + ' ' : ''}${batt(r.two, r.tl)}</td>`
+      + `<td class="pts" style="color:${r.pts ? 'var(--gold)' : 'var(--muted)'}">${r.pts || '—'}</td></tr>`;
+  });
+  el.innerHTML = h + `</table></div>`;
+}
+
+
+// ════════════════════════════════════════════
+// 🔔 總教練注意事項（2026-11-13 起的「今天」頁；2026-11-15 改名）
+//   Randoph 11/15：「就是不斷累積的狀態，我也能一目瞭然」→ 一張清單，列的是累積到現在還沒解決的事。
 //   紅＝已經發生、要總教練決定；黃＝今天還救得回來；藍＝請教練去關心。沒有狀況的項目整行不出現。
-//   教練只看「昨天」那一天（不累積天數：過去的改不了，累積情況看各組狀況卡的小格）。
-//   ✕／❗＝commit.js（跟學員自己看到的同一套）。
+//   教練沒送出＝開班至今累積天數（coachDays，同教練卡小格）；✕／❗＝commit.js（跟學員自己看到的同一套）；沒填＝actGap()。
 // ════════════════════════════════════════════
 function renderToday(el) {
   el.innerHTML = '<div class="loading-box">整理中…</div>';
@@ -1227,34 +1078,29 @@ async function paintToday(el) {
   try { cm = await loadCommit(sb, bid, real.map(s => s.id)); } catch (e) {}
   if (bid) try { const r = await sb.from('closing_records').select('id', { count: 'exact', head: true }).eq('batch_id', bid).is('verified', null); pv = r.count || 0; } catch (e) {}
 
-  const noY = ac.filter(c => need(c, yest) && !sub.has(c.id + '|' + yest));                // 昨天該送、還沒送
+  const noSub = ac.map(c => ({ c, n: coachDays(c).filter(d => d.k === 'none').length })).filter(x => x.n).sort((a, z) => z.n - a.n);   // 開班至今累積沒送出的天數（同教練卡的小格）
+  const pend = yOver ? [] : ac.filter(c => need(c, yest) && !sub.has(c.id + '|' + yest));   // 昨天的、今天中午前還來得及
   const x3 = real.filter(s => (cm[s.id] || {}).x >= 3).sort((a, z) => cm[z.id].x - cm[a.id].x);
   const warnBy = {}; real.forEach(s => { const w = (cm[s.id] || {}).warn || 0; if (w) warnBy[s.coach_id] = (warnBy[s.coach_id] || 0) + w; });
   const warnC = ac.filter(c => warnBy[c.id]).sort((a, z) => warnBy[z.id] - warnBy[a.id]);
   // 昨天該填行動回報、沒填的學員；旁邊標「從未填」或連續幾天沒填（算到昨天）
-  const logDays = {}; allLogs.forEach(l => { (logDays[l.student_id] = logDays[l.student_id] || new Set()).add(l.log_date); });
+  const logDays = logDaysMap();
   const coachName = {}; coaches.forEach(c => { coachName[c.id] = nm(c); });
-  const missY = real.map(s => {
-    const f = stuActFrom(s), has = logDays[s.id] || new Set();
-    if (!f || f > yest || has.has(yest)) return null;
-    let n = 0; for (let d = new Date(yest + 'T00:00:00'); localDateStr(d) >= f && !has.has(localDateStr(d)); d.setDate(d.getDate() - 1)) n++;
-    const ever = [...has].some(ds => ds >= f);
-    return { s, n: ever ? n : 999, tag: ever ? (n > 1 ? `${n} 天沒填` : '') : '從未填' };
-  }).filter(Boolean).sort((a, z) => z.n - a.n);
+  const missY = real.map(s => { const g = actGap(s, logDays, yest); return g && { s, n: g.never ? 999 : g.n, tag: g.never ? '從未填' : g.n > 1 ? `${g.n} 天沒填` : '' }; }).filter(Boolean).sort((a, z) => z.n - a.n);
 
   const chip = (inner, ex) => `<span class="td-chip">${inner}${ex ? `<i>${ex}</i>` : ''}</span>`;
   const more = (arr, f, n) => arr.length <= n ? arr.map(f).join('') : arr.slice(0, n).map(f).join('')
     + `<span class="td-chip more" onclick="this.nextElementSibling.style.display='contents';this.remove()">…還有 ${arr.length - n} 位 ▾</span><span style="display:none">${arr.slice(n).map(f).join('')}</span>`;
   const item = (cls, ico, title, note, chips) => `<div class="td-item ${cls}"><div class="td-t">${ico} ${title}${note ? `<small>${note}</small>` : ''}</div>${chips ? `<div class="td-chips">${chips}</div>` : ''}</div>`;
 
-  const items = [], coachChips = more(noY, c => chip(whoC(c.id, nm(c)), c.group_name || ''), 14);
-  if (noY.length && yOver)  items.push(item('r', '🎓', `${noY.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了今天中午 12:00', coachChips));
-  if (x3.length)            items.push(item('r', '⭐', `${x3.length} 位學員已經 3 個 ✕`, '到了退班線，要不要退由你們決定', more(x3, s => chip(whoS(s.id, nm(s)), `✕ ${cm[s.id].x}`), 12)));
-  if (noY.length && !yOver) items.push(item('y', '⏰', `今天中午 12:00 前，還有 ${noY.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了中午就算沒送出', coachChips));
-  if (warnC.length)         items.push(item('y', '❗', `${warnC.length} 位教練有格子還沒確認，學員頁面顯示驚嘆號`, '沒送出，或標了已交但沒逐題檢核；補上就恢復星星', more(warnC, c => chip(whoC(c.id, nm(c)), `${warnBy[c.id]} 格`), 12)));
-  if (missY.length)         items.push(item('b', '✍️', `${missY.length} 位學員昨天（${md(yest)}）沒填行動回報`, '請教練關心是不會用，還是沒有行動', more(missY, x => chip(whoS(x.s.id, nm(x.s)), [x.tag, coachName[x.s.coach_id]].filter(Boolean).join('・')), 10)));
-  if (pv)                   items.push(item('b', '📝', `${pv} 筆報件還沒審`, '由負責上線在教練頁「🌱 組織」確認', ''));
-  const busy = new Set([...noY.map(c => c.id), ...warnC.map(c => c.id)]), okC = ac.filter(c => !busy.has(c.id)).length;
+  const items = [];
+  if (noSub.length) items.push(item('r', '🎓', `${noSub.length} 位教練有回報沒送出`, '開班至今累積的天數；過了隔天中午還沒按送出', more(noSub, x => chip(whoC(x.c.id, nm(x.c)), `${x.c.group_name ? x.c.group_name + '・' : ''}${x.n} 天`), 14)));
+  if (x3.length)    items.push(item('r', '⭐', `${x3.length} 位學員已經 3 個 ✕`, '到了退班線，要不要退由你們決定', more(x3, s => chip(whoS(s.id, nm(s)), `✕ ${cm[s.id].x}`), 12)));
+  if (pend.length)  items.push(item('y', '⏰', `今天中午 12:00 前，還有 ${pend.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了中午就算沒送出', more(pend, c => chip(whoC(c.id, nm(c)), c.group_name || ''), 14)));
+  if (warnC.length) items.push(item('y', '❗', `${warnC.length} 位教練有格子還沒確認，學員頁面顯示驚嘆號`, '沒送出，或標了已交但沒逐題檢核；補上就恢復星星', more(warnC, c => chip(whoC(c.id, nm(c)), `${warnBy[c.id]} 格`), 12)));
+  if (missY.length) items.push(item('b', '✍️', `${missY.length} 位學員昨天（${md(yest)}）沒填行動回報`, '旁邊是連續沒填的天數；請教練關心是不會用，還是沒有行動', more(missY, x => chip(whoS(x.s.id, nm(x.s)), [x.tag, coachName[x.s.coach_id]].filter(Boolean).join('・')), 10)));
+  if (pv)           items.push(item('b', '📝', `${pv} 筆報件還沒審`, '由負責上線在教練頁「🌱 組織」確認', ''));
+  const busy = new Set([...noSub.map(x => x.c.id), ...pend.map(c => c.id), ...warnC.map(c => c.id)]), okC = ac.filter(c => !busy.has(c.id)).length;
 
   el.innerHTML = `<div class="sec-title"><span>🔔 要處理的事</span><span class="sec-count">${items.length ? items.length + ' 件 ・ 點名字開管理卡' : '沒有'}</span></div>`
     + items.join('')
@@ -1278,7 +1124,7 @@ function coachDays(c) {
     if ((b.end_date && ds > b.end_date) || (learn && (w < 1 || w > 5))) continue;
     const dl = new Date(ds + 'T12:00:00'); dl.setDate(dl.getDate() + 1);
     const r = submitRows.find(x => x.coach_id === c.id && x.log_date === ds);
-    out.push({ ds, k: r ? (new Date(r.submitted_at) > dl ? 'late' : 'full') : now > dl ? 'none' : 'na' });
+    out.push({ ds, k: r ? (new Date(r.submitted_at) > dl ? 'late' : 'full') : now > dl ? 'none' : 'na', owe: !!r && r.unreplied > 0 });
   }
   return out;
 }
@@ -1307,94 +1153,8 @@ function calcGroups() {
              hand: pct(sum('sent'), wd * total), reply: pct(sum('rep'), wdC * total), hw: hasCourse ? pct(sum('hwFull'), taughtN * total) : null, act: pct(sum('logN'), awd * total) };
   }).filter(Boolean).sort((a, z) => groupIdx(a.c) - groupIdx(z.c));
 }
-function renderGroupCards(target) {
-  const box = document.createElement('div'); box.id = 'gcArea'; box.innerHTML = '<div class="loading-box">整理中…</div>'; target.appendChild(box);
-  paintGroupCards(box).catch(e => { box.innerHTML = `<div class="empty"><div class="empty-text">各組狀況整理失敗：${e.message}</div></div>`; });
-}
-async function paintGroupCards(box) {
-  const gs = calcGroups(); let cm = {};
-  try { cm = await loadCommit(sb, bid, gs.flatMap(g => g.mine.map(s => s.id))); } catch (e) {}
-  const sil = {}; calcSilent().forEach(x => { sil[x.id] = x; });
-  const RED = '#f87171', ORA = '#fb923c', GRN = '#4ade80', GRY = '#6b7280', colOf = p => p >= 80 ? GRN : p >= 50 ? '#facc15' : RED;
-  gs.forEach(g => {
-    g.warn = g.mine.reduce((a, s) => a + ((cm[s.id] || {}).warn || 0), 0);
-    g.dots = g.mine.filter(s => !s.dropped_at).map(s => { const x = (cm[s.id] || {}).x || 0, q = sil[s.id];
-      return { s, col: x >= 3 ? RED : x ? ORA : q ? GRY : GRN, tag: x ? `✕${x}` : q ? (q.gap === 999 ? '沒填' : q.gap + '天') : '', x }; });
-    const bad = g.dots.filter(d => d.x), m = g.miss, low = g.reply < 50;
-    // 🔴 判斷順序（2026-11-13 Randoph 看過示意圖同意）：先看教練有沒有做，再看學員有沒有交，最後才是小地方
-    if (m >= 2 || (low && g.hand >= 60))      { g.lvl = 'r'; g.say = m >= 2 ? `教練 ${m} 天沒送出` + (low ? '、沒在回覆' : '') : '學員有交，教練沒在回覆'; }
-    else if (g.hand < 60 || g.dots.some(d => d.x >= 3)) { g.lvl = 'o'; g.say = bad.length && bad.length < g.dots.length ? `${bad.map(d => nm(d.s)).join('、')} 沒在交` : '整組繳交偏低'; }
-    else if (g.warn)                           { g.lvl = 'y'; g.say = `教練有 ${g.warn} 格還沒逐題檢核`; }
-    else if (m === 1 || g.reply < 80)          { g.lvl = 'y'; g.say = [m ? '漏送出 1 天' : '', g.reply < 80 ? '回覆沒跟上' : ''].filter(Boolean).join('、'); }
-    else                                       { g.lvl = 'g'; g.say = '正常'; }
-  });
-  const ORD = { r: 0, o: 1, y: 2, g: 3 }, ICO = { r: '🔴', o: '🟠', y: '🟡', g: '✅' }, STR = { full: ['#22a05a', '✓'], late: ['#3b82f6', '遲'], none: ['#d9534f', '✕'], na: ['rgba(255,255,255,.08)', ''] };
-  gs.sort((a, z) => ORD[a.lvl] - ORD[z.lvl] || groupIdx(a.c) - groupIdx(z.c));
-  const n = k => gs.filter(g => g.lvl === k).length, pill = (k, t) => n(k) ? `<span class="gc-pill ${k}">${n(k)} 組 ${t}</span>` : '';
-  const bar = (lab, p) => `<div class="gc-bar"><span>${lab}</span><div><i style="width:${p}%;background:${colOf(p)}"></i></div><b style="color:${colOf(p)}">${p}%</b></div>`;
-  const md = ds => ds.slice(5).replace('-', '/');
-  const card = g => `<div class="gc ${g.lvl}">
-    <div><span class="gc-name">${whoC(g.c.id, nm(g.c))}</span><span class="gc-meta">${g.c.group_name || '未分組'}・${trackName(g.c.track || 'learn')}・${g.mine.length} 人</span></div>
-    <div class="gc-say">${ICO[g.lvl]} ${g.say}</div>
-    <div class="gc-two">
-      <div><div class="gc-lab">🎓 教練</div><div style="display:flex;align-items:center;gap:12px">
-        <div class="gc-ring" style="background:conic-gradient(${colOf(g.reply)} ${g.reply * 3.6}deg, rgba(255,255,255,.09) 0)"><b style="color:${colOf(g.reply)}">${g.reply}%</b></div>
-        <div><div class="gc-lab" style="margin:0">回覆學員</div><div class="gc-strip">${g.days.map(d => `<i style="background:${STR[d.k][0]}" title="${md(d.ds)}">${STR[d.k][1]}</i>`).join('')}</div>
-          <div class="gc-lab" style="margin:4px 0 0">每天送出${g.warn ? `　<b style="color:${ORA}">❗待檢核 ${g.warn}</b>` : ''}</div></div></div></div>
-      <div><div class="gc-lab" style="margin-bottom:2px">👥 學員</div>${bar('LINE 繳交', g.hand)}${g.hasCourse ? bar('作業完成', g.hw) : bar('行動回報', g.act)}
-        <div class="gc-dots">${g.dots.map(d => `<span class="gc-dot" style="border-color:${d.col}"><i style="background:${d.col}"></i>${whoS(d.s.id, nm(d.s))}${d.tag ? `<b style="color:${d.col === GRY ? 'var(--muted)' : d.col}">${d.tag}</b>` : ''}</span>`).join('')}</div></div>
-    </div>
-    <details><summary>▸ 每位學員的數字</summary><table class="gc-tbl"><tr><th>學員</th><th>繳交</th><th>教練回覆</th>${g.hasCourse ? '<th>作業</th>' : ''}<th>行動回報</th></tr>${
-      g.stus.map(x => `<tr${x.s.dropped_at ? ' style="opacity:.5"' : ''}><td>${whoS(x.s.id, nm(x.s))}</td>`
-        + (x.judged ? `<td>${x.sent}/${g.wd} 天</td><td>${x.rep}/${g.wdC} 天</td>` : `<td colspan="2" style="color:var(--muted)" title="教練還沒進來標記，不代表學員沒做">⬜ 教練未標</td>`)
-        + (g.hasCourse ? `<td>${x.hwFull}/${g.taughtN}</td>` : '') + `<td>${x.logN ? `${x.logN}/${g.awd} 天・${x.pts} 分` : '未填'}</td></tr>`).join('')}</table></details>
-  </div>`;
-  box.innerHTML = `<div class="gc-sum">${pill('r', '要找教練')}${pill('o', '學員沒在交')}${pill('y', '小地方要補')}${pill('g', '正常')}</div>`
-    + `<div class="cov-note">一組一張卡：左邊教練（圓環＝回覆率、小格＝每天有沒有送出），右邊學員（每人一顆：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰沒填行動）｜有狀況的排前面｜名字點了開管理卡</div>`
-    + `<div class="gc-grid">${gs.map(card).join('')}</div>`;
-}
 
 
-function renderDemerits(target) {
-  const { stuRows, coachRows, dueDays, subDays, subFrom, taughtN, graceOn, grace } = calcDemerits();
-  const cls = p => p >= 3 ? 'dm-3' : p >= 1 ? 'dm-1' : 'dm-0';
-  let h = `<div class="sec-title"><span>⚠️ 記點（自動計算，不寫入資料庫）</span><span class="sec-count">已過期限 ${dueDays.length} 天 · 已上 ${taughtN} 單元</span></div>`;
-  h += `<div class="cov-note">
-    死線：學員當天 <b>22:00</b>｜教練隔天 <b>12:00</b> 前按送出（送出制自 ${subFrom} 起算）${
-      grace ? `｜作業寬限至 <b>${grace}</b>，之前顯示「將計」` : ''}<br>
-    <b>教練沒檢核＝待確認，不計學員點</b>，記在教練頭上｜退不退班人工決定，系統只負責看得見</div>`;
-
-  h += `<div class="sec-title"><span>👤 學員</span><span class="sec-count">${stuRows.length} 人有點數／待確認</span></div>`;
-  if (!stuRows.length) h += `<div class="dash-empty">目前沒有人被記點 🎉</div>`;
-  else {
-    h += `<table class="dm-tbl"><tr><th>學員</th><th>小組沒交</th><th>作業未完成</th><th>待確認</th><th>合計</th>${isReadonly ? '' : '<th></th>'}</tr>`;
-    stuRows.forEach(r => h += `<tr${r.gone ? ' style="opacity:.5"' : ''}><td>${whoS(r.id, r.name)}<span class="c">${r.coach}</span></td>
-      <td>${r.miss || '—'}</td>
-      <td>${r.hwMiss || '—'}${r.pend ? '<span class="dm-pend">（寬限中）</span>' : ''}</td>
-      <td>${r.hwUng ? `<span class="dm-pend">${r.hwUng}</span>` : '—'}</td>
-      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span>${r.pend ? `<span class="dm-will"> +${r.pend} 將計</span>` : ''}</td>
-      ${
-        isReadonly ? '' : `<td>${r.gone
-          ? `<span class="dm-gone">🚪 ${r.gone.slice(5).replace('-','/')} 退</span>`
-          : `<button class="dm-drop" onclick="dropStudent('${r.id}','${r.name.replace(/'/g,"\\'")}')">退班</button>`}</td>`
-      }</tr>`);
-    h += `</table><div class="cov-note" style="margin-top:0">滿 <b>3 點</b>可退班｜退班後點數凍結，名冊可「歸隊」還原</div>`;
-  }
-
-  h += `<div class="sec-title"><span>🎓 教練</span><span class="sec-count">${coachRows.length} 位有點數</span></div>`;
-  if (!coachRows.length) h += `<div class="dash-empty">教練全部準時 👏</div>`;
-  else {
-    h += `<table class="dm-tbl"><tr><th>教練</th><th>沒送出</th><th>逾時送出</th><th>送出時欠回</th><th>作業未檢核</th><th>合計</th></tr>`;
-    coachRows.forEach(r => h += `<tr><td>${whoCn(r.name)}<span class="c">${r.n} 位組員</span></td>
-      <td>${r.noSubmit || '—'}</td><td>${r.lateSubmit || '—'}</td><td>${r.oweReply || '—'}</td>
-      <td>${r.hwNo ? r.hwNo + ' 格' : '—'}</td>
-      <td><span class="dm-pt ${cls(r.pts)}">${r.pts}</span></td>
-      </tr>`);
-    h += `</table><div class="cov-note" style="margin-top:0">一天最多 1 點：沒送出｜逾時送出（過 12:00）｜送出時自認還有人沒回<br>
-      作業未檢核以「格」計，不併入點數</div>`;
-  }
-  target.insertAdjacentHTML('beforeend', h);
-}
 
 // ── 開班中＝分析頁：四節各自獨立，時間尺度不混（2026-08-17 定案）──────────
 //   ① 昨日回報即時報：昨天發生什麼（單日快照）
@@ -1409,11 +1169,11 @@ function renderDemerits(target) {
 //    作業與行動分兩頁的理由：那本來就是兩件事，而且行動週開始後作業表就固定不動了
 //    （17 單元上完，只剩追補交），每天在動的是行動表。
 const ANA = [
-  // 🔴 2026-11-13 分析改版第 1 頁（Randoph：「除了回應一覽表，其他好像很難閱讀」）：
-  //    分析頁照三個問題重排——今天怎麼樣／哪位教練要找／哪位學員要關心。這一頁回答第一個：三個大數字＋要處理的事。
-  //    k 沿用 'daily'（權限、測試都認這個 key）。
-  { k:'daily', t:'📅 今天', only:null,
-    d:() => '要處理的事 · 點名字開管理卡',
+  // 🔴 2026-11-15 Randoph 定的四分頁：總教練注意事項（累積的狀態，一目瞭然）｜回應一覽表（不變）｜教練｜學員。
+  //    2026-11-13 曾照「今天／教練／學員」三個問題重排、再合成各組狀況卡；他用過後決定教練、學員拆開各一頁。
+  //    k 沿用 'daily'（測試認這個 key）。
+  { k:'daily', t:'🔔 總教練注意事項', only:null,
+    d:() => '累積到現在還沒解決的事 · 點名字開管理卡',
     render: el => renderToday(el) },
 
   // 🔴 2026-11-08 Randoph：作業表與行動表合併——教練每天只標「有沒有在小組貼」，學習週貼作業、之後貼心得，一張就夠
@@ -1421,13 +1181,13 @@ const ANA = [
     d:() => `日期 × 學員 · 學習組排課日看作業、其他日子看心得 · 行動 ${(s => s ? s.slice(5).replace('-', '/') : '—')(actionStartDate())} 起`,
     render: el => renderHwSection(el, 'resp') },
 
-  { k:'status', t:'📊 學員與教練狀況', only:null,
-    d:() => {
-      // 兩個分母不一樣就兩個都寫出來——只寫一個，另一欄就變成看不出尺度的數字
-      const w = weekdaysSoFar(), a = actionWeekdays();
-      return a === w ? `開班至今累積 · 平日 ${w} 天` : `累積 · 作業與 LINE ${w} 天 · 行動 ${a} 天`;
-    },
-    render: el => { renderGroupCards(el); renderDemerits(el); renderTrack(el); } },   // 2026-11-13：最上面的各組累積卡＋教練回報總覽 → 塊狀卡片
+  { k:'coach', t:'🎓 教練', only:null,
+    d:() => '一位教練一張卡 · 上半＝他帶的組 · 下半＝他的組織（選他當負責上線的學員）',
+    render: el => renderCoachPage(el) },
+
+  { k:'stu', t:'👥 學員', only:null,
+    d:() => '一位學員一列 · 自己的承諾五格 ＋ 能量條（一格一天）',
+    render: el => renderStuPage(el) },
 ];
 // ⑤ 只在該期已結業時併進來——沒結業就不存在，不佔位、也不用切換
 const anaSections = () => {
@@ -1483,18 +1243,6 @@ function stuActFrom(s) { return stuIsLearn(s) ? learnActFrom() : actionStartDate
 //    行動班 action_open_date 為 NULL → 自動退回 start_date，同一條規則兩種班都對。
 function actionStartDate() { const b = batchRow(); return b.action_open_date || b.start_date; }
 
-// 某日到今天的平日數（週一～週五）＝ 累積率的分母基準
-function weekdaysFrom(from) {
-  if (!from) return 0;
-  const today = localDateStr(new Date());
-  let n = 0;
-  for (let d = new Date(from + 'T00:00:00'); localDateStr(d) <= today; d.setDate(d.getDate() + 1)) {
-    const w = d.getDay(); if (w >= 1 && w <= 5) n++;
-  }
-  return n;
-}
-function weekdaysSoFar()  { return weekdaysFrom(batchRow().start_date); }   // 作業／LINE：開班第一天就要求
-function actionWeekdays() { return weekdaysFrom(actionStartDate()); }       // 行動紀錄：行動開放後才要求
 let anaTab = 'daily';          // 記住當前子分頁，重繪不跳回第一頁
 function renderAnalysis(el) {
   const list = anaSections();
@@ -1530,7 +1278,6 @@ function setAnaTab(k) {
   window.scrollTo({ top: 0, behavior: 'smooth' });        // 切頁一律回到頂端
 }
 
-// ③ 作業追蹤彙整（原本掛在 renderTrack 裡，拆出來獨立一節）
 // 點學員名字彈出「教練／領袖」——兩欄常駐太吃寬度，但責任歸屬又必須查得到
 function showWho(ev, td) {
   ev.stopPropagation();

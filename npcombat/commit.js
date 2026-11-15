@@ -33,7 +33,7 @@ function commitCell(units, hwOf, eng, submitted, over) {
   return submitted ? 'x' : over ? 'warn' : 'na';
 }
 
-// 一次算多位學員 → { 學員id: { x, warn, xDays:[], warnDays:[] } }；沒有教練的不算（回傳裡沒有他）
+// 一次算多位學員 → { 學員id: { x, warn, xDays:[], warnDays:[], days:[{ds,k}] } }；沒有教練的不算（回傳裡沒有他）
 async function loadCommit(sb, batchId, ids) {
   const out = {}; ids = [...new Set((ids || []).filter(Boolean))];
   if (!ids.length) return out;
@@ -54,13 +54,14 @@ async function loadCommit(sb, batchId, ids) {
   const sub = new Set((sm || []).map(r => r.coach_id + '|' + r.log_date));
   const today = commitDs(new Date()), sched = typeof SCHEDULE !== 'undefined' ? SCHEDULE : {};
   studs.forEach(s => {
-    const learn = !track[s.coach_id] || track[s.coach_id] === 'learn', r = { x: 0, warn: 0, xDays: [], warnDays: [] };
+    const learn = !track[s.coach_id] || track[s.coach_id] === 'learn', r = { x: 0, warn: 0, xDays: [], warnDays: [], days: [] };
     for (let d = new Date(from + 'T00:00:00'); commitDs(d) <= today; d.setDate(d.getDate() + 1)) {
       const ds = commitDs(d), w = d.getDay();
       if (s.dropped_at && ds >= s.dropped_at) break;       // 退班日（含）之後不算
       if (learn && (w < 1 || w > 5)) continue;             // 學習組週末不用回報
       const k = commitCell(learn ? sched[ds] : null, u => hwBy[s.id + '|' + u], engBy[s.id + '|' + ds], sub.has(s.coach_id + '|' + ds), commitOver(ds));
       if (k === 'x') { r.x++; r.xDays.push(ds); } else if (k === 'warn') { r.warn++; r.warnDays.push(ds); }
+      r.days.push({ ds, k });   // 每天的狀態（ok／x／warn／na）——後台學員頁的「交件能量」一格一天用
     }
     out[s.id] = r;
   });
