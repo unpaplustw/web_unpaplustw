@@ -43,6 +43,14 @@
   .rules dd.tier { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: #f6f1e1; }
   .rules dd.tier b { flex: none; min-width: 5.2em; font-size: 22px; font-variant-numeric: tabular-nums; }
   @media (max-width: 479px) { .rules dd.tier { flex-direction: column; gap: 0; } }
+  /* 影片（選填）：橫式 16:9、直式 9:16（直式限寬置中） */
+  .videos { display: grid; gap: 18px; margin-top: 18px; }
+  .video h2 { margin: 0 0 8px; font-size: 21px; line-height: 1.4; }
+  .video-play, .video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 14px; overflow: hidden; background: #000; }
+  .video.tall .video-play, .video.tall iframe { aspect-ratio: 9 / 16; max-width: 300px; margin: 0 auto; }
+  .video-play { position: relative; padding: 0; cursor: pointer; }
+  .video-play img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .video-icon { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center; width: 76px; height: 76px; padding-left: 6px; border-radius: 50%; background: var(--board); color: #fff; font-size: 34px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
   /* 活動海報（選填；活動結束會整段拿掉） */
   .posters { margin-top: 22px; padding: 18px 16px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
   .posters h2 { margin: 0; font-size: 22px; }
@@ -124,6 +132,24 @@
     const foot = el('p', 'foot');
     foot.append(el('strong', '', trip.disclaimer || '辦法以公司公告為準。'), `資料來源：${trip.src}`);
     page.append(pass, tear, rules);
+    if (trip.videos) { // 影片：票卡下面、報名按鈕上面。先只放封面，按了才換成 YouTube 播放器（不看的人不耗流量）
+      const box = el('section', 'videos');
+      for (const v of trip.videos) {
+        const item = el('div', v.tall ? 'video tall' : 'video');
+        const play = el('button', 'video-play'); play.type = 'button'; play.setAttribute('aria-label', `播放：${v.name}`);
+        const img = el('img'); img.src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`; img.alt = ''; img.loading = 'lazy';
+        play.append(img, el('span', 'video-icon', '▶'));
+        play.addEventListener('click', () => {
+          const f = document.createElement('iframe');
+          f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0`;
+          f.title = v.name; f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen = true;
+          play.replaceWith(f);
+        });
+        item.append(el('h2', '', v.name), play);
+        box.append(item);
+      }
+      page.append(box);
+    }
     if (trip.cta) { // 團隊自己辦的：完整行程和報名表在團隊的報名網頁
       const go = el('a', 'cta', trip.cta.label);
       go.href = trip.cta.href;

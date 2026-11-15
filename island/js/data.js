@@ -93,6 +93,7 @@ export const COMPANY = {
 //   cta＝登機證頁最底下的大按鈕（連到報名網頁）、disclaimer＝頁尾那句但書（沒寫就是「辦法以公司公告為準。」）。
 //   code＝登機證頁最上面那行小字（沒寫就是「BOARDING PASS・獎勵旅遊」；團隊辦的寫主辦，例：釜山團「BOARDING PASS・環貫綠佳利 · 奔馳」）。
 //   theme＝這一趟自己的配色（board＝深色票頭與深色按鈕、accent＝票頭上的小字與狀態、sub＝票頭上的欄位名）；沒寫就是深藍。
+//   videos＝登機證頁票卡下面的 YouTube 影片（name／id／tall＝直式）；先只顯示封面，按了才載入播放器。
 //   posters＝活動海報（name／thumb 小圖／full 原圖）；登機證頁最下面列小圖，點了開原圖、可下載。圖檔放 /travel/<代號>-posters/。
 //   guide＝有加碼活動時多一顆「攻略」按鈕（label／sub＝按鈕上兩行字、href＝攻略頁，每個活動一頁，放在 /travel/<代號>/）。
 export const TRAVEL = {
@@ -113,6 +114,8 @@ export const TRAVEL = {
             ['報名截止', '2026/11/23'],
           ],
           cta: { label: '看完整行程與報名', href: 'https://script.google.com/macros/s/AKfycbxXGd5Zq5g9DbSKjsRB_Qlpzo-_-mzGtha2-9qJCstfldYcZpey90pRJV2MFIJ_GzQT/exec' },
+          // 影片（2026-11-15 Randoph 提供的 YouTube；名稱跟宣傳文案一致。tall＝直式短片）🗑️ 活動結束一起收
+          videos: [{ name: '冬季戀歌，搶先看', id: '6emV1_LtVOM' }, { name: '這一團好在哪？兩分鐘告訴你', id: 'jKp7N1Rgiz0', tall: true }],
           theme: { board: '#c2697f', accent: '#ffffff', sub: 'rgba(255,255,255,.86)' },   // 配色 2026-11-13 Randoph 定
           guide: { label: '奔馳獨家加碼獎勵', sub: '趕緊來瞧瞧', href: '/travel/busan-guide/' },   // 按鈕文字 2026-11-13 Randoph 定：不要寫複雜的語言
           // 行程海報（Randoph 2026-11-13 提供；加碼獎勵那兩張 11-14 移到攻略頁條件獎勵頁籤；🗑️ 活動結束後連同 /travel/busan-posters/ 資料夾一起刪）
