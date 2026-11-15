@@ -442,6 +442,18 @@ a.flight:hover, a.flight:focus-visible { background: #212a3a; }
 @media (min-width: 900px) { body:has(#card:not([hidden])) #member-btn { visibility: hidden; } } /* 桌機卡片在右上角，打開時讓位，不壓到關閉鈕 */
 #member-btn .member-wait { background: var(--gold-soft); color: var(--ink); }
 
+/* 官網 QR Code（2026-11-15）：右上角會員入口下面一顆小按鈕，按了彈出大 QR Code 給別人掃。圖是靜態檔 island/qr-home.svg（內容 https://unpaplus.com.tw/） */
+#qr-btn { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 52px); right: 12px; z-index: 30; min-height: 40px; padding: 6px 14px; border: 1px solid var(--gold); border-radius: 999px;
+  background: rgba(255,255,255,.94); box-shadow: var(--shadow); font: inherit; font-size: 15px; font-weight: 700; color: var(--ink); cursor: pointer; }
+@media (min-width: 900px) { body:has(#card:not([hidden])) #qr-btn { visibility: hidden; } }
+#qr-pop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(23,28,38,.6); }
+#qr-pop[hidden] { display: none; }
+.qr-card { width: 100%; max-width: 380px; padding: 22px 22px 20px; border-radius: 18px; background: #fff; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+.qr-card h2 { margin: 0 0 12px; font-size: 22px; line-height: 1.4; }
+.qr-card img { display: block; width: 100%; max-width: 300px; height: auto; margin: 0 auto; }
+.qr-url { margin: 8px 0 14px; font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+.qr-card .button { width: 100%; min-height: 52px; font-size: 20px; }
+
 /* 首頁註冊表（會員入口打開的卡片）：字大、一格一件事，輸入框 17px 以上手機才不會自動放大 */
 @media (max-width: 899px) { #card.is-wide:has(.reg) { height: 86dvh; } }
 .reg { display: flex; flex-direction: column; gap: 16px; }

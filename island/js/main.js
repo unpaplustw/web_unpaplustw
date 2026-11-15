@@ -410,6 +410,17 @@ async function start() {
   $('#loader').hidden = true;
   if (has3d) startTour();
   initMember({ openCard, el });
+  initQr();
+}
+
+// 官網 QR Code：按右上角的按鈕彈出來給別人掃；按關閉、點外面、按 Esc 都會關
+function initQr() {
+  const pop = $('#qr-pop'), btn = $('#qr-btn'), img = $('#qr-img');
+  const close = () => { pop.hidden = true; btn.focus(); };
+  btn.addEventListener('click', () => { if (!img.src) img.src = '/island/qr-home.svg'; pop.hidden = false; $('#qr-close').focus(); });
+  $('#qr-close').addEventListener('click', close);
+  pop.addEventListener('click', (e) => { if (e.target === pop) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) close(); });
 }
 
 start();

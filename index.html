@@ -22,6 +22,15 @@
 <body>
 <main id="stage" aria-hidden="true"></main>
 <button id="member-btn" type="button" hidden aria-label="會員"></button>
+<button id="qr-btn" type="button" aria-label="顯示官網 QR Code">QR Code</button>
+<div id="qr-pop" hidden role="dialog" aria-modal="true" aria-labelledby="qr-title">
+  <div class="qr-card">
+    <h2 id="qr-title">掃一下，進入 A Plus 系統</h2>
+    <img id="qr-img" alt="A Plus 系統官網 QR Code" width="300" height="300">
+    <p class="qr-url">unpaplus.com.tw</p>
+    <button id="qr-close" class="button" type="button">關閉</button>
+  </div>
+</div>
 
 <aside id="list" aria-label="文字清單">
   <button id="list-toggle" type="button" aria-expanded="false" aria-controls="list-body">清單</button>
