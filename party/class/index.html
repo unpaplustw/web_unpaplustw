@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<!-- build: 2026-11-16 從舊站 /topic/class/ 搬來（合併進活動廣場）；題目與批改邏輯原樣 -->
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#f7f5f0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>醫檢師講座・課後作業 | 活動廣場</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root{ --bg:#f7f5f0; --bg2:#ffffff; --ink:#1a1a2e; --ink2:#5b5647;
+  --line:rgba(184,150,12,.30); --gold:#b8960c; --gold-bright:#8a6d00;
+  --ok:#16a34a; --no:#dc2626; }
+html,body{ min-height:100%; }
+body{ font-family:"Noto Sans TC",-apple-system,sans-serif; background:var(--bg);
+  background-image:linear-gradient(rgba(184,150,12,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(184,150,12,.06) 1px,transparent 1px);
+  background-size:44px 44px; color:var(--ink); }
+
+.wrap{ max-width:820px; margin:0 auto; padding:calc(28px + env(safe-area-inset-top,0px)) 20px
+  calc(40px + env(safe-area-inset-bottom,0px)); }
+.view{ display:none; } .view.on{ display:block; }
+
+.kicker{ font-family:"JetBrains Mono",monospace; font-size:13px; letter-spacing:.35em;
+  color:var(--gold); }
+h1{ font-size:clamp(28px,6.5vw,44px); font-weight:900; line-height:1.25; margin-top:10px; }
+.lead{ color:var(--ink2); font-size:clamp(16px,3.6vw,19px); line-height:1.75; margin-top:14px; }
+.lead b{ color:var(--gold-bright); }
+
+/* 課程卡 */
+.clist{ margin-top:26px; display:flex; flex-direction:column; gap:14px; }
+.ccard{ border:2px solid var(--line); border-radius:18px; padding:20px 22px;
+  background:var(--bg2); cursor:pointer; transition:border-color .2s, transform .15s; }
+.ccard:hover{ border-color:var(--gold); transform:translateY(-2px); }
+.ccard:active{ transform:scale(.99); }
+.cno{ font-family:"JetBrains Mono",monospace; color:var(--gold); font-size:13px; letter-spacing:.2em; }
+.ctitle{ font-size:clamp(19px,4.6vw,25px); font-weight:900; margin-top:6px; line-height:1.4; }
+.cmeta{ color:var(--ink2); font-size:14px; margin-top:8px; }
+.cbadge{ display:inline-block; margin-top:12px; font-size:13px; font-weight:900;
+  border-radius:999px; padding:5px 14px; border:1px solid var(--line); color:var(--gold-bright); }
+.ccard.done .cbadge{ border-color:var(--ok); color:var(--ok); }
+
+/* 題目 */
+.pbar{ height:6px; border-radius:999px; background:rgba(26,26,46,.08); margin-top:18px; overflow:hidden; }
+.pfill{ height:100%; background:var(--gold); width:0%; transition:width .3s; }
+.qno{ font-family:"JetBrains Mono",monospace; color:var(--gold); font-size:14px;
+  letter-spacing:.2em; margin-top:22px; }
+.qtext{ font-size:clamp(20px,4.8vw,27px); font-weight:900; line-height:1.55; margin-top:10px; }
+.opts{ margin-top:20px; display:flex; flex-direction:column; gap:12px; }
+.opt{ display:flex; align-items:flex-start; gap:14px; text-align:left;
+  border:2px solid var(--line); border-radius:16px; padding:16px 18px;
+  background:var(--bg2); color:var(--ink); font-family:inherit;
+  font-size:clamp(16px,3.9vw,19px); line-height:1.6; font-weight:400; cursor:pointer;
+  transition:border-color .2s, background .2s; }
+.opt .k{ font-family:"JetBrains Mono",monospace; font-weight:900; color:var(--gold); flex-shrink:0; }
+.opt:hover{ border-color:var(--gold); }
+.opt.sel{ border-color:var(--gold-bright); background:rgba(184,150,12,.10); }
+
+.btn{ width:100%; min-height:62px; margin-top:24px; border-radius:16px; border:none;
+  background:var(--gold); color:#ffffff; font-family:inherit;
+  font-size:clamp(18px,4.4vw,22px); font-weight:900; cursor:pointer; }
+.btn:disabled{ opacity:.35; cursor:not-allowed; }
+.btn.ghost{ background:transparent; border:2px solid var(--line); color:var(--ink); }
+.btn:active:not(:disabled){ transform:scale(.98); }
+
+/* 成績 */
+.score{ text-align:center; border:2px solid var(--line); border-radius:22px;
+  padding:28px 22px; margin-top:22px; background:var(--bg2); }
+.scoreN{ font-family:"JetBrains Mono",monospace; font-weight:900; line-height:1;
+  font-size:clamp(64px,18vw,110px); }
+.scoreN.pass{ color:var(--ok); } .scoreN.fail{ color:var(--gold-bright); }
+.scoreN small{ font-size:.32em; color:var(--ink2); margin-left:6px; }
+.scoreTxt{ font-size:clamp(18px,4.4vw,23px); font-weight:900; margin-top:12px; }
+.scoreSub{ color:var(--ink2); font-size:15px; margin-top:8px; line-height:1.6; }
+
+.rev{ margin-top:26px; display:flex; flex-direction:column; gap:16px; }
+.rq{ border:2px solid var(--line); border-radius:16px; padding:18px 20px; background:var(--bg2); }
+.rq.ok{ border-color:rgba(95,201,127,.5); } .rq.no{ border-color:rgba(239,106,106,.5); }
+.rmark{ font-weight:900; font-size:15px; }
+.rq.ok .rmark{ color:var(--ok); } .rq.no .rmark{ color:var(--no); }
+.rqt{ font-weight:900; font-size:clamp(16px,3.9vw,19px); margin-top:8px; line-height:1.5; }
+.rline{ font-size:15px; margin-top:10px; line-height:1.6; color:var(--ink2); }
+.rline b{ color:var(--ink); }
+.rline .good{ color:var(--ok); font-weight:900; }
+.rline .bad{ color:var(--no); font-weight:900; }
+.rwhy{ font-size:14.5px; line-height:1.75; color:var(--ink2); margin-top:12px;
+  padding-top:12px; border-top:1px solid rgba(184,150,12,.20); }
+.rwhy b{ color:var(--gold-bright); }
+
+/* QR 投影 */
+.qrbtn{ width:100%; margin-top:18px; min-height:56px; border-radius:14px;
+  border:2px dashed var(--line); background:transparent; color:var(--ink2);
+  font-family:inherit; font-size:16px; font-weight:900; cursor:pointer; }
+.qrbtn:hover{ border-color:var(--gold); color:var(--gold-bright); }
+#qrfull{ display:none; position:fixed; inset:0; z-index:90; background:rgba(247,245,240,.98);
+  flex-direction:column; align-items:center; justify-content:center; padding:24px; cursor:pointer; }
+#qrfull.on{ display:flex; }
+#qrfull .qtitle{ font-size:clamp(20px,4.5vw,32px); font-weight:900; margin-bottom:20px; text-align:center; }
+#qrfull .qbox{ width:min(72vh,86vw); height:min(72vh,86vw); background:#ffffff;
+  border-radius:20px; padding:16px; box-shadow:0 0 0 2px var(--line), 0 10px 40px rgba(184,150,12,.18); }
+#qrfull .qurl{ font-family:"JetBrains Mono",monospace; font-weight:900; margin-top:22px;
+  font-size:clamp(16px,3.6vw,26px); color:var(--gold-bright); }
+#qrfull .qhint{ color:var(--ink2); font-size:14px; margin-top:14px; }
+
+.foot{ margin-top:34px; text-align:center; color:#8a8577; font-size:13px; }
+.foot a{ color:var(--ink2); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- 課程列表 -->
+<section id="v-list" class="view on">
+  <p class="kicker">活動廣場 · 醫檢師講座</p>
+  <h1>課後作業專區</h1>
+  <p class="lead">上完課，來寫五題。<br>
+    寫完<b>立刻批改</b>，附上每題解析。</p>
+  <div class="clist" id="clist"></div>
+  <button class="qrbtn" onclick="showQR()">📱 投影用 QR Code（給台下掃描）</button>
+  <p class="foot"><a href="/">← 回 APLUS 城</a>　·　<a href="/party/">對抗賽</a></p>
+</section>
+
+<!-- 作答 -->
+<section id="v-quiz" class="view">
+  <p class="kicker" id="q-course">課程</p>
+  <div class="pbar"><div class="pfill" id="q-fill"></div></div>
+  <p class="qno" id="q-no">第 1 題 / 5</p>
+  <p class="qtext" id="q-text">—</p>
+  <div class="opts" id="q-opts"></div>
+  <button class="btn" id="q-next" onclick="nextQ()" disabled>下一題 →</button>
+  <button class="btn ghost" onclick="backList()">離開作業</button>
+</section>
+
+<!-- 成績 -->
+<section id="v-result" class="view">
+  <p class="kicker" id="r-course">課程</p>
+  <div class="score">
+    <div class="scoreN" id="r-n">0<small>/5</small></div>
+    <p class="scoreTxt" id="r-txt">—</p>
+    <p class="scoreSub" id="r-sub"></p>
+  </div>
+  <div class="rev" id="r-rev"></div>
+  <button class="btn ghost" onclick="retry()">重寫一次</button>
+  <button class="btn ghost" onclick="backList()">回課程列表</button>
+  <p class="foot">活動廣場 · 醫檢師講座</p>
+</section>
+
+</div>
+
+<div id="qrfull" onclick="hideQR()">
+  <p class="qtitle">掃描進入・課後作業</p>
+  <div class="qbox"><svg width="100%" height="100%" preserveAspectRatio="xMidYMid meet" viewBox="0 0 33 33" class="segno"><path fill="#fff" d="M0 0h33v33h-33z"/><path class="qrline" stroke="#1a1a2e" d="M2 2.5h7m2 0h1m1 0h1m1 0h5m4 0h7m-29 1h1m5 0h1m1 0h3m1 0h1m3 0h2m4 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m1 0h3m5 0h1m3 0h1m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m1 0h5m1 0h5m3 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h2m1 0h2m3 0h4m1 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m2 0h3m1 0h2m1 0h2m4 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-21 1h3m2 0h1m1 0h1m3 0h2m-21 1h1m5 0h1m1 0h4m2 0h4m1 0h1m1 0h2m2 0h3m-27 1h3m1 0h1m2 0h1m3 0h1m1 0h2m3 0h3m1 0h2m1 0h2m-27 1h7m1 0h2m1 0h1m2 0h2m1 0h1m1 0h2m1 0h2m-25 1h1m1 0h1m2 0h1m1 0h2m3 0h1m1 0h2m2 0h1m1 0h1m3 0h2m-24 1h1m3 0h1m3 0h6m4 0h1m1 0h2m4 0h1m-29 1h1m2 0h1m1 0h1m2 0h1m3 0h5m1 0h3m1 0h3m2 0h2m-28 1h2m1 0h1m1 0h1m1 0h3m2 0h4m1 0h1m1 0h1m1 0h1m1 0h3m-24 1h2m2 0h1m3 0h1m1 0h2m1 0h1m2 0h1m2 0h1m1 0h1m1 0h1m1 0h1m-29 1h2m4 0h4m4 0h2m1 0h1m1 0h1m3 0h1m1 0h2m-27 1h1m1 0h1m5 0h1m1 0h2m3 0h2m2 0h6m1 0h3m-29 1h2m2 0h1m1 0h1m1 0h2m2 0h5m1 0h2m2 0h2m1 0h1m2 0h1m-29 1h1m1 0h4m1 0h2m3 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m-24 1h1m2 0h1m2 0h1m2 0h1m2 0h1m4 0h1m2 0h5m1 0h3m-21 1h6m1 0h1m4 0h1m3 0h2m-26 1h7m2 0h8m2 0h2m1 0h1m1 0h3m-27 1h1m5 0h1m2 0h3m1 0h1m1 0h1m2 0h3m3 0h1m-25 1h1m1 0h3m1 0h1m3 0h4m1 0h2m2 0h7m2 0h1m-29 1h1m1 0h3m1 0h1m3 0h1m1 0h2m1 0h3m2 0h2m3 0h2m1 0h1m-29 1h1m1 0h3m1 0h1m3 0h1m1 0h5m1 0h3m1 0h6m-28 1h1m5 0h1m2 0h3m3 0h1m6 0h5m1 0h1m-29 1h7m1 0h1m3 0h1m1 0h1m2 0h2m3 0h5"/></svg></div>
+  <p class="qurl">unpaplus.com.tw/party/class</p>
+  <p class="qhint">點任意處關閉</p>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   課程題庫 —— 講師考題原文照抄，勿改寫。
+   新增一堂課：複製一個物件加進 COURSES 陣列即可。
+   a = 正解索引（0=A, 1=B, 2=C, 3=D）
+   ═══════════════════════════════════════════════════════ */
+const COURSES = [
+  {
+    no: '001',
+    title: '營養素與亞健康指標的調理對策',
+    teacher: '吳秀鴻 講師',
+    date: '114/07/03',
+    qs: [
+      { q:'下列何者最符合「亞健康」的定義？',
+        o:['已確診重大疾病，需要住院治療。',
+           '身體完全健康，沒有任何不適。',
+           '身體已有疲勞、睡眠差或代謝異常等警訊，但尚未達疾病診斷標準。',
+           '只有高齡者才會出現的狀態。'],
+        a:2,
+        w:'亞健康是介於健康與疾病之間的狀態，可能出現疲勞、睡眠品質下降、壓力大、免疫力降低、血糖或血脂偏高等情況，但尚未符合疾病診斷標準，因此應及早介入改善。' },
+      { q:'下列哪一項檢驗最能反映近 2–3 個月平均血糖控制情形？',
+        o:['空腹血糖（FPG）','飯後血糖','糖化血色素（HbA1c）','尿糖'],
+        a:2,
+        w:'HbA1c 可反映近 2–3 個月的平均血糖，是評估長期血糖控制的重要指標。但若有貧血、輸血或血紅素異常，可能影響判讀。' },
+      { q:'氫水目前研究較支持的可能作用為何？',
+        o:['提供大量維生素。','調節氧化壓力與發炎相關反應。','完全消除所有自由基。','可取代降血壓藥物。'],
+        a:1,
+        w:'目前研究顯示，氫分子可能具有選擇性抗氧化及調節細胞訊號的作用，但證據仍持續累積，不應視為藥物替代品。' },
+      { q:'植化素最主要的生理作用為何？',
+        o:['提供大量熱量。','活化抗氧化防禦系統，降低氧化壓力。','增加膽固醇生成。','完全取代藥物治療。'],
+        a:1,
+        w:'植化素富含多酚、類胡蘿蔔素等活性成分，可協助調節抗氧化防禦、減少自由基造成的氧化傷害，支持細胞健康，但不能取代醫療治療。' },
+      { q:'普力活（益生菌）最主要的健康作用為何？',
+        o:['提高血糖。','調整腸道菌相，支持免疫與代謝健康。','增加膽固醇。','完全取代均衡飲食。'],
+        a:1,
+        w:'益生菌有助於維持腸道菌相平衡，支持腸道屏障與免疫功能，並可能對代謝健康產生正面影響，但仍需搭配健康生活型態。' }
+    ]
+  },
+  {
+    no: '002',
+    title: '腦神經營養管理與阿茲海默症',
+    teacher: '吳秀鴻 講師',
+    date: '115/08/10',
+    qs: [
+      { q:'下列何者最能說明營養對腦神經健康的重要性？',
+        o:['大腦不需要葡萄糖與氧氣',
+           '神經元需要 ATP 維持突觸傳導、離子平衡與細胞修復',
+           '只要補充蛋白質，就能清除 Aβ',
+           '只要補充維生素，就能治療失智症'],
+        a:1,
+        w:'神經元具有高度能量需求，粒線體產生的 ATP 是維持神經傳導、突觸功能與細胞修復的重要能源。' },
+      { q:'長期氧化壓力增加，可能對阿茲海默症造成什麼影響？',
+        o:['完全阻止神經發炎',
+           '增加神經細胞及粒線體的氧化損傷',
+           '直接使記憶力恢復',
+           '完全清除 Tau 蛋白'],
+        a:1,
+        w:'大腦對氧化壓力相對敏感，因為它具有：高耗氧量、高能量需求、豐富的不飽和脂肪酸、神經元本身抗氧化能力有限。<br><b>過多 ROS（活性氧）→ 粒線體與細胞膜氧化傷害 → 神經功能受損 → 可能加重神經發炎與神經退化環境。</b>' },
+      { q:'益生菌可能透過哪一條主要路徑支持腦部健康？',
+        o:['直接進入腦細胞吞噬 Aβ',
+           '腸道菌相 → SCFAs → 腸道免疫／屏障 → 腦部免疫與神經環境',
+           '直接把 Tau 蛋白轉變成 ATP',
+           '直接取代神經傳導物質'],
+        a:1,
+        w:'這就是「腸腦軸（Gut–Brain Axis）」的重要概念。<br><b>益生菌／腸道菌相 → 產生或調節 SCFAs（短鏈脂肪酸）→ 影響腸道屏障與免疫反應 → 降低過度的全身性發炎訊號 → 影響血腦屏障與小膠質細胞 → 支持神經健康。</b>' },
+      { q:'下列何者最符合目前對阿茲海默症病理機轉的理解？',
+        o:['阿茲海默症只有 Aβ 問題',
+           '阿茲海默症只有 Tau 問題',
+           'Aβ、Tau、神經發炎、氧化壓力、突觸與血腦屏障等多種機制可能共同參與',
+           '只要降低膽固醇就一定不會發生阿茲海默症'],
+        a:2,
+        w:'阿茲海默症是複雜的神經退化疾病，可以用「多重打擊模型」理解——Aβ 相關病理、Tau 異常、神經發炎、氧化壓力、粒線體功能異常、突觸功能障礙、血腦屏障與腦血管因素，<b>最終可能造成神經元與突觸功能下降 → 認知功能逐漸退化。</b>' },
+      { q:'如果要建立「腦神經營養管理」策略，下列哪一項最完整？',
+        o:['只補充一種抗氧化營養素',
+           '只喝益生菌飲品',
+           '同時關注抗氧化、粒線體能量、腸腦軸、心血管代謝、睡眠、運動與均衡飲食',
+           '只要吃保健食品即可，不需要運動及睡眠'],
+        a:2,
+        w:'腦神經營養管理＝<b>多系統管理</b>。<br>均衡飲食：提供蛋白質、Omega-3、維生素、礦物質、植化素等<br>腸道健康：菌相 → SCFAs → 腸腦軸<br>抗氧化防禦：Nrf2 等內源性防禦系統<br>粒線體功能：ATP → 神經元能量<br>規律運動：支持腦血流、神經可塑性<br>良好睡眠：支持記憶與腦部代謝廢物清除' }
+    ]
+  },
+  {
+    no: '003',
+    title: '營養素與帕金森氏症的調理對策',
+    teacher: '吳秀鴻 講師',
+    date: '115/08/24',
+    qs: [
+      { q:'帕金森氏症最主要受損的神經元是哪一類？',
+        o:['海馬迴的麩胺酸神經元',
+           '黑質緻密部的多巴胺神經元',
+           '小腦的浦肯野細胞',
+           '大腦皮質的星狀細胞'],
+        a:1,
+        w:'帕金森氏症的重要病理特徵之一，是中腦黑質緻密部（substantia nigra pars compacta, SNc）的<b>多巴胺神經元逐漸退化</b>，造成紋狀體多巴胺不足，進而影響基底核運動迴路，因此出現動作遲緩、僵硬及顫抖等症狀。' },
+      { q:'下列哪一種營養素作用最直接與「抗氧化防禦」及 Nrf2/ARE 路徑有關？',
+        o:['植化素','葡萄糖','氯化鈉','尿素'],
+        a:0,
+        w:'許多植化素，例如蘿蔔硫素、多酚類等，可影響 Nrf2/ARE 抗氧化防禦系統。Nrf2 活化後可增加多種抗氧化與解毒相關蛋白的表現，幫助細胞提升對氧化壓力的防禦能力。' },
+      { q:'為什麼「粒線體功能」與帕金森氏症的神經營養有關？',
+        o:['神經元不需要粒線體',
+           '粒線體只負責製造膽固醇',
+           '神經元高度依賴粒線體產生 ATP，粒線體受損可能增加氧化壓力',
+           '粒線體只存在於肌肉細胞'],
+        a:2,
+        w:'神經元需要大量能量維持離子梯度、神經傳導、軸突運輸及突觸功能，因此高度依賴粒線體。<br><b>ATP 下降 → ROS 增加 → 氧化壓力 ↑ → 神經元受損</b><br>因此維持良好的營養、運動、睡眠及代謝健康，有助於維持神經細胞正常功能；但目前不能把任何單一營養素宣稱為帕金森氏症的治療方法。' },
+      { q:'下列哪一項最能描述「腦—腸軸」與帕金森氏症研究的關係？',
+        o:['腸道與大腦完全沒有關係',
+           '腸道菌相可能透過免疫、代謝物及腸—腦訊號影響神經系統',
+           '只要補充益生菌就可以治癒帕金森氏症',
+           '腸道菌相只影響消化，不影響其他系統'],
+        a:1,
+        w:'近年的研究相當重視腸—腦軸（gut-brain axis）。<br><b>腸道菌相 → 短鏈脂肪酸／其他代謝物 → 免疫與發炎訊號 → 腸—腦溝通 → 神經系統</b><br>腸道菌相可能透過這條路徑，參與帕金森氏症相關機制。' },
+      { q:'如果要建立「腦神經營養管理」的概念，下列哪一種方式最合理？',
+        o:['只補充單一營養素',
+           '只依靠抗氧化保健食品',
+           '以均衡飲食、規律運動、良好睡眠與醫師治療為核心，再評估個別營養需求',
+           '停止帕金森氏症藥物，完全改用營養素'],
+        a:2,
+        w:'帕金森氏症的營養管理應採取<b>整合性策略</b>：<br>① 均衡飲食<br>② 維持能量與粒線體功能<br>③ 支持抗氧化與抗發炎防禦<br>④ 維持腸道菌相與腸—腦軸<br>⑤ 規律運動與復健<br>⑥ 配合醫療與藥物治療<br>才能維持神經功能與生活品質。' }
+    ]
+  },
+  {
+    no: '004',
+    title: '營養素與癲癇(Epilepsy)預防策略',
+    teacher: '吳秀鴻 講師',
+    date: '115/09/14',
+    qs: [
+      { q:'癲癇發作最核心的神經生理特徵之一，是下列哪一項？',
+        o:['抑制性神經傳導完全消失',
+           '興奮性與抑制性神經活動失去平衡',
+           '所有神經元都停止放電',
+           '腦部血流完全停止'],
+        a:1,
+        w:'正常大腦需要維持興奮（Excitation）與抑制（Inhibition）的平衡，即 <b>E/I balance</b>。當神經網路過度興奮、抑制不足，可能增加異常同步放電與癲癇發作的可能性。' },
+      { q:'下列哪一組離子與神經元動作電位及膜電位調控關係最密切？',
+        o:['Na⁺(鈉離子)、K⁺(鉀離子)、Ca²⁺(鈣離子)、Cl⁻(氯離子)',
+           'Fe²⁺(亞鐵離子)、Zn²⁺(鋅離子)、Cu²⁺(銅離子)、I⁻(碘離子)',
+           'HCO₃⁻(碳酸氫根離子)、SO₄²⁻(硫酸根離子)、PO₄³⁻(磷酸根離子)、Fe³⁺(鐵離子)',
+           '只有 Na⁺(鈉離子)'],
+        a:0,
+        w:'<b>Na⁺、K⁺、Ca²⁺、Cl⁻</b> 共同參與神經元膜電位、動作電位、突觸傳遞與神經興奮性的調控。因此，電解質平衡是神經系統正常運作的重要基礎。' },
+      { q:'為什麼營養管理會關注癲癇與「ROS（活性氧）」的關係？',
+        o:['ROS 可以完全阻止神經元放電',
+           '過度氧化壓力可能增加神經細胞與粒線體的負擔',
+           'ROS 是主要的神經傳導物質',
+           'ROS 可以直接取代抗癲癇藥物'],
+        a:1,
+        w:'反覆或嚴重的神經活動可能增加代謝需求與氧化壓力。過多 ROS 可能影響粒線體、細胞膜及神經細胞功能。因此，維持正常抗氧化防禦是整體腦健康策略的一部分。' },
+      { q:'關於生酮飲食與癲癇，下列何者正確？',
+        o:['所有癲癇患者都應自行開始生酮飲食',
+           '生酮飲食可在部分特定癲癇患者中作為醫療治療策略',
+           '生酮飲食可以取代所有抗癲癇藥物',
+           '只要增加脂肪攝取就一定能預防癲癇'],
+        a:1,
+        w:'生酮飲食在部分藥物難治型癲癇具有醫療應用價值，但<b>需要醫師、營養師等專業人員評估與監測</b>。它不是一般人自行採用的「癲癇預防食品」。' },
+      { q:'癲癇發作時，大量神經元同步放電，使腦部能量與氧氣需求增加。此時 HIF-1α 可能出現何種變化？',
+        o:['HIF-1α 完全停止作用',
+           'HIF-1α 穩定化並啟動缺氧適應相關基因',
+           'HIF-1α 直接將癲癇放電完全停止',
+           'HIF-1α 使神經元立即死亡'],
+        a:1,
+        w:'<b>癲癇發作 → 神經元大量同步放電 → ATP 與氧氣需求 ↑ → 局部可能出現相對低氧／代謝壓力 → HIF-1α 穩定化 → 啟動下游基因</b><br>協助細胞進行缺氧適應與能量代謝調整。' }
+    ]
+  },
+  {
+    no: '005',
+    title: '從腸道菌相到大腦健康，讀懂身體的健康訊號(腸腦軸)',
+    teacher: '吳秀鴻 講師',
+    date: '115/10/12',
+    qs: [
+      { q:'腸腦軸的主要功能是什麼？',
+        o:['只負責控制腸胃蠕動',
+           '連結腸道與大腦，協調身體多種生理功能',
+           '只負責製造消化酵素',
+           '阻止腸道所有訊號傳至大腦'],
+        a:1,
+        w:'腸腦軸（<b>Gut–Brain Axis</b>）是腸道與大腦之間的<b>雙向</b>溝通網路，透過神經、免疫、內分泌及代謝物等途徑，參與調節消化、食慾、壓力反應、情緒及部分認知功能。' },
+      { q:'迷走神經在腸腦軸中扮演什麼角色？',
+        o:['只負責傳遞視覺訊息',
+           '只負責控制四肢的隨意運動',
+           '傳遞內臟訊息至腦幹，並參與調節腸胃功能',
+           '直接製造所有腸道菌'],
+        a:2,
+        w:'迷走神經是<b>第十對腦神經</b>，具有傳入與傳出纖維。<br><b>傳入纖維</b> → 將腸胃等內臟的感覺訊息傳至腦幹<br><b>傳出纖維</b> → 參與調節腸胃蠕動、分泌及其他內臟功能<br>因此，迷走神經是腸道與大腦溝通的重要通道之一。' },
+      { q:'腸道菌利用膳食纖維後，可能產生哪一類代謝物？',
+        o:['短鏈脂肪酸（SCFAs）',
+           '血紅素',
+           '胰島素',
+           '腎上腺素'],
+        a:0,
+        w:'部分腸道菌能發酵可利用的膳食纖維，產生短鏈脂肪酸，包括<b>乙酸（Acetate）、丙酸（Propionate）、丁酸（Butyrate）</b>。這些代謝物可參與腸道屏障維持、免疫調節及能量代謝，也可能透過多種途徑參與腸腦軸的訊號傳遞。' },
+      { q:'腸道菌相可以透過哪些途徑影響大腦？',
+        o:['只有迷走神經',
+           '只有免疫細胞',
+           '只有血液循環',
+           '神經、免疫、內分泌及代謝訊號等多種途徑'],
+        a:3,
+        w:'腸道菌相與大腦之間並非只有單一傳遞路徑，主要包括：<br><b>神經途徑</b> → 迷走神經、腸神經系統<br><b>免疫途徑</b> → 細胞激素、免疫細胞<br><b>內分泌途徑</b> → GLP-1、CCK、PYY 等腸道荷爾蒙<br><b>代謝途徑</b> → 短鏈脂肪酸、色胺酸代謝物等<br>這些訊號共同參與腸道與大腦之間的溝通，但不同訊號的作用方式並不相同。' },
+      { q:'腸道屏障在腸腦軸中扮演什麼角色？',
+        o:['讓所有腸道細菌自由進入血液',
+           '阻止所有營養素被吸收',
+           '協助控制腸道內容物與身體內部環境之間的物質交換，並參與免疫調節',
+           '直接將所有腸道訊號傳送至大腦'],
+        a:2,
+        w:'腸道屏障由<b>腸道上皮細胞、細胞間緊密連結、黏液層及免疫防禦機制</b>共同構成。主要功能：<br>① <b>保護作用</b>：限制病原體及有害物質穿越腸壁<br>② <b>選擇性吸收</b>：讓適當的營養素與水分經由調控途徑吸收<br>③ <b>免疫調節</b>：協助腸道免疫系統辨識與應對外來物質<br>④ <b>參與腸腦軸</b>：腸道屏障狀態改變時，可能影響免疫訊號及微生物代謝物與身體的互動，進而參與腸腦溝通' }
+    ]
+  },
+  {
+    no: '006',
+    title: '人體營養地圖 第 6 站',
+    teacher: '吳秀鴻 講師',
+    date: '115/11/16',
+    qs: [
+      { q:'人體內的膽固醇主要有哪兩種來源？',
+        o:['只來自肉類',
+           '只由肝臟製造',
+           '食物攝取與人體自行合成',
+           '只由腸道細菌製造'],
+        a:2,
+        w:'膽固醇有兩大來源：<br><b>外源性</b> → 從食物攝取，經小腸吸收<br><b>內源性</b> → 人體自行合成，主要由肝臟製造<br>人體即使不吃含膽固醇的食物，仍然可以自行合成膽固醇。' },
+      { q:'食物中的膽固醇與脂肪經小腸吸收後，主要先包裝成哪一種脂蛋白？',
+        o:['HDL',
+           'LDL',
+           'VLDL',
+           '乳糜微粒（Chylomicron）'],
+        a:3,
+        w:'食物中的脂肪與膽固醇進入小腸細胞後，會重新組合並包裝成乳糜微粒。<br>運送路徑：<b>食物 → 小腸吸收 → 乳糜微粒 → 淋巴管 → 血液 → 組織利用</b><br>乳糜微粒主要負責運送飲食中的三酸甘油脂，也會攜帶膽固醇。' },
+      { q:'肝臟製造的三酸甘油脂與膽固醇，主要先包裝成哪一種脂蛋白運送至周邊組織？',
+        o:['VLDL',
+           'HDL',
+           '乳糜微粒',
+           '白蛋白'],
+        a:0,
+        w:'肝臟會將三酸甘油脂與膽固醇包裝成 VLDL，送入血液循環。<br>VLDL 在血液中逐漸失去三酸甘油脂，會依序轉變為：<b>VLDL → IDL → LDL</b><br>其中 LDL 主要負責將膽固醇運送至身體組織。' },
+      { q:'人體多餘的膽固醇，最主要透過哪一種方式排出體外？',
+        o:['透過尿液直接排出',
+           '透過汗液排出',
+           '經肝臟分泌至膽汁，再經糞便排出',
+           '全部轉變成 HDL'],
+        a:2,
+        w:'肝臟會將膽固醇：<br>① <b>直接分泌至膽汁</b><br>② <b>轉變成膽汁酸，再分泌至膽汁</b><br>膽汁進入腸道，部分膽固醇及膽汁酸隨糞便排出。<br>因此，腸道是膽固醇及其代謝產物離開人體的重要途徑。' },
+      { q:'益生菌與植化素搭配，在腸道健康管理上可能有什麼優勢？',
+        o:['益生菌可以將所有植化素轉變成膽固醇',
+           '腸道菌可以代謝部分植化素，改變其代謝產物及生物活性',
+           '植化素可以取代腸道菌',
+           '兩者搭配一定能使 LDL-C 恢復正常'],
+        a:1,
+        w:'腸道菌與植化素之間存在互動關係：<br>① 植化素進入腸道後，部分會被腸道菌分解或轉化<br>② 腸道菌可能產生具有生物活性的代謝物<br>③ 植化素也可能影響部分腸道菌的生長與菌相組成<br>因此，益生菌與植化素可能透過<b>腸道菌相、代謝物及腸道屏障</b>等途徑，相互影響。' }
+    ]
+  }
+];
+
+const KEYS=['A','B','C','D'];
+let course=null, qi=0, picks=[];
+
+function show(id){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.getElementById(id).classList.add('on'); window.scrollTo(0,0); }
+
+/* 課程列表（完成過的用 localStorage 標記） */
+function paintList(){
+  const el=document.getElementById('clist');
+  el.innerHTML=COURSES.map((c,i)=>{
+    const rec=localStorage.getItem('class_'+c.no);
+    const done=rec? '<span class="cbadge">✓ 已完成 '+rec+'/5</span>'
+                  : '<span class="cbadge">尚未作答 · 5 題</span>';
+    return '<div class="ccard'+(rec?' done':'')+'" onclick="startCourse('+i+')">'
+      +'<div class="cno">LESSON '+c.no+'</div>'
+      +'<div class="ctitle">'+c.title+'</div>'
+      +'<div class="cmeta">'+c.teacher+'　·　'+c.date+'</div>'
+      +done+'</div>'; }).join('');
+}
+function startCourse(i){ course=COURSES[i]; qi=0; picks=new Array(course.qs.length).fill(-1);
+  document.getElementById('q-course').textContent=course.title;
+  document.getElementById('r-course').textContent=course.title;
+  paintQ(); show('v-quiz'); }
+function paintQ(){
+  const item=course.qs[qi], n=course.qs.length;
+  document.getElementById('q-fill').style.width=((qi)/n*100)+'%';
+  document.getElementById('q-no').textContent='第 '+(qi+1)+' 題 / '+n;
+  document.getElementById('q-text').textContent=item.q;
+  document.getElementById('q-opts').innerHTML=item.o.map((t,k)=>
+    '<button class="opt'+(picks[qi]===k?' sel':'')+'" onclick="pick('+k+')">'
+    +'<span class="k">'+KEYS[k]+'</span><span>'+t+'</span></button>').join('');
+  const btn=document.getElementById('q-next');
+  btn.disabled = picks[qi]<0;
+  btn.textContent = (qi+1<n) ? '下一題 →' : '交卷，看結果 ✓';
+}
+function pick(k){ picks[qi]=k; paintQ(); }
+function nextQ(){ if(picks[qi]<0) return;
+  if(qi+1<course.qs.length){ qi++; paintQ(); } else grade(); }
+
+/* 批改 */
+function grade(){
+  let right=0;
+  course.qs.forEach((item,i)=>{ if(picks[i]===item.a) right++; });
+  const n=course.qs.length;
+  const el=document.getElementById('r-n');
+  el.innerHTML=right+'<small>/'+n+'</small>';
+  el.className='scoreN '+(right===n?'pass':'fail');
+  document.getElementById('r-txt').textContent =
+    right===n ? '全對！觀念很扎實 🎉'
+    : (right>=4 ? '很不錯，差一點滿分'
+    : (right>=3 ? '及格，還有進步空間' : '再複習一次會更好'));
+  document.getElementById('r-sub').textContent =
+    right===n ? '每一題的解析還是看一下，能講給別人聽才算真的懂。'
+              : '下面有每一題的解析，看完再寫一次會更清楚。';
+  document.getElementById('r-rev').innerHTML=course.qs.map((item,i)=>{
+    const ok = picks[i]===item.a;
+    return '<div class="rq '+(ok?'ok':'no')+'">'
+      +'<div class="rmark">'+(ok?'✓ 答對':'✗ 答錯')+'　第 '+(i+1)+' 題</div>'
+      +'<div class="rqt">'+item.q+'</div>'
+      +'<div class="rline">你的答案：<span class="'+(ok?'good':'bad')+'">'
+        +KEYS[picks[i]]+'. '+item.o[picks[i]]+'</span></div>'
+      +(ok?'':'<div class="rline">正確答案：<span class="good">'
+        +KEYS[item.a]+'. '+item.o[item.a]+'</span></div>')
+      +'<div class="rwhy"><b>解析</b>　'+item.w+'</div>'
+      +'</div>'; }).join('');
+  localStorage.setItem('class_'+course.no, right);
+  show('v-result');
+}
+function retry(){ qi=0; picks=new Array(course.qs.length).fill(-1); paintQ(); show('v-quiz'); }
+function backList(){ paintList(); show('v-list'); }
+
+function showQR(){ document.getElementById('qrfull').classList.add('on'); }
+function hideQR(){ document.getElementById('qrfull').classList.remove('on'); }
+
+paintList();
+</script>
+</body>
+</html>
