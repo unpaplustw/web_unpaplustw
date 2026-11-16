@@ -36,7 +36,7 @@ export const TILES = [
   { id: 'party',   name: '活動廣場',     status: 'empty', spot: 'plot', landmark: 'stage', angle: 72,
     hook: '上課要用的都在這裡。',
     line: '對抗賽：按一下抽一題最常被問到的問題，各隊搶答加分。課後作業：醫檢師講座每堂 5 題，寫完馬上批改、附解析。',
-    links: [{ label: '開始對抗賽', href: '/party/' }, { label: '寫課後作業', href: '/party/class/' }] },
+    links: [{ label: '開始對抗賽', href: '/party/' }, { label: '醫檢師講座', href: '/party/class/' }] },
 
   { id: 'sutra',   name: '藏經閣',       status: 'empty', spot: 'plot', landmark: 'pagoda', angle: -72,
     hook: '心法都收在這裡。',
