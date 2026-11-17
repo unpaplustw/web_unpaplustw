@@ -1606,6 +1606,7 @@ export function createIsland({ stage, onPick, onBackground }) {
 
   return {
     select(id) {
+      const had = activeId; // 關卡片前有沒有選到東西
       activeId = id; activeKind = entries.find((e) => e.id === id)?.kind ?? null;
       let focus = null;
       for (const entry of entries) {
@@ -1618,7 +1619,7 @@ export function createIsland({ stage, onPick, onBackground }) {
         const sph = new THREE.Spherical().setFromVector3(off);
         const t = focus.object.getWorldPosition(new THREE.Vector3()); t.y += focus.focusY;
         flyTo(viewFor(t, fitDist(focus.focusR), THREE.MathUtils.clamp(sph.phi, 0.85, 1.12), focus.viewAz ?? sph.theta), 1.3);
-      } else if (id === null && !userMoved) flyTo(homeView(), 1.3);
+      } else if (id === null && had !== null) { userMoved = false; flyTo(homeView(), 1.3); } // 關掉卡片一律回全景（2026-11-17：飛近後滿畫面都是建築、沒空白可點，按 ✕ 又不回來，就困在那裡）
       activity();
     },
     // 卡片蓋住畫面時，把城推到看得見的區域
