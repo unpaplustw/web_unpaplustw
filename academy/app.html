@@ -2,7 +2,7 @@
 <!--
   環球致富學院 — 學院本體（LIFF + Supabase）
   ⚠️ LIFF_ID 需在 LINE Developers Console 新建一支，Endpoint = https://unpaplus.com.tw/academy/app.html
-  資料一律走會員閘道 member-gate（伺服器驗 LINE 身分）；能不能進由 academy.has_access 判斷：VIP1 以上就能進（學院不單獨上鎖，2026-11-10）
+  資料一律走會員閘道 member-gate（伺服器驗 LINE 身分）；能不能進由 academy.has_access 判斷：VIP 以上（level ≥ 1，含 VVIP）就能進（學院不單獨上鎖，2026-11-10）
   預覽（免 LINE 登入）：app.html#preview
 -->
 <html lang="zh-TW">
@@ -102,7 +102,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <div class="wrap">
 
-  <!-- 不是會員：查不到、VIP0、審核中、被退回都一樣，細節由首頁的註冊表／會員卡講（2026-11-12） -->
+  <!-- 不是會員：查不到、訪客、審核中、被退回都一樣，細節由首頁的註冊表／會員卡講（2026-11-12） -->
   <div id="screen-notmember" class="center">
     <div class="big">🏡</div>
     <h2>新手村開放給綠佳利會員</h2>
@@ -198,7 +198,7 @@ async function loadContext(){
 
 function route(){
   if(ctx.access){ renderHome(); return; }
-  // 不是會員：學院不分「查不到／VIP0／審核中／被退回」，一律請他去首頁註冊（帶 ?oa= 進來的一起帶過去）
+  // 不是會員：學院不分「查不到／訪客／審核中／被退回」，一律請他去首頁註冊（帶 ?oa= 進來的一起帶過去）
   const oa = new URLSearchParams(location.search).get('oa');
   if(oa) document.getElementById('hub-btn').href = HUB_URL + '&oa=' + encodeURIComponent(oa);
   show('screen-notmember');

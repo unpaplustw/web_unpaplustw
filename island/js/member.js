@@ -4,7 +4,7 @@
 // 所有讀寫都走「會員閘道」member-gate（伺服器拿 LIFF access token 問 LINE 驗明正身），前端說了不算。
 //
 // 網址參數：?member=1＝一進來就打開自己的卡（官方帳號「開通會員」「會員卡」從舊會員中心轉過來用）；?oa=@團隊＝記來源官方帳號
-// 預覽（不用登入、不寫資料）：網址加 #preview-member=none｜0｜pending｜rejected｜1
+// 預覽（不用登入、不寫資料）：網址加 #preview-member=none｜0｜pending｜rejected｜1｜2（VVIP）
 //   none＝後台沒有這個人　0＝有列但沒申請過　1111111＝預覽裡「已有人登記」的編號　2675630＝預覽裡查得到的推薦人
 import { MEMBER } from './data.js';
 
@@ -19,6 +19,8 @@ const MSG = {
   bad_peak: '請選負責你的高峰領袖',
   bad_sponsor: '推薦人編號是 7 位數字，不確定可以先空著',
 };
+// 等級名稱（2026-11-17 Randoph 定）：level 0＝訪客、1＝VIP（綠佳利會員，其他團隊）、2＝VVIP（自己團隊 A Plus）。數字照舊，只改叫法
+const LV_LABEL = (lv) => (lv >= 2 ? 'VVIP' : lv >= 1 ? 'VIP' : '訪客');
 const PREVIEW = {
   none: null,
   0: { name: 'LINE 暱稱', level: 0, ai_credits: 30, status: 'visitor' },
@@ -26,6 +28,7 @@ const PREVIEW = {
   rejected: { name: '王小明', level: 0, ai_credits: 30, status: 'rejected', code: '2712345', birthday: '1968-03-09', gender: 'male',
     peak_leader: '游育杰', sponsor_code: '2675630', sponsor_name: '游育杰' },
   1: { name: '預覽會員', level: 1, ai_credits: 80, status: 'member', code: '2712345' },
+  2: { name: '預覽會員', level: 2, ai_credits: 80, status: 'member', code: '2712345' },
 };
 
 function loadScript(src) {
@@ -99,7 +102,7 @@ export function initMember({ openCard, el }) {
     if (known) {
       if (profile?.pictureUrl) { const img = el('img', 'member-pic'); img.src = profile.pictureUrl; img.alt = ''; btn.append(img); }
       btn.append(el('span', 'member-name', member.name || profile?.displayName || '會員'),
-        member.status === 'member' ? el('span', 'member-vip', `VIP${member.level ?? 0}`) : el('span', 'member-vip member-wait', '審核中'));
+        member.status === 'member' ? el('span', 'member-vip', LV_LABEL(member.level ?? 0)) : el('span', 'member-vip member-wait', '審核中'));
     } else if (logged() && member !== undefined) {
       btn.append(el('span', 'member-name', '註冊成為會員'));
     } else {
@@ -119,7 +122,7 @@ export function initMember({ openCard, el }) {
     const wrap = el('div', 'simple');
     wrap.append(el('h2', 'card-title', member.name || profile?.displayName || '會員'));
     const dl = el('dl', 'port');
-    dl.append(el('dt', '', '等級'), el('dd', '', `VIP${member.level ?? 0}`), el('dt', '', 'AI 點數'), el('dd', '', `${member.ai_credits ?? 0} 點`));
+    dl.append(el('dt', '', '等級'), el('dd', '', LV_LABEL(member.level ?? 0)), el('dt', '', 'AI 點數'), el('dd', '', `${member.ai_credits ?? 0} 點`));
     if (member.code) dl.append(el('dt', '', '會員編號'), el('dd', '', String(member.code).slice(0, 7)));
     wrap.append(dl);
     if (canLogout()) { const row = el('div', 'card-buttons reg-actions'); row.append(logoutButton()); wrap.append(row); }

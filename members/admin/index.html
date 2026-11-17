@@ -96,7 +96,7 @@ const GATE = 'https://nsgqsopqlkhayuefdout.supabase.co/functions/v1/member-gate'
 
 const ACTION_NAME = {view:'調閱名單', confirm:'第一段確認', approve:'最終通過', set_level:'調整等級', manage_peaks:'維護族譜與高峰表', grant:'授權別人'};
 const CORES = {'2':'顏麗玉、游天貴','5':'林甘霖、楊牧潔','6':'蔡依儒、尤竣億','7':'林姍嬅、凌翊迅','8':'楊敬豪、林珊合'};
-const LV_NAME = {0:'VIP0 尚未入會', 1:'VIP1 綠佳利會員', 2:'VIP2 A Plus 成員'};
+const LV_NAME = {0:'訪客（尚未入會）', 1:'VIP 綠佳利會員（其他團隊）', 2:'VVIP 自己團隊（A Plus）'}; // 2026-11-17 改名：數字照舊，VIP1→VIP、VIP2→VVIP
 const TABS = [
   {k:'pending',  nm:'待審'},
   {k:'approved', nm:'已通過'},
@@ -178,11 +178,11 @@ function renderMembers(){
   const kw = q.trim();
   const list = kw ? rows.filter(m => [m.name, m.code, m.phone, m.tenant, m.peak_leader, m.sponsor_name, m.sponsor_code].some(x => String(x || '').includes(kw))) : rows;
   const tip = cur === 'pending'
-    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後成為 VIP1（綠佳利會員）</b>，學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
+    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後成為 VIP（綠佳利會員）</b>；自己團隊的人再用下拉改成 VVIP，學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
   pane.innerHTML = tip + `<input class="search" placeholder="搜尋姓名、編號、高峰領袖、推薦人、團隊" value="${esc(q)}" oninput="q=this.value;renderMembers()">`
     + (list.length ? list.map(card).join('') : '<div class="empty">沒有資料</div>');
 }
-function lvTag(l){ return `<span class="lv ${l===0?'lv0':l===1?'lv1':l===2?'lv2':'lvx'}">VIP${l}</span>`; }
+function lvTag(l){ return `<span class="lv ${l===0?'lv0':l===1?'lv1':l===2?'lv2':'lvx'}">${l===0?'訪客':l===1?'VIP':l===2?'VVIP':'等級'+l}</span>`; }
 // 註冊表填的資料（2026-11-12）：負責高峰領袖、推薦人；待審的再多列生日性別，並跟族譜裡同編號的那一筆比對
 function regLines(m){
   const out = [];
@@ -202,10 +202,10 @@ function regLines(m){
 function card(m){
   const av = m.picture_url ? `<img class="av" src="${esc(m.picture_url)}" alt="">` : `<div class="av">${esc((m.name||'?').slice(0,1))}</div>`;
   const acts = [];
-  if(m.level === 0 && m.code && !m.rejected_at && m.can_approve) acts.push(`<button class="btn ok" onclick="approve('${m.id}', this)">通過 → VIP1</button>`);
+  if(m.level === 0 && m.code && !m.rejected_at && m.can_approve) acts.push(`<button class="btn ok" onclick="approve('${m.id}', this)">通過 → VIP</button>`);
   if(m.level === 0 && m.code && !m.rejected_at && m.can_reject)  acts.push(`<button class="btn no" onclick="reject('${m.id}', this)">退回</button>`);
   if(m.can_set_level && !m.is_central) acts.push(`<select onchange="setLevel('${m.id}', this)" aria-label="調整等級">${[0,1,2].map(l =>
-      `<option value="${l}" ${l===m.level?'selected':''}>${LV_NAME[l]}</option>`).join('')}${m.level > 2 ? `<option selected>VIP${m.level}</option>` : ''}</select>`);
+      `<option value="${l}" ${l===m.level?'selected':''}>${LV_NAME[l]}</option>`).join('')}${m.level > 2 ? `<option selected>等級${m.level}</option>` : ''}</select>`);
   return `<div class="card"><div class="m-row">${av}<div class="m-main">
       <div class="m-name">${esc(m.name || '未填寫')} ${lvTag(m.level)} ${m.is_central ? '<span class="lv lvx">中央</span>' : ''}${m.coop_pending ? ' <span class="lv lvc">共同經營・待確認</span>' : ''}</div>
       <div class="m-meta">${esc(m.code || '未填編號')}${m.phone ? ' · ' + esc(m.phone) : ''} · ${esc(m.tenant || '未綁團隊')} · ${fmt(m.applied_at || m.joined_at)}${m.rejected_at ? ' · 退回於 ' + fmt(m.rejected_at) : ''}</div>${regLines(m)}
@@ -213,7 +213,7 @@ function card(m){
 }
 async function approve(id, btn){
   const m = rows.find(x => x.id === id);
-  if(!confirm(`確認通過「${m?.name || ''}」？\n通過後成為 VIP1（綠佳利會員），並加 50 點。`)) return;
+  if(!confirm(`確認通過「${m?.name || ''}」？\n通過後成為 VIP（綠佳利會員），並加 50 點。`)) return;
   btn.disabled = true;
   const d = await gate('admin_approve', {p_member_id: id});
   if(!d.ok){ toast(d.error === 'forbidden' ? '你沒有通過的權限' : '通過失敗'); btn.disabled = false; return; }
@@ -302,7 +302,7 @@ function renderLineage(){
   const list = kw ? lin.filter(r => [r.code, r.name, r.sponsor_code, r.sponsor_name].some(x => String(x || '').includes(kw))) : lin;
   const chip = (k, t) => `<div class="tab ${linFilter === k ? 'on' : ''}" onclick="linFilter='${k}';linEdit=null;loadLineage()">${t}</div>`;
   pane.innerHTML = `
-    <div class="note">每個人都要有<b>會員編號、姓名、推薦人編號、推薦人姓名</b>才追得到。高峰標了「所屬核心」，他底下沿推薦線的人就會算進那個核心（之後通過時自動給 VIP2）。</div>
+    <div class="note">每個人都要有<b>會員編號、姓名、推薦人編號、推薦人姓名</b>才追得到。高峰標了「所屬核心」，他底下沿推薦線的人就會算進那個核心（之後通過時自動給 VVIP）。</div>
     <div class="tabs">${chip('peaks', '高峰／CFC')}${chip('incomplete', '資料不全')}${chip('all', '全部')}</div>
     <input class="search" placeholder="搜尋編號、姓名、推薦人" value="${esc(linQ)}" oninput="linQ=this.value;renderLineage()">
     <button class="btn sec" style="width:100%;margin-bottom:10px" onclick="linEdit='__new';renderLineage()">➕ 新增一個人</button>
