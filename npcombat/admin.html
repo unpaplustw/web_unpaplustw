@@ -226,6 +226,7 @@
   .gc-b3{display:flex;align-items:center;gap:8px;margin:5px 0}  .gc-b3 span{flex:0 0 30px;font-size:12px;color:var(--muted)}  .gc-b3 div{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.08)}  .gc-b3 div i{display:block;height:7px;border-radius:4px}  .gc-b3 b{flex:0 0 38px;text-align:right;font-size:13px}  .gc-b3 em{flex:0 0 86px;font-style:normal;font-size:11px;color:var(--muted);white-space:nowrap}
   .gc-sts{display:flex;gap:6px;margin-top:10px}  .gc-st{flex:1;text-align:center;padding:6px 4px;border-radius:8px;background:rgba(255,255,255,.04)}  .gc-st b{display:block;font-size:18px;font-weight:800}  .gc-st span{font-size:11px;color:var(--muted)}
   .gc-org{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}  .gc-none{font-size:12.5px;color:var(--muted)}
+  .gc-msg{margin-top:14px;padding:12px 14px;border-radius:10px;background:rgba(212,175,55,.08);border:1px dashed var(--gold-bd)}  .gc-msg-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--gold)}  .gc-msg-hd .btn-edit{font-size:12.5px;padding:5px 12px}  .gc-msg-t{font-size:14px;line-height:1.75;color:var(--white)}
   /* 👥 學員頁（2026-11-15）：能量條＝電池造型、一格一天 */
   .st-sort{display:flex;gap:8px;margin:0 0 12px;align-items:center}  .st-sort>span{font-size:12.5px;color:var(--muted)}
   .st-tbl{width:100%;border-spacing:0 3px}  .st-tbl th.l,.st-tbl td.l{text-align:left;padding-left:14px;white-space:nowrap;color:var(--white);font-size:12px}  .st-tbl td.nm{min-width:120px;max-width:none}  .st-tbl td.pts{text-align:center;font-size:13px;font-weight:700}
@@ -936,6 +937,56 @@ function actGap(s, logDays, yest) {
   let n = 0; for (let d = new Date(yest + 'T00:00:00'); localDateStr(d) >= f && !has.has(localDateStr(d)); d.setDate(d.getDate() - 1)) n++;
   return { n, never: ![...has].some(ds => ds >= f) };
 }
+// 💬 給教練的話（2026-11-19）：照資料套規則寫好，總教練按「複製」貼 LINE。不接 AI——免費、打開就是最新資料、不會寫出資料以外的話。
+//   三段：① 肯定一件真的有做到的事 ② 教練自己要補的事（最多兩件）③ 學員要關心的（每位只講一次、講最嚴重的）＋這週最拚的一位。
+//   規則要加要改都在這裡；Randoph 2026-11-19 看過 14 位試跑結果定稿。
+let coachMsgs = [];
+function coachMsg(g, cm, logDays, yest) {
+  const c = g.c, learn = g.learn, ids = new Set(g.mine.map(s => s.id)), what = learn ? '作業' : '心得';
+  const call = (n => (n.length >= 3 ? n.slice(1) : n) + '老師')(nm(c)), join = a => a.length <= 3 ? a.join('、') : a.slice(0, 3).join('、') + ` 等 ${a.length} 位`;
+  const marked = new Set(engRows.filter(r => ids.has(r.student_id) && r.homework != null).map(r => r.log_date));
+  const due = g.days.filter(d => d.k !== 'na'), miss = due.filter(d => d.k === 'none'), ok = due.filter(d => d.k === 'full').length;
+  const markedNoSub = miss.filter(d => marked.has(d.ds)).length, lastMark = [...marked].sort().pop() || null;
+  const sinceMark = lastMark ? due.filter(d => d.ds > lastMark).length : due.length;   // 最後一次標記之後，又過了幾個「該標的日子」
+  const warn = g.mine.reduce((a, s) => a + ((cm[s.id] || {}).warn || 0), 0);
+  const HOW = '標完組員後，滑到「👥 組員」頁最下面，按金色的「送出＋日期」那顆，系統才會算你完成。';
+  // ① 肯定
+  const praise = !miss.length && ok === due.length ? '這期每天都準時送出，謝謝你！'
+    : markedNoSub >= 2 ? `這期你有 ${marked.size} 天都進去幫組員標記，辛苦了！`
+    : g.reply >= 80 ? '你回覆組員都很即時，謝謝你！' : '謝謝你這段時間的陪伴！';
+  // ② 教練自己要補的（最多兩件）
+  const todo = [];
+  if (markedNoSub >= 2) todo.push(`只差最後一步：${HOW}目前有 ${markedNoSub} 天標了還沒送出。`);
+  else if (miss.length) todo.push(`有 ${miss.length} 天沒有送出。${HOW}`);
+  if (sinceMark >= 2) todo.push(`最近 ${sinceMark} 天還沒看到組員的標記，是不是比較忙？有空時幫忙補標一下。`);
+  if (!todo.length && g.reply < 60) todo.push(`組員交了之後，記得回一句，現在回覆大約 ${g.reply}%，你的一句話對組員很重要。`);
+  if (!todo.length && learn && warn) todo.push(`有 ${warn} 格標了已交、還沒逐題檢核，有空時幫忙點一下。`);
+  // ③ 學員（每位只講一次：3 次沒交 → 還沒開始填行動 → 這幾天沒交 → 好幾天沒填行動）
+  const x3 = [], never = [], xs = [], gap = [];
+  g.mine.forEach(s => { const x = (cm[s.id] || {}).x || 0, a = actGap(s, logDays, yest), n = nm(s);
+    if (x >= 3) x3.push(n); else if (a && a.never) never.push(n); else if (x) xs.push(n); else if (a && a.n >= 3) gap.push(`${n}（${a.n} 天）`); });
+  const care = [];
+  if (x3.length) care.push(`${join(x3)}已經 3 次沒交${what}`);
+  if (never.length) care.push(`${join(never)}還沒開始填行動回報`);
+  if (xs.length) care.push(`${join(xs)}這幾天${what}沒交`);
+  if (gap.length) care.push(`${join(gap)}好幾天沒填行動`);
+  const w0 = localDateStr(new Date(Date.now() - 7 * 86400000)), wk = {};
+  allLogs.forEach(l => { if (ids.has(l.student_id) && l.log_date > w0) wk[l.student_id] = (wk[l.student_id] || 0) + (l.meet||0)+(l.invite||0)*2+(l.present||0)*5+(l.seminar||0)*5+(l.ghosted||0)+(l.rejected||0)+(l.attended||0)*2+namePts(l); });
+  const star = g.mine.filter(s => (wk[s.id] || 0) >= 30).sort((a, z) => wk[z.id] - wk[a.id])[0];
+  const lines = [`${call}，${praise}`, ...todo];
+  if (care.length) lines.push(`另外${care.join('；')}，再麻煩你關心一下 🙏`);
+  if (star) lines.push(`${nm(star)}這週很拚（${wk[star.id]} 分），可以在群組公開鼓勵 💪`);
+  if (lines.length === 1) lines.push('組員狀況都很好，繼續保持 💪');
+  return lines.join('\n');
+}
+function copyCoachMsg(i) {
+  const t = coachMsgs[i]; if (!t) return;
+  const done = () => toast('已複製，貼到 LINE 給教練就好');
+  const fallback = () => { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;top:0;opacity:0';
+    document.body.appendChild(a); a.select(); try { document.execCommand('copy') ? done() : prompt('複製這段文字：', t); } catch (e) { prompt('複製這段文字：', t); } a.remove(); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+}
+
 // 一位學員一顆標籤：綠正常／橘有 ✕／紅 3 個 ✕ 以上／灰連續 2 天以上沒填行動（教練卡的組員、下線都用這顆）
 function stuDot(s, cm, logDays, yest) {
   const x = (cm[s.id] || {}).x || 0, g = actGap(s, logDays, yest), quiet = g && (g.never || g.n >= 2);
@@ -985,12 +1036,12 @@ async function paintCoachPage(el) {
     const weak = t ? [[t.sub, t.miss ? `${t.miss} 天沒送出` : `逾時送出 ${t.late} 天`], [t.reply, t.reply < 50 ? `回覆只有 ${t.reply}%` : `回覆 ${t.reply}%`], [t.chk, `${t.warn} 格還沒檢核`]].filter(x => x[0] < 80).sort((a, z) => a[0] - z[0]).map(x => x[1]) : [];
     const list = [...weak, o.pend ? `${o.pend} 筆報件待他審` : ''].filter(Boolean).join('、');
     const say = list ? (lvl === 'g' && t ? '大致都有做到，還可以補：' + list : list) : (t ? '該做的都有做到' : '不帶組，組織沒有待辦');
-    return { c, g, down, o, t, lvl, say };
+    return { c, g, down, o, t, lvl, say, msg: g ? coachMsg(g, cm, logDays, yest) : '' };
   }).filter(Boolean);
   const ICO = { r: '🔴', y: '🟡', g: '✅' };
   cards.sort((a, z) => (a.t ? a.t.score : 999) - (z.t ? z.t.score : 999) || groupIdx(a.c) - groupIdx(z.c));   // 完成度低的排前面；不帶組的排最後
   const n = k => cards.filter(x => x.lvl === k).length, pill = (k, txt) => n(k) ? `<span class="gc-pill ${k}">${n(k)} 位 ${txt}</span>` : '';
-  const card = x => `<div class="gc ${x.lvl}">
+  const card = (x, i) => `<div class="gc ${x.lvl}">
     <div><span class="gc-name">${whoC(x.c.id, nm(x.c))}</span><span class="gc-meta">${x.g ? `${x.c.group_name || '未分組'}・${trackName(x.c.track || 'learn')}` : '不帶組'}</span></div>
     <div class="gc-say">${ICO[x.lvl]} ${x.say}</div>`
     + (x.g ? `<div class="gc-lab">🎓 他帶的組（${x.g.mine.length} 人）</div>
@@ -1002,7 +1053,11 @@ async function paintCoachPage(el) {
     + `<div class="gc-org"><div class="gc-lab">🌱 他的組織（選他當負責上線的 ${x.down.length} 人）</div>`
     + (x.down.length ? `<div class="gc-sts" style="margin-top:0">${stat(x.o.direct, '推薦新人', false)}${stat(x.o.org, '組織締結', false)}${stat(x.o.pend, '報件待他審', x.o.pend > 0)}${stat(x.o.x3, '下線 3 個 ✕', x.o.x3 > 0)}</div>
       <div class="gc-dots">${x.down.map(s => stuDot(s, cm, logDays, yest)).join('')}</div>` : `<div class="gc-none">這一期沒有學員選他當負責上線</div>`)
-    + `</div></div>`;
+    + `</div>`
+    + (x.msg ? `<div class="gc-msg"><div class="gc-msg-hd"><span>💬 給教練的話</span><button class="btn-edit" onclick="copyCoachMsg(${i})">📋 複製</button></div>`
+      + `<div class="gc-msg-t">${x.msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div></div>` : '')
+    + `</div>`;
+  coachMsgs = cards.map(x => x.msg);
   el.innerHTML = `<div class="gc-sum">${pill('r', '要找他談')}${pill('y', '還有要補的')}${pill('g', '正常')}</div>`
     + `<div class="cov-note"><b>完成度</b>＝送出、回覆、檢核三件事各佔三分之一；不到 50% 紅、50～79% 黃、80% 以上綠，<b>完成度低的排前面</b>｜小格＝每天有沒有送出（✓ 準時、遲、✕ 沒送出、空格＝今天中午前要送）`
     + `｜學員標籤：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰連續 2 天以上沒填行動｜名字點了開管理卡</div>`
