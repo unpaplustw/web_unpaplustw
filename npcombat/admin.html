@@ -227,6 +227,7 @@
   .gc-sts{display:flex;gap:6px;margin-top:10px}  .gc-st{flex:1;text-align:center;padding:6px 4px;border-radius:8px;background:rgba(255,255,255,.04)}  .gc-st b{display:block;font-size:18px;font-weight:800}  .gc-st span{font-size:11px;color:var(--muted)}
   .gc-org{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}  .gc-none{font-size:12.5px;color:var(--muted)}
   .gc-msg{margin-top:14px;padding:12px 14px;border-radius:10px;background:rgba(212,175,55,.08);border:1px dashed var(--gold-bd)}  .gc-msg-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--gold)}  .gc-msg-hd .btn-edit{font-size:12.5px;padding:5px 12px}  .gc-msg-t{font-size:14px;line-height:1.75;color:var(--white)}
+  .gc-pick{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}  .gc-pick>span{font-size:14px;font-weight:700;color:var(--gold)}  .gc-pick select{flex:0 1 360px;min-width:220px;background:var(--navy3);border:1px solid var(--gold-bd);border-radius:10px;padding:10px 12px;color:var(--white);font-size:15px;font-family:inherit}  .gc-grid.one{grid-template-columns:1fr}
   /* 👥 學員頁（2026-11-15）：能量條＝電池造型、一格一天 */
   .st-sort{display:flex;gap:8px;margin:0 0 12px;align-items:center}  .st-sort>span{font-size:12.5px;color:var(--muted)}
   .st-tbl{width:100%;border-spacing:0 3px}  .st-tbl th.l,.st-tbl td.l{text-align:left;padding-left:14px;white-space:nowrap;color:var(--white);font-size:12px}  .st-tbl td.nm{min-width:120px;max-width:none}  .st-tbl td.pts{text-align:center;font-size:13px;font-weight:700}
@@ -1058,11 +1059,26 @@ async function paintCoachPage(el) {
     + (x.msg ? `<div class="gc-msg"><div class="gc-msg-hd"><span>💬 給教練的話</span><button class="btn-edit" onclick="copyCoachMsg(${i})">📋 複製</button></div>`
       + `<div class="gc-msg-t">${x.msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div></div>` : '')
     + `</div>`;
-  coachMsgs = cards.map(x => x.msg);
-  el.innerHTML = `<div class="gc-sum">${pill('r', '要找他談')}${pill('y', '還有要補的')}${pill('g', '正常')}</div>`
-    + `<div class="cov-note"><b>完成度</b>＝送出、回覆、檢核三件事各佔三分之一；不到 50% 紅、50～79% 黃、80% 以上綠，<b>完成度低的排前面</b>｜小格＝每天有沒有送出（✓ 準時、遲、✕ 沒送出、空格＝今天中午前要送）`
-    + `｜學員標籤：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰連續 2 天以上沒填行動｜名字點了開管理卡</div>`
-    + `<div class="gc-grid">${cards.map(card).join('')}</div>`;
+  coachData = { cards, card, head: `<div class="gc-sum">${pill('r', '要找他談')}${pill('y', '還有要補的')}${pill('g', '正常')}</div>` };
+  drawCoachPage(el);
+}
+// 🔽 選教練（2026-11-19 Randoph：「可以幫我做一個下拉式選單，讓我可以選擇該組教練，不然後台不定期刷新，我就要滑到最下面去處理」）
+//   選了只顯示那一位的卡；選擇記在 coachPick，後台每 60 秒自動刷新重畫後照樣停在那一位。選「全部」回到完成度排序。
+let coachPick = '', coachData = null;
+function setCoachPick(v) { coachPick = v; const el = document.getElementById('ana-body-coach'); if (el && coachData) drawCoachPage(el); window.scrollTo({ top: 0 }); }
+function drawCoachPage(el) {
+  const { cards, card, head } = coachData;
+  if (coachPick && !cards.some(x => x.c.id === coachPick)) coachPick = '';
+  const shown = coachPick ? cards.filter(x => x.c.id === coachPick) : cards;
+  const ICO = { r: '🔴', y: '🟡', g: '✅' };
+  const opts = [...cards].sort((a, z) => groupIdx(a.c) - groupIdx(z.c)).map(x =>
+    `<option value="${x.c.id}"${x.c.id === coachPick ? ' selected' : ''}>${ICO[x.lvl]} ${x.c.group_name || '不帶組'}・${nm(x.c)}${x.t ? `（${x.t.score}%）` : ''}</option>`).join('');
+  coachMsgs = shown.map(x => x.msg);
+  el.innerHTML = `<div class="gc-pick"><span>🔽 選教練</span><select onchange="setCoachPick(this.value)"><option value="">全部教練（完成度低的在前）</option>${opts}</select>`
+    + (coachPick ? `<button class="btn-edit" onclick="setCoachPick('')">看全部</button>` : '') + `</div>`
+    + (coachPick ? '' : head + `<div class="cov-note"><b>完成度</b>＝送出、回覆、檢核三件事各佔三分之一；不到 50% 紅、50～79% 黃、80% 以上綠，<b>完成度低的排前面</b>｜小格＝每天有沒有送出（✓ 準時、遲、✕ 沒送出、空格＝今天中午前要送）`
+      + `｜學員標籤：綠正常、橘有 ✕、紅 3 個 ✕ 以上、灰連續 2 天以上沒填行動｜名字點了開管理卡</div>`)
+    + `<div class="gc-grid${coachPick ? ' one' : ''}">${shown.map(card).join('')}</div>`;
 }
 
 // ════════════════════════════════════════════
