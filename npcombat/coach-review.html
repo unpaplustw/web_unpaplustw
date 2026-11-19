@@ -9,7 +9,8 @@
 <script src="units.js"></script>
 <script src="consts.js"></script>
 <script src="score.js?v=20261112"></script>
-<script src="commit.js?v=20261112"></script>
+<script src="commit.js?v=20261115"></script>
+<script src="coachcard.js?v=20261119"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
   :root {
@@ -467,6 +468,7 @@
   <div class="hd-name" id="coachName">載入中…</div>
   <div class="hd-date" id="dateText"></div>
   <div class="hd-badge">教練回報</div>
+  <a href="javascript:void(0)" class="hd-admin-link" onclick="if (coachId && BATCH_ID) ccGate(sb, BATCH_ID, coachId, true)">📋 我的狀況</a>   <!-- 2026-11-19：隨時再看自己的教練卡（coachcard.js） -->
   <a href="https://liff.line.me/2009692859-DepTDosN" class="hd-admin-link">📊 管理總覽</a>
 </div>
 
@@ -1401,6 +1403,8 @@ async function init() {
   initDone = true;
   // 載入期間教練已經自己點了分頁（例如先點「組員」）→ 留在原處用完整資料重畫，不硬跳回「我的」
   if (userPickedMode) setMode(userPickedMode); else setMode('my');
+  // 📋 我的狀況（2026-11-19 Randoph）：每天第一次進來先看自己的教練卡＋給你的話，按「我知道了」才能操作；一天一次（早上 5 點換日），規則在 coachcard.js
+  ccGate(sb, BATCH_ID, coachId);
 }
 
 // 學員審查／小組關懷 分派（依教練模式）
