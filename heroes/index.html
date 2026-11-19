@@ -234,6 +234,13 @@
   .holdbox { margin: 18px 0 4px; padding: 16px 18px; border: 1px dashed var(--gold-main); border-radius: 12px; background: var(--gold-light);
     color: var(--text-dark); font-size: 15px; line-height: 1.7; text-align: center; }
   .holdbox b { color: var(--gold-deep); white-space: nowrap; }
+  /* 朗讀（Randoph 2026-11-19）：用手機內建語音，免費、不耗流量。一顆固定在螢幕下方的大按鈕，按一下念、再按一下停 */
+  .speak { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 50;
+    height: 54px; padding: 0 26px; border-radius: 999px; border: 0; background: var(--gold-grad); color: #fff; font-size: 17px; font-weight: 800;
+    font-family: inherit; box-shadow: 0 6px 20px rgba(150,121,10,.35); cursor: pointer; white-space: nowrap; }
+  .speak.on { background: #1a1a2e; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+  #detail-view.has-speak { padding-bottom: 90px; }
+  .beat.reading { background: var(--gold-light); border-radius: 8px; }
   .exits { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; max-width: 760px; margin: 22px auto 0; }
   .exits button { font-size: 14.5px; font-weight: 700; padding: 12px 22px; border-radius: 999px; cursor: pointer; font-family: inherit;
     border: 1px solid var(--gold-main); background: var(--card); color: var(--gold-deep); }
@@ -293,6 +300,7 @@
     <div class="quote" id="quoteBox"></div>
     <div class="profile" id="profile"></div>
     <div class="exits" id="exits"></div>
+    <button class="speak" id="speakBtn" style="display:none" onclick="toggleSpeak()">🔊 聽他的故事</button>
   </div>
 </div>
 
@@ -470,6 +478,7 @@ function keyFromHash() {
 function openDetail(k) { history.pushState({}, "", "#" + encodeURIComponent(k)); showDetail(k); }
 function goList() { history.pushState({}, "", location.pathname); showList(); }
 function showList() {
+  stopSpeak();
   document.getElementById("detail-view").style.display = "none";
   document.getElementById("list-view").style.display = "block";
 }
@@ -488,7 +497,54 @@ function renderStory(text, exs) {
 }
 function toggleEx(i) { const el = document.getElementById("ex" + i); if (el) el.style.display = el.style.display === "block" ? "none" : "block"; }
 
+/* ── 朗讀：念完整故事（本人自述優先，沒有就念月刊故事）。長文切句排隊念，避免瀏覽器念到一半中斷 ── */
+let speakParts = [], speaking = false;
+function zhVoice() {
+  const vs = (window.speechSynthesis && speechSynthesis.getVoices()) || [];
+  return vs.find(v => /zh[-_]TW/i.test(v.lang)) || vs.find(v => /zh[-_](Hant|HK)/i.test(v.lang)) || vs.find(v => /^zh/i.test(v.lang)) || null;
+}
+function stopSpeak() {
+  speaking = false;
+  try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
+  document.querySelectorAll('.beat.reading').forEach(b => b.classList.remove('reading'));
+  const btn = document.getElementById('speakBtn'); if (btn) { btn.classList.remove('on'); btn.textContent = '🔊 聽他的故事'; }
+}
+function setSpeak(d) {
+  stopSpeak();
+  const beats = (d.six || []).length ? d.six : (d.mag6 || []).length ? d.mag6 : (d.mag ? [d.mag] : []);
+  const btn = document.getElementById('speakBtn');
+  const ok = !!window.speechSynthesis && beats.length && !d.hold;
+  btn.style.display = ok ? 'block' : 'none';
+  document.getElementById('detail-view').classList.toggle('has-speak', !!ok);
+  speakParts = [];
+  beats.forEach((b, bi) => String(b).replace(/——/g, '，').split(/(?<=[。！？；])/).forEach(s => { s = s.trim(); if (s) speakParts.push({ s, bi }); }));
+}
+function toggleSpeak() {
+  if (speaking) { stopSpeak(); return; }
+  if (!speakParts.length) return;
+  speaking = true;
+  const btn = document.getElementById('speakBtn'); btn.classList.add('on'); btn.textContent = '⏸ 停止朗讀';
+  /* 自述折起來時先展開，念到哪一段就標亮哪一段 */
+  const fold = document.querySelector('#profile details.fold'); if (fold) fold.open = true;
+  const beatEls = fold ? fold.querySelectorAll('.beat') : [];
+  const v = zhVoice(); let i = 0;
+  const next = () => {
+    if (!speaking) return;
+    if (i >= speakParts.length) { stopSpeak(); return; }
+    const part = speakParts[i++];
+    beatEls.forEach((el, k) => el.classList.toggle('reading', k === part.bi));
+    const u = new SpeechSynthesisUtterance(part.s);
+    u.lang = (v && v.lang) || 'zh-TW'; if (v) u.voice = v; u.rate = 0.95;
+    u.onend = next; u.onerror = next;
+    speechSynthesis.speak(u);
+  };
+  try { speechSynthesis.cancel(); } catch (e) {}
+  next();
+}
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
+
 async function showDetail(k) {
+  stopSpeak();
   const p = byKey[k];
   if (!p) { showList(); return; }
   document.getElementById("list-view").style.display = "none";
@@ -559,6 +615,7 @@ async function showDetail(k) {
         <div class="tlbody"><h4>${esc(BADGE_ALIAS[m.b] || m.b)}</h4>${m.c ? `<p>${esc(m.c)}</p>` : ""}<p>${esc([m.when, m.src].filter(Boolean).join(" · "))}</p></div></div>`).join("") + `</div>`;
   }
   document.getElementById("profile").innerHTML = html;
+  setSpeak(d);
 
   /* 第 4 層：頁尾兩個出口（Randoph 2026-11-06 定） */
   const like = (d.tags || []).find(t => tagKind(t) === "pain") || (d.tags || [])[0];
