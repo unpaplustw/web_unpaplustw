@@ -178,11 +178,12 @@ function renderMembers(){
   const kw = q.trim();
   const list = kw ? rows.filter(m => [m.name, m.code, m.phone, m.tenant, m.peak_leader, m.sponsor_name, m.sponsor_code].some(x => String(x || '').includes(kw))) : rows;
   const tip = cur === 'pending'
-    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後成為 VIP（綠佳利會員）</b>；自己團隊的人再用下拉改成 VVIP，學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
+    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後的等級看他選的負責高峰領袖</b>：A Plus 五組 CFC 底下的領袖 → VVIP；合作領袖或「不在名單上」→ VIP（判錯了到「已通過」用下拉改）。通過後學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
   pane.innerHTML = tip + `<input class="search" placeholder="搜尋姓名、編號、高峰領袖、推薦人、團隊" value="${esc(q)}" oninput="q=this.value;renderMembers()">`
     + (list.length ? list.map(card).join('') : '<div class="empty">沒有資料</div>');
 }
 function lvTag(l){ return `<span class="lv ${l===0?'lv0':l===1?'lv1':l===2?'lv2':'lvx'}">${l===0?'訪客':l===1?'VIP':l===2?'VVIP':'等級'+l}</span>`; }
+const LV_SHORT = (l) => (l === 2 ? 'VVIP' : 'VIP'); // 2026-11-19：通過後等級由負責高峰領袖決定（DB peak_level_of）
 // 註冊表填的資料（2026-11-12）：負責高峰領袖、推薦人；待審的再多列生日性別，並跟族譜裡同編號的那一筆比對
 function regLines(m){
   const out = [];
@@ -202,7 +203,7 @@ function regLines(m){
 function card(m){
   const av = m.picture_url ? `<img class="av" src="${esc(m.picture_url)}" alt="">` : `<div class="av">${esc((m.name||'?').slice(0,1))}</div>`;
   const acts = [];
-  if(m.level === 0 && m.code && !m.rejected_at && m.can_approve) acts.push(`<button class="btn ok" onclick="approve('${m.id}', this)">通過 → VIP</button>`);
+  if(m.level === 0 && m.code && !m.rejected_at && m.can_approve) acts.push(`<button class="btn ok" onclick="approve('${m.id}', this)">通過 → ${LV_SHORT(m.approve_level)}</button>`);
   if(m.level === 0 && m.code && !m.rejected_at && m.can_reject)  acts.push(`<button class="btn no" onclick="reject('${m.id}', this)">退回</button>`);
   if(m.can_set_level && !m.is_central) acts.push(`<select onchange="setLevel('${m.id}', this)" aria-label="調整等級">${[0,1,2].map(l =>
       `<option value="${l}" ${l===m.level?'selected':''}>${LV_NAME[l]}</option>`).join('')}${m.level > 2 ? `<option selected>等級${m.level}</option>` : ''}</select>`);
@@ -213,11 +214,11 @@ function card(m){
 }
 async function approve(id, btn){
   const m = rows.find(x => x.id === id);
-  if(!confirm(`確認通過「${m?.name || ''}」？\n通過後成為 VIP（綠佳利會員），並加 50 點。`)) return;
+  if(!confirm(`確認通過「${m?.name || ''}」？\n負責高峰：${m?.peak_leader || '（沒填）'}\n通過後成為 ${LV_SHORT(m?.approve_level)}${m?.approve_level === 2 ? '（自己團隊）' : '（綠佳利會員）'}，並加 50 點。`)) return;
   btn.disabled = true;
   const d = await gate('admin_approve', {p_member_id: id});
   if(!d.ok){ toast(d.error === 'forbidden' ? '你沒有通過的權限' : '通過失敗'); btn.disabled = false; return; }
-  toast('已通過'); go(cur);
+  toast(d.level === 2 ? '已通過，成為 VVIP' : '已通過，成為 VIP'); go(cur);
 }
 async function reject(id, btn){
   const m = rows.find(x => x.id === id);
@@ -351,9 +352,9 @@ async function saveLin(btn){
 function previewInit(){
   const T = [{id:'t1', name:'敬豪團隊', handle:'@809lipop'}, {id:'t2', name:'魷魚團隊', handle:'@453ajvfv'}];
   const M = [
-    {id:'m1', name:'王小明', code:'2712345', level:0, tenant:'敬豪團隊', joined_at:'2026-11-05', applied_at:'2026-11-12', birthday:'1968-03-09', gender:'male', peak_leader:'游育杰', sponsor_code:'2675630', sponsor_name:'游育杰', lin:{name:'王小明', sponsor_code:'2675630', sponsor_name:'游育杰'}, can_approve:true, can_reject:true, can_set_level:true},
-    {id:'m2', name:'陳美玲', code:'2712345B', level:0, tenant:null, joined_at:'2026-11-07', applied_at:'2026-11-12', birthday:'1970-12-25', gender:'female', coop_pending:true, peak_leader:'陳大文', sponsor_code:'2600001', sponsor_name:'林珊合', can_approve:true, can_reject:true, can_set_level:true},
-    {id:'m6', name:'李阿華', code:'2700009', level:0, tenant:'魷魚團隊', joined_at:'2026-11-08', applied_at:'2026-11-11', birthday:'1962-05-01', gender:'female', peak_leader:'黃舜心', sponsor_code:'2675630', sponsor_name:'游育杰', lin:{name:'李阿花', sponsor_code:'2600001', sponsor_name:'林珊合'}, can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m1', name:'王小明', code:'2712345', level:0, approve_level:2, tenant:'敬豪團隊', joined_at:'2026-11-05', applied_at:'2026-11-12', birthday:'1968-03-09', gender:'male', peak_leader:'游育杰', sponsor_code:'2675630', sponsor_name:'游育杰', lin:{name:'王小明', sponsor_code:'2675630', sponsor_name:'游育杰'}, can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m2', name:'陳美玲', code:'2712345B', level:0, approve_level:1, tenant:null, joined_at:'2026-11-07', applied_at:'2026-11-12', birthday:'1970-12-25', gender:'female', coop_pending:true, peak_leader:'陳大文', sponsor_code:'2600001', sponsor_name:'林珊合', can_approve:true, can_reject:true, can_set_level:true},
+    {id:'m6', name:'李阿華', code:'2700009', level:0, approve_level:2, tenant:'魷魚團隊', joined_at:'2026-11-08', applied_at:'2026-11-11', birthday:'1962-05-01', gender:'female', peak_leader:'黃舜心', sponsor_code:'2675630', sponsor_name:'游育杰', lin:{name:'李阿花', sponsor_code:'2600001', sponsor_name:'林珊合'}, can_approve:true, can_reject:true, can_set_level:true},
     {id:'m3', name:'林珊合', code:'2600001', phone:'0933-000-111', level:1, tenant:'敬豪團隊', joined_at:'2026-06-26', can_set_level:true},
     {id:'m4', name:'游育杰', code:'2675630', phone:'-', level:1, tenant:'Aplus', joined_at:'2026-06-26', is_central:true},
     {id:'m5', name:'訪客', code:null, phone:'-', level:0, tenant:'魷魚團隊', joined_at:'2026-11-09', can_set_level:true},
@@ -361,6 +362,7 @@ function previewInit(){
   window.liff = {getAccessToken: () => 'preview'};
   window.gate = async (fn, args) => {
     if(fn === 'admin_whoami') return {ok:true, is_central:true, me:{name:'預覽：中央'}, grants:[], tenants:T};
+    if(fn === 'admin_approve') return {ok:true, level: (M.find(m => m.id === args.p_member_id) || {}).approve_level || 1};
     if(fn === 'admin_list_members'){
       const s = args.p_status;
       return {ok:true, members: M.filter(m => s === 'all' || (s === 'pending' ? m.level === 0 && m.code && !m.rejected_at
