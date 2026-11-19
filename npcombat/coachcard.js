@@ -14,6 +14,10 @@ const ccDone = r => !!r && r.homework !== null && r.homework !== undefined && (r
 const ccEsc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 // 「教練的一天」從早上 05:00 算起（前一天的回報 05:00 才開放標記）——「我的狀況」一天只跳一次就看這個日期
 const ccReadDate = now => ccDs(new Date(now.getTime() - 5 * 3600000));
+// 配色兩套：後台深色（dark），教練專區淺色（light，2026-11-19 Randoph：深色跟教練專區「有點衝突」→ 改成教練專區的米白金色）
+const CC_PAL = {
+  dark:  { ok: '#4ade80', mid: '#facc15', bad: '#f87171', warn: '#fb923c', quiet: '#6b7280', track: 'rgba(255,255,255,.09)', off: 'rgba(255,255,255,.08)', full: '#22a05a', late: '#3b82f6', none: '#d9534f' },
+  light: { ok: '#3f9a68', mid: '#b8860b', bad: '#c45c5c', warn: '#d9772b', quiet: '#a39c8e', track: '#ece6d8', off: '#ece6d8', full: '#4a9e6f', late: '#4a7fbf', none: '#c45c5c' } };
 
 function ccEnv(ctx) {
   const b = ctx.batch || {}, now = ctx.now || new Date(), today = ccDs(now);
@@ -146,19 +150,21 @@ function ccCards(ctx, env) {
 }
 
 // 一位學員一顆標籤：綠正常／橘有 ✕／紅 3 個 ✕ 以上／灰連續 2 天以上沒填行動
-function ccDot(ctx, env, s, nameS) {
+function ccDot(ctx, env, s, nameS, P) {
+  P = P || CC_PAL.dark;
   const x = ((ctx.cm || {})[s.id] || {}).x || 0, g = ccActGap(env, s), quiet = g && (g.never || g.n >= 2);
-  const col = x >= 3 ? '#f87171' : x ? '#fb923c' : quiet ? '#6b7280' : '#4ade80', tag = x ? `✕${x}` : quiet ? (g.never ? '沒填' : g.n + '天') : '';
-  return `<span class="gc-dot" style="border-color:${col}"><i style="background:${col}"></i>${nameS(s.id, ccNm(s))}${tag ? `<b style="color:${col === '#6b7280' ? 'var(--muted)' : col}">${tag}</b>` : ''}</span>`;
+  const col = x >= 3 ? P.bad : x ? P.warn : quiet ? P.quiet : P.ok, tag = x ? `✕${x}` : quiet ? (g.never ? '沒填' : g.n + '天') : '';
+  return `<span class="gc-dot" style="border-color:${col}"><i style="background:${col}"></i>${nameS(s.id, ccNm(s))}${tag ? `<b style="color:${col === P.quiet ? 'var(--muted)' : col}">${tag}</b>` : ''}</span>`;
 }
 
 // 卡片 HTML。opt：nameS／nameC（名字怎麼畫）、copyIdx（有就畫「複製」）、me（教練自己看：「我帶的組」「我的組織」、口吻改給本人）、read（後台顯示已讀）
 function ccCardHtml(x, ctx, env, opt) {
   opt = opt || {};
   const plain = (id, n) => n, nameS = opt.nameS || plain, nameC = opt.nameC || plain, me = !!opt.me;
-  const colOf = p => p >= 80 ? '#4ade80' : p >= 50 ? '#facc15' : '#f87171', md = ds => ds.slice(5).replace('-', '/');
-  const STR = { full: ['#22a05a', '✓'], late: ['#3b82f6', '遲'], none: ['#d9534f', '✕'], na: ['rgba(255,255,255,.08)', ''] }, ICO = { r: '🔴', y: '🟡', g: '✅' };
-  const stat = (n, lab, hot) => `<div class="gc-st"><b style="color:${hot ? '#f87171' : n ? 'var(--white)' : 'var(--muted)'}">${n}</b><span>${lab}</span></div>`;
+  const P = CC_PAL[opt.theme] || CC_PAL.dark;
+  const colOf = p => p >= 80 ? P.ok : p >= 50 ? P.mid : P.bad, md = ds => ds.slice(5).replace('-', '/');
+  const STR = { full: [P.full, '✓'], late: [P.late, '遲'], none: [P.none, '✕'], na: [P.off, ''] }, ICO = { r: '🔴', y: '🟡', g: '✅' };
+  const stat = (n, lab, hot) => `<div class="gc-st"><b style="color:${hot ? P.bad : n ? 'var(--white)' : 'var(--muted)'}">${n}</b><span>${lab}</span></div>`;
   const bar = (lab, p, txt) => `<div class="gc-b3"><span>${lab}</span><div><i style="width:${p}%;background:${colOf(p)}"></i></div><b style="color:${colOf(p)}">${p}%</b><em>${txt}</em></div>`;
   const pendTxt = me ? '筆報件待你審' : '筆報件待他審';
   const list = [...x.weak, x.o.pend ? `${x.o.pend} ${pendTxt}` : ''].filter(Boolean).join('、');
@@ -170,13 +176,13 @@ function ccCardHtml(x, ctx, env, opt) {
     <div class="gc-say">${ICO[x.lvl]} ${say}</div>`
     + (g ? `<div class="gc-lab">🎓 ${who}帶的組（${g.mine.length} 人）</div>
     <div style="display:flex;align-items:center;gap:14px">
-      <div style="text-align:center"><div class="gc-ring" style="background:conic-gradient(${colOf(t.score)} ${t.score * 3.6}deg, rgba(255,255,255,.09) 0)"><b style="color:${colOf(t.score)}">${t.score}%</b></div><div class="gc-lab" style="margin:4px 0 0">完成度</div></div>
+      <div style="text-align:center"><div class="gc-ring" style="background:conic-gradient(${colOf(t.score)} ${t.score * 3.6}deg, ${P.track} 0)"><b style="color:${colOf(t.score)}">${t.score}%</b></div><div class="gc-lab" style="margin:4px 0 0">完成度</div></div>
       <div style="flex:1">${bar('送出', t.sub, `${t.ok}/${t.due} 天準時`)}${bar('回覆', t.reply, '學員有交的')}${bar('檢核', t.chk, t.warn ? `${t.warn} 格待確認` : '都確認了')}</div></div>
     <div class="gc-strip" title="每天有沒有送出">${g.days.map(d => `<i style="background:${STR[d.k][0]}" title="${md(d.ds)}">${STR[d.k][1]}</i>`).join('')}<span class="gc-lab" style="margin:0 0 0 6px;align-self:center">每天送出${t.owe ? `・送出時欠回 ${t.owe} 天` : ''}</span></div>
-    <div class="gc-dots">${g.mine.map(s => ccDot(ctx, env, s, nameS)).join('')}</div>` : '')
+    <div class="gc-dots">${g.mine.map(s => ccDot(ctx, env, s, nameS, P)).join('')}</div>` : '')
     + `<div class="gc-org"><div class="gc-lab">🌱 ${who}的組織（選${who}當負責上線的 ${x.down.length} 人）</div>`
     + (x.down.length ? `<div class="gc-sts" style="margin-top:0">${stat(x.o.direct, '推薦新人', false)}${stat(x.o.org, '組織締結', false)}${stat(x.o.pend, `報件待${who}審`, x.o.pend > 0)}${stat(x.o.x3, '下線 3 個 ✕', x.o.x3 > 0)}</div>
-      <div class="gc-dots">${x.down.map(s => ccDot(ctx, env, s, nameS)).join('')}</div>` : `<div class="gc-none">這一期沒有學員選${who}當負責上線</div>`)
+      <div class="gc-dots">${x.down.map(s => ccDot(ctx, env, s, nameS, P)).join('')}</div>` : `<div class="gc-none">這一期沒有學員選${who}當負責上線</div>`)
     + `</div>`
     + (x.msg && opt.copyIdx !== undefined ? `<div class="gc-msg"><div class="gc-msg-hd"><span>💬 給教練的話</span><button class="btn-edit" onclick="copyCoachMsg(${opt.copyIdx})">📋 複製</button></div>`
       + `<div class="gc-msg-t">${ccEsc(x.msg).replace(/\n/g, '<br>')}</div></div>` : '')
@@ -211,24 +217,24 @@ async function ccLoadForCoach(sb, batchId, coachId) {
   return { batch: bt[0] || {}, coaches, coachMemberIds: cmids, students: studs, engRows: eng, submitRows: subs, allLogs: logs, hwRows: hw, closes, cm, now: new Date() };
 }
 
-const CC_CSS = `.cc-ov{position:fixed;inset:0;z-index:9000;background:rgba(6,9,26,.78);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px 40px;
-  --navy3:#1c2347;--gold:#d4af37;--gold-bd:rgba(212,175,55,.25);--white:#e8e8e8;--muted:#8a8fa8;font-family:'Noto Sans TC',sans-serif;color:var(--white)}
-.cc-box{width:100%;max-width:560px;background:#131836;border:1px solid var(--gold-bd);border-radius:18px;padding:18px 16px 16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+const CC_CSS = `.cc-ov{position:fixed;inset:0;z-index:9000;background:rgba(45,42,36,.45);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px 40px;
+  --white:#2d2a24;--muted:#8c8577;--gold:#b8960c;--gold-bd:#e8d9a8;font-family:'Noto Sans TC',sans-serif;color:#2d2a24}
+.cc-box{width:100%;max-width:560px;background:#f7f5f0;border:1px solid #e8e2d6;border-radius:18px;padding:18px 16px 16px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
 .cc-top{font-size:19px;font-weight:800;color:var(--gold);margin-bottom:4px}  .cc-sub{font-size:12.5px;color:var(--muted);margin-bottom:12px}
 .cc-ok{display:block;width:100%;margin-top:14px;padding:15px;border:none;border-radius:14px;background:#b8960c;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer}
-.cc-ov .gc-msg{margin:0 0 12px;padding:12px 14px;border-radius:12px;background:rgba(212,175,55,.10);border:1px dashed var(--gold-bd)}
+.cc-ov .gc-msg{margin:0 0 12px;padding:12px 14px;border-radius:12px;background:#fffaf0;border:1px dashed #e0c97a}
 .cc-ov .gc-msg-hd{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:6px}  .cc-ov .gc-msg-t{font-size:15px;line-height:1.8;color:var(--white)}
-.cc-ov .gc{border:1px solid rgba(255,255,255,.08);border-top:4px solid;border-radius:14px;padding:14px 14px;text-align:left}
-.cc-ov .gc.r{border-top-color:#f87171;background:rgba(217,83,79,.10)}  .cc-ov .gc.y{border-top-color:#facc15;background:rgba(250,204,21,.06)}  .cc-ov .gc.g{border-top-color:#4ade80;background:rgba(34,160,90,.06)}
-.cc-ov .gc.r .gc-say{color:#f87171}  .cc-ov .gc.y .gc-say{color:#facc15}  .cc-ov .gc.g .gc-say{color:#4ade80}
+.cc-ov .gc{background:#fff;border:1px solid #e8e2d6;border-top:4px solid;border-radius:14px;padding:14px 14px;text-align:left;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.cc-ov .gc.r{border-top-color:#c45c5c}  .cc-ov .gc.y{border-top-color:#d4a017}  .cc-ov .gc.g{border-top-color:#4a9e6f}
+.cc-ov .gc.r .gc-say{color:#c45c5c}  .cc-ov .gc.y .gc-say{color:#b8860b}  .cc-ov .gc.g .gc-say{color:#3f9a68}
 .cc-ov .gc-name{font-size:17px;font-weight:800;color:var(--white)}  .cc-ov .gc-meta{font-size:12px;color:var(--gold);margin-left:8px}  .cc-ov .gc-say{margin:6px 0 12px;font-size:14px;font-weight:700}
 .cc-ov .gc-lab{font-size:11.5px;color:var(--muted);margin-bottom:6px}
-.cc-ov .gc-ring{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center}  .cc-ov .gc-ring b{width:46px;height:46px;border-radius:50%;background:#131a33;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.cc-ov .gc-ring{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center}  .cc-ov .gc-ring b{width:46px;height:46px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
 .cc-ov .gc-strip{display:flex;gap:3px;margin-top:8px;flex-wrap:wrap}  .cc-ov .gc-strip i{width:20px;height:20px;border-radius:5px;color:#fff;font-size:11px;font-weight:700;font-style:normal;display:flex;align-items:center;justify-content:center}
-.cc-ov .gc-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}  .cc-ov .gc-dot{font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid;color:var(--white)}  .cc-ov .gc-dot i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}  .cc-ov .gc-dot b{margin-left:4px;font-weight:700}
-.cc-ov .gc-b3{display:flex;align-items:center;gap:8px;margin:5px 0}  .cc-ov .gc-b3 span{flex:0 0 30px;font-size:12px;color:var(--muted)}  .cc-ov .gc-b3 div{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.08)}  .cc-ov .gc-b3 div i{display:block;height:7px;border-radius:4px}  .cc-ov .gc-b3 b{flex:0 0 38px;text-align:right;font-size:13px}  .cc-ov .gc-b3 em{flex:0 0 78px;font-style:normal;font-size:11px;color:var(--muted);white-space:nowrap}
-.cc-ov .gc-sts{display:flex;gap:6px;margin-top:10px}  .cc-ov .gc-st{flex:1;text-align:center;padding:6px 2px;border-radius:8px;background:rgba(255,255,255,.04)}  .cc-ov .gc-st b{display:block;font-size:18px;font-weight:800}  .cc-ov .gc-st span{font-size:10.5px;color:var(--muted)}
-.cc-ov .gc-org{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}  .cc-ov .gc-none{font-size:12.5px;color:var(--muted)}`;
+.cc-ov .gc-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}  .cc-ov .gc-dot{font-size:12px;padding:3px 8px;border-radius:999px;background:#faf8f3;border:1px solid;color:var(--white)}  .cc-ov .gc-dot i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}  .cc-ov .gc-dot b{margin-left:4px;font-weight:700}
+.cc-ov .gc-b3{display:flex;align-items:center;gap:8px;margin:5px 0}  .cc-ov .gc-b3 span{flex:0 0 30px;font-size:12px;color:var(--muted)}  .cc-ov .gc-b3 div{flex:1;height:7px;border-radius:4px;background:#ece6d8}  .cc-ov .gc-b3 div i{display:block;height:7px;border-radius:4px}  .cc-ov .gc-b3 b{flex:0 0 38px;text-align:right;font-size:13px}  .cc-ov .gc-b3 em{flex:0 0 78px;font-style:normal;font-size:11px;color:var(--muted);white-space:nowrap}
+.cc-ov .gc-sts{display:flex;gap:6px;margin-top:10px}  .cc-ov .gc-st{flex:1;text-align:center;padding:6px 2px;border-radius:8px;background:#faf8f3}  .cc-ov .gc-st b{display:block;font-size:18px;font-weight:800}  .cc-ov .gc-st span{font-size:10.5px;color:var(--muted)}
+.cc-ov .gc-org{margin-top:14px;padding-top:12px;border-top:1px solid #efe9dd}  .cc-ov .gc-none{font-size:12.5px;color:var(--muted)}`;
 
 let ccLast = null;   // 最近一次算好的「我的狀況」，頁首按鈕再開時直接用
 async function ccGate(sb, batchId, coachId, force) {
@@ -247,7 +253,7 @@ async function ccGate(sb, batchId, coachId, force) {
     const d = new Date(rd + 'T00:00:00'), when = `${d.getMonth() + 1}/${d.getDate()}`;
     ov.innerHTML = `<div class="cc-box"><div class="cc-top">📋 我的狀況</div><div class="cc-sub">${when} 早上 5 點更新・${force ? '隨時可以從頁首「📋 我的狀況」再看' : '看完按最下面「我知道了」就能開始'}</div>`
       + (x.msg ? `<div class="gc-msg"><div class="gc-msg-hd">💬 給你的話</div><div class="gc-msg-t">${ccEsc(x.msg).replace(/\n/g, '<br>')}</div></div>` : '')
-      + ccCardHtml(x, ctx, env, { me: true })
+      + ccCardHtml(x, ctx, env, { me: true, theme: 'light' })
       + `<button class="cc-ok" id="ccOk">${force ? '關閉' : '我知道了，開始今天的回報'}</button></div>`;
     document.body.appendChild(ov); document.body.style.overflow = 'hidden';
     document.getElementById('ccOk').onclick = async () => {
