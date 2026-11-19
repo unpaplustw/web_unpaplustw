@@ -940,10 +940,11 @@ function actGap(s, logDays, yest) {
 // 💬 給教練的話（2026-11-19）：照資料套規則寫好，總教練按「複製」貼 LINE。不接 AI——免費、打開就是最新資料、不會寫出資料以外的話。
 //   三段：① 肯定一件真的有做到的事 ② 教練自己要補的事（最多兩件）③ 學員要關心的（每位只講一次、講最嚴重的）＋這週最拚的一位。
 //   規則要加要改都在這裡；Randoph 2026-11-19 看過 14 位試跑結果定稿。
+//   稱呼用「〇〇教練」（2026-11-19 Randoph：實戰班的稱呼是教練，不是老師）。
 let coachMsgs = [];
 function coachMsg(g, cm, logDays, yest) {
   const c = g.c, learn = g.learn, ids = new Set(g.mine.map(s => s.id)), what = learn ? '作業' : '心得';
-  const call = (n => (n.length >= 3 ? n.slice(1) : n) + '老師')(nm(c)), join = a => a.length <= 3 ? a.join('、') : a.slice(0, 3).join('、') + ` 等 ${a.length} 位`;
+  const call = (n => (n.length >= 3 ? n.slice(1) : n) + '教練')(nm(c)), join = a => a.length <= 3 ? a.join('、') : a.slice(0, 3).join('、') + ` 等 ${a.length} 位`;
   const marked = new Set(engRows.filter(r => ids.has(r.student_id) && r.homework != null).map(r => r.log_date));
   const due = g.days.filter(d => d.k !== 'na'), miss = due.filter(d => d.k === 'none'), ok = due.filter(d => d.k === 'full').length;
   const markedNoSub = miss.filter(d => marked.has(d.ds)).length, lastMark = [...marked].sort().pop() || null;
