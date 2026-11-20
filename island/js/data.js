@@ -32,7 +32,7 @@ export const TILES = [
   { id: 'health',  name: '健康檢查站',   status: 'empty', spot: 'checkpoint', landmark: 'clinic',
     hook: '身體測一測，吃的查一查。',
     line: 'KC 用光照一下皮膚就有數字；全能查查幫你查商品成分和字號真偽，為家人把關（要用 LINE 登入，查一次會扣點數）。',
-    links: [{ label: '測抗氧化力', href: '/kc/' }, { label: '查商品成分', href: '/checker/' }] },
+    links: [{ label: '測抗氧化力', href: '/kc/' }, { label: '全能查查', href: '/checker/' }] },
 
   { id: 'party',   name: '活動廣場',     status: 'empty', spot: 'plot', landmark: 'stage', angle: 72,
     hook: '上課要用的都在這裡。',
