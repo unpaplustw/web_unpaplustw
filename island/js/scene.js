@@ -338,7 +338,19 @@ function buildClinic(k, x, gy, z, rot) {
   P(G.cyl16, PAL.white, 0, 1.25, -0.4, 0, 3.8, 2.1, 3.8);
   P(G.cyl16, PAL.goldSoft, 0, 2.33, -0.4, 0, 4.0, 0.12, 4.0);
   P(new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), '#cfeae2', 0, 2.38, -0.4, 0, 3.7, 2.6, 3.7);
-  P(G.sph, PAL.goldBright, 0, 3.75, -0.4, 0, 0.3, 0.3, 0.3);
+  // 圓頂上的紅愛心＋白色心電圖線＝一看就是「健康檢查」（2026-11-21 Randoph：建築不夠明顯、沒有凸顯健康；不用十字：綠十字像藥局、紅十字是紅十字會標誌）
+  P(G.cyl8, PAL.gold, 0, 3.9, -0.4, 0, 0.16, 0.5, 0.16);
+  const hs = new THREE.Shape();
+  hs.moveTo(0, -0.5); hs.bezierCurveTo(-0.15, -0.32, -0.55, -0.12, -0.55, 0.15); hs.bezierCurveTo(-0.55, 0.42, -0.22, 0.52, 0, 0.3);
+  hs.bezierCurveTo(0.22, 0.52, 0.55, 0.42, 0.55, 0.15); hs.bezierCurveTo(0.55, -0.12, 0.15, -0.32, 0, -0.5);
+  const heart = new THREE.ExtrudeGeometry(hs, { depth: 0.22, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 2, curveSegments: 16 });
+  heart.center();
+  P(heart, '#e0565b', 0, 4.85, -0.4, 0, 1.5, 1.5, 1.5);
+  const ecg = [[-0.62, 0], [-0.24, 0], [-0.12, 0.3], [0.03, -0.36], [0.16, 0.2], [0.26, 0], [0.62, 0]];
+  for (const zf of [1, -1]) for (let j = 0; j < ecg.length - 1; j++) { // 正反兩面都畫
+    const [ax, ay] = ecg[j], [bx, by] = ecg[j + 1], len = Math.hypot(bx - ax, by - ay);
+    P(G.box, PAL.white, (ax + bx) / 2, 4.85 + (ay + by) / 2, -0.4 + zf * 0.27, 0, len + 0.06, 0.09, 0.03, 0, Math.atan2(by - ay, bx - ax));
+  }
   P(G.box, PAL.gold, 0, 0.75, 1.48, 0, 0.9, 1.3, 0.1);
   for (const a of [-0.9, 0.9]) P(G.box, PAL.window, Math.sin(a) * 1.92, 1.4, -0.4 + Math.cos(a) * 1.92, a, 0.4, 0.6, 0.04);
   // 門前的大儀表：白色錶盤＋綠黃橘刻度＋金色指針
@@ -360,7 +372,7 @@ function buildClinic(k, x, gy, z, rot) {
   P(new THREE.TorusGeometry(0.5, 0.025, 6, 28), PAL.goldBright, -1.55, 1.78, 2.06, 0, 1.36, 1.36, 1.36); // 鏡片反光
   P(G.cyl8, PAL.wood, -2.32, 0.99, 2.02, 0, 0.16, 0.95, 0.16, 0, -Math.PI / 4);      // 握把（往左下）
   k.shadowAt(x, z, 2.8, gy);
-  return 4.4;
+  return 5.7; // 頂端到愛心上緣，名牌浮在愛心上面
 }
 // ── 活動廣場：木舞台＋紅藍兩面背板＋金色棚頂＋台上一顆搶答鈕 ──
 function buildStage(k, x, gy, z, rot) {
