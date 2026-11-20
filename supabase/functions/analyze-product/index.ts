@@ -59,6 +59,7 @@ food=保健食品/一般食品、drug=藥品、cosmetic=化粧品、device=醫�
 ## 輸入資料
 product_name/brand/regulatory_type/ingredients_raw/ingredients_detail/manufacturer/certifications/regulatory_detail
 類別優先用傳入的 regulatory_type，沒有(拍照)才自己判斷。
+★官方登記資料(regulatory_detail)若有「FDA狀態：已不在資料集」，只能照實說「食藥署目前資料集查無此字號」，不可推論成違法、下架、停售、假貨或過期，也不可拿它當攻擊點。
 
 ## 最後輸出
 food類輸出 {"type":"category","category":"multivitamin/single_nutrient/cell_repair/antioxidant/probiotics/beauty"}；其他類不輸出category
