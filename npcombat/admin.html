@@ -813,7 +813,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
         return { k:'none', txt:'✕', why:'LINE 標沒交', hw:true };
       // ③ 教練沒標
       if (subSet.has(coachIdOf[sid] + '|' + ds)) return { k:'none', txt:'✕', why:'教練已送出、沒標這位＝學員沒交', hw:true };
-      return over ? { k:'unk', txt:'？', why:'教練還沒回報，學員交了沒不知道' }
+      return over ? { k:'unk', txt:'❗', why:'教練沒回報（沒標也沒送出），學員交了沒不知道' }
                   : { k:'na',  txt:'',  why:'還在期限內' };
     }
 
@@ -831,6 +831,11 @@ function renderHwMatrix(realStudents, coachById, scope) {
     //    兩件都做＝✓；只做一件＝「半」；都沒做才是紅叉。
     const acted = !!log;                                        // ① 有填行動回報
     const posted = !!(eng && eng.homework === true);             // ② 教練標了有貼心得
+    // 🔴 2026-11-21 Randoph：「如果教練連回報都沒有，就算學員有回報心得，後台應該也是驚嘆號，不然會誤會教練有執行」
+    //    ＝跟學員頁「自己的承諾」（commit.js）同一條：教練沒標、也沒送出、過了隔天中午 → ❗，不管學員有沒有填
+    const hwv = eng ? eng.homework : null;
+    if ((hwv === null || hwv === undefined) && over && !subSet.has(coachIdOf[sid] + '|' + ds))
+      return { k:'unk', txt:'❗', why: '教練沒回報（沒標也沒送出）｜' + (acted ? '學員有填行動紀錄' : '學員行動紀錄也沒填') };
     if (eng && eng.homework === false && !acted)
       return { k:'none', txt:'✕', why:'教練標沒交，學員也沒填行動回報' };
     if (acted && posted)
@@ -867,7 +872,7 @@ function renderHwMatrix(realStudents, coachById, scope) {
       ? `<b style="color:#d9534f">⚠️ 教練還沒回報 ${overdueCells} 格（狀況不明）</b>` : '✅ 每一格教練都回報了'}</span><span class="sec-count">${
     days.length} 天 · ${realStudents.length} 位學員</span></div>`;
   h += `<div class="cov-note">
-    ${[['full','✓','準時交了'],['part','6/8','作業只交一部分'],['part half','心','缺心得'],['part half','行','缺行動紀錄'],['none','✕','沒交'],['full late','遲','學員 22:00 後才填'],['full mk','補','教練結案後才補標'],['unk','？','教練還沒回報'],['na','','還沒到期／未開放']].map(x => `<span class="hwm-lg"><i class="hwm-c ${x[0]}">${x[1]}</i>${x[2]}</span>`).join('')}<br>
+    ${[['full','✓','準時交了'],['part','6/8','作業只交一部分'],['part half','心','缺心得'],['part half','行','缺行動紀錄'],['none','✕','沒交'],['full late','遲','學員 22:00 後才填'],['full mk','補','教練結案後才補標'],['unk','❗','教練沒回報（沒標也沒送出）'],['na','','還沒到期／未開放']].map(x => `<span class="hwm-lg"><i class="hwm-c ${x[0]}">${x[1]}</i>${x[2]}</span>`).join('')}<br>
     ✏️ <b>點格子可改</b>（只有總教練）｜👤 ${isReadonly ? '點學員名字看教練與領袖' : '點學員或教練名字 → 管理卡（資料、換組、退班都在那）'}｜滑過格子看判定理由${
       zeroDone ? `<br>⚠️ <b>${zeroDone} 人</b>整排都沒被處理——要找的是教練` : ''}</div>`;
   // 教練／領袖收進學員名字（Randoph：寬度有限）——hover 有 title、點一下彈出小卡，
@@ -1084,7 +1089,12 @@ async function paintToday(el) {
   try { cm = await loadCommit(sb, bid, real.map(s => s.id)); } catch (e) {}
   if (bid) try { const r = await sb.from('closing_records').select('id', { count: 'exact', head: true }).eq('batch_id', bid).is('verified', null); pv = r.count || 0; } catch (e) {}
 
-  const noSub = ac.map(c => ({ c, n: coachDays(c).filter(d => d.k === 'none').length })).filter(x => x.n).sort((a, z) => z.n - a.n);   // 開班至今累積沒送出的天數（同教練卡的小格）
+  // 2026-11-21 拆兩種：那天有標格子＝「標了沒送出」（教他按送出）／一格都沒標＝「沒回報」（教練沒上線，直接聯絡）
+  const markedDay = new Set(engRows.filter(e => e.homework !== null && e.homework !== undefined).map(e => e.coach_id + '|' + e.log_date));
+  const noSubD = ac.map(c => { const nd = coachDays(c).filter(d => d.k === 'none'); const m = nd.filter(d => markedDay.has(c.id + '|' + d.ds)).length; return { c, m, u: nd.length - m }; });
+  const byN = (a, z) => z.n - a.n;
+  const noSub = noSubD.filter(x => x.m + x.u).map(x => ({ c: x.c, n: x.m + x.u })).sort(byN);   // 開班至今累積沒送出的天數（同教練卡的小格）
+  const noRep = noSubD.filter(x => x.u).map(x => ({ c: x.c, n: x.u })).sort(byN), markNoSub = noSubD.filter(x => x.m).map(x => ({ c: x.c, n: x.m })).sort(byN);
   const pend = yOver ? [] : ac.filter(c => need(c, yest) && !sub.has(c.id + '|' + yest));   // 昨天的、今天中午前還來得及
   const x3 = real.filter(s => (cm[s.id] || {}).x >= 3).sort((a, z) => cm[z.id].x - cm[a.id].x);
   const warnBy = {}; real.forEach(s => { const w = (cm[s.id] || {}).warn || 0; if (w) warnBy[s.coach_id] = (warnBy[s.coach_id] || 0) + w; });
@@ -1100,7 +1110,9 @@ async function paintToday(el) {
   const item = (cls, ico, title, note, chips) => `<div class="td-item ${cls}"><div class="td-t">${ico} ${title}${note ? `<small>${note}</small>` : ''}</div>${chips ? `<div class="td-chips">${chips}</div>` : ''}</div>`;
 
   const items = [];
-  if (noSub.length) items.push(item('r', '🎓', `${noSub.length} 位教練有回報沒送出`, '開班至今累積的天數；過了隔天中午還沒按送出', more(noSub, x => chip(whoC(x.c.id, nm(x.c)), `${x.c.group_name ? x.c.group_name + '・' : ''}${x.n} 天`), 14)));
+  const cchip = x => chip(whoC(x.c.id, nm(x.c)), `${x.c.group_name ? x.c.group_name + '・' : ''}${x.n} 天`);
+  if (noRep.length) items.push(item('r', '🎓', `${noRep.length} 位教練沒回報`, '開班至今累積的天數；那天格子一格都沒標、也沒送出＝教練沒上線，要直接聯絡', more(noRep, cchip, 14)));
+  if (markNoSub.length) items.push(item('r', '📤', `${markNoSub.length} 位教練標了沒送出`, '開班至今累積的天數；格子有標，但過了隔天中午沒按送出＝要教他按送出', more(markNoSub, cchip, 14)));
   if (x3.length)    items.push(item('r', '⭐', `${x3.length} 位學員已經 3 個 ✕`, '到了退班線，要不要退由你們決定', more(x3, s => chip(whoS(s.id, nm(s)), `✕ ${cm[s.id].x}`), 12)));
   if (pend.length)  items.push(item('y', '⏰', `今天中午 12:00 前，還有 ${pend.length} 位教練沒送出昨天（${md(yest)}）的回報`, '過了中午就算沒送出', more(pend, c => chip(whoC(c.id, nm(c)), c.group_name || ''), 14)));
   if (warnC.length) items.push(item('y', '❗', `${warnC.length} 位教練有格子還沒確認，學員頁面顯示驚嘆號`, '沒送出，或標了已交但沒逐題檢核；補上就恢復星星', more(warnC, c => chip(whoC(c.id, nm(c)), `${warnBy[c.id]} 格`), 12)));
