@@ -9,6 +9,8 @@
 //   admin    → 會員中心後台的 9 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
 //   register → 首頁註冊表的 3 支函式（白名單，同上）；頭像由這裡用 LINE 驗過的帶入，前端傳的不算
 //   sutra    → 藏經閣的 1 支函式（白名單，同上）；內容放 DB 的 sutra_items，網頁原始碼裡沒有
+//   zone     → 會員專區（/members/，2026-11-21）的函式（白名單，同上）：月計劃表三格、本月目標、名單本；
+//              誰能看／改由 DB 判斷（本人、族譜上線看、代填授權改），這裡只負責「你是誰」
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -49,7 +51,18 @@ const REGISTER: Record<string, Spec> = {
 const SUTRA: Record<string, Spec> = {
   get_sutra: { id: 'p_line_user_id', args: [] },
 };
-const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER, sutra: SUTRA };
+// 會員專區（/members/，2026-11-21）：p_member_id 空＝自己；看別人要是族譜下線，改別人要代填授權（DB 的 zone_can_view／zone_can_edit）
+const ZONE: Record<string, Spec> = {
+  plan_get:       { id: 'p_line_user_id', args: ['p_member_id', 'p_from'] },
+  plan_save_day:  { id: 'p_line_user_id', args: ['p_member_id', 'p_day', 'p_eff', 'p_act', 'p_close'] },
+  plan_save_goal: { id: 'p_line_user_id', args: ['p_member_id', 'p_goal', 'p_meeting'] },
+  book_list:      { id: 'p_line_user_id', args: ['p_member_id'] },
+  book_add:       { id: 'p_line_user_id', args: ['p_member_id', 'p_name'] },
+  book_move:      { id: 'p_line_user_id', args: ['p_contact_id', 'p_to'] },
+  book_rename:    { id: 'p_line_user_id', args: ['p_contact_id', 'p_name'] },
+  book_hide:      { id: 'p_line_user_id', args: ['p_contact_id'] },     // 拿掉＝隱藏，不刪
+};
+const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER, sutra: SUTRA, zone: ZONE };
 
 function cors(req: Request) {
   const o = req.headers.get('origin') ?? '';
@@ -98,6 +111,7 @@ Deno.serve(async (req) => {
     case 'academy':
     case 'admin':
     case 'register':
+    case 'zone':
     case 'sutra': {
       const list = CHANNELS[body.action], fn = body.fn ?? '';
       const spec = Object.hasOwn(list, fn) ? list[fn] : null;
