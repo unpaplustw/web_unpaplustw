@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f5f0">
+<title>會員專區 — A Plus 系統</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!--
+  會員專區（2026-11-21）：一頁、一個 LIFF、頁籤裝功能（Randoph：「會員閘道改成進入會員專區…裡面可以擴充很多的內容」）。
+  紙本月計劃表的 QR 印這個 LIFF 的 liff.line.me 網址 → 在 LINE 裡打開本來就登入、會自動續期，長輩不用重登。
+  頁籤：📅 月計劃表（預設；今天三格＋本月目標＋這一週＋下載＋怎麼填）／📒 名單本／🪪 我的資料。「我的組織」做好再加。
+  資料一律走會員閘道 member-gate（action 'zone'）；誰能看／改由 DB 判斷（本人、族譜上線看、代填授權改）。只有 VIP 以上（level>=1）能用。
+  預覽（不用登入、假資料）：網址加 #preview；#preview-none＝不是會員的畫面。規則見 wiki 專案庫/會員中心/context.md 下一步第 0 項。
+-->
+<style>
+  :root { --bg:#f7f5f0; --card:#fff; --gold:#b8960c; --gold-soft:#f5ecd5; --text:#2d2a24; --muted:#8c8577; --border:#e8e2d6;
+          --red:#f6b4b4; --redt:#c0464a; --yel:#fbe58a; --yelt:#9a7a00; --green:#3f8f4f; }
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  html { -webkit-text-size-adjust: 100% }
+  body { font-family: 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.7;
+         padding: 0 0 calc(110px + env(safe-area-inset-bottom, 0px)) }
+  button, input, select { font: inherit; color: inherit }
+  .top { background: var(--card); border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); position: sticky; top: 0; z-index: 5 }
+  .who { display: flex; align-items: center; gap: 10px; max-width: 640px; margin: 0 auto }
+  .who h1 { font-size: 22px; color: var(--gold); flex: 1 }
+  .who .nm { font-size: 17px; font-weight: 700 }
+  .lv { font-size: 13px; font-weight: 800; padding: 2px 10px; border-radius: 999px; background: var(--gold); color: #fff; margin-left: 6px }
+  .tabs { display: flex; gap: 4px; max-width: 640px; margin: 8px auto 0 }
+  .tab { flex: 1; border: 0; background: none; padding: 10px 2px 12px; font-size: 18px; white-space: nowrap; font-weight: 800; color: var(--muted); border-bottom: 4px solid transparent; cursor: pointer }
+  @media (max-width: 359px) { .tab { font-size: 16.5px } .tab .ic { display: none } }   /* 320 寬小手機：收圖示、字保持一行 */
+  .tab[aria-selected="true"] { color: var(--gold); border-bottom-color: var(--gold) }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)) }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px 16px 14px; margin-top: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.05) }
+  h2 { font-size: 20px; color: var(--gold); margin-bottom: 6px; display: flex; align-items: baseline; gap: 8px }
+  h2 small { font-size: 15px; color: var(--muted); font-weight: 400 }
+  .muted { color: var(--muted); font-size: 15.5px }
+  .day-pick { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px }
+  .day-pick button { border: 1.5px solid var(--border); background: #fff; border-radius: 999px; padding: 4px 14px; font-size: 16px; cursor: pointer }
+  .day-pick button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); font-weight: 800 }
+  .num { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid #f0ebe0 }
+  .num:first-of-type { border-top: 0 }
+  .num label { font-size: 19px; font-weight: 800 }
+  .num label small { display: block; font-size: 14px; font-weight: 400; color: var(--muted); line-height: 1.4 }
+  .num.e label { color: var(--redt) } .num.a label { color: var(--yelt) }
+  .step { display: flex; align-items: center; gap: 6px }
+  .step button { width: 48px; height: 48px; border-radius: 12px; border: 1.5px solid var(--border); background: #faf8f3; font-size: 26px; font-weight: 800; cursor: pointer; line-height: 1 }
+  .step input { width: 72px; height: 48px; text-align: center; font-size: 24px; font-weight: 800; border: 1.5px solid var(--border); border-radius: 12px; background: #fff }
+  .step .u { width: 22px; color: var(--muted); font-size: 16px }
+  .goal-big { display: flex; gap: 8px; text-align: center; margin-top: 6px }
+  .goal-big div { flex: 1; background: #faf8f3; border-radius: 12px; padding: 8px 4px }
+  .goal-big b { display: block; font-size: 28px; line-height: 1.2 }
+  .goal-big span { font-size: 14px; color: var(--muted) }
+  .goal-big .left b { color: var(--redt) }
+  .goal-edit { display: none; margin-top: 10px; gap: 8px; flex-direction: column }
+  .goal-edit.on { display: flex }
+  .goal-edit input { border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 10px; width: 100% }
+  .link { border: 0; background: none; color: var(--gold); font-weight: 700; font-size: 16px; cursor: pointer; padding: 2px 0; text-decoration: underline }
+  table.wk { width: 100%; border-collapse: collapse; font-size: 15.5px; margin-top: 6px; table-layout: fixed }
+  .wk th, .wk td { border-bottom: 1px solid #f0ebe0; padding: 6px 2px; text-align: center }
+  .wk th { color: var(--muted); font-weight: 400; font-size: 14px }
+  .wk td.d { text-align: left; white-space: nowrap }
+  .wk tr.today td { background: var(--gold-soft) }
+  .wk .by { display: block; font-size: 12px; color: var(--muted) }
+  .wk tr.sum td { font-weight: 800; border-top: 2px solid var(--gold) }
+  .dl { display: block; margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1.5px solid var(--gold); color: var(--gold); font-size: 18px; font-weight: 800; text-align: center; text-decoration: none }
+  .dl small { display: block; font-size: 14px; font-weight: 400; color: var(--muted) }
+  details.how { margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px }
+  details.how summary { font-size: 19px; font-weight: 800; color: var(--gold); cursor: pointer }
+  details.how h3 { font-size: 18px; color: var(--gold); margin: 14px 0 4px }
+  details.how .s { margin: 6px 0 6px 2px } details.how .s b { display: block }
+  details.how .s span { color: #5c5649; font-size: 16px }
+  details.how .q { background: #fff8e1; border: 1px dashed #e0c97a; border-radius: 12px; padding: 10px 12px; margin: 8px 0; font-size: 16.5px }
+  details.how ul { margin: 4px 0 6px 22px; font-size: 16px }
+  .tip { font-size: 15px; color: var(--muted); margin-top: 6px }
+  .addrow { display: flex; gap: 8px }
+  .addrow input { flex: 1; min-width: 0; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 19px }
+  .addrow button { flex: none; border: 0; border-radius: 12px; background: var(--gold); color: #fff; font-weight: 800; padding: 0 18px; cursor: pointer }
+  .grp h2 { display: block } .grp h2 .cnt { display: block; font-size: 15px; color: var(--muted); font-weight: 400; line-height: 1.5 }
+  .ct { padding: 10px 0; border-top: 1px solid #f0ebe0 }
+  .ct:first-of-type { border-top: 0 }
+  .ct .line1 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap }
+  .ct .name { font-size: 20px; font-weight: 800 }
+  .tag { font-size: 13px; border-radius: 999px; padding: 1px 8px; background: #f1f0ec; color: var(--muted) }
+  .tag.idle { background: #fdeaea; color: var(--redt); font-weight: 700 }
+  .tag.fail { background: #fff3d6; color: var(--yelt) }
+  .acts { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap }
+  .acts .go { flex: 1; min-width: 150px; border: 0; border-radius: 12px; background: var(--gold); color: #fff; font-weight: 800; font-size: 18px; padding: 10px 8px; cursor: pointer }
+  .acts .no { border: 1.5px solid var(--border); background: #fff; border-radius: 12px; padding: 10px 14px; font-weight: 700; cursor: pointer }
+  .acts .more { border: 0; background: none; color: var(--muted); font-size: 15px; text-decoration: underline; cursor: pointer; padding: 10px 4px }
+  .moremenu { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px }
+  .moremenu button { border: 1px solid var(--border); background: #faf8f3; border-radius: 10px; padding: 6px 12px; font-size: 15.5px; cursor: pointer }
+  .done-list { font-size: 17px; line-height: 2 }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: rgba(247,245,240,.96); border-top: 1px solid var(--border);
+         padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+  .bar button { display: block; width: 100%; max-width: 640px; margin: 0 auto; border: 0; border-radius: 16px; background: var(--gold); color: #fff; font-size: 22px; font-weight: 800; padding: 15px 10px; cursor: pointer }
+  .bar button:disabled { opacity: .55 }
+  .toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: #2d2a24; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 17px; z-index: 9; max-width: 90vw; text-align: center }
+  .center { text-align: center; padding: 48px 8px }
+  .center h2 { justify-content: center }
+  .cta { display: inline-block; margin-top: 14px; padding: 13px 26px; border-radius: 14px; background: var(--gold); color: #fff; font-weight: 800; text-decoration: none }
+  .info dt { color: var(--muted); font-size: 15px; margin-top: 10px } .info dd { font-size: 20px; font-weight: 800 }
+  [hidden] { display: none !important }
+</style>
+</head>
+<body>
+<header class="top" id="top" hidden>
+  <div class="who"><h1>會員專區</h1><span class="nm" id="me-name"></span><span class="lv" id="me-lv"></span></div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="plan" aria-selected="true"><span class="ic">📅 </span>月計劃表</button>
+    <button class="tab" role="tab" data-tab="book" aria-selected="false"><span class="ic">📒 </span>名單本</button>
+    <button class="tab" role="tab" data-tab="info" aria-selected="false"><span class="ic">🪪 </span>我的資料</button>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section id="s-loading" class="center"><p class="muted">載入中…</p></section>
+
+  <section id="s-none" class="center" hidden>
+    <h2>會員專區給綠佳利會員使用</h2>
+    <p class="muted">先到 A Plus 系統註冊，審核通過後就能用。</p>
+    <a class="cta" href="https://liff.line.me/2009692859-h2XfVyCT?member=1">前往註冊</a>
+  </section>
+
+  <section id="s-error" class="center" hidden>
+    <h2>連不上</h2><p class="muted" id="err-msg">請關掉這一頁，再打開一次。</p>
+  </section>
+
+  <!-- 📅 月計劃表 -->
+  <section id="t-plan" hidden>
+    <div class="card">
+      <h2>填數字 <small>照紙本右邊「到」的時數抄</small></h2>
+      <div class="day-pick" id="day-pick"></div>
+      <div class="num e"><label>有效<small>紅色塗滿幾小時</small></label>
+        <div class="step"><button type="button" data-k="eff" data-d="-0.5" aria-label="有效減半小時">−</button><input id="in-eff" inputmode="decimal" aria-label="有效幾小時"><button type="button" data-k="eff" data-d="0.5" aria-label="有效加半小時">＋</button><span class="u">h</span></div></div>
+      <div class="num a"><label>行動<small>黃色塗滿幾小時</small></label>
+        <div class="step"><button type="button" data-k="act" data-d="-0.5" aria-label="行動減半小時">−</button><input id="in-act" inputmode="decimal" aria-label="行動幾小時"><button type="button" data-k="act" data-d="0.5" aria-label="行動加半小時">＋</button><span class="u">h</span></div></div>
+      <div class="num"><label>締結<small>今天締結幾件</small></label>
+        <div class="step"><button type="button" data-k="close" data-d="-1" aria-label="締結減一">−</button><input id="in-close" inputmode="numeric" aria-label="締結幾件"><button type="button" data-k="close" data-d="1" aria-label="締結加一">＋</button><span class="u">件</span></div></div>
+      <p class="muted" id="fill-note"></p>
+    </div>
+
+    <div class="card">
+      <h2>本月目標 <small id="goal-month"></small></h2>
+      <div class="goal-big"><div><b id="g-goal">—</b><span>目標（件）</span></div><div><b id="g-done">0</b><span>已達成</span></div><div class="left"><b id="g-left">—</b><span>還差</span></div></div>
+      <p class="muted" style="margin-top:8px">作戰會議：<b id="g-meeting">還沒填</b>　<button class="link" type="button" id="goal-toggle">修改</button></p>
+      <div class="goal-edit" id="goal-edit">
+        <label>本月目標幾件<input id="in-goal" inputmode="numeric" placeholder="例：4"></label>
+        <label>作戰會議時間<input id="in-meeting" maxlength="40" placeholder="例：每週二 晚上 8 點"></label>
+        <button class="cta" type="button" id="goal-save" style="margin-top:0;border:0">存目標</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>這一週</h2>
+      <table class="wk"><thead><tr><th style="width:30%"></th><th>有效</th><th>行動</th><th>締結</th></tr></thead><tbody id="wk"></tbody></table>
+    </div>
+
+    <a class="dl" href="/plan/plan-v6.pdf" download="月計劃表.pdf">⬇ 下載紙本月計劃表（自己印）<small>A4 橫式・正反兩面・一張兩週</small></a>
+
+    <details class="how"><summary>怎麼填？</summary>
+      <p style="margin-top:8px"><b>紙本只做一件事：把時間先留給能達成目標的事。</b></p>
+      <h3>一、什麼時候排、怎麼排</h3>
+      <p>每週作戰會議時，跟領袖一起排下一週：</p>
+      <div class="s"><b>1 先畫固定的</b><span>上班時間畫斜線；定聚、作戰會議寫上去。實戰班之夜已經印好了。</span></div>
+      <div class="s"><b>2 先借力會場</b><span>問領袖下週有哪幾場說明會，用紅筆框起來，想好要帶哪位新朋友。組織有人帶新朋友去、你也在會場，一樣算。</span></div>
+      <div class="s"><b>3 再排溝通本</b><span>用紅筆框出要講溝通本的時段，講完要做締結動作。</span></div>
+      <div class="s"><b>4 黃筆排邀約、跟進</b><span>要帶人去說明會、要講溝通本，前面都要先邀約。還沒約到人也先框起來。</span></div>
+      <div class="s"><b>5 最後才填名字</b><span>從名單本挑人，寫進框框裡。</span></div>
+      <h3>二、這件事算哪一種？問自己兩題</h3>
+      <div class="q">❶ 跟綠佳利有關嗎？沒有 → 其他（不用塗、不用算）<br>❷ 有用到說明會，或講溝通本有做締結動作嗎？有 → <b style="color:var(--redt)">紅：有效</b>；沒有 → <b style="color:var(--yelt)">黃：行動</b></div>
+      <ul><li><b>紅</b>：說明會帶新朋友（組織有人帶、你也在會場也算）；溝通本講完有做締結動作</li>
+          <li><b>黃</b>：邀約、跟進、關心、溝通本沒締結、陪下線聊天、培訓、上課、作戰會議、實戰班之夜</li></ul>
+      <h3>三、框起來＝預排，塗滿＝做到</h3>
+      <p>排的時候用該顏色的筆畫框，做到了再用同色螢光筆塗滿。排了沒做到、臨時多做的，都很正常，作戰會議拿出來聊就好。</p>
+      <h3>四、每天數一數，再抄到這裡</h3>
+      <p>紙本右邊每天寫有效、行動各「排幾小時、到幾小時」。這一頁只要抄「到」的時數，加上今天締結幾件。</p>
+      <h3>五、作戰會議：一切繞著目標</h3>
+      <div class="s"><b>1 目標確認</b><span>本月目標多少、已經達成多少、還差多少。</span></div>
+      <div class="s"><b>2 上週復盤</b><span>紅色排了幾小時、做到幾小時。排了沒做到是時間被吃掉；做到了卻沒成果是方法要調整。</span></div>
+      <div class="s"><b>3 領袖建議・下週規劃</b><span>寫在紙本大空格，當場把下週的紅框畫進下一週。</span></div>
+    </details>
+  </section>
+
+  <!-- 📒 名單本 -->
+  <section id="t-book" hidden>
+    <div class="card">
+      <h2>加一個名字</h2>
+      <div class="addrow"><input id="in-name" maxlength="30" placeholder="名字或暱稱" aria-label="新名字"><button type="button" id="add-btn">加入</button></div>
+      <p class="tip">名單本是要看出「誰還沒去做」。沒動最久的名字排在最前面。</p>
+    </div>
+    <div id="book"></div>
+  </section>
+
+  <!-- 🪪 我的資料 -->
+  <section id="t-info" hidden>
+    <div class="card"><h2>我的資料</h2><dl class="info" id="info"></dl></div>
+  </section>
+</main>
+
+<div class="bar" id="bar" hidden><button type="button" id="save-btn">送出今天的數字</button></div>
+
+<script>
+(function () {
+  const LIFF_ID = '';   // ⏳ 會員專區 LIFF（Endpoint https://unpaplus.com.tw/members/）——Randoph 建好後填
+  const GATE = 'https://nsgqsopqlkhayuefdout.supabase.co/functions/v1/member-gate';
+  const preview = (location.hash.match(/^#preview(-none)?$/) || [null])[0];
+  const $ = (id) => document.getElementById(id);
+  const STAGES = ['該約', '該邀請', '等締結', '已締結'];
+  const NEXT = { '該約': '約到了', '該邀請': '講過了', '等締結': '締結了' };   // 每一步只有一顆主要按鈕
+  const HINT = { '該約': '還沒約到見面', '該邀請': '見到了，要講溝通本或帶去說明會', '等締結': '聽過溝通本或說明會了', '已締結': '' };
+  const WD = '日一二三四五六';
+  let me = null, plan = null, book = null, day = null, tab = 'plan', busy = false;
+
+  // ── 預覽假資料（#preview）：不用登入、不寫資料 ──
+  const today = (() => { const d = new Date(Date.now() + 8 * 3600e3); return d.toISOString().slice(0, 10); })();
+  const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const mon = (s) => { const d = new Date(s + 'T00:00:00Z'); return addDays(s, -((d.getUTCDay() + 6) % 7)); };
+  const MOCK = {
+    me: { name: '王小美', level: 2, code: '2712345', status: 'member' },
+    days: [{ day: addDays(today, -1), eff: 2, act: 3.5, close: 1, by: null }, { day: addDays(today, -2), eff: 0, act: 2, close: 0, by: '游育杰' }],
+    goal: 4, meeting: '每週二 晚上 8 點', id: 1,
+    contacts: [{ id: 1, name: '陳大姐', stage: '該邀請', fails: 1, idle: 14, by: null }, { id: 2, name: '林先生', stage: '該約', fails: 0, idle: 3, by: '游育杰' },
+               { id: 3, name: '黃老師', stage: '等締結', fails: 0, idle: 1, by: null }, { id: 4, name: '李太太', stage: '已締結', fails: 0, idle: 20, by: null }],
+  };
+  async function mockZone(fn, a) {
+    await new Promise((r) => setTimeout(r, 120));
+    const M = MOCK;
+    if (fn === 'plan_get') {
+      const from = a.p_from || mon(today);
+      return { ok: true, me: true, can_edit: true, who: { name: M.me.name }, today, from, days: M.days.filter((d) => d.day >= from && d.day <= addDays(from, 6)),
+               month: { month: today.slice(0, 8) + '01', goal: M.goal, meeting: M.meeting },
+               month_closes: M.days.filter((d) => d.day.slice(0, 7) === today.slice(0, 7)).reduce((s, d) => s + d.close, 0) };
+    }
+    if (fn === 'plan_save_day') { const i = M.days.findIndex((d) => d.day === a.p_day); const row = { day: a.p_day, eff: +a.p_eff, act: +a.p_act, close: +a.p_close, by: null };
+      if (i >= 0) M.days[i] = row; else M.days.push(row); return { ok: true }; }
+    if (fn === 'plan_save_goal') { M.goal = a.p_goal; M.meeting = a.p_meeting; return { ok: true }; }
+    if (fn === 'book_list') return { ok: true, me: true, can_edit: true, contacts: M.contacts.map((c) => ({ ...c })) };
+    if (fn === 'book_add') { if (M.contacts.some((c) => c.name === a.p_name)) return { ok: false, error: 'exists' };
+      M.contacts.push({ id: ++M.id + 100, name: a.p_name, stage: '該約', fails: 0, idle: 0, by: null }); return { ok: true }; }
+    const c = M.contacts.find((x) => x.id === a.p_contact_id);
+    if (!c) return { ok: false, error: 'not_found' };
+    if (fn === 'book_move') { if (a.p_to === '未果') { c.stage = '該邀請'; c.fails++; c.idle = 0; } else { if (STAGES.indexOf(a.p_to) > STAGES.indexOf(c.stage)) c.idle = 0; c.stage = a.p_to; } return { ok: true }; }
+    if (fn === 'book_rename') { c.name = a.p_name; return { ok: true }; }
+    if (fn === 'book_hide') { M.contacts.splice(M.contacts.indexOf(c), 1); return { ok: true }; }
+    return { ok: false, error: 'unknown_fn' };
+  }
+
+  async function gate(action, fn, args) {
+    if (preview) {
+      if (action === 'me') return preview === '#preview-none' ? { ok: true, member: { name: '訪客', level: 0, status: 'visitor' } } : { ok: true, member: MOCK.me };
+      return { ok: true, data: await mockZone(fn, args || {}) };
+    }
+    const res = await fetch(GATE, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: liff.getAccessToken(), action, fn, args }) });
+    return res.json();
+  }
+  async function zone(fn, args) {
+    const r = await gate('zone', fn, args);
+    if (!r.ok) throw new Error(r.error || 'gate');
+    if (!r.data || !r.data.ok) throw new Error((r.data && r.data.error) || 'db');
+    return r.data;
+  }
+  const ERR = { not_member: '會員專區給綠佳利會員使用', forbidden: '這位夥伴的資料你不能改', exists: '名單本已經有這個名字了', bad_name: '名字要 1～30 個字',
+                bad_day: '只能填今天以前、兩個月內的日子', bad_value: '數字不對，請再看一下', invalid_token: '登入過期了，請關掉這一頁再打開', no_token: '登入過期了，請關掉這一頁再打開' };
+  let toastTimer = null;   // 一次只顯示一則，新的取代舊的（連按時不會疊字）
+  function toast(msg) { let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.append(t); }
+    t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2200); }
+  const fail = (e) => toast(ERR[e.message] || '沒存成功，請再按一次');
+
+  // ── 版面切換 ──
+  function show(which) {
+    for (const id of ['s-loading', 's-none', 's-error', 't-plan', 't-book', 't-info']) $(id).hidden = id !== which;
+    $('top').hidden = !which.startsWith('t-');
+    $('bar').hidden = which !== 't-plan';
+  }
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    show('t-' + t);
+    if (t === 'book' && !book) loadBook();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+  // ── 📅 月計劃表 ──
+  const fmt = (s) => { const d = new Date(s + 'T00:00:00Z'); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WD[d.getUTCDay()]}）`; };
+  const n1 = (v) => (Math.round((+v || 0) * 10) / 10).toString();
+  async function loadPlan(from) {
+    plan = await zone('plan_get', { p_member_id: null, p_from: from || null });
+    if (!day) day = plan.today;
+    renderPlan();
+  }
+  function rowFor(d) { return (plan.days || []).find((x) => x.day === d); }
+  function renderPlan() {
+    const pick = $('day-pick'); pick.replaceChildren();
+    [[plan.today, '今天'], [addDays(plan.today, -1), '昨天'], [addDays(plan.today, -2), '前天']].forEach(([d, label]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = `${label} ${fmt(d)}`;
+      b.setAttribute('aria-pressed', String(d === day));
+      b.addEventListener('click', async () => { day = d; if (d < plan.from) await loadPlan(mon(d)); else renderPlan(); });
+      pick.append(b);
+    });
+    const r = rowFor(day) || { eff: 0, act: 0, close: 0 };
+    $('in-eff').value = n1(r.eff); $('in-act').value = n1(r.act); $('in-close').value = String(r.close || 0);
+    $('fill-note').textContent = r.by ? `這天的數字是 ${r.by} 幫忙填的` : '';
+    const m = plan.month || {};
+    $('goal-month').textContent = m.month ? `${+m.month.slice(5, 7)} 月` : '';
+    $('g-goal').textContent = m.goal == null ? '—' : m.goal;
+    $('g-done').textContent = plan.month_closes || 0;
+    $('g-left').textContent = m.goal == null ? '—' : Math.max(0, m.goal - (plan.month_closes || 0));
+    $('g-meeting').textContent = m.meeting || '還沒填';
+    $('in-goal').value = m.goal == null ? '' : m.goal; $('in-meeting').value = m.meeting || '';
+    const tb = $('wk'); tb.replaceChildren(); let se = 0, sa = 0, sc = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(plan.from, i), x = rowFor(d), tr = document.createElement('tr');
+      if (d === plan.today) tr.className = 'today';
+      se += +(x?.eff || 0); sa += +(x?.act || 0); sc += +(x?.close || 0);
+      tr.innerHTML = `<td class="d">${fmt(d)}${x?.by ? `<span class="by">${x.by} 代填</span>` : ''}</td><td>${x ? n1(x.eff) : ''}</td><td>${x ? n1(x.act) : ''}</td><td>${x ? x.close : ''}</td>`;
+      tb.append(tr);
+    }
+    const sum = document.createElement('tr'); sum.className = 'sum';
+    sum.innerHTML = `<td class="d">合計</td><td>${n1(se)}</td><td>${n1(sa)}</td><td>${sc}</td>`; tb.append(sum);
+  }
+  document.querySelectorAll('.step button').forEach((b) => b.addEventListener('click', () => {
+    const inp = $('in-' + b.dataset.k), max = b.dataset.k === 'close' ? 99 : 24;
+    const v = Math.min(max, Math.max(0, (parseFloat(inp.value) || 0) + parseFloat(b.dataset.d)));
+    inp.value = b.dataset.k === 'close' ? String(Math.round(v)) : n1(v);
+  }));
+  $('save-btn').addEventListener('click', async () => {
+    if (busy) return;
+    const eff = parseFloat($('in-eff').value) || 0, act = parseFloat($('in-act').value) || 0, close = parseInt($('in-close').value, 10) || 0;
+    if (eff < 0 || eff > 24 || act < 0 || act > 24 || close < 0 || close > 99) return toast('數字不對，請再看一下');
+    busy = true; $('save-btn').disabled = true;
+    try { await zone('plan_save_day', { p_member_id: null, p_day: day, p_eff: eff, p_act: act, p_close: close }); await loadPlan(plan.from); toast(`${fmt(day)} 存好了`); }
+    catch (e) { fail(e); } finally { busy = false; $('save-btn').disabled = false; }
+  });
+  $('goal-toggle').addEventListener('click', () => $('goal-edit').classList.toggle('on'));
+  $('goal-save').addEventListener('click', async () => {
+    const g = $('in-goal').value.trim() === '' ? null : parseInt($('in-goal').value, 10);
+    if (g != null && (isNaN(g) || g < 0 || g > 999)) return toast('目標要填 0～999 的數字');
+    try { await zone('plan_save_goal', { p_member_id: null, p_goal: g, p_meeting: $('in-meeting').value }); $('goal-edit').classList.remove('on'); await loadPlan(plan.from); toast('目標存好了'); }
+    catch (e) { fail(e); }
+  });
+
+  // ── 📒 名單本 ──
+  async function loadBook() {
+    try { book = await zone('book_list', { p_member_id: null }); renderBook(); } catch (e) { fail(e); }
+  }
+  async function act(fn, args, okMsg) {
+    try { await zone(fn, args); await loadBook(); if (okMsg) toast(okMsg); } catch (e) { fail(e); }
+  }
+  function renderBook() {
+    const box = $('book'); box.replaceChildren();
+    for (const st of STAGES) {
+      const list = (book.contacts || []).filter((c) => c.stage === st).sort((a, b) => b.idle - a.idle);
+      const card = document.createElement('div'); card.className = 'card grp';
+      const h = document.createElement('h2'); h.innerHTML = `${st} <span class="cnt">${list.length} 位${HINT[st] ? '・' + HINT[st] : ''}</span>`; card.append(h);
+      if (!list.length) { const p = document.createElement('p'); p.className = 'muted'; p.textContent = st === '該約' ? '上面加一個名字，就會出現在這裡。' : '目前沒有。'; card.append(p); }
+      if (st === '已締結' && list.length) {
+        const p = document.createElement('p'); p.className = 'done-list'; p.textContent = '🎉 ' + list.map((c) => c.name).join('、'); card.append(p);
+        box.append(card); continue;
+      }
+      for (const c of list) {
+        const row = document.createElement('div'); row.className = 'ct';
+        const l1 = document.createElement('div'); l1.className = 'line1';
+        const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = c.name; l1.append(nm);
+        if (c.idle >= 7) { const t = document.createElement('span'); t.className = 'tag idle'; t.textContent = `${c.idle} 天沒動`; l1.append(t); }
+        if (c.fails > 0) { const t = document.createElement('span'); t.className = 'tag fail'; t.textContent = `未果 ×${c.fails}`; l1.append(t); }
+        if (c.by) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = `${c.by} 代填`; l1.append(t); }
+        row.append(l1);
+        const acts = document.createElement('div'); acts.className = 'acts';
+        const go = document.createElement('button'); go.type = 'button'; go.className = 'go'; go.textContent = NEXT[st] + ' ›';
+        go.addEventListener('click', () => act('book_move', { p_contact_id: c.id, p_to: STAGES[STAGES.indexOf(st) + 1] }, `${c.name}：${NEXT[st]}`));
+        acts.append(go);
+        if (st !== '該約') { const no = document.createElement('button'); no.type = 'button'; no.className = 'no'; no.textContent = '未果';
+          no.addEventListener('click', () => act('book_move', { p_contact_id: c.id, p_to: '未果' }, `${c.name}：未果，回到該邀請`)); acts.append(no); }
+        const more = document.createElement('button'); more.type = 'button'; more.className = 'more'; more.textContent = '其他';
+        acts.append(more); row.append(acts);
+        const menu = document.createElement('div'); menu.className = 'moremenu'; menu.hidden = true;
+        const mk = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.addEventListener('click', fn); menu.append(b); };
+        mk('改名字', () => { const v = prompt('改成什麼名字？', c.name); if (v && v.trim() && v.trim() !== c.name) act('book_rename', { p_contact_id: c.id, p_name: v.trim() }, '改好了'); });
+        if (st !== '該約') mk('退回上一步', () => act('book_move', { p_contact_id: c.id, p_to: STAGES[STAGES.indexOf(st) - 1] }, '退回了'));
+        mk('從名單拿掉', () => { if (confirm(`把「${c.name}」從名單本拿掉？`)) act('book_hide', { p_contact_id: c.id }, '拿掉了'); });
+        more.addEventListener('click', () => { menu.hidden = !menu.hidden; });
+        row.append(menu); card.append(row);
+      }
+      box.append(card);
+    }
+  }
+  $('add-btn').addEventListener('click', async () => {
+    const v = $('in-name').value.trim(); if (!v) return toast('先打一個名字');
+    try { await zone('book_add', { p_member_id: null, p_name: v }); $('in-name').value = ''; await loadBook(); toast(`加入了：${v}`); } catch (e) { fail(e); }
+  });
+  $('in-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('add-btn').click(); });
+
+  // ── 🪪 我的資料 ──
+  function renderInfo() {
+    const lv = (me.level >= 2) ? 'VVIP' : 'VIP';
+    $('me-name').textContent = me.name || ''; $('me-lv').textContent = lv;
+    const dl = $('info'); dl.replaceChildren();
+    for (const [k, v] of [['名字', me.name || ''], ['等級', lv], ['會員編號', String(me.code || '').slice(0, 7)]]) {
+      const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd);
+    }
+  }
+
+  // ── 開始 ──
+  async function boot() {
+    try {
+      if (!preview) {
+        if (!LIFF_ID) { $('err-msg').textContent = '會員專區還在準備中。'; return show('s-error'); }
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {   // 在 LINE 裡才原地登入；外部瀏覽器改從 liff.line.me 開（KC 實機：外部登入完跳不回來）
+          if (liff.isInClient()) liff.login(); else location.href = 'https://liff.line.me/' + LIFF_ID;
+          return;
+        }
+      }
+      const r = await gate('me');
+      if (!r.ok) throw new Error(r.error || 'gate');
+      me = r.member;
+      if (!me || !(me.level >= 1)) return show('s-none');
+      renderInfo();
+      await loadPlan();
+      setTab('plan');
+    } catch (e) {
+      $('err-msg').textContent = ERR[e.message] || '請關掉這一頁，再打開一次。';
+      show('s-error');
+    }
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
