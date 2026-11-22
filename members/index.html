@@ -47,6 +47,7 @@
   .step { display: flex; align-items: center; gap: 6px }
   .step button { width: 48px; height: 48px; border-radius: 12px; border: 1.5px solid var(--border); background: #faf8f3; font-size: 26px; font-weight: 800; cursor: pointer; line-height: 1 }
   .step input { width: 72px; height: 48px; text-align: center; font-size: 24px; font-weight: 800; border: 1.5px solid var(--border); border-radius: 12px; background: #fff }
+  .step input { pointer-events: none; caret-color: transparent }   /* 2026-11-22 Randoph：只能按＋／−，不打字（不跳鍵盤） */
   .step .u { width: 22px; color: var(--muted); font-size: 16px }
   .goal-big { display: flex; gap: 8px; text-align: center; margin-top: 6px }
   .goal-big div { flex: 1; background: #faf8f3; border-radius: 12px; padding: 8px 4px }
@@ -160,11 +161,11 @@
       <h2>行動紀錄 <small>照紙本右邊「到」的時數抄，以半小時為單位</small></h2>
       <div class="day-pick" id="day-pick"></div>
       <div class="num e"><label>有效<small>紅色塗滿幾小時</small></label>
-        <div class="step"><button type="button" data-k="eff" data-d="-0.5" aria-label="有效減半小時">−</button><input id="in-eff" inputmode="decimal" aria-label="有效幾小時"><button type="button" data-k="eff" data-d="0.5" aria-label="有效加半小時">＋</button><span class="u">h</span></div></div>
+        <div class="step"><button type="button" data-k="eff" data-d="-0.5" aria-label="有效減半小時">−</button><input id="in-eff" readonly tabindex="-1" aria-label="有效幾小時"><button type="button" data-k="eff" data-d="0.5" aria-label="有效加半小時">＋</button><span class="u">h</span></div></div>
       <div class="num a"><label>行動<small>黃色塗滿幾小時</small></label>
-        <div class="step"><button type="button" data-k="act" data-d="-0.5" aria-label="行動減半小時">−</button><input id="in-act" inputmode="decimal" aria-label="行動幾小時"><button type="button" data-k="act" data-d="0.5" aria-label="行動加半小時">＋</button><span class="u">h</span></div></div>
+        <div class="step"><button type="button" data-k="act" data-d="-0.5" aria-label="行動減半小時">−</button><input id="in-act" readonly tabindex="-1" aria-label="行動幾小時"><button type="button" data-k="act" data-d="0.5" aria-label="行動加半小時">＋</button><span class="u">h</span></div></div>
       <div class="num"><label>締結<small>今天締結幾件</small></label>
-        <div class="step"><button type="button" data-k="close" data-d="-1" aria-label="締結減一">−</button><input id="in-close" inputmode="numeric" aria-label="締結幾件"><button type="button" data-k="close" data-d="1" aria-label="締結加一">＋</button><span class="u">件</span></div></div>
+        <div class="step"><button type="button" data-k="close" data-d="-1" aria-label="締結減一">−</button><input id="in-close" readonly tabindex="-1" aria-label="締結幾件"><button type="button" data-k="close" data-d="1" aria-label="締結加一">＋</button><span class="u">件</span></div></div>
       <p class="muted" id="fill-note"></p>
     </div>
 
@@ -339,7 +340,7 @@
   const fmt = (s) => { const d = new Date(s + 'T00:00:00Z'); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WD[d.getUTCDay()]}）`; };
   const n1 = (v) => (Math.round((+v || 0) * 10) / 10).toString();
   const half = (v) => Math.min(24, Math.max(0, Math.round((parseFloat(v) || 0) * 2) / 2));   // 時數只收 0.5 的倍數（Randoph 2026-11-22）
-  for (const id of ['in-eff', 'in-act']) $(id).addEventListener('blur', () => { if (!$(id).readOnly) $(id).value = n1(half($(id).value)); });
+  // 時數只靠＋／−改，一次 0.5；存檔前再用 half() 保險一次
   async function loadPlan(from) {
     plan = await zone('plan_get', { p_member_id: target, p_from: from || null });
     if (!day) day = plan.today;
@@ -452,7 +453,7 @@
   // ── 看／幫夥伴填：同一套月計劃表、名單本，只換「目標」──
   function applyMode() {
     document.body.classList.toggle('ro', !canEdit);
-    for (const id of ['in-eff', 'in-act', 'in-close']) $(id).readOnly = !canEdit;
+    // 數字欄一律唯讀（只能按＋／−）；看別人時連＋／−都藏起來（body.ro）
     $('viewing-txt').textContent = !target ? '' : canEdit ? `✍️ 正在幫 ${targetName} 填` : `👀 正在看 ${targetName} 的資料（只能看）`;
     $('viewing').hidden = !target || tab === 'org';
   }
