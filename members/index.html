@@ -157,7 +157,7 @@
   <!-- 📅 月計劃表 -->
   <section id="t-plan" hidden>
     <div class="card">
-      <h2>填數字 <small>照紙本右邊「到」的時數抄</small></h2>
+      <h2>行動紀錄 <small>照紙本右邊「到」的時數抄，以半小時為單位</small></h2>
       <div class="day-pick" id="day-pick"></div>
       <div class="num e"><label>有效<small>紅色塗滿幾小時</small></label>
         <div class="step"><button type="button" data-k="eff" data-d="-0.5" aria-label="有效減半小時">−</button><input id="in-eff" inputmode="decimal" aria-label="有效幾小時"><button type="button" data-k="eff" data-d="0.5" aria-label="有效加半小時">＋</button><span class="u">h</span></div></div>
@@ -338,6 +338,8 @@
   // ── 📅 月計劃表 ──
   const fmt = (s) => { const d = new Date(s + 'T00:00:00Z'); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WD[d.getUTCDay()]}）`; };
   const n1 = (v) => (Math.round((+v || 0) * 10) / 10).toString();
+  const half = (v) => Math.min(24, Math.max(0, Math.round((parseFloat(v) || 0) * 2) / 2));   // 時數只收 0.5 的倍數（Randoph 2026-11-22）
+  for (const id of ['in-eff', 'in-act']) $(id).addEventListener('blur', () => { if (!$(id).readOnly) $(id).value = n1(half($(id).value)); });
   async function loadPlan(from) {
     plan = await zone('plan_get', { p_member_id: target, p_from: from || null });
     if (!day) day = plan.today;
@@ -381,7 +383,8 @@
   }));
   $('save-btn').addEventListener('click', async () => {
     if (busy) return;
-    const eff = parseFloat($('in-eff').value) || 0, act = parseFloat($('in-act').value) || 0, close = parseInt($('in-close').value, 10) || 0;
+    const eff = half($('in-eff').value), act = half($('in-act').value), close = parseInt($('in-close').value, 10) || 0;
+    $('in-eff').value = n1(eff); $('in-act').value = n1(act);
     if (eff < 0 || eff > 24 || act < 0 || act > 24 || close < 0 || close > 99) return toast('數字不對，請再看一下');
     busy = true; $('save-btn').disabled = true;
     try { await zone('plan_save_day', { p_member_id: target, p_day: day, p_eff: eff, p_act: act, p_close: close }); await loadPlan(plan.from); toast(`${fmt(day)} 存好了`); }
