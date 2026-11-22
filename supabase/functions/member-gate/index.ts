@@ -62,6 +62,7 @@ const ZONE: Record<string, Spec> = {
   book_rename:    { id: 'p_line_user_id', args: ['p_contact_id', 'p_name'] },
   book_hide:      { id: 'p_line_user_id', args: ['p_contact_id'] },     // 拿掉＝隱藏，不刪
   zone_org:       { id: 'p_line_user_id', args: [] },                  // 我的組織：族譜下線＋本週三格＋名單本卡住數（2026-11-22）
+  close_add:      { id: 'p_line_user_id', args: ['p_contact_id', 'p_code', 'p_sponsor_code', 'p_plan', 'p_size', 'p_product'] },  // 締結：會員編號、推薦人、方案、商品（2026-11-22）
 };
 const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER, sutra: SUTRA, zone: ZONE };
 
