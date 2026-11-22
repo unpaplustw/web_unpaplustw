@@ -9,7 +9,7 @@
 //   admin    → 會員中心後台的 9 支函式（白名單，同上）；能不能做由 DB 授權表 admin_grants 判斷
 //   register → 首頁註冊表的 3 支函式（白名單，同上）；頭像由這裡用 LINE 驗過的帶入，前端傳的不算
 //   sutra    → 藏經閣的 1 支函式（白名單，同上）；內容放 DB 的 sutra_items，網頁原始碼裡沒有
-//   zone     → 會員專區（/members/，2026-11-21）的函式（白名單，同上）：月計劃表三格、本月目標、名單本；
+//   zone     → 會員專區（/members/，2026-11-21）的函式（白名單，同上）：月計劃表三格、本月目標、名單本、我的組織；
 //              誰能看／改由 DB 判斷（本人、族譜上線看、代填授權改），這裡只負責「你是誰」
 // 之後要加的（發通行證、加點數…）都在這裡加 action，敏感動作一律只走這支。
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -61,6 +61,7 @@ const ZONE: Record<string, Spec> = {
   book_move:      { id: 'p_line_user_id', args: ['p_contact_id', 'p_to'] },
   book_rename:    { id: 'p_line_user_id', args: ['p_contact_id', 'p_name'] },
   book_hide:      { id: 'p_line_user_id', args: ['p_contact_id'] },     // 拿掉＝隱藏，不刪
+  zone_org:       { id: 'p_line_user_id', args: [] },                  // 我的組織：族譜下線＋本週三格＋名單本卡住數（2026-11-22）
 };
 const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER, sutra: SUTRA, zone: ZONE };
 
