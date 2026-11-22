@@ -121,6 +121,18 @@
   .pp .dot { flex: none; font-size: 14px; color: var(--green) } .pp .dot.off { color: #c9c2b2 }
   .pp.gray { color: #b5ae9f; font-weight: 400; cursor: default }
   .legend { font-size: 14px; color: var(--muted); margin-top: 10px; line-height: 1.8 }
+  .sheet { position: fixed; inset: 0; z-index: 20; background: rgba(45,42,36,.45); display: flex; align-items: flex-end; justify-content: center }
+  .sheet .box { background: var(--bg); width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; border-radius: 20px 20px 0 0;
+                padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+  .sheet h2 { font-size: 22px } .sheet .q2 { font-size: 17px; font-weight: 800; margin: 14px 0 6px }
+  .sheet input.code { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 22px; letter-spacing: 2px; background: #fff }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px }
+  .chips button { border: 1.5px solid var(--border); background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 17px; font-weight: 700; cursor: pointer; min-height: 48px }
+  .chips button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold); color: #fff }
+  .sheet .acts2 { display: flex; gap: 10px; margin-top: 18px }
+  .sheet .acts2 .save { flex: 1; border: 0; border-radius: 14px; background: var(--gold); color: #fff; font-size: 20px; font-weight: 800; padding: 14px; cursor: pointer }
+  .sheet .acts2 .cancel { border: 1.5px solid var(--border); background: #fff; border-radius: 14px; padding: 14px 18px; font-weight: 700; cursor: pointer }
+  .closes { margin-top: 10px; font-size: 16px } .closes div { padding: 6px 0; border-top: 1px solid #f0ebe0 } .closes small { color: var(--muted) }
   [hidden] { display: none !important }
 </style>
 </head>
@@ -164,8 +176,6 @@
         <div class="step"><button type="button" data-k="eff" data-d="-0.5" aria-label="有效減半小時">−</button><input id="in-eff" readonly tabindex="-1" aria-label="有效幾小時"><button type="button" data-k="eff" data-d="0.5" aria-label="有效加半小時">＋</button><span class="u">h</span></div></div>
       <div class="num a"><label>行動<small>黃色塗滿幾小時</small></label>
         <div class="step"><button type="button" data-k="act" data-d="-0.5" aria-label="行動減半小時">−</button><input id="in-act" readonly tabindex="-1" aria-label="行動幾小時"><button type="button" data-k="act" data-d="0.5" aria-label="行動加半小時">＋</button><span class="u">h</span></div></div>
-      <div class="num"><label>締結<small>今天締結幾件</small></label>
-        <div class="step"><button type="button" data-k="close" data-d="-1" aria-label="締結減一">−</button><input id="in-close" readonly tabindex="-1" aria-label="締結幾件"><button type="button" data-k="close" data-d="1" aria-label="締結加一">＋</button><span class="u">件</span></div></div>
       <p class="muted" id="fill-note"></p>
     </div>
 
@@ -173,6 +183,7 @@
       <h2>本月目標 <small id="goal-month"></small></h2>
       <div class="goal-big"><div><b id="g-goal">—</b><span>目標（件）</span></div><div><b id="g-done">0</b><span>已達成</span></div><div class="left"><b id="g-left">—</b><span>還差</span></div></div>
       <p class="muted" style="margin-top:8px">作戰會議：<b id="g-meeting">還沒填</b>　<button class="link" type="button" id="goal-toggle">修改</button></p>
+      <div class="closes" id="g-closes"></div>
       <div class="goal-edit" id="goal-edit">
         <label>本月目標幾件<input id="in-goal" inputmode="numeric" placeholder="例：4"></label>
         <label>作戰會議時間<input id="in-meeting" maxlength="40" placeholder="例：每週二 晚上 8 點"></label>
@@ -235,6 +246,18 @@
   </section>
 </main>
 
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sh-title">
+  <div class="box">
+    <h2 id="sh-title">締結</h2>
+    <div class="q2">1. 會員編號</div><input class="code" id="sh-code" inputmode="numeric" maxlength="8" placeholder="7 碼數字" autocomplete="off">
+    <div class="q2">2. 誰推薦的</div><div class="chips" id="sh-who"><button type="button" data-v="me" aria-pressed="true">我推薦的</button><button type="button" data-v="other" aria-pressed="false">夥伴推薦的</button></div>
+    <input class="code" id="sh-sponsor" inputmode="numeric" maxlength="8" placeholder="夥伴的會員編號" autocomplete="off" hidden style="margin-top:8px">
+    <div class="q2">3. 方案</div><div class="chips" id="sh-plan"><button type="button" data-v="20k" aria-pressed="false">2萬</button><button type="button" data-v="15k" aria-pressed="false">1.5萬</button><button type="button" data-v="10k" aria-pressed="false">1萬</button></div>
+    <div class="q2">4. 份量</div><div class="chips" id="sh-size"><button type="button" data-v="full" aria-pressed="false">一套</button><button type="button" data-v="half" aria-pressed="false">半套</button><button type="button" data-v="sub" aria-pressed="false">訂閱</button></div>
+    <div class="q2">5. 商品</div><div class="chips" id="sh-prod"><span class="muted">先選方案</span></div>
+    <div class="acts2"><button type="button" class="cancel" id="sh-cancel">取消</button><button type="button" class="save" id="sh-save">存起來</button></div>
+  </div>
+</div>
 <div class="bar" id="bar" hidden><button type="button" id="save-btn">送出今天的數字</button></div>
 
 <script>
@@ -245,6 +268,10 @@
   const $ = (id) => document.getElementById(id);
   const STAGES = ['該約', '該邀請', '等締結', '已締結'];
   const NEXT = { '該約': '約到了', '該邀請': '講過了', '等締結': '締結了' };   // 每一步只有一顆主要按鈕
+  const PLAN_NAME = { '20k': '2萬', '15k': '1.5萬', '10k': '1萬' }, SIZE_NAME = { full: '一套', half: '半套', sub: '訂閱' };
+  // 方案 → 可選商品（Randoph 2026-11-22；DB 的 close_products 同一份，改要兩邊一起改）
+  const PRODUCTS = { '20k': ['妍漾'], '15k': ['識霸明力多', '識霸明力多素食', '活美水素水', '普力活 FIRE', '普力活 BB', '喚活', '妍漾'],
+                     '10k': ['識霸', '活美水素水', '普力活 FIRE', '普力活 BB', '晨星'] };
   const HINT = { '該約': '還沒約到見面', '該邀請': '見到了，要講溝通本或帶去說明會', '等締結': '聽過溝通本或說明會了', '已締結': '' };
   const WD = '日一二三四五六';
   let me = null, plan = null, book = null, day = null, tab = 'plan', busy = false;
@@ -270,6 +297,9 @@
   async function mockZone(fn, a) {
     await new Promise((r) => setTimeout(r, 120));
     const M = MOCK;
+    if (fn === 'close_add') { const c = M.contacts.find((x) => x.id === a.p_contact_id); if (!c) return { ok: false, error: 'not_found' };
+      if (!PRODUCTS[a.p_plan] || !PRODUCTS[a.p_plan].includes(a.p_product)) return { ok: false, error: 'bad_product' };
+      c.stage = '已締結'; c.idle = 0; (M.closes = M.closes || []).unshift({ day: today, name: c.name, code: a.p_code, plan: a.p_plan, size: a.p_size, product: a.p_product, by: null }); return { ok: true }; }
     if (fn === 'zone_org') return { ok: true, from: mon(today), today, can_proxy: true, people: M.org };
     if (fn === 'plan_get' && a.p_member_id) {
       const o = M.org.find((x) => x.member_id === a.p_member_id);
@@ -281,7 +311,7 @@
       const from = a.p_from || mon(today);
       return { ok: true, me: true, can_edit: true, who: { name: M.me.name }, today, from, days: M.days.filter((d) => d.day >= from && d.day <= addDays(from, 6)),
                month: { month: today.slice(0, 8) + '01', goal: M.goal, meeting: M.meeting },
-               month_closes: M.days.filter((d) => d.day.slice(0, 7) === today.slice(0, 7)).reduce((s, d) => s + d.close, 0) };
+               closes: M.closes || [], month_closes: (M.closes || []).length };
     }
     if (fn === 'plan_save_day') { const i = M.days.findIndex((d) => d.day === a.p_day); const row = { day: a.p_day, eff: +a.p_eff, act: +a.p_act, close: +a.p_close, by: null };
       if (i >= 0) M.days[i] = row; else M.days.push(row); return { ok: true }; }
@@ -312,7 +342,7 @@
     if (!r.data || !r.data.ok) throw new Error((r.data && r.data.error) || 'db');
     return r.data;
   }
-  const ERR = { not_member: '會員專區給綠佳利會員使用', forbidden: '這位夥伴的資料你不能改', exists: '名單本已經有這個名字了', bad_name: '名字要 1～30 個字',
+  const ERR = { bad_code: '會員編號要 7 碼數字', bad_sponsor: '夥伴的會員編號要 7 碼數字', bad_plan: '方案或份量沒選好', bad_product: '這個方案沒有這個商品', not_member: '會員專區給綠佳利會員使用', forbidden: '這位夥伴的資料你不能改', exists: '名單本已經有這個名字了', bad_name: '名字要 1～30 個字',
                 bad_day: '只能填今天以前、兩個月內的日子', bad_value: '數字不對，請再看一下', invalid_token: '登入過期了，請關掉這一頁再打開', no_token: '登入過期了，請關掉這一頁再打開' };
   let toastTimer = null;   // 一次只顯示一則，新的取代舊的（連按時不會疊字）
   function toast(msg) { let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.append(t); }
@@ -357,7 +387,7 @@
       pick.append(b);
     });
     const r = rowFor(day) || { eff: 0, act: 0, close: 0 };
-    $('in-eff').value = n1(r.eff); $('in-act').value = n1(r.act); $('in-close').value = String(r.close || 0);
+    $('in-eff').value = n1(r.eff); $('in-act').value = n1(r.act);
     $('fill-note').textContent = r.by ? `這天的數字是 ${r.by} 幫忙填的` : '';
     const m = plan.month || {};
     $('goal-month').textContent = m.month ? `${+m.month.slice(5, 7)} 月` : '';
@@ -365,6 +395,14 @@
     $('g-done').textContent = plan.month_closes || 0;
     $('g-left').textContent = m.goal == null ? '—' : Math.max(0, m.goal - (plan.month_closes || 0));
     $('g-meeting').textContent = m.meeting || '還沒填';
+    const gc = $('g-closes'); gc.replaceChildren();
+    for (const k of (plan.closes || [])) {
+      const d = document.createElement('div');
+      d.innerHTML = `${fmt(k.day)} <b></b><br><small></small>`;
+      d.querySelector('b').textContent = k.name;
+      d.querySelector('small').textContent = `${PLAN_NAME[k.plan]}${SIZE_NAME[k.size]}・${k.product}・編號 ${k.code}${k.by ? `・${k.by} 代填` : ''}`;
+      gc.append(d);
+    }
     $('in-goal').value = m.goal == null ? '' : m.goal; $('in-meeting').value = m.meeting || '';
     const tb = $('wk'); tb.replaceChildren(); let se = 0, sa = 0, sc = 0;
     for (let i = 0; i < 7; i++) {
@@ -384,9 +422,9 @@
   }));
   $('save-btn').addEventListener('click', async () => {
     if (busy) return;
-    const eff = half($('in-eff').value), act = half($('in-act').value), close = parseInt($('in-close').value, 10) || 0;
+    const eff = half($('in-eff').value), act = half($('in-act').value), close = 0;   // 締結改從名單本填細節，這裡不再填件數
     $('in-eff').value = n1(eff); $('in-act').value = n1(act);
-    if (eff < 0 || eff > 24 || act < 0 || act > 24 || close < 0 || close > 99) return toast('數字不對，請再看一下');
+    if (eff < 0 || eff > 24 || act < 0 || act > 24) return toast('數字不對，請再看一下');
     busy = true; $('save-btn').disabled = true;
     try { await zone('plan_save_day', { p_member_id: target, p_day: day, p_eff: eff, p_act: act, p_close: close }); await loadPlan(plan.from); toast(`${fmt(day)} 存好了`); }
     catch (e) { fail(e); } finally { busy = false; $('save-btn').disabled = false; }
@@ -427,7 +465,7 @@
         row.append(l1);
         const acts = document.createElement('div'); acts.className = 'acts';
         const go = document.createElement('button'); go.type = 'button'; go.className = 'go'; go.textContent = NEXT[st] + ' ›';
-        go.addEventListener('click', () => act('book_move', { p_contact_id: c.id, p_to: STAGES[STAGES.indexOf(st) + 1] }, `${c.name}：${NEXT[st]}`));
+        go.addEventListener('click', () => st === '等締結' ? openClose(c) : act('book_move', { p_contact_id: c.id, p_to: STAGES[STAGES.indexOf(st) + 1] }, `${c.name}：${NEXT[st]}`));
         acts.append(go);
         if (st !== '該約') { const no = document.createElement('button'); no.type = 'button'; no.className = 'no'; no.textContent = '未果';
           no.addEventListener('click', () => act('book_move', { p_contact_id: c.id, p_to: '未果' }, `${c.name}：未果，回到該邀請`)); acts.append(no); }
@@ -449,6 +487,42 @@
     try { await zone('book_add', { p_member_id: target, p_name: v }); $('in-name').value = ''; await loadBook(); toast(`加入了：${v}`); } catch (e) { fail(e); }
   });
   $('in-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('add-btn').click(); });
+
+  // ── 締結小表（名單本「締結了」）──
+  let closing = null, pick = {};
+  function chipGroup(id, onPick) {
+    $(id).addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return;
+      $(id).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); onPick(b.dataset.v); });
+  }
+  function renderProducts() {
+    const box = $('sh-prod'); box.replaceChildren();
+    if (!pick.plan) { const s0 = document.createElement('span'); s0.className = 'muted'; s0.textContent = '先選方案'; box.append(s0); return; }
+    for (const name of PRODUCTS[pick.plan]) { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = name; b.textContent = name;
+      b.setAttribute('aria-pressed', String(pick.product === name)); box.append(b); }
+  }
+  chipGroup('sh-who', (v) => { pick.who = v; $('sh-sponsor').hidden = v !== 'other'; });
+  chipGroup('sh-plan', (v) => { pick.plan = v; if (!PRODUCTS[v].includes(pick.product)) pick.product = null; renderProducts(); });
+  chipGroup('sh-size', (v) => { pick.size = v; });
+  chipGroup('sh-prod', (v) => { pick.product = v; });
+  function openClose(c) {
+    closing = c; pick = { who: 'me' };
+    $('sh-title').textContent = `締結：${c.name}`; $('sh-code').value = ''; $('sh-sponsor').value = ''; $('sh-sponsor').hidden = true;
+    for (const id of ['sh-plan', 'sh-size']) $(id).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+    $('sh-who').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === 'me')));
+    renderProducts(); $('sheet').hidden = false;
+  }
+  $('sh-cancel').addEventListener('click', () => { $('sheet').hidden = true; });
+  $('sh-save').addEventListener('click', async () => {
+    const code = $('sh-code').value.trim().toUpperCase(), sp = $('sh-sponsor').value.trim().toUpperCase();
+    if (!/^[0-9]{7}[A-Z]?$/.test(code)) return toast('會員編號要 7 碼數字');
+    if (pick.who === 'other' && !/^[0-9]{7}[A-Z]?$/.test(sp)) return toast('夥伴的會員編號要 7 碼數字');
+    if (!pick.plan) return toast('還沒選方案'); if (!pick.size) return toast('還沒選份量'); if (!pick.product) return toast('還沒選商品');
+    $('sh-save').disabled = true;
+    try {
+      await zone('close_add', { p_contact_id: closing.id, p_code: code, p_sponsor_code: pick.who === 'other' ? sp : null, p_plan: pick.plan, p_size: pick.size, p_product: pick.product });
+      $('sheet').hidden = true; toast(`🎉 ${closing.name} 締結了`); await loadBook(); await loadPlan(plan && plan.from);
+    } catch (e) { fail(e); } finally { $('sh-save').disabled = false; }
+  });
 
   // ── 看／幫夥伴填：同一套月計劃表、名單本，只換「目標」──
   function applyMode() {
