@@ -609,7 +609,9 @@
           // 2026-11-22 修無限跳轉：原本外部瀏覽器沒登入就導去 liff.line.me，但在一般瀏覽器 liff.line.me 只會轉回這頁 → 來回跳。
           // 改成：在 LINE 裡自動登入「只試一次」；其他情況停在登入畫面，按了才登入，絕不自動再轉。
           let tried = false; try { tried = sessionStorage.getItem('zone-login-tried') === '1'; sessionStorage.setItem('zone-login-tried', '1'); } catch (e) {}
-          if (liff.isInClient() && !tried) { liff.login(); return; }
+          // 2026-11-22 再改（Randoph：點進去又要再點一次）：LINE 以外也自動登入一次——用 LINE 正式登入流程、回到本頁，不是轉 liff.line.me；
+          // 已在首頁登入過的，LINE 認得人、一閃就回來。只試一次，沒成功就停在按鈕畫面（防迴圈）。
+          if (!tried) { if (liff.isInClient()) liff.login(); else liff.login({ redirectUri: location.href.split('#')[0] }); return; }
           $('login-btn').onclick = () => liff.login();
           return show('s-login');
         }
