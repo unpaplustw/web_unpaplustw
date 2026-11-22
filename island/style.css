@@ -482,3 +482,5 @@ a.flight:hover, a.flight:focus-visible { background: #212a3a; }
 .reg-actions { margin-top: 4px; }
 .reg-actions .button[type="submit"] { flex: 1 1 100%; min-height: 52px; font-size: 19px; }
 .reg-actions .button:disabled, .reg-coop .button:disabled { opacity: .6; cursor: default; }
+.simple .simple-line:has(+ .zone-go) { margin-top: 14px; }
+.zone-go { display: block; width: 100%; min-height: 56px; margin-top: 6px; font-size: 20px; line-height: 40px; text-align: center; }   /* 會員卡：會員專區入口 */

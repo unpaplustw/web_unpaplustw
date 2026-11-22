@@ -125,6 +125,10 @@ export function initMember({ openCard, el }) {
     dl.append(el('dt', '', '等級'), el('dd', '', LV_LABEL(member.level ?? 0)), el('dt', '', 'AI 點數'), el('dd', '', `${member.ai_credits ?? 0} 點`));
     if (member.code) dl.append(el('dt', '', '會員編號'), el('dd', '', String(member.code).slice(0, 7)));
     wrap.append(dl);
+    if ((member.level ?? 0) >= 1) {   // 會員專區入口（2026-11-22 補：月計劃表、名單本、我的組織）；用 liff.line.me 讓 LINE 裡點了留在 LINE、不用再登入
+      const go = el('a', 'button zone-go', '📅 進入會員專區'); go.href = 'https://liff.line.me/2009692859-os7J0TTa';
+      wrap.append(el('p', 'simple-line', '月計劃表、名單本、我的組織都在這裡。'), go);
+    }
     if (canLogout()) { const row = el('div', 'card-buttons reg-actions'); row.append(logoutButton()); wrap.append(row); }
     return wrap;
   }
