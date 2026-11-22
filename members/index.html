@@ -28,7 +28,8 @@
   .lv { font-size: 13px; font-weight: 800; padding: 2px 10px; border-radius: 999px; background: var(--gold); color: #fff; margin-left: 6px }
   .tabs { display: flex; gap: 4px; max-width: 640px; margin: 8px auto 0 }
   .tab { flex: 1; border: 0; background: none; padding: 10px 2px 12px; font-size: 18px; white-space: nowrap; font-weight: 800; color: var(--muted); border-bottom: 4px solid transparent; cursor: pointer }
-  @media (max-width: 359px) { .tab { font-size: 16.5px } .tab .ic { display: none } }   /* 320 寬小手機：收圖示、字保持一行 */
+  @media (max-width: 479px) { .tab { font-size: 17px } .tab .ic { display: none } }   /* 四個頁籤：手機收圖示、字保持一行 */
+  @media (max-width: 359px) { .tab { font-size: 15.5px } }
   .tab[aria-selected="true"] { color: var(--gold); border-bottom-color: var(--gold) }
   .wrap { max-width: 640px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)) }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px 16px 14px; margin-top: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.05) }
@@ -100,6 +101,25 @@
   .center h2 { justify-content: center }
   .cta { display: inline-block; margin-top: 14px; padding: 13px 26px; border-radius: 14px; background: var(--gold); color: #fff; font-weight: 800; text-decoration: none }
   .info dt { color: var(--muted); font-size: 15px; margin-top: 10px } .info dd { font-size: 20px; font-weight: 800 }
+  .viewing { max-width: 640px; margin: 6px auto 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+             background: #fff8e1; border: 1px solid #e0c97a; border-radius: 12px; padding: 6px 12px; font-size: 16px; font-weight: 700 }
+  .viewing button { flex: none; border: 1.5px solid var(--gold); background: #fff; color: var(--gold); border-radius: 10px; padding: 4px 10px; font-weight: 800; cursor: pointer }
+  body.ro .step button, body.ro #goal-toggle, body.ro #bar, body.ro #add-card, body.ro .acts, body.ro .moremenu { display: none !important }
+  .org-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center }
+  .org-sum div { background: #faf8f3; border-radius: 12px; padding: 8px 4px }
+  .org-sum b { display: block; font-size: 24px; line-height: 1.3 } .org-sum span { font-size: 14px; color: var(--muted) }
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; margin-top: 14px }
+  .col { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 10px 10px 8px; min-width: 0 }
+  .col h3 { font-size: 19px; color: var(--gold); text-align: center } .col h3 small { display: block; font-size: 13.5px; color: var(--muted); font-weight: 400 }
+  .gen { font-size: 13.5px; color: var(--muted); margin: 8px 0 2px; border-top: 1px dashed var(--border); padding-top: 6px }
+  .pp { display: flex; align-items: center; gap: 4px; width: 100%; border: 0; background: none; padding: 6px 2px; text-align: left; font-size: 17px; font-weight: 800; cursor: pointer; border-radius: 8px }
+  .pp:active { background: var(--gold-soft) }
+  .pp .nm2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .pp i { font-style: normal; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 0 4px; background: #f1f0ec; color: var(--muted); flex: none }
+  .pp i.fang { background: #e8f0fb; color: #3b6aa8 } .pp i.stuck { background: #fdeaea; color: var(--redt) }
+  .pp .dot { flex: none; font-size: 14px; color: var(--green) } .pp .dot.off { color: #c9c2b2 }
+  .pp.gray { color: #b5ae9f; font-weight: 400; cursor: default }
+  .legend { font-size: 14px; color: var(--muted); margin-top: 10px; line-height: 1.8 }
   [hidden] { display: none !important }
 </style>
 </head>
@@ -109,8 +129,10 @@
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="plan" aria-selected="true"><span class="ic">📅 </span>月計劃表</button>
     <button class="tab" role="tab" data-tab="book" aria-selected="false"><span class="ic">📒 </span>名單本</button>
+    <button class="tab" role="tab" data-tab="org" aria-selected="false"><span class="ic">👥 </span>我的組織</button>
     <button class="tab" role="tab" data-tab="info" aria-selected="false"><span class="ic">🪪 </span>我的資料</button>
   </nav>
+  <div class="viewing" id="viewing" hidden><span id="viewing-txt"></span><button type="button" id="back-me">回到我自己</button></div>
 </header>
 
 <main class="wrap">
@@ -184,12 +206,20 @@
 
   <!-- 📒 名單本 -->
   <section id="t-book" hidden>
-    <div class="card">
+    <div class="card" id="add-card">
       <h2>加一個名字</h2>
       <div class="addrow"><input id="in-name" maxlength="30" placeholder="名字或暱稱" aria-label="新名字"><button type="button" id="add-btn">加入</button></div>
       <p class="tip">名單本是要看出「誰還沒去做」。沒動最久的名字排在最前面。</p>
     </div>
     <div id="book"></div>
+  </section>
+
+  <!-- 👥 我的組織 -->
+  <section id="t-org" hidden>
+    <div class="card"><h2>我的組織 <small>點名字看他的月計劃表和名單本</small></h2><div class="org-sum" id="org-sum"></div>
+      <p class="legend"><span style="color:var(--green)">●</span> 本週有填　○ 本週還沒填　灰色＝還沒註冊<br>自＝自己推薦延伸　放＝上線放下來　卡 N＝名單本有 N 個名字超過 7 天沒動</p></div>
+    <div class="cols" id="org-cols"></div>
+    <div id="org-other"></div>
   </section>
 
   <!-- 🪪 我的資料 -->
@@ -211,6 +241,7 @@
   const HINT = { '該約': '還沒約到見面', '該邀請': '見到了，要講溝通本或帶去說明會', '等締結': '聽過溝通本或說明會了', '已締結': '' };
   const WD = '日一二三四五六';
   let me = null, plan = null, book = null, day = null, tab = 'plan', busy = false;
+  let target = null, targetName = '', canEdit = true, org = null;   // target＝正在看的夥伴（null＝自己）
 
   // ── 預覽假資料（#preview）：不用登入、不寫資料 ──
   const today = (() => { const d = new Date(Date.now() + 8 * 3600e3); return d.toISOString().slice(0, 10); })();
@@ -220,12 +251,25 @@
     me: { name: '王小美', level: 2, code: '2712345', status: 'member' },
     days: [{ day: addDays(today, -1), eff: 2, act: 3.5, close: 1, by: null }, { day: addDays(today, -2), eff: 0, act: 2, close: 0, by: '游育杰' }],
     goal: 4, meeting: '每週二 晚上 8 點', id: 1,
+    org: [{ name: '張麗玲', side: '左', gen: 1, tag: '放', member: true, member_id: 'm-li', filled: 3, stuck: 0 },
+          { name: '尹翔', side: '左', gen: 1, tag: '放', member: false, member_id: null, filled: 0, stuck: 0 },
+          { name: '張憶文', side: '左', gen: 2, tag: '自', member: true, member_id: 'm-yi', filled: 0, stuck: 2 },
+          { name: '林詩萍', side: '右', gen: 1, tag: '自', member: true, member_id: 'm-lin', filled: 1, stuck: 0 },
+          { name: '李晉豪', side: '右', gen: 4, tag: '自', member: true, member_id: 'm-jin', filled: 0, stuck: 0 },
+          { name: '陳芊芸', side: null, gen: 2, tag: '自', member: false, member_id: null, filled: 0, stuck: 0 }],
     contacts: [{ id: 1, name: '陳大姐', stage: '該邀請', fails: 1, idle: 14, by: null }, { id: 2, name: '林先生', stage: '該約', fails: 0, idle: 3, by: '游育杰' },
                { id: 3, name: '黃老師', stage: '等締結', fails: 0, idle: 1, by: null }, { id: 4, name: '李太太', stage: '已締結', fails: 0, idle: 20, by: null }],
   };
   async function mockZone(fn, a) {
     await new Promise((r) => setTimeout(r, 120));
     const M = MOCK;
+    if (fn === 'zone_org') return { ok: true, from: mon(today), today, can_proxy: true, people: M.org };
+    if (fn === 'plan_get' && a.p_member_id) {
+      const o = M.org.find((x) => x.member_id === a.p_member_id);
+      return { ok: true, me: false, can_edit: o.member_id === 'm-yi', who: { name: o.name }, today, from: a.p_from || mon(today),
+               days: [{ day: addDays(today, -1), eff: 1, act: 2, close: 0, by: null }], month: { month: today.slice(0, 8) + '01', goal: 3, meeting: '每週四 晚上 7 點' }, month_closes: 1 };
+    }
+    if (fn === 'book_list' && a.p_member_id) return { ok: true, me: false, can_edit: a.p_member_id === 'm-yi', contacts: [{ id: 901, name: '吳小姐', stage: '該約', fails: 0, idle: 9, by: null }] };
     if (fn === 'plan_get') {
       const from = a.p_from || mon(today);
       return { ok: true, me: true, can_edit: true, who: { name: M.me.name }, today, from, days: M.days.filter((d) => d.day >= from && d.day <= addDays(from, 6)),
@@ -270,15 +314,17 @@
 
   // ── 版面切換 ──
   function show(which) {
-    for (const id of ['s-loading', 's-none', 's-error', 't-plan', 't-book', 't-info']) $(id).hidden = id !== which;
+    for (const id of ['s-loading', 's-none', 's-error', 't-plan', 't-book', 't-info', 't-org']) $(id).hidden = id !== which;
     $('top').hidden = !which.startsWith('t-');
     $('bar').hidden = which !== 't-plan';
+    $('viewing').hidden = !target || !which.startsWith('t-') || which === 't-org';
   }
   function setTab(t) {
     tab = t;
     document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
     show('t-' + t);
     if (t === 'book' && !book) loadBook();
+    if (t === 'org') loadOrg();
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
@@ -287,8 +333,9 @@
   const fmt = (s) => { const d = new Date(s + 'T00:00:00Z'); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WD[d.getUTCDay()]}）`; };
   const n1 = (v) => (Math.round((+v || 0) * 10) / 10).toString();
   async function loadPlan(from) {
-    plan = await zone('plan_get', { p_member_id: null, p_from: from || null });
+    plan = await zone('plan_get', { p_member_id: target, p_from: from || null });
     if (!day) day = plan.today;
+    canEdit = !!plan.can_edit; applyMode();
     renderPlan();
   }
   function rowFor(d) { return (plan.days || []).find((x) => x.day === d); }
@@ -331,20 +378,20 @@
     const eff = parseFloat($('in-eff').value) || 0, act = parseFloat($('in-act').value) || 0, close = parseInt($('in-close').value, 10) || 0;
     if (eff < 0 || eff > 24 || act < 0 || act > 24 || close < 0 || close > 99) return toast('數字不對，請再看一下');
     busy = true; $('save-btn').disabled = true;
-    try { await zone('plan_save_day', { p_member_id: null, p_day: day, p_eff: eff, p_act: act, p_close: close }); await loadPlan(plan.from); toast(`${fmt(day)} 存好了`); }
+    try { await zone('plan_save_day', { p_member_id: target, p_day: day, p_eff: eff, p_act: act, p_close: close }); await loadPlan(plan.from); toast(`${fmt(day)} 存好了`); }
     catch (e) { fail(e); } finally { busy = false; $('save-btn').disabled = false; }
   });
   $('goal-toggle').addEventListener('click', () => $('goal-edit').classList.toggle('on'));
   $('goal-save').addEventListener('click', async () => {
     const g = $('in-goal').value.trim() === '' ? null : parseInt($('in-goal').value, 10);
     if (g != null && (isNaN(g) || g < 0 || g > 999)) return toast('目標要填 0～999 的數字');
-    try { await zone('plan_save_goal', { p_member_id: null, p_goal: g, p_meeting: $('in-meeting').value }); $('goal-edit').classList.remove('on'); await loadPlan(plan.from); toast('目標存好了'); }
+    try { await zone('plan_save_goal', { p_member_id: target, p_goal: g, p_meeting: $('in-meeting').value }); $('goal-edit').classList.remove('on'); await loadPlan(plan.from); toast('目標存好了'); }
     catch (e) { fail(e); }
   });
 
   // ── 📒 名單本 ──
   async function loadBook() {
-    try { book = await zone('book_list', { p_member_id: null }); renderBook(); } catch (e) { fail(e); }
+    try { book = await zone('book_list', { p_member_id: target }); renderBook(); } catch (e) { fail(e); }
   }
   async function act(fn, args, okMsg) {
     try { await zone(fn, args); await loadBook(); if (okMsg) toast(okMsg); } catch (e) { fail(e); }
@@ -389,9 +436,74 @@
   }
   $('add-btn').addEventListener('click', async () => {
     const v = $('in-name').value.trim(); if (!v) return toast('先打一個名字');
-    try { await zone('book_add', { p_member_id: null, p_name: v }); $('in-name').value = ''; await loadBook(); toast(`加入了：${v}`); } catch (e) { fail(e); }
+    try { await zone('book_add', { p_member_id: target, p_name: v }); $('in-name').value = ''; await loadBook(); toast(`加入了：${v}`); } catch (e) { fail(e); }
   });
   $('in-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('add-btn').click(); });
+
+  // ── 看／幫夥伴填：同一套月計劃表、名單本，只換「目標」──
+  function applyMode() {
+    document.body.classList.toggle('ro', !canEdit);
+    for (const id of ['in-eff', 'in-act', 'in-close']) $(id).readOnly = !canEdit;
+    $('viewing-txt').textContent = !target ? '' : canEdit ? `✍️ 正在幫 ${targetName} 填` : `👀 正在看 ${targetName} 的資料（只能看）`;
+    $('viewing').hidden = !target || tab === 'org';
+  }
+  async function viewMember(id, name) {
+    target = id; targetName = name; plan = null; book = null; day = null;
+    try { await loadPlan(); setTab('plan'); } catch (e) { target = null; fail(e); }
+  }
+  $('back-me').addEventListener('click', async () => {
+    target = null; targetName = ''; plan = null; book = null; day = null;
+    try { await loadPlan(); setTab('plan'); } catch (e) { fail(e); }
+  });
+
+  // ── 👥 我的組織 ──
+  async function loadOrg() {
+    try { org = await zone('zone_org', {}); renderOrg(); } catch (e) { fail(e); }
+  }
+  function personBtn(p) {
+    const b = document.createElement(p.member ? 'button' : 'div');
+    b.className = 'pp' + (p.member ? '' : ' gray');
+    if (p.member) { b.type = 'button'; b.addEventListener('click', () => viewMember(p.member_id, p.name)); }
+    const nm = document.createElement('span'); nm.className = 'nm2'; nm.textContent = p.name; b.append(nm);
+    const tg = document.createElement('i'); tg.className = p.tag === '放' ? 'fang' : ''; tg.textContent = p.tag; b.append(tg);
+    if (p.member) {
+      if (p.stuck > 0) { const st = document.createElement('i'); st.className = 'stuck'; st.textContent = '卡 ' + p.stuck; b.append(st); }
+      const dot = document.createElement('span'); dot.className = 'dot' + (p.filled > 0 ? '' : ' off'); dot.textContent = p.filled > 0 ? '●' : '○'; b.append(dot);
+    }
+    return b;
+  }
+  function renderOrg() {
+    const people = org.people || [];
+    const sum = $('org-sum'); sum.replaceChildren();
+    const cols = $('org-cols'); cols.replaceChildren();
+    const other = $('org-other'); other.replaceChildren();
+    if (!people.length) {
+      const p = document.createElement('p'); p.className = 'muted'; p.textContent = '族譜裡還沒有你底下的人。夥伴註冊時填你當推薦人，就會出現在這裡。';
+      sum.append(p); return;
+    }
+    for (const side of ['左', '右']) {
+      const list = people.filter((p) => p.side === side);
+      const maxGen = list.reduce((m, p) => Math.max(m, p.gen || 0), 0);
+      const mem = list.filter((p) => p.member), moved = mem.filter((p) => p.filled > 0);
+      const box = document.createElement('div'); box.innerHTML = `<b>${maxGen} 代</b><span>${side}邊延伸</span>`; sum.append(box);
+      const col = document.createElement('div'); col.className = 'col';
+      const h = document.createElement('h3'); h.innerHTML = `${side}邊<small>本週動 ${moved.length}／${mem.length} 人</small>`; col.append(h);
+      if (!list.length) { const e = document.createElement('p'); e.className = 'muted'; e.textContent = '還沒有人'; col.append(e); }
+      let g = null;
+      for (const p of list.slice().sort((a, b) => (a.gen - b.gen) || a.name.localeCompare(b.name, 'zh-Hant'))) {
+        if (p.gen !== g) { g = p.gen; const gh = document.createElement('div'); gh.className = 'gen'; gh.textContent = `第 ${g} 代`; col.append(gh); }
+        col.append(personBtn(p));
+      }
+      cols.append(col);
+    }
+    const unknown = people.filter((p) => p.side !== '左' && p.side !== '右');
+    if (unknown.length) {
+      const card = document.createElement('div'); card.className = 'card';
+      const h = document.createElement('h2'); h.innerHTML = '還不知道在哪一邊 <small>左右資料待補</small>'; card.append(h);
+      for (const p of unknown) card.append(personBtn(p));
+      other.append(card);
+    }
+  }
 
   // ── 🪪 我的資料 ──
   function renderInfo() {
