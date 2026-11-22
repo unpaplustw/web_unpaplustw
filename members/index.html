@@ -144,6 +144,12 @@
     <a class="cta" href="https://liff.line.me/2009692859-h2XfVyCT?member=1">前往註冊</a>
   </section>
 
+  <section id="s-login" class="center" hidden>
+    <h2>請先用 LINE 登入</h2>
+    <p class="muted">在 LINE 裡打開最方便：用 LINE 掃紙本上的 QR，或在 LINE 聊天室點連結，就不用另外登入。</p>
+    <button class="cta" type="button" id="login-btn" style="border:0">用 LINE 登入</button>
+  </section>
+
   <section id="s-error" class="center" hidden>
     <h2>連不上</h2><p class="muted" id="err-msg">請關掉這一頁，再打開一次。</p>
   </section>
@@ -314,7 +320,7 @@
 
   // ── 版面切換 ──
   function show(which) {
-    for (const id of ['s-loading', 's-none', 's-error', 't-plan', 't-book', 't-info', 't-org']) $(id).hidden = id !== which;
+    for (const id of ['s-loading', 's-none', 's-error', 's-login', 't-plan', 't-book', 't-info', 't-org']) $(id).hidden = id !== which;
     $('top').hidden = !which.startsWith('t-');
     $('bar').hidden = which !== 't-plan';
     $('viewing').hidden = !target || !which.startsWith('t-') || which === 't-org';
@@ -521,10 +527,15 @@
       if (!preview) {
         if (!LIFF_ID) { $('err-msg').textContent = '會員專區還在準備中。'; return show('s-error'); }
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {   // 在 LINE 裡才原地登入；外部瀏覽器改從 liff.line.me 開（KC 實機：外部登入完跳不回來）
-          if (liff.isInClient()) liff.login(); else location.href = 'https://liff.line.me/' + LIFF_ID;
-          return;
+        if (!liff.isLoggedIn()) {
+          // 2026-11-22 修無限跳轉：原本外部瀏覽器沒登入就導去 liff.line.me，但在一般瀏覽器 liff.line.me 只會轉回這頁 → 來回跳。
+          // 改成：在 LINE 裡自動登入「只試一次」；其他情況停在登入畫面，按了才登入，絕不自動再轉。
+          let tried = false; try { tried = sessionStorage.getItem('zone-login-tried') === '1'; sessionStorage.setItem('zone-login-tried', '1'); } catch (e) {}
+          if (liff.isInClient() && !tried) { liff.login(); return; }
+          $('login-btn').onclick = () => liff.login();
+          return show('s-login');
         }
+        try { sessionStorage.removeItem('zone-login-tried'); } catch (e) {}
       }
       const r = await gate('me');
       if (!r.ok) throw new Error(r.error || 'gate');
