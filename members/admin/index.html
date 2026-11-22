@@ -94,7 +94,7 @@ select{padding:8px 10px;border-radius:10px;border:1px solid var(--glass-bd);back
 const LIFF_ID = '2009692859-K26oPBlC';   // 「會員中心後台」LIFF（Endpoint＝/members/admin/，2026-11-08 建）
 const GATE = 'https://nsgqsopqlkhayuefdout.supabase.co/functions/v1/member-gate';
 
-const ACTION_NAME = {view:'調閱名單', confirm:'第一段確認', approve:'最終通過', set_level:'調整等級', manage_peaks:'維護族譜與高峰表', grant:'授權別人'};
+const ACTION_NAME = {view:'調閱名單', confirm:'第一段確認', approve:'最終通過', set_level:'調整等級', manage_peaks:'維護族譜與高峰表', grant:'授權別人', proxy:'代填（作戰會議幫夥伴填）'};   // proxy 2026-11-22：會員專區幫組織裡的夥伴填月計劃表／名單本，只有中央能給
 const CORES = {'2':'顏麗玉、游天貴','5':'林甘霖、楊牧潔','6':'蔡依儒、尤竣億','7':'林姍嬅、凌翊迅','8':'楊敬豪、林珊合'};
 const LV_NAME = {0:'訪客（尚未入會）', 1:'VIP 綠佳利會員（其他團隊）', 2:'VVIP 自己團隊（A Plus）'}; // 2026-11-17 改名：數字照舊，VIP1→VIP、VIP2→VVIP
 const TABS = [
@@ -152,6 +152,7 @@ function renderShell(){
   show('main');
 }
 function scopeLabel(g){
+  if(g.action === 'proxy') return '自己的組織以下';
   if(g.scope_type === 'all') return '全部';
   if(g.scope_type === 'tenant') return g.scope_name || 'OA';
   if(g.scope_type === 'core') return (g.scope_id ? g.scope_id + ' 號核心' : '核心') + (CORES[g.scope_id] ? `（${CORES[g.scope_id]}）` : '');
@@ -255,18 +256,24 @@ async function loadGrants(){
     <div class="card"><div class="g-person">➕ 新增授權</div>
       <div class="form">
         <div><label>授權給誰</label><select id="f-who">${people.map(p => `<option value="${p.id}">${esc(p.name || '未填寫')}　${esc(p.code || '')}　VIP${p.level}</option>`).join('')}</select></div>
-        <div><label>能做什麼</label><select id="f-act">${Object.entries(ACTION_NAME).filter(([k]) => k !== 'grant' || me.is_central)
+        <div><label>能做什麼</label><select id="f-act" onchange="actChanged()">${Object.entries(ACTION_NAME).filter(([k]) => (k !== 'grant' && k !== 'proxy') || me.is_central)
               .map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
-        <div><label>範圍</label><select id="f-scope"><option value="all:">全部</option>${tenantOpts}${coreOpts}</select>
+        <div><label>範圍</label><select id="f-scope" data-x="1"><option value="all:">全部</option>${tenantOpts}${coreOpts}</select>
           <div class="hint" style="margin-top:6px">「核心組織」要等族譜建好才會生效（之後的步驟），現在可以先設。</div></div>
+          <div class="hint" id="f-proxy-hint" style="margin-top:6px" hidden>代填：範圍固定是「他自己的組織以下」（依族譜），不用選。每一筆都會記下是他填的。</div>
         <button class="btn ok" onclick="addGrant(this)">授權</button>
       </div></div>
     <div class="hint" style="margin:14px 0 8px">中央（你）天生擁有全部權限，不會出現在下面。</div>
     ${groups || '<div class="empty">目前沒有其他人被授權</div>'}`;
 }
+function actChanged(){   // 選「代填」時範圍不用選
+  const proxy = document.getElementById('f-act').value === 'proxy';
+  document.getElementById('f-scope').disabled = proxy;
+  document.getElementById('f-proxy-hint').hidden = !proxy;
+}
 async function addGrant(btn){
   const who = document.getElementById('f-who').value, act = document.getElementById('f-act').value;
-  const [st, sid] = document.getElementById('f-scope').value.split(':');
+  const [st, sid] = act === 'proxy' ? ['all', ''] : document.getElementById('f-scope').value.split(':');
   if(!who) return;
   btn.disabled = true;
   await setGrant(who, act, st, sid, true);
@@ -275,7 +282,7 @@ async function addGrant(btn){
 async function setGrant(mid, act, st, sid, on){
   if(!on && !confirm('確認收回這項授權？')) return;
   const d = await gate('admin_set_grant', {p_member_id: mid, p_action: act, p_scope_type: st, p_scope_id: sid || null, p_on: on});
-  if(!d.ok){ toast(d.error === 'central_only' ? '「授權別人」只有中央能給' : d.error === 'forbidden' ? '你沒有授權的權限' : '操作失敗'); return; }
+  if(!d.ok){ toast(d.error === 'central_only' ? '這一項只有中央能給' : d.error === 'forbidden' ? '你沒有授權的權限' : '操作失敗'); return; }
   toast(on ? '已授權' : '已收回'); loadGrants();
 }
 
