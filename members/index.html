@@ -135,6 +135,11 @@
   .sheet .acts2 .save { flex: 1; border: 0; border-radius: 14px; background: var(--gold); color: #fff; font-size: 20px; font-weight: 800; padding: 14px; cursor: pointer }
   .sheet .acts2 .cancel { border: 1.5px solid var(--border); background: #fff; border-radius: 14px; padding: 14px 18px; font-weight: 700; cursor: pointer }
   .closes { margin-top: 10px; font-size: 16px } .closes div { padding: 6px 0; border-top: 1px solid #f0ebe0 } .closes small { color: var(--muted) }
+  .ev { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid #f0ebe0; align-items: baseline } .ev:first-child { border-top: 0 }
+  .ev .d { flex: none; width: 96px; font-weight: 800 } .ev .d small { display: block; font-weight: 400; color: var(--muted); font-size: 14px }
+  .ev .t { flex: 1; min-width: 0 } .ev .t b { display: block; font-size: 18px } .ev .t small { color: var(--muted); font-size: 15px }
+  .ev .k { font-size: 13px; border-radius: 6px; padding: 0 6px; background: var(--gold-soft); color: var(--gold); font-weight: 700; margin-right: 4px }
+  .ev a { display: block; color: var(--gold); font-weight: 700; padding-top: 2px }
   [hidden] { display: none !important }
 </style>
 </head>
@@ -181,6 +186,10 @@
       <p class="muted" id="fill-note"></p>
     </div>
 
+    <div class="card" id="ev-card">
+      <h2>近期活動 <small>30 天內</small></h2>
+      <div id="ev-list"><p class="muted">載入中…</p></div>
+    </div>
     <div class="card">
       <h2>本月目標 <small id="goal-month"></small></h2>
       <div class="goal-big"><div><b id="g-goal">—</b><span>目標（件）</span></div><div><b id="g-done">0</b><span>已達成</span></div><div class="left"><b id="g-left">—</b><span>還差</span></div></div>
@@ -299,6 +308,8 @@
   async function mockZone(fn, a) {
     await new Promise((r) => setTimeout(r, 120));
     const M = MOCK;
+    if (fn === 'events_upcoming') return { ok: true, events: [{ day: addDays(today, 3), time: '19:30', kind: '說明會', title: '週三說明會', place: '台北中山', link: null },
+                                                         { day: addDays(today, 10), time: '14:00', kind: '大型活動', title: '年終表揚大會', place: '台北國際會議中心', link: 'https://example.com' }] };
     if (fn === 'close_add') { const c = M.contacts.find((x) => x.id === a.p_contact_id); if (!c) return { ok: false, error: 'not_found' };
       if (!PRODUCTS[a.p_plan] || !PRODUCTS[a.p_plan].includes(a.p_product)) return { ok: false, error: 'bad_product' };
       c.stage = '已締結'; c.idle = 0; (M.closes = M.closes || []).unshift({ day: today, name: c.name, code: a.p_code, plan: a.p_plan, size: a.p_size, product: a.p_product, by: null }); return { ok: true }; }
@@ -490,6 +501,26 @@
   });
   $('in-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('add-btn').click(); });
 
+  // ── 近期活動（後台中央輸入，所有會員同一份；今天起 30 天）──
+  async function loadEvents() {
+    const box = $('ev-list');
+    try {
+      const d = await zone('events_upcoming', {}); box.replaceChildren();
+      if (!d.events.length) { const p = document.createElement('p'); p.className = 'muted'; p.textContent = '最近 30 天還沒有排活動。'; box.append(p); return; }
+      for (const e of d.events) {
+        const row = document.createElement('div'); row.className = 'ev';
+        const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = fmt(e.day);
+        if (e.time) { const sm = document.createElement('small'); sm.textContent = e.time; dd.append(sm); }
+        const tt = document.createElement('div'); tt.className = 't';
+        const b = document.createElement('b'); const k = document.createElement('span'); k.className = 'k'; k.textContent = e.kind; b.append(k, e.title); tt.append(b);
+        if (e.place || e.link) { const sm = document.createElement('small'); sm.textContent = e.place || '';
+          if (e.link) { const a = document.createElement('a'); a.href = e.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = '看詳情 ›'; sm.append(a); }
+          tt.append(sm); }
+        row.append(dd, tt); box.append(row);
+      }
+    } catch (e) { box.replaceChildren(); const p = document.createElement('p'); p.className = 'muted'; p.textContent = '活動載入失敗'; box.append(p); }
+  }
+
   // ── 締結小表（名單本「締結了」）──
   let closing = null, pick = {};
   function chipGroup(id, onPick) {
@@ -626,6 +657,7 @@
       if (!me || !(me.level >= 1)) return show('s-none');
       renderInfo();
       await loadPlan();
+      loadEvents();
       setTab('plan');
     } catch (e) {
       $('err-msg').textContent = ERR[e.message] || '請關掉這一頁，再打開一次。';

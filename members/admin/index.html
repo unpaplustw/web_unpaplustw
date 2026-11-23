@@ -67,6 +67,13 @@ select{padding:8px 10px;border-radius:10px;border:1px solid var(--glass-bd);back
 .form{display:grid;gap:10px}
 .form label{font-size:13px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px}
 .form select{width:100%}
+.form input{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:15px}
+.ev-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ev-row{flex-direction:column;align-items:stretch}
+.ev-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.ev-b{background:#f5ecd5;color:#2d2a24}
+.ev-off{opacity:.5}
+.g-row span:first-child{min-width:0}
 .hint{font-size:13px;color:var(--muted);line-height:1.6}
 .note{background:var(--yellow-bg);border:1px solid rgba(251,191,36,.25);color:#fde68a;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;border:1px solid var(--border-hl);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .2s;z-index:9;pointer-events:none}
@@ -104,6 +111,7 @@ const TABS = [
   {k:'rejected', nm:'已退回'},
   {k:'lineage',  nm:'族譜', needPeaks:true},
   {k:'grants',   nm:'授權', needGrant:true},
+  {k:'events',   nm:'活動', needCentral:true},   // 近期活動（2026-11-23；會員專區月計劃表顯示今天起 30 天）
 ];
 
 let me = null, cur = 'pending', rows = [], q = '';
@@ -147,7 +155,7 @@ function renderShell(){
   const chips = me.is_central ? ['<span class="chip central">中央：全部權限</span>']
     : me.grants.map(g => `<span class="chip">${ACTION_NAME[g.action] || g.action}｜${esc(scopeLabel(g))}</span>`);
   document.getElementById('me-chips').innerHTML = chips.join('');
-  document.getElementById('tabs').innerHTML = TABS.filter(t => (!t.needGrant || canGrant()) && (!t.needPeaks || canPeaks()))
+  document.getElementById('tabs').innerHTML = TABS.filter(t => (!t.needGrant || canGrant()) && (!t.needPeaks || canPeaks()) && (!t.needCentral || me.is_central))
     .map(t => `<div class="tab" id="tab-${t.k}" onclick="go('${t.k}')">${t.nm}<span class="n" id="n-${t.k}"></span></div>`).join('');
   show('main');
 }
@@ -166,6 +174,7 @@ async function go(k){
   pane.innerHTML = '<div class="empty">載入中…</div>';
   if(k === 'grants') return loadGrants();
   if(k === 'lineage') return loadLineage();
+  if(k === 'events') return loadEvents();
   const d = await gate('admin_list_members', {p_status: k});
   if(!d.ok){ pane.innerHTML = '<div class="empty">載入失敗</div>'; return; }
   rows = d.members || [];
@@ -286,6 +295,55 @@ async function setGrant(mid, act, st, sid, on){
   toast(on ? '已授權' : '已收回'); loadGrants();
 }
 
+// ========== 活動（近期活動；只有中央；會員專區月計劃表顯示今天起 30 天，所有會員同一份）==========
+const EV_KINDS = ['說明會', '學習會', '大型活動', '實戰班之夜', '學院的課'];
+const WDAY = '日一二三四五六';
+let events = [], evEdit = null;
+const evDate = (d) => { const x = new Date(d + 'T00:00:00Z'); return `${x.getUTCMonth() + 1}/${x.getUTCDate()}（${WDAY[x.getUTCDay()]}）`; };
+async function loadEvents(){
+  const d = await gate('admin_events_list');
+  const pane = document.getElementById('pane');
+  if(!d.ok){ pane.innerHTML = '<div class="empty">' + (d.error === 'forbidden' ? '只有中央能管活動' : '載入失敗') + '</div>'; return; }
+  events = d.events || []; renderEvents(d.today);
+}
+function renderEvents(today){
+  const e = evEdit || {};
+  const up = events.filter(x => x.day >= today), past = events.filter(x => x.day < today);
+  const row = (x) => `<div class="g-row ev-row${x.cancelled ? ' ev-off' : ''}"><span><b>${evDate(x.day)} ${esc(x.time || '')}</b>　${esc(x.kind)}・${esc(x.title)}${x.place ? '・' + esc(x.place) : ''}${x.link ? ' 🔗' : ''}${x.cancelled ? '　（已取消）' : ''}</span>
+      <span class="ev-acts"><button class="btn ev-b" onclick="evEditOpen(${x.id})">修改</button><button class="btn ev-b" onclick="evCopy(${x.id})">複製</button>
+      <button class="btn ${x.cancelled ? 'ok' : 'no'}" onclick="evCancel(${x.id}, ${!x.cancelled})">${x.cancelled ? '恢復' : '取消'}</button></span></div>`;
+  document.getElementById('pane').innerHTML = `
+    <div class="card"><div class="g-person">${e.id ? '✏️ 修改活動' : '➕ 新增活動'}</div>
+      <div class="form">
+        <div class="ev-two"><div><label>日期</label><input type="date" id="ev-day" value="${e.day || ''}"></div><div><label>時間（可空）</label><input type="time" id="ev-time" value="${e.time || ''}"></div></div>
+        <div><label>類別</label><select id="ev-kind">${EV_KINDS.map(k => `<option ${k === e.kind ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+        <div><label>名稱</label><input id="ev-title" maxlength="40" value="${esc(e.title || '')}" placeholder="例：週三說明會"></div>
+        <div><label>地點（可空）</label><input id="ev-place" maxlength="40" value="${esc(e.place || '')}" placeholder="例：台北中山"></div>
+        <div><label>連結（可空，要 https:// 開頭）</label><input id="ev-link" value="${esc(e.link || '')}" placeholder="報名表或活動頁"></div>
+        <div class="ev-two"><button class="btn ok" onclick="evSave(this)">${e.id ? '存修改' : '新增'}</button>${e.id || e.copy ? '<button class="btn ev-b" onclick="evEdit=null; loadEvents()">取消修改</button>' : ''}</div>
+      </div></div>
+    <div class="card"><div class="g-person">今天以後</div>${up.map(row).join('') || '<div class="hint">還沒有排活動</div>'}</div>
+    ${past.length ? `<div class="card"><div class="g-person">過去 7 天</div>${past.map(row).join('')}</div>` : ''}`;
+}
+function evEditOpen(id){ evEdit = {...events.find(x => x.id === id)}; loadEvents(); window.scrollTo(0, 0); }
+function evCopy(id){ const x = events.find(y => y.id === id); evEdit = {...x, id: null, day: '', copy: true}; loadEvents(); window.scrollTo(0, 0); toast('已複製，改日期再按新增'); }
+async function evSave(btn){
+  const v = (id) => document.getElementById(id).value.trim();
+  if(!v('ev-day')) return toast('請選日期'); if(!v('ev-title')) return toast('請填名稱');
+  if(v('ev-link') && !/^https:\/\//.test(v('ev-link'))) return toast('連結要 https:// 開頭');
+  btn.disabled = true;
+  const d = await gate('admin_event_save', {p_id: evEdit && evEdit.id ? evEdit.id : null, p_day: v('ev-day'), p_time: v('ev-time') || null,
+    p_kind: v('ev-kind'), p_title: v('ev-title'), p_place: v('ev-place') || null, p_link: v('ev-link') || null});
+  btn.disabled = false;
+  if(!d.ok){ toast(d.error === 'forbidden' ? '只有中央能管活動' : '存不進去，請檢查欄位'); return; }
+  toast(evEdit && evEdit.id ? '已修改' : '已新增'); evEdit = null; loadEvents();
+}
+async function evCancel(id, on){
+  if(on && !confirm('取消這場活動？會員那邊就不會再看到。（之後可以恢復）')) return;
+  const d = await gate('admin_event_cancel', {p_id: id, p_on: on});
+  if(!d.ok){ toast('操作失敗'); return; } toast(on ? '已取消' : '已恢復'); loadEvents();
+}
+
 // ========== 族譜（推薦線正本；四欄必有：編號、姓名、推薦人編號、推薦人姓名）==========
 let lin = [], linFilter = 'peaks', linQ = '', linEdit = null;
 const CODE_RE = /^[0-9]{7}[A-Z]?$/;   // 共同經營帶英文字尾（例 2828004B）
@@ -366,6 +424,9 @@ function previewInit(){
     {id:'m4', name:'游育杰', code:'2675630', phone:'-', level:1, tenant:'Aplus', joined_at:'2026-06-26', is_central:true},
     {id:'m5', name:'訪客', code:null, phone:'-', level:0, tenant:'魷魚團隊', joined_at:'2026-11-09', can_set_level:true},
   ];
+  const td = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10), ad = (n) => { const x = new Date(td + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const EVT = {today: td, n: 3, list: [{id: 1, day: ad(3), time: '19:30', kind: '說明會', title: '週三說明會', place: '台北中山', link: null, cancelled: false},
+    {id: 2, day: ad(10), time: '14:00', kind: '大型活動', title: '年終表揚大會', place: '台北國際會議中心', link: 'https://example.com', cancelled: false}, {id: 3, day: ad(-2), time: null, kind: '學習會', title: '週日學習會', place: null, link: null, cancelled: false}]};
   window.liff = {getAccessToken: () => 'preview'};
   window.gate = async (fn, args) => {
     if(fn === 'admin_whoami') return {ok:true, is_central:true, me:{name:'預覽：中央'}, grants:[], tenants:T};
@@ -379,6 +440,10 @@ function previewInit(){
       {code:'2675630', name:'游育杰', sponsor_code:'1477169', sponsor_name:'林甘霖', rank:'高峰', peak_core:'5', in_hub:true, chain:{core:'5', via:'游育杰', depth:0}},
       {code:'2828004B', name:'翟元菱', sponsor_code:'1490772', sponsor_name:null, rank:'高峰', peak_core:null, chain:{core:null, broken_at:'1490772', depth:1}},
       {code:'2712345', name:'王小明', sponsor_code:'2675630', sponsor_name:'游育杰', rank:null, peak_core:null, in_hub:true, chain:{core:'5', via:'游育杰', depth:1}}]};
+    if(fn === 'admin_events_list') return {ok:true, today: EVT.today, events: EVT.list.slice().sort((a, b) => a.day.localeCompare(b.day))};
+    if(fn === 'admin_event_save'){ const o = {id: args.p_id || ++EVT.n, day: args.p_day, time: args.p_time, kind: args.p_kind, title: args.p_title, place: args.p_place, link: args.p_link, cancelled: false};
+      const k = EVT.list.findIndex(x => x.id === o.id); if(k >= 0) EVT.list[k] = o; else EVT.list.push(o); return {ok:true, id: o.id}; }
+    if(fn === 'admin_event_cancel'){ const x = EVT.list.find(y => y.id === args.p_id); x.cancelled = !!args.p_on; return {ok:true}; }
     if(fn === 'admin_list_grants') return {ok:true, grants:[
       {member_id:'m3', name:'林珊合', code:'2600001', action:'view', scope_type:'tenant', scope_id:'t1', scope_name:'敬豪團隊'},
       {member_id:'m3', name:'林珊合', code:'2600001', action:'confirm', scope_type:'tenant', scope_id:'t1', scope_name:'敬豪團隊'}]};
