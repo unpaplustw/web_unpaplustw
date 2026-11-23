@@ -39,6 +39,9 @@ const ADMIN: Record<string, Spec> = {
   admin_set_grant:    { id: 'p_caller_line_id', args: ['p_member_id', 'p_action', 'p_scope_type', 'p_scope_id', 'p_on'] },
   admin_list_lineage: { id: 'p_caller_line_id', args: ['p_filter'] },   // 族譜（中央／manage_peaks 權）
   admin_save_lineage: { id: 'p_caller_line_id', args: ['p_member_code', 'p_name', 'p_sponsor_code', 'p_sponsor_name', 'p_peak_core'] },
+  admin_events_list:  { id: 'p_caller_line_id', args: [] },                     // 近期活動（中央，2026-11-23）
+  admin_event_save:   { id: 'p_caller_line_id', args: ['p_id', 'p_day', 'p_time', 'p_kind', 'p_title', 'p_place', 'p_link'] },
+  admin_event_cancel: { id: 'p_caller_line_id', args: ['p_id', 'p_on'] },
 };
 // 首頁註冊（2026-11-12）：登入後後台查不到、或還沒申請過 → 首頁直接填表；不用先加團隊 OA
 const REGISTER: Record<string, Spec> = {
@@ -63,6 +66,7 @@ const ZONE: Record<string, Spec> = {
   book_hide:      { id: 'p_line_user_id', args: ['p_contact_id'] },     // 拿掉＝隱藏，不刪
   zone_org:       { id: 'p_line_user_id', args: [] },                  // 我的組織：族譜下線＋本週三格＋名單本卡住數（2026-11-22）
   close_add:      { id: 'p_line_user_id', args: ['p_contact_id', 'p_code', 'p_sponsor_code', 'p_plan', 'p_size', 'p_product'] },  // 締結：會員編號、推薦人、方案、商品（2026-11-22）
+  events_upcoming: { id: 'p_line_user_id', args: [] },                 // 近期活動：今天起 30 天（2026-11-23）
 };
 const CHANNELS: Record<string, Record<string, Spec>> = { academy: ACADEMY, admin: ADMIN, register: REGISTER, sutra: SUTRA, zone: ZONE };
 
