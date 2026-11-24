@@ -2049,6 +2049,7 @@ async function saveHw(sid, unit, items, ds) {
   const total = u.hw.length;
   const done = u.hw.filter((_, i) => items[String(i + 1)] === true).length;
   const prev = hwMap[sid + '|' + unit];
+  if (prev && JSON.stringify(prev.items || {}) === JSON.stringify(items)) { toast('本來就是這樣，不用改 👍'); return; }   // 2026-11-24 同上：沒改就不記補標
   hwMap[sid + '|' + unit] = { student_id: sid, unit_no: unit, items, done, total };   // 樂觀更新
   renderHw();
   const { error } = await sb.from('homework_checks').upsert({
@@ -2075,6 +2076,8 @@ function setHwAll(sid, unit, val, ds) {
 // 行動週的格子：改「小組心得交了沒」
 async function setDayPost(sid, ds, val) {
   if (notOpenYet(ds)) { toast(openMsg(ds)); return; }
+  // 2026-11-24：按到「本來就是這樣」的那顆不寫入、不記補標——謝譽維教練 11/23 準時標完送出後，回一覽表又按了一次已交，4 格全變紫色「補」
+  if ((engAll[sid + '|' + ds] || {}).homework === val) { toast('本來就是這樣，不用改 👍'); return; }
   const { error } = await sb.from('coach_engagement').upsert({
     batch_id: BATCH_ID, coach_id: coachId, student_id: sid, log_date: ds, homework: val
   }, { onConflict: 'batch_id,student_id,log_date' });
