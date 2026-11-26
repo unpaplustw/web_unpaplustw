@@ -13,7 +13,7 @@ import { TILES, PORTS, SATELLITES, COMPANY, TRAVEL, ORBIT_AFTER_ACTIVITY_MS } fr
 const R1 = 24;                      // 島半徑
 const G1 = 0.95, GH = 3.4;           // 地面／城堡高台高度
 const HILL_R = 8;                    // 城堡高台半徑
-const CASTLE = [0, -10], LEFT = [-12.5, -5], RIGHT = [12.5, -5], FRONT = [0, 3]; // 城堡、左（學院）、右（LINEAI）、前（練功場）
+const CASTLE = [0, -10], LEFT = [-12.5, -5], RIGHT = [12.5, -5], FRONT = [0, 3]; // 城堡、左（學院）、右（LINEAI）、前（鬥獸場）
 const WALL_F = 0.86, WALL_H = 1.4, GATE_HALF = 4.6; // 城牆在島緣的位置、高度、城門（凱旋門）開口半寬
 const PLOT_R = 17.5;                 // 預留空地
 const PLOT_IN = 15.5;                // 空地上的功能區（往城內一點，避開城牆的城塔）
@@ -276,31 +276,52 @@ function buildMagic(k, x, gy, z, rot, mats) {
   return { h: orbY + 1.6, holder, orb, crystals, rings, halo, orbY };
 }
 
-// ── 實戰班：練功場（木人樁、箭靶、兵器架、旗、涼亭）──
+// ── 實戰班：圓形鬥獸場（2026-11-26 Randoph：改成歐洲那種鬥獸場的圓形建築）──
+// 橢圓外牆三層拱廊＋頂層實牆＋金色飾帶；裡面一圈圈看台往下到沙地競技場；前後兩個大門（金框）對著主街；頂上紅金旗
 function buildDojo(k, x, gy, z, rot) {
-  const { P } = B(k, x, gy, z, rot);
-  P(G.box, '#dcc59a', 0, 0.05, 0, 0, 9.4, 0.1, 5.8);
-  for (let i = 0; i < 11; i++) for (const s of [-1, 1]) P(G.box, PAL.wood, -4.7 + i * 0.94, 0.35, s * 2.9, 0, 0.1, 0.6, 0.1);
-  for (let i = 0; i < 6; i++) for (const s of [-1, 1]) if (Math.abs(i - 2.5) > 1) P(G.box, PAL.wood, s * 4.7, 0.35, -2.9 + i * 1.16, 0, 0.1, 0.6, 0.1);
-  for (const s of [-1, 1]) { P(G.box, PAL.wood, 0, 0.55, s * 2.9, 0, 9.4, 0.07, 0.07); }
-  for (let i = 0; i < 4; i++) { // 木人樁
-    const dx = -2.6 + i * 1.7;
-    P(G.cyl8, '#9a6e45', dx, 0.85, -0.6, 0, 0.24, 1.6, 0.24);
-    P(G.box, '#9a6e45', dx, 1.2, -0.6, 0, 1.0, 0.12, 0.12);
-    P(G.sph, '#d9b36a', dx, 1.85, -0.6, 0, 0.42, 0.42, 0.42);
+  const { P, L } = B(k, x, gy, z, rot);
+  const RX = 4.5, RZ = 3.15, N = 28;
+  const pt = (t, f = 1) => [Math.cos(t) * RX * f, Math.sin(t) * RZ * f];
+  const cyl32 = new THREE.CylinderGeometry(0.5, 0.5, 1, 40);
+  // 裡面：看台一圈圈往下（顏色交替），最中間沙地
+  const ring = (ri, ro, h) => new THREE.LatheGeometry([[ri, 0], [ri, h], [ro, h], [ro, 0]].map(([a, b]) => new THREE.Vector2(a, b)), 40);
+  [[0.5, 0.57, 1.05, '#ddcfb2'], [0.57, 0.66, 1.7, PAL.stone], [0.66, 0.75, 2.35, '#ddcfb2'], [0.75, 0.84, 3.0, PAL.stone], [0.84, 0.95, 3.55, '#a39478']].forEach(([ri, ro, h, c]) =>
+    P(ring(ri, ro, h), c, 0, 0, 0, 0, RX, 1, RZ));
+  P(cyl32, '#e6cf98', 0, 0.62, 0, 0, RX * 2 * 0.5, 0.12, RZ * 2 * 0.5);   // 沙地
+  P(cyl32, '#d2b77f', 0, 0.69, 0, 0, 1.0, 0.03, 0.7);                       // 沙地中央的圈
+  // 外牆：三層拱廊（柱墩＋拱圈＋每層簷口），開口在 2πi/N，柱墩在中間
+  const TIERS = [[0, 1.25], [1.37, 2.45], [2.57, 3.55]];
+  for (let i = 0; i < N; i++) {
+    const t0 = (i / N) * Math.PI * 2, t1 = ((i + 1) / N) * Math.PI * 2, tp = t0 + Math.PI / N;
+    const [x0, z0] = pt(t0), [x1, z1] = pt(t1), [px, pz] = pt(tp);
+    const cl = Math.hypot(x1 - x0, z1 - z0), ca = Math.atan2(-(z1 - z0), x1 - x0);
+    const tx = -Math.sin(tp) * RX, tz = Math.cos(tp) * RZ, pa = Math.atan2(-tz, tx);
+    const gate = i === 7 || i === 21;                                        // 正前、正後的大門（對著主街）
+    const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+    TIERS.forEach(([y0, y1], j) => {
+      P(G.box, PAL.white, px, (y0 + y1) / 2, pz, pa, cl * 0.36, y1 - y0, 0.5);           // 柱墩
+      P(G.box, PAL.stoneShade, mx, y1 + 0.06, mz, ca, cl * 1.04, 0.13, 0.62);           // 簷口
+    });
+    // 每個開口的拱圈（相鄰兩個柱墩中間），大門那格用金色
+    const [ax, az] = pt(t0), aw = cl * 0.32;
+    TIERS.forEach(([y0, y1], j) => P(new THREE.TorusGeometry(aw, 0.09, 4, 10, Math.PI), (gate && j === 0) ? PAL.gold : PAL.white, ax, y1 - aw - 0.02, az, ca));
+    // 頂層實牆＋小方窗
+    P(G.box, PAL.white, mx, 4.0, mz, ca, cl * 1.02, 0.8, 0.46);
+    if (i % 2 === 0) { const [wx, wz] = pt(t0, 1.03); P(G.box, PAL.window, wx, 4.0, wz, ca, 0.22, 0.26, 0.04); }
+    P(G.box, PAL.gold, mx, 4.46, mz, ca, cl * 1.05, 0.14, 0.52);                        // 金色飾帶
+    if (i % 4 === 1) { const [fx, fz] = pt(tp); P(G.cyl6, '#5a5348', fx, 5.0, fz, 0, 0.05, 1.1, 0.05); P(G.box, i % 8 === 1 ? '#c9784f' : PAL.gold, fx + 0.25, 5.35, fz, 0, 0.5, 0.32, 0.03); } // 旗
   }
-  for (const s of [-1, 1]) { // 箭靶
-    const tx = s * 3.4, tz = -2.0;
-    P(G.cyl6, PAL.wood, tx, 0.7, tz - 0.2, 0, 0.08, 1.4, 0.08, 0.3);
-    [['#ffffff', 1.1], ['#c9784f', 0.8], ['#ffffff', 0.5], ['#d9b84a', 0.25]].forEach(([c, d], j) => P(G.cyl16, c, tx, 1.1, tz + j * 0.012, 0, d, 0.06, d, Math.PI / 2));
+  // 大門：外面加一道金色拱框＋門楣圓章
+  for (const s of [-1, 1]) {
+    const gz = s * (RZ + 0.3);
+    P(G.box, PAL.stone, -0.85, 0.75, gz, 0, 0.35, 1.5, 0.3); P(G.box, PAL.stone, 0.85, 0.75, gz, 0, 0.35, 1.5, 0.3);
+    P(new THREE.TorusGeometry(0.85, 0.1, 6, 16, Math.PI), PAL.gold, 0, 1.5, gz);
+    P(G.cyl16, PAL.goldBright, 0, 4.0, s * (RZ + 0.26), 0, 0.55, 0.05, 0.55, Math.PI / 2);
+    L(0, 4.0, s * (RZ + 0.5), 1.2);
   }
-  P(G.box, PAL.wood, 1.2, 0.9, 1.9, 0, 2.2, 0.1, 0.1); P(G.box, PAL.wood, 1.2, 0.4, 1.9, 0, 2.2, 0.1, 0.1); // 兵器架
-  for (let i = 0; i < 4; i++) { P(G.cyl6, '#7a5636', 0.4 + i * 0.5, 1.0, 1.95, 0, 0.05, 2.0, 0.05, -0.12); P(G.cone6, '#c0c4cc', 0.4 + i * 0.5 - 0.12, 2.05, 1.95, 0, 0.14, 0.3, 0.14); }
-  for (const s of [-1, 1]) { P(G.cyl6, '#5a5348', s * 4.2, 1.6, 2.5, 0, 0.07, 3.2, 0.07); P(G.box, s < 0 ? '#c9784f' : PAL.gold, s * 4.2 + 0.4, 2.85, 2.5, 0, 0.8, 0.5, 0.04); }
-  for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P(G.cyl6, '#a2593e', -3.6 + a * 0.7, 0.9, 1.3 + b * 0.6, 0, 0.1, 1.8, 0.1); // 涼亭
-  P(new THREE.ConeGeometry(0.5, 1, 4), '#a2593e', -3.6, 2.2, 1.3, Math.PI / 4, 2.6, 0.9, 2.2);
-  return 3.4;
+  return 5.6;
 }
+
 
 // ── 凱旋門（城門）：白色石造大拱門＋金色飾帶 ──
 function buildGate(k, x, gy, z, rot) {
@@ -1190,7 +1211,7 @@ function buildCity(mats) {
   placed.push({ x: CASTLE[0], z: CASTLE[1], r: HILL_R + 0.6 });
   lineBlock(0, hillFront - 1, 0, hillFront + 2, 2);
 
-  // ── 學院（左）、魔法塔（右）、練功場（前）──
+  // ── 學院（左）、魔法塔（右）、鬥獸場（前）──
   const academy = buildAcademy(k, LEFT[0], G1, LEFT[1], 0.35);
   placed.push({ x: LEFT[0], z: LEFT[1] - 1.5, r: 4.8 }, { x: LEFT[0] + 1.0, z: LEFT[1] + 2.6, r: 4.4 });
   const magic = buildMagic(k, RIGHT[0], G1, RIGHT[1], -0.35, mats);
@@ -1199,7 +1220,7 @@ function buildCity(mats) {
   const dojoH = buildDojo(k, FRONT[0], G1, FRONT[1], 0);
   placed.push({ x: FRONT[0] - 2.4, z: FRONT[1], r: 3.6 }, { x: FRONT[0] + 2.4, z: FRONT[1], r: 3.6 });
 
-  // ── 主街道（城門 → 練功場 → 城堡）＋橫街 ──
+  // ── 主街道（城門 → 鬥獸場 → 城堡）＋橫街 ──
   stripLine(k, 0, gateZ - 1, 0, FRONT[1] + 3.2, 2.6, G1 + 0.03, PAL.path);
   stripLine(k, 0, FRONT[1] - 3.2, 0, hillFront + 1.6, 2.6, G1 + 0.03, PAL.path);
   lineBlock(0, gateZ - 1, 0, FRONT[1] + 3.2, 1.8);
