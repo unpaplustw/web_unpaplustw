@@ -124,6 +124,16 @@ body::before{
     50%    {box-shadow:0 6px 30px rgba(184,150,12,.62)}
   }
   @media (prefers-reduced-motion:reduce){.nav-card.enroll{animation:none}}
+  /* 📊 學員回報（2026-11-27 Randoph：「按鈕顏色調整，方便學員按，最好就點特效」）：沿用報名簡章的實心金＋脈動，
+     再加一道金光掃過＋按下去縮一下。主題色不換（米白金），只加動效 */
+  .nav-card.enroll.report{position:relative;overflow:hidden}
+  .nav-card.enroll.report::after{content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-18deg);
+    animation:reportShine 3.2s ease-in-out infinite;pointer-events:none}
+  @keyframes reportShine{0%,55%{left:-60%}100%{left:130%}}
+  .nav-card.enroll.report:active{transform:scale(.96);transition:transform .08s}
+  .nav-card.enroll.report .nav-title{font-size:18px}
+  @media (prefers-reduced-motion:reduce){.nav-card.enroll.report::after{animation:none;display:none}}
 </style>
 </head>
 <body>
@@ -225,10 +235,10 @@ body::before{
       </div>
       <div class="nav-arrow">›</div>
     </a>
-    <a class="nav-card" href="daily.html">
+    <a class="nav-card enroll report" href="daily.html">
       <div class="nav-icon">📊</div>
       <div class="nav-info">
-        <div class="nav-title">學員回報</div>
+        <div class="nav-title">學員回報<span class="enroll-tag">👆 點我回報</span></div>
         <div class="nav-desc">今天的課程、行動量與締結紀錄</div>
       </div>
       <div class="nav-arrow">›</div>
