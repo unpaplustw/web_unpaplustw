@@ -188,7 +188,7 @@ function renderMembers(){
   const kw = q.trim();
   const list = kw ? rows.filter(m => [m.name, m.code, m.phone, m.tenant, m.peak_leader, m.sponsor_name, m.sponsor_code].some(x => String(x || '').includes(kw))) : rows;
   const tip = cur === 'pending'
-    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後的等級看他選的負責高峰領袖</b>：A Plus 五組 CFC 底下的領袖 → VVIP；合作領袖或「不在名單上」→ VIP（判錯了到「已通過」用下拉改）。通過後學院新手村會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
+    ? '<div class="note">待審＝填了會員編號、還沒通過的人。<b>通過後的等級看他選的負責高峰領袖</b>：A Plus 五組 CFC 底下的領袖 → VVIP；合作領袖或「不在名單上」→ VIP（判錯了到「已通過」用下拉改）。通過後學院會直接打開。<br>OA 管理員目前可以「退回」；「第一段確認」的按鈕下一步加上。</div>' : '';
   pane.innerHTML = tip + `<input class="search" placeholder="搜尋姓名、編號、高峰領袖、推薦人、團隊" value="${esc(q)}" oninput="q=this.value;renderMembers()">`
     + (list.length ? list.map(card).join('') : '<div class="empty">沒有資料</div>');
 }
