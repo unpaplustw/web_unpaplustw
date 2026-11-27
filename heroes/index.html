@@ -612,7 +612,7 @@ async function showDetail(k) {
   if (ms.length) {
     html += `<p class="sec">成就歷程</p><div class="tl" id="tl">` + ms.map((m, i) => `
       <div class="tli"><div class="tlrail"><div class="dot"></div>${i < ms.length - 1 ? '<div class="rail"></div>' : ""}</div>
-        <div class="tlbody"><h4>${esc(BADGE_ALIAS[m.b] || m.b)}</h4>${m.c ? `<p>${esc(m.c)}</p>` : ""}<p>${esc([m.when, m.src].filter(Boolean).join(" · "))}</p></div></div>`).join("") + `</div>`;
+        <div class="tlbody"><h4>${esc(m.lb || BADGE_ALIAS[m.b] || m.b)}</h4>${m.c ? `<p>${esc(m.c)}</p>` : ""}<p>${esc([m.when, m.src].filter(Boolean).join(" · "))}</p></div></div>`).join("") + `</div>`;
   }
   document.getElementById("profile").innerHTML = html;
   setSpeak(d);
