@@ -89,6 +89,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .hw ol{padding-left:20px}
 .hw li{font-size:18px;color:var(--txt);margin-bottom:12px;line-height:1.65}
 .hw .none{font-size:17px;color:var(--txt2)}
+.hw .btn.sec{margin-top:4px}
 
 #toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:13px 20px;border-radius:12px;font-size:16px;z-index:99;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 #toast.show{opacity:1}
@@ -281,6 +282,23 @@ function goVillage(){ renderVillage(); go('home'); }
 
 // 練習題原文開頭有編號（"09."），清單自己會編號 → 去掉重複的
 function stripNo(t){ return String(t).replace(/^\d+\.\s*/, ''); }
+// 練習題清單＋複製鈕（Randoph 2026-11-27：一鍵複製標題和題目，貼到 LINE 給領袖）
+let hwCopyText = '';
+function renderHw(list){
+  const box = document.getElementById('homework');
+  if(!list.length){ box.innerHTML = '<div class="none">這一課沒有指定作業。</div>'; hwCopyText = ''; return; }
+  const title = document.getElementById('lesson-title').textContent;
+  hwCopyText = `【${title}】練習題\n` + list.map((h, i) => `${i + 1}. ${stripNo(h)}`).join('\n');
+  box.innerHTML = '<ol>' + list.map(h => `<li>${esc(stripNo(h))}</li>`).join('') + '</ol>'
+    + '<button class="btn sec" type="button" onclick="copyHw()">📋 複製練習題</button>';
+}
+async function copyHw(){
+  let ok = false;
+  try { await navigator.clipboard.writeText(hwCopyText); ok = true; } catch(e) {}
+  if(!ok){ const t = document.createElement('textarea'); t.value = hwCopyText; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.append(t); t.select(); t.setSelectionRange(0, t.value.length); try { ok = document.execCommand('copy'); } catch(e) {} t.remove(); }
+  toast(ok ? '已複製，可以貼到 LINE 給領袖' : '複製沒成功，請長按題目自己複製');
+}
 
 // ========== 單課（video_id 只有這裡拿得到）==========
 async function openLesson(id){
@@ -316,9 +334,7 @@ async function openLesson(id){
   }
 
   const hw = Array.isArray(l.homework) ? l.homework : [];
-  document.getElementById('homework').innerHTML = hw.length
-    ? '<ol>' + hw.map(h => `<li>${esc(stripNo(h))}</li>`).join('') + '</ol>'
-    : '<div class="none">這一課沒有指定作業。</div>';
+  renderHw(hw);
   document.querySelector('#screen-lesson .hw-intro').style.display = hw.length ? '' : 'none';
 
   // 看過紀錄：Vimeo 播到 9 成算看過；沒有影片的單元點進來就算
@@ -344,8 +360,7 @@ function previewInit(){
     document.getElementById('lesson-title').textContent = pad2(sv.no) + ' ' + sv.title;
     document.getElementById('player').innerHTML =
       '<div class="noplay">預覽模式不載入影片</div><div class="mark">NP000000</div>';
-    document.getElementById('homework').innerHTML =
-      '<ol><li>說出3個傳直銷的優勢。【錄音1分鐘內】</li><li>這個單元對我的幫助？【錄音1分鐘內】</li></ol>';
+    renderHw(['說出3個傳直銷的優勢。【錄音1分鐘內】', '這個單元對我的幫助？【錄音1分鐘內】']);
     go('lesson'); renderNext(id);
   };
 }
