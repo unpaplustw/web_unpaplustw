@@ -857,7 +857,7 @@ vals.ghosted = 0;   // 2026-11-08 拿掉放鴿子：欄位還在（舊期資料�
 vals.attended = 0;  // 2026-11-10 赴約：由「見到了嗎？」回答產生，不是計數器（＝names.attended 人數）
 // 🗓️ 月計劃表：點了才載圖（不點不花流量），同一頁放大看、長按存相簿
 const PLAN_TIP = { ex: '這是填好的樣子：每天早中晚寫要做的事，<br>說明會、團隊聚會、作戰會議用色塊標出來', print: '長按圖片 → 存到相簿，再拿去印<br>印的時候選「A4 橫式」或「符合頁面」' };
-function openPlan(f, kind) { const v = document.getElementById('planView'); document.getElementById('planImg').src = f + '?v=20261122'; document.getElementById('planTip').innerHTML = PLAN_TIP[kind || 'print']; v.style.display = 'flex'; }
+function openPlan(f, kind) { const v = document.getElementById('planView'); document.getElementById('planImg').src = f + '?v=20261128'; document.getElementById('planTip').innerHTML = PLAN_TIP[kind || 'print']; v.style.display = 'flex'; }
 function closePlan() { document.getElementById('planView').style.display = 'none'; }
 
 // ══ 名單本（2026-11-08 Randoph）══════════════════════════════════════════
