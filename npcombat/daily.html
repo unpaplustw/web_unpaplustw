@@ -861,9 +861,9 @@ vals.attended = 0;  // 2026-11-10 赴約：由「見到了嗎？」回答產生�
 const PLAN_TIP = { ex: '這是填好的樣子：每天早中晚寫要做的事，<br>說明會、團隊聚會、作戰會議用色塊標出來', print: '長按圖片 → 存到相簿，再拿去印<br>印的時候選「A4 橫式」或「符合頁面」' };
 function openPlan(f, kind) { const v = document.getElementById('planView'); document.getElementById('planImg').src = f + '?v=20261128'; document.getElementById('planTip').innerHTML = PLAN_TIP[kind || 'print']; v.style.display = 'flex'; }
 function closePlan() { document.getElementById('planView').style.display = 'none'; const pv = document.getElementById('planVid'); pv.innerHTML = ''; pv.style.display = 'none'; document.getElementById('planImg').style.display = ''; }
-// ▶ 教學影片（2026-11-28 YouTube 不公開 VcchYza5IsQ）：同一個放大視窗裡播，關掉就停
+// ▶ 教學影片（2026-11-28 YouTube 不公開 BNvY7k_47ds）：同一個放大視窗裡播，關掉就停
 function openPlanVideo() { const pv = document.getElementById('planVid'); document.getElementById('planImg').style.display = 'none';
-  pv.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/VcchYza5IsQ?autoplay=1&playsinline=1&rel=0" title="月計劃表怎麼用" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+  pv.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/BNvY7k_47ds?autoplay=1&playsinline=1&rel=0" title="月計劃表怎麼用" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
   pv.style.display = 'block'; document.getElementById('planTip').innerHTML = '月計劃表怎麼排、怎麼記，2 分鐘看完'; document.getElementById('planView').style.display = 'flex'; }
 
 // ══ 名單本（2026-11-08 Randoph）══════════════════════════════════════════
