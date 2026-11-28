@@ -67,6 +67,11 @@
   .wk tr.today td { background: var(--gold-soft) }
   .wk .by { display: block; font-size: 12px; color: var(--muted) }
   .wk tr.sum td { font-weight: 800; border-top: 2px solid var(--gold) }
+  /* ▶ 教學影片（2026-11-28 YouTube 不公開 VcchYza5IsQ）：先只放按鈕，點了才載影片（省流量、不跳頁） */
+  .vbtn { display: block; width: 100%; margin-top: 14px; padding: 15px 16px; border-radius: 14px; border: 0; background: #c45c5c; color: #fff; font-size: 19px; font-weight: 800; font-family: inherit; cursor: pointer }
+  .vbtn small { display: block; font-size: 14px; font-weight: 400; opacity: .9 }
+  .vbox { margin: 14px auto 0; width: 100%; max-width: 360px; aspect-ratio: 9 / 16; border-radius: 14px; overflow: hidden; background: #000 }
+  .vbox iframe { width: 100%; height: 100%; border: 0; display: block }
   .dl { display: block; margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1.5px solid var(--gold); color: var(--gold); font-size: 18px; font-weight: 800; text-align: center; text-decoration: none }
   .dl small { display: block; font-size: 14px; font-weight: 400; color: var(--muted) }
   details.how { margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px }
@@ -207,7 +212,8 @@
       <table class="wk"><thead><tr><th style="width:30%"></th><th>有效</th><th>行動</th><th>締結</th></tr></thead><tbody id="wk"></tbody></table>
     </div>
 
-    <a class="dl" href="plan-v9.pdf" download="月計劃表.pdf">⬇ 下載紙本月計劃表（自己印）<small>A4 橫式・正反兩面・一張兩週</small></a>
+    <button type="button" class="vbtn" onclick="playHowto(this)">▶ 看教學影片：月計劃表怎麼用<small>2 分鐘・點了直接在這裡播</small></button>
+  <a class="dl" href="plan-v9.pdf" download="月計劃表.pdf">⬇ 下載紙本月計劃表（自己印）<small>A4 橫式・正反兩面・一張兩週</small></a>
 
     <details class="how"><summary>怎麼填？</summary>
       <p style="margin-top:8px"><b>紙本只做一件事：把時間先留給能達成目標的事。</b></p>
@@ -665,6 +671,12 @@
   }
   boot();
 })();
+</script>
+<script>
+// ▶ 教學影片：點了才把按鈕換成影片（YouTube 不公開，只有這裡看得到）
+function playHowto(btn) { const box = document.createElement('div'); box.className = 'vbox';
+  box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/VcchYza5IsQ?autoplay=1&playsinline=1&rel=0" title="月計劃表怎麼用" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+  btn.replaceWith(box); }
 </script>
 </body>
 </html>

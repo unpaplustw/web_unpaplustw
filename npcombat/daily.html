@@ -373,6 +373,8 @@
   .planCard .pc-t{font-size:17px;font-weight:700;color:var(--gold)}  .planCard .pc-s{font-size:13px;color:#8c8577;margin-top:2px}
   .planCard .pc-b{display:flex;gap:10px;margin-top:10px}
   .planCard .pc-b button{flex:1;font-size:17px;font-weight:700;padding:12px 0;border-radius:12px;border:1.5px solid var(--gold);background:var(--gold-lt);color:#7a6200}
+  .planCard .pc-ex.pc-vid{background:#c45c5c;border:0;color:#fff}
+  #planVid{width:min(100%,360px);aspect-ratio:9/16;max-height:72vh;border-radius:12px;overflow:hidden;background:#000;display:none}  #planVid iframe{width:100%;height:100%;border:0;display:block}
   .planCard .pc-ex{display:block;width:100%;margin-top:10px;font-size:16px;font-weight:700;padding:11px 0;border-radius:12px;border:1.5px dashed var(--gold);background:#fff;color:#7a6200}
   .plan-ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
   .plan-ov img{max-width:100%;max-height:70vh;background:#fff;border-radius:6px;-webkit-touch-callout:default}
@@ -607,8 +609,8 @@
   </div>
 </div>
 </div><!-- /pgReport -->
-<div id="pgBook"><div class="planCard"><div class="pc-t">🗓️ 月計劃表（印出來用）</div><div class="pc-s">整月版：月初排大事　每週版：每小時排細節</div><div class="pc-b"><button type="button" onclick="openPlan('plan-month.jpg')">整月版</button><button type="button" onclick="openPlan('plan-week.png')">每週版</button></div><button type="button" class="pc-ex" onclick="openPlan('plan-month-example.jpg', 'ex')">👀 看範例：填好的整月版長這樣</button></div><div id="bookArea" style="display:none"></div></div>
-<div class="plan-ov" id="planView" style="display:none" onclick="closePlan()"><img id="planImg" alt="月計劃表" onclick="event.stopPropagation()"><div class="pv-tip" id="planTip">長按圖片 → 存到相簿，再拿去印<br>印的時候選「A4 橫式」或「符合頁面」</div><button type="button" onclick="closePlan()">關閉</button></div>
+<div id="pgBook"><div class="planCard"><div class="pc-t">🗓️ 月計劃表（印出來用）</div><div class="pc-s">整月版：月初排大事　每週版：每小時排細節</div><div class="pc-b"><button type="button" onclick="openPlan('plan-month.jpg')">整月版</button><button type="button" onclick="openPlan('plan-week.png')">每週版</button></div><button type="button" class="pc-ex" onclick="openPlan('plan-month-example.jpg', 'ex')">👀 看範例：填好的整月版長這樣</button><button type="button" class="pc-ex pc-vid" onclick="openPlanVideo()">▶ 看教學影片（2 分鐘）</button></div><div id="bookArea" style="display:none"></div></div>
+<div class="plan-ov" id="planView" style="display:none" onclick="closePlan()"><img id="planImg" alt="月計劃表" onclick="event.stopPropagation()"><div id="planVid" onclick="event.stopPropagation()"></div><div class="pv-tip" id="planTip">長按圖片 → 存到相簿，再拿去印<br>印的時候選「A4 橫式」或「符合頁面」</div><button type="button" onclick="closePlan()">關閉</button></div>
 </div><!-- /actionPane -->
 
 <div class="ft">實戰班委員會<br><span id="verTag" style="font-size:10px;opacity:.45"></span></div>
@@ -858,7 +860,11 @@ vals.attended = 0;  // 2026-11-10 赴約：由「見到了嗎？」回答產生�
 // 🗓️ 月計劃表：點了才載圖（不點不花流量），同一頁放大看、長按存相簿
 const PLAN_TIP = { ex: '這是填好的樣子：每天早中晚寫要做的事，<br>說明會、團隊聚會、作戰會議用色塊標出來', print: '長按圖片 → 存到相簿，再拿去印<br>印的時候選「A4 橫式」或「符合頁面」' };
 function openPlan(f, kind) { const v = document.getElementById('planView'); document.getElementById('planImg').src = f + '?v=20261128'; document.getElementById('planTip').innerHTML = PLAN_TIP[kind || 'print']; v.style.display = 'flex'; }
-function closePlan() { document.getElementById('planView').style.display = 'none'; }
+function closePlan() { document.getElementById('planView').style.display = 'none'; const pv = document.getElementById('planVid'); pv.innerHTML = ''; pv.style.display = 'none'; document.getElementById('planImg').style.display = ''; }
+// ▶ 教學影片（2026-11-28 YouTube 不公開 VcchYza5IsQ）：同一個放大視窗裡播，關掉就停
+function openPlanVideo() { const pv = document.getElementById('planVid'); document.getElementById('planImg').style.display = 'none';
+  pv.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/VcchYza5IsQ?autoplay=1&playsinline=1&rel=0" title="月計劃表怎麼用" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+  pv.style.display = 'block'; document.getElementById('planTip').innerHTML = '月計劃表怎麼排、怎麼記，2 分鐘看完'; document.getElementById('planView').style.display = 'flex'; }
 
 // ══ 名單本（2026-11-08 Randoph）══════════════════════════════════════════
 //  人＝contacts（一人一筆）｜事＝action_logs.names {行動欄位:[contact id]}｜進度＝用算的，不存。
